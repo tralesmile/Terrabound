@@ -1,0 +1,22 @@
+{
+  "name": "terrabound",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Terrabound: a 2D futuristic dig, automate and survive roguelite for web and mobile.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "node e2e/smoke.mjs",
+    "check": "npm run typecheck && npm run test && npm run build && npm run e2e"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "playwright-core": "^1.65.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.7",
+    "vitest": "^5.1.0"
+  }
+}
