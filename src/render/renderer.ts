@@ -1,5 +1,6 @@
 import type { Game } from '../sim/game';
 import { REACH } from '../sim/game';
+import { ENEMIES } from '../sim/enemies';
 import { hash2 } from '../sim/rng';
 import { T } from '../sim/tiles';
 import { BODY_H } from '../sim/physics';
@@ -150,6 +151,32 @@ export class Renderer {
       ctx.stroke();
       ctx.strokeStyle = 'rgba(200,255,255,0.9)';
       ctx.lineWidth = scale * 0.6;
+      ctx.stroke();
+    }
+    for (const e of game.enemies) {
+      const d = ENEMIES[e.kind];
+      const ex = this.sx(e.x, shakeX);
+      const ey = this.sy(e.y, shakeY);
+      const w = d.halfW * 2 * ts;
+      const h = d.h * ts;
+      ctx.fillStyle = e.iframes > 0 ? '#ffffff' : d.flying ? '#b04aff' : '#d9663a';
+      ctx.fillRect(ex - w / 2, ey - h, w, h);
+      ctx.fillStyle = '#1a0f10';
+      ctx.fillRect(ex + e.dir * w * 0.15 - w * 0.12, ey - h * 0.7, w * 0.24, h * 0.22);
+      if (e.hp < d.hp) {
+        ctx.fillStyle = '#300';
+        ctx.fillRect(ex - w / 2, ey - h - 4 * scale, w, 2 * scale);
+        ctx.fillStyle = '#6f6';
+        ctx.fillRect(ex - w / 2, ey - h - 4 * scale, (w * Math.max(0, e.hp)) / d.hp, 2 * scale);
+      }
+    }
+    if (game.swing > 0) {
+      const k = 1 - game.swing / 0.18;
+      ctx.strokeStyle = `rgba(120,255,255,${1 - k})`;
+      ctx.lineWidth = scale * 2;
+      ctx.beginPath();
+      const a0 = game.facing > 0 ? -1.2 + k * 2.2 : Math.PI + 1.2 - k * 2.2;
+      ctx.arc(px, py - 12 * scale, 2 * ts * 0.9, a0 - 0.5, a0 + 0.1);
       ctx.stroke();
     }
     drawPlayer(ctx, px, py, scale, {

@@ -10,7 +10,8 @@ export type UiAction =
   | { k: 'mute' }
   | { k: 'buy'; id: string }
   | { k: 'dive' }
-  | { k: 'sel'; i: number };
+  | { k: 'sel'; i: number }
+  | { k: 'tool' };
 
 interface Rect {
   x: number;
@@ -192,7 +193,7 @@ export class UI {
     // Contextual warnings and first-minute hints.
     if (low && !game.isAtBase() && Math.floor(time * 2.5) % 2 === 0) this.text(ctx, 'BATTERY LOW - RETURN TO THE PAD', w / 2, h * 0.2, Math.round(u * 1.2), '#ff9a3c', 'center', w - u * 2);
     if (game.stats.playTime < 40) {
-      const hint = this.touch ? 'Left thumb: move, drag up to jump. Right side: dig.' : 'A/D move, W jump. Hold click to dig, right click to build. Return to the pad to bank loot.';
+      const hint = this.touch ? 'Left thumb: move, drag up to jump. Right side: dig.' : 'A/D move, W jump. Hold click to dig, right click to build, Q drill or blade. Return to the pad to bank loot.';
       this.text(ctx, hint, w / 2, h - u * 0.7, Math.round(u * 0.75), '#c9d0e4', 'center', w - u * 2);
     }
   }

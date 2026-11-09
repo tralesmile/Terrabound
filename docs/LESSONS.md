@@ -8,3 +8,5 @@
 - **`gh` auth may be broken.** Use plain `git push`; do not rely on PRs.
 - **Typecheck with `@types/node`** is required for tests that use Buffer; `types` in tsconfig lists it.
 - **Commit after every green slice** so a usage-limit stop never loses work.
+- **Branch setup:** a fresh clone is on `main`; the runbook's `git checkout dev` fails until `git checkout -b dev origin/dev`. Use that.
+- **Tool names are case-sensitive** (`Bash`, not `bash`).

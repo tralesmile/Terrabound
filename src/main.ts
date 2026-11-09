@@ -82,6 +82,10 @@ function boot(): void {
           saveNow();
         }
         break;
+      case 'tool':
+        game.toggleTool();
+        ui.toast(game.tool === 'blade' ? 'Energy blade' : 'Mining drill', '#36e0e8');
+        break;
       case 'sel':
         game.selectPlaceable(a.i);
         break;
@@ -96,6 +100,14 @@ function boot(): void {
       case 'break':
         fx.burst(e.x + 0.5, e.y + 0.5, TILE_COLORS[e.tile] ?? '#888', 10, 5);
         fx.addShake(0.12);
+        break;
+      case 'enemyhit':
+        fx.burst(e.x, e.y, '#ffd24a', 6, 5);
+        fx.text(e.x, e.y - 0.5, String(e.dmg), '#ffd24a');
+        fx.addShake(0.2);
+        break;
+      case 'enemykill':
+        fx.burst(e.x, e.y, '#ff7a5a', 14, 6);
         break;
       case 'pickup':
         fx.text(e.x + 0.5, e.y, `+1 ${ITEMS[e.item].name}`, ITEMS[e.item].color);

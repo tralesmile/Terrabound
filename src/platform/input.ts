@@ -37,6 +37,7 @@ export class Input {
         this.onAction({ k: this.ui.shopOpen ? 'close' : 'shop' });
       } else if (e.code === 'KeyM') this.onAction({ k: 'mute' });
       else if (e.code === 'Escape') this.onAction({ k: 'close' });
+      else if (e.code === 'KeyQ') this.onAction({ k: 'tool' });
       else if (e.code === 'Digit1') this.onAction({ k: 'sel', i: 0 });
       else if (e.code === 'Digit2') this.onAction({ k: 'sel', i: 1 });
       else if (this.ui.screen === 'title') this.onAction({ k: 'start' });

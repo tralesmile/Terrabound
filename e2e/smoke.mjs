@@ -151,6 +151,27 @@ try {
   check('dying is handled and a new dive begins', deaths === 1 && (await page.evaluate(() => window.__terrabound.game.isAtBase())));
   await page.screenshot({ path: path.join(out, '04-after-death.png') });
 
+  // Q swaps drill/blade; an enemy placed beside the player gets hurt by a blade swing.
+  await page.keyboard.press('KeyQ');
+  check('Q selects the blade', (await page.evaluate(() => window.__terrabound.game.tool)) === 'blade');
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.body.y = g.world.padY + 30;
+    for (let dy = -3; dy <= 0; dy++) for (let dx = -4; dx <= 4; dx++) g.world.set(Math.floor(g.body.x) + dx, Math.floor(g.body.y) + dy, 0);
+    for (let dx = -4; dx <= 4; dx++) g.world.set(Math.floor(g.body.x) + dx, Math.floor(g.body.y), 1);
+    g.body.y = Math.floor(g.body.y);
+    g.facing = 1;
+    g.enemies = [{ id: 1, kind: 'crawler', x: g.body.x + 1.3, y: g.body.y - 0.01, vx: 0, vy: 0, hp: 24, dir: 1, iframes: 0, age: 0, phase: 0 }];
+  });
+  await page.mouse.move(700, 300);
+  await page.mouse.down();
+  await page.waitForTimeout(300);
+  await page.mouse.up();
+  const hurt = await page.evaluate(() => window.__terrabound.game.enemies.every((e) => e.hp < 24));
+  check('blade swing damages an enemy', hurt);
+  await page.screenshot({ path: path.join(out, '05-blade.png') });
+  await page.keyboard.press('KeyQ');
+
   // Let it run a few seconds idle to catch loop errors.
   await page.waitForTimeout(2000);
   check('no console or page errors on desktop', errors.length === 0, errors.join(' | '));

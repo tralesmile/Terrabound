@@ -17,9 +17,11 @@ Rule: ship small vertical slices. Each item needs tests. Keep the game playable 
 ## P1 Combat and survival (M1)
 
 - [ ] Tool and weapon slots: hotbar with Drill, Blade, Pistol, Rust, Metal; click uses the selected tool; touch quick-slots
-- [ ] Enemy framework (data-driven, deterministic AI with seeded RNG): Crawler (ground patrol), Flyer (sine hover); knockback, contact damage, i-frames, death drops
-- [ ] Energy blade (arc swing) and pulse pistol (projectile with sweep collision); hit-stop and damage numbers
-- [ ] Enemy spawning by depth and light (never inside walls or on the player); tests over many seeds
+- [x] Enemy framework (data-driven, deterministic AI with seeded RNG): Crawler (ground patrol), Flyer (sine hover); knockback, contact damage, i-frames, death drops (src/sim/enemies.ts)
+- [x] Energy blade (Q toggles drill/blade; arc swing, damage numbers)
+- [ ] Pulse pistol (projectile with sweep collision); hit-stop
+- [x] Enemy spawning by depth (never inside walls or near the player; 25-seed test)
+- [ ] Spawning also by light level
 - [ ] Hazards: drip acid tiles, falling debris with telegraph, gas pockets
 - [ ] Torches (craftable) that push back darkness; suit lamp upgrade
 - [ ] Crafting at the base Fabricator: recipes table, UI list; scaffold, ladder, torch, plate

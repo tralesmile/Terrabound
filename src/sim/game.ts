@@ -1,4 +1,5 @@
-import { mixSeed } from './rng';
+import { mixSeed, mulberry32 } from './rng';
+import { ENEMIES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, stepEnemy } from './enemies';
 import { type Body, moveX, moveY, probeGround, unstick, BODY_H, HALF_W } from './physics';
 import { defaultSave, type SaveData } from './save';
 import {
@@ -49,7 +50,17 @@ export type GameEvent =
   | { t: 'land'; speed: number }
   | { t: 'lowbattery' }
   | { t: 'upgrade'; id: string }
-  | { t: 'newdive' };
+  | { t: 'newdive' }
+  | { t: 'swing'; dir: number }
+  | { t: 'enemyhit'; x: number; y: number; dmg: number }
+  | { t: 'enemykill'; x: number; y: number; kind: EnemyKind };
+
+export type Tool = 'drill' | 'blade';
+export const BLADE_DMG = 12;
+export const BLADE_RANGE = 2.1;
+export const BLADE_CD = 0.32;
+export const MAX_ENEMIES = 8;
+export const IFRAMES = 0.8;
 
 export class Game {
   world: World;
@@ -60,6 +71,16 @@ export class Game {
   stash: Inventory = {};
   upgrades: Levels = {};
   selected: ItemId = 'rust';
+  tool: Tool = 'drill';
+  enemies: Enemy[] = [];
+  /** Seconds of player invulnerability after a hit. */
+  iframes = 0;
+  /** Remaining swing animation time (render only). */
+  swing = 0;
+  private rng = mulberry32(1);
+  private nextEnemyId = 1;
+  private spawnCd = 3;
+  private bladeCd = 0;
   mining: { tx: number; ty: number; progress: number } | null = null;
   facing = 1;
   time = 0;
@@ -143,6 +164,12 @@ export class Game {
     this.hp = d.maxHp;
     this.battery = d.maxBattery;
     this.mining = null;
+    this.enemies = [];
+    this.iframes = 0;
+    this.swing = 0;
+    this.bladeCd = 0;
+    this.spawnCd = 3;
+    this.rng = mulberry32(this.diveSeed() ^ 0x5eed);
     this.runDeepest = 0;
     this.lowWarned = false;
     this.wasGround = true;
@@ -198,6 +225,15 @@ export class Game {
   selectPlaceable(index: number): void {
     const id = PLACEABLE[((index % PLACEABLE.length) + PLACEABLE.length) % PLACEABLE.length];
     this.selected = id;
+  }
+
+  setTool(t: Tool): void {
+    this.tool = t;
+    this.mining = null;
+  }
+
+  toggleTool(): void {
+    this.setTool(this.tool === 'drill' ? 'blade' : 'drill');
   }
 
   cycleSelected(): void {
@@ -275,7 +311,8 @@ export class Game {
     this.placeCd = Math.max(0, this.placeCd - dt);
     this.fullCd = Math.max(0, this.fullCd - dt);
     let mining = false;
-    if (c.dig && c.aim && this.reachable(c.aim.tx, c.aim.ty)) {
+    if (c.dig && this.tool === 'blade') this.blade();
+    if (c.dig && this.tool === 'drill' && c.aim && this.reachable(c.aim.tx, c.aim.ty)) {
       const { tx, ty } = c.aim;
       const tile = this.world.get(tx, ty);
       if (isMinable(tile)) {
@@ -327,6 +364,8 @@ export class Game {
       }
     }
 
+    this.stepEnemies(dt);
+
     // Base services, battery and survival.
     if (this.isAtBase()) {
       this.battery = d.maxBattery;
@@ -342,6 +381,88 @@ export class Game {
       if (this.battery === 0) this.hp -= 8 * dt;
     }
     if (this.hp <= 0) this.die();
+  }
+
+  private blade(): void {
+    if (this.bladeCd > 0) return;
+    this.bladeCd = BLADE_CD;
+    this.swing = 0.18;
+    const b = this.body;
+    this.emit({ t: 'swing', dir: this.facing });
+    for (const e of this.enemies) {
+      const dx = (e.x - b.x) * this.facing;
+      if (dx < -0.4 || dx > BLADE_RANGE || Math.abs(e.y - b.y) > 1.8) continue;
+      this.damageEnemy(e, BLADE_DMG, this.facing);
+    }
+  }
+
+  damageEnemy(e: Enemy, dmg: number, dir: number): void {
+    if (e.iframes > 0 || e.hp <= 0) return;
+    e.hp -= dmg;
+    e.iframes = 0.15;
+    e.vx = dir * 9;
+    e.vy = ENEMIES[e.kind].flying ? e.vy : -5;
+    this.emit({ t: 'enemyhit', x: e.x, y: e.y - 0.5, dmg });
+  }
+
+  private stepEnemies(dt: number): void {
+    this.bladeCd = Math.max(0, this.bladeCd - dt);
+    this.swing = Math.max(0, this.swing - dt);
+    this.iframes = Math.max(0, this.iframes - dt);
+    const b = this.body;
+    const atBase = this.isAtBase();
+    for (const e of this.enemies) {
+      stepEnemy(this.world, e, dt, b.x, b.y);
+      if (!atBase && this.iframes === 0 && enemyOverlapsBox(e, b.x, b.y, HALF_W, BODY_H)) {
+        this.hurt(ENEMIES[e.kind].contact);
+        this.iframes = IFRAMES;
+        b.vx = (b.x >= e.x ? 1 : -1) * 8;
+        b.vy = Math.min(b.vy, -6);
+      }
+    }
+    // Deaths and drops.
+    const alive: Enemy[] = [];
+    for (const e of this.enemies) {
+      if (e.hp > 0 && e.y < this.world.h + 2) {
+        alive.push(e);
+        continue;
+      }
+      if (e.hp <= 0) {
+        this.emit({ t: 'enemykill', x: e.x, y: e.y - 0.5, kind: e.kind });
+        if (invTotal(this.carried) < this.derived.packCap) invAdd(this.carried, 'iron_scrap', 1);
+      }
+    }
+    this.enemies = alive;
+    if (atBase) {
+      this.enemies = [];
+      return;
+    }
+    this.spawnCd -= dt;
+    if (this.spawnCd <= 0) {
+      this.spawnCd = 4 + this.rng() * 4;
+      this.trySpawn();
+    }
+  }
+
+  /** Spawn an enemy in open cave space near, but never on, the player and never inside walls. */
+  trySpawn(): Enemy | null {
+    if (this.enemies.length >= MAX_ENEMIES || this.depth < 8) return null;
+    const kinds = (Object.keys(ENEMIES) as EnemyKind[]).filter((k) => this.depth >= ENEMIES[k].minDepth);
+    const kind = kinds[Math.floor(this.rng() * kinds.length)];
+    const b = this.body;
+    for (let i = 0; i < 12; i++) {
+      const side = this.rng() < 0.5 ? -1 : 1;
+      const x = b.x + side * (9 + this.rng() * 8);
+      const y = b.y + (this.rng() - 0.5) * 10;
+      const e = makeEnemy(this.nextEnemyId, kind, Math.floor(x) + 0.5, Math.floor(y) + 1, this.rng() * 6.28);
+      if (e.y < this.world.padY + 6 || e.y >= this.world.h - 1 || e.x < 2 || e.x >= this.world.w - 2) continue;
+      if (enemyBoxHits(this.world, e)) continue;
+      if (!ENEMIES[kind].flying && !this.world.isSolid(Math.floor(e.x), Math.floor(e.y + 0.05))) continue;
+      this.nextEnemyId++;
+      this.enemies.push(e);
+      return e;
+    }
+    return null;
   }
 
   private hasSolidNeighbour(x: number, y: number): boolean {
