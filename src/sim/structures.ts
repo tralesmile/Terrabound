@@ -12,7 +12,7 @@ export const PAD_CLEAR = 22;
 /** Plants keep out of the base strip. */
 export const PLANT_CLEAR = 9;
 
-export type StructureKind = 'ruin' | 'tower' | 'ship' | 'vault' | 'geode';
+export type StructureKind = 'ruin' | 'tower' | 'ship' | 'vault' | 'geode' | 'shrine' | 'wreck';
 export interface Structure {
   kind: StructureKind;
   x0: number;
@@ -261,6 +261,26 @@ function underground(world: World, out: Structure[]): void {
     if (Math.abs(x0 - world.padX) < PAD_CLEAR) continue;
     out.push(vault(world, x0, y0, i));
   }
+  // Lore shrines: a data terminal on a ruin plinth in a cave.
+  const shrines = Math.floor(world.w / 180);
+  for (let i = 0; i < shrines; i++) {
+    const at = caveFloor(world, 10 + Math.floor(hash2(i, 7, seed) * (world.w - 20)), padY + 40 + Math.floor(hash2(i, 8, seed) * (world.h - padY - 70)), seed + i * 31);
+    if (!at) continue;
+    const [x, y] = at;
+    for (let dx = -1; dx <= 1; dx++) put(world, x + dx, y + 1, T.RUIN);
+    put(world, x, y, T.TERMINAL);
+    out.push({ kind: 'shrine', x0: x - 1, y0: y - 1, x1: x + 1, y1: y + 1 });
+  }
+  // Drone wrecks: a crashed survey drone half-buried in a cave floor.
+  const wrecks = Math.floor(world.w / 120);
+  for (let i = 0; i < wrecks; i++) {
+    const at = caveFloor(world, 10 + Math.floor(hash2(i, 9, seed) * (world.w - 20)), padY + 30 + Math.floor(hash2(i, 10, seed) * (world.h - padY - 60)), seed + i * 37);
+    if (!at) continue;
+    const [x, y] = at;
+    for (let dx = -1; dx <= 1; dx++) put(world, x + dx, y, T.WRECK);
+    put(world, x, y - 1, T.WRECK);
+    out.push({ kind: 'wreck', x0: x - 1, y0: y - 1, x1: x + 1, y1: y });
+  }
   // Crystal geodes.
   const geodes = Math.floor(world.w / 140);
   for (let i = 0; i < geodes; i++) {
@@ -276,6 +296,23 @@ function underground(world: World, out: Structure[]): void {
     }
     out.push({ kind: 'geode', x0: gx - rad, y0: gy - rad, x1: gx + rad, y1: gy + rad });
   }
+}
+
+/** A cave floor cell (air with solid ground below and 3 open rows above) near (x, y), or null. */
+function caveFloor(world: World, x: number, y: number, seed: number): [number, number] | null {
+  for (let k = 0; k < 40; k++) {
+    const cx = x + Math.floor((hash2(k, 1, seed) - 0.5) * 60);
+    const cy = y + Math.floor((hash2(k, 2, seed) - 0.5) * 40);
+    if (cx < 4 || cx >= world.w - 4 || Math.abs(cx - world.padX) < PAD_CLEAR) continue;
+    // Scan down from the sample point for the first cave floor.
+    for (let yy = Math.max(world.padY + 25, cy); yy < Math.min(world.h - 4, cy + 50); yy++) {
+      if (world.get(cx, yy) !== T.AIR || !solidAt(world, cx, yy + 1)) continue;
+      if (world.get(cx, yy - 1) !== T.AIR || world.get(cx, yy - 2) !== T.AIR) continue;
+      if (world.get(cx - 1, yy) !== T.AIR || world.get(cx + 1, yy) !== T.AIR) continue;
+      return [cx, yy];
+    }
+  }
+  return null;
 }
 
 function vault(world: World, x0: number, y0: number, i: number): Structure {

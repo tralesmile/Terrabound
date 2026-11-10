@@ -195,6 +195,10 @@ function boot(): void {
         saveNow();
         break;
       }
+      case 'lore':
+        ui.toast(e.text, '#9ff6ff', 6);
+        fx.burst(game.body.x, game.body.y - 1.5, '#36e0e8', 10, 4);
+        break;
       case 'nightfall':
         ui.toast('Night falls: drones hunt the surface', '#b06bff');
         break;

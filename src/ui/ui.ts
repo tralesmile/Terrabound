@@ -68,9 +68,9 @@ export class UI {
   toasts: Toast[] = [];
   private rects: Rect[] = [];
 
-  toast(text: string, color = '#ffffff'): void {
+  toast(text: string, color = '#ffffff', life = 2.4): void {
     if (this.toasts.length >= 4) this.toasts.shift();
-    this.toasts.push({ text, color, life: 2.4 });
+    this.toasts.push({ text, color, life });
   }
 
   update(dt: number): void {

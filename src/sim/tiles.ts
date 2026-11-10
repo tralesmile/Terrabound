@@ -53,6 +53,8 @@ export const T = {
   LEAVES: 20,
   PLANT: 21,
   CHEST: 22,
+  TERMINAL: 23,
+  WRECK: 24,
 } as const;
 
 export interface TileDef {
@@ -97,6 +99,8 @@ export const TILES: TileDef[] = [
   { name: 'Leaves', hardness: 0.08, solid: false, drop: null, minable: true },
   { name: 'Plant', hardness: 0.05, solid: false, drop: 'biomass', minable: true },
   { name: 'Loot chest', hardness: 0.4, solid: false, drop: null, minable: true },
+  { name: 'Data terminal', hardness: 0.6, solid: false, drop: null, minable: true, glow: true },
+  { name: 'Drone wreck', hardness: 0.8, solid: true, drop: 'copper_wire' },
 ];
 
 export interface ItemDef {

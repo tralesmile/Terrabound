@@ -12,7 +12,7 @@ export const EDGE_W = 8;
 export const MASKS = 16;
 
 /** Tiles that merge into one continuous mass (no seam between them). */
-const BLOCKS = new Set<number>([T.RUST, T.METAL, T.IRON, T.COPPER, T.BEDROCK, T.PAD, T.SCAFFOLD, T.SOIL, T.ASH, T.FROST, T.SAND, T.CRYSTAL, T.RUIN]);
+const BLOCKS = new Set<number>([T.RUST, T.METAL, T.IRON, T.COPPER, T.BEDROCK, T.PAD, T.SCAFFOLD, T.SOIL, T.ASH, T.FROST, T.SAND, T.CRYSTAL, T.RUIN, T.WRECK]);
 
 export function isBlock(t: number): boolean {
   return BLOCKS.has(t);

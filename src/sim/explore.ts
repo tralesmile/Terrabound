@@ -71,6 +71,8 @@ const POI_NAMES: Record<StructureKind, string> = {
   ship: 'Crashed ship',
   vault: 'Sealed vault',
   geode: 'Crystal geode',
+  shrine: 'Data shrine',
+  wreck: 'Drone wreck',
 };
 
 const POI_REWARD: Record<StructureKind, Inventory> = {
@@ -79,9 +81,11 @@ const POI_REWARD: Record<StructureKind, Inventory> = {
   ship: { copper_wire: 4, iron_scrap: 4 },
   vault: { crystal: 3 },
   geode: { crystal: 4 },
+  shrine: { crystal: 2, copper_wire: 2 },
+  wreck: { copper_wire: 5 },
 };
 
-/** Every discoverable entry: the five biomes and five kinds of point of interest. */
+/** Every discoverable entry: the five biomes and seven kinds of point of interest. */
 export const CODEX: CodexEntry[] = [
   ...BIOME_IDS.map((b) => ({ id: `biome:${b}`, name: BIOMES[b as BiomeId].name, reward: { crystal: 2, iron_scrap: 3 } as Inventory })),
   ...(Object.keys(POI_NAMES) as StructureKind[]).map((k) => ({ id: `poi:${k}`, name: POI_NAMES[k], reward: POI_REWARD[k] })),
@@ -101,4 +105,26 @@ export function discoveriesAt(world: World, x: number, y: number): string[] {
     if (x >= s.x0 - 1 && x <= s.x1 + 2 && y >= s.y0 - 1 && y <= s.y1 + 2) out.push(`poi:${s.kind}`);
   }
   return out;
+}
+
+/** Lore logs found on data terminals: the story of the Hollow, told in fragments. */
+export const LORE: string[] = [
+  'LOG 01: Survey team landed. The planet hums under our boots.',
+  'LOG 04: The rust is not rust. It grows back overnight.',
+  'LOG 07: Drones refuse orders below 60m. Something talks to them.',
+  'LOG 09: Crystal readings spike at night. The caves glow brighter.',
+  'LOG 12: We built the pad from the old city. It still remembers.',
+  'LOG 15: Lost contact with the frost team. Their beacon still blinks.',
+  'LOG 18: The jungle was a factory once. The vines are cables.',
+  'LOG 21: Ash falls up here. It comes from a fire far below.',
+  'LOG 24: Something big moves in the Core. The walls are warm.',
+  'LOG 27: If you read this: bank often. The Hollow keeps what you drop.',
+  'LOG 30: The Hollow AI is not dead. It is waiting for a pilot.',
+  'LOG 33: Last log. Going deeper. Do not follow without a full battery.',
+];
+
+/** Lore line for a terminal at (x, y): stable per world position. */
+export function loreAt(seed: number, x: number, y: number): string {
+  const i = Math.abs((x * 73856093) ^ (y * 19349663) ^ seed) % LORE.length;
+  return LORE[i];
 }

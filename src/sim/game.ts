@@ -20,7 +20,7 @@ import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgr
 import { recipeById } from './recipes';
 import { chestLoot } from './loot';
 import { isNight } from './daynight';
-import { FogMap, RECALL_TIME, codexEntry, discoveriesAt } from './explore';
+import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
 import { captureBase, captureWalls, stampBase, stampWalls } from './base';
 import { PAD_HALF, SPAWN_LIGHT_MAX, W, World, generateWorld } from './world';
@@ -62,6 +62,7 @@ export type GameEvent =
   | { t: 'recallcancel' }
   | { t: 'recall' }
   | { t: 'nightfall' }
+  | { t: 'lore'; text: string }
   | { t: 'dawn' }
   | { t: 'fell'; x: number; y: number; tiles: number }
   | { t: 'hurt'; amount: number }
@@ -521,6 +522,7 @@ export class Game {
               this.emit({ t: 'pickup', item: def.drop, x: tx, y: ty });
             }
             if (tile === T.CHEST) this.openChest(tx, ty, d.packCap);
+            if (tile === T.TERMINAL) this.emit({ t: 'lore', text: loreAt(this.world.seed, tx, ty) });
             if (tile === T.TRUNK) this.fellTree(tx, ty, d.packCap);
             this.mining = null;
           }

@@ -32,6 +32,7 @@ const LOOK: Record<number, Look> = {
   [T.SAND]: { base: '#6a5a8a', light: '#8272a6', dark: '#4e4268', speck: '#d8b8ff', speckCount: 4, detail: 'ripples' },
   [T.CRYSTAL]: { base: '#3a2a5e', light: '#8a5fd6', dark: '#261c40', detail: 'facets' },
   [T.RUIN]: { base: '#3d4152', light: '#525870', dark: '#2a2d3a', detail: 'bricks' },
+  [T.WRECK]: { base: '#3a3f4a', light: '#6b7080', dark: '#22252c', speck: '#e8a33d', speckCount: 2, glint: '#36e0e8', detail: 'rivets' },
 };
 
 const OUTLINE = '#161a24';
@@ -203,6 +204,8 @@ export const TILE_COLORS: Record<number, string> = {
   [T.LEAVES]: '#4f9a3f',
   [T.PLANT]: '#7fcf5a',
   [T.CHEST]: '#c9a35a',
+  [T.TERMINAL]: '#36e0e8',
+  [T.WRECK]: '#e8a33d',
 };
 
 export function makeCanvas(w: number, h: number): HTMLCanvasElement {

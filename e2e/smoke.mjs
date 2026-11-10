@@ -316,6 +316,23 @@ try {
     await page.screenshot({ path: path.join(out, `11-biome-${biomeNames[b]}.png`) });
   }
   check('every biome can be visited and renders', seen.length === biomeNames.length, seen.join(','));
+  // Underground points of interest: stand beside a data shrine and check that its terminal glows.
+  const shrine = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const s = g.world.structures.find((st) => st.kind === 'shrine');
+    if (!s) return null;
+    g.enemies = [];
+    g.body.x = s.x0 - 0.5;
+    g.body.y = s.y1;
+    g.body.vx = g.body.vy = 0;
+    for (let dy = -3; dy < 0; dy++) for (let dx = -2; dx <= 0; dx++) g.world.set(s.x0 + dx, s.y1 + dy, 0);
+    return { x: s.x0 + 1, y: s.y1 - 1 };
+  });
+  await page.waitForTimeout(600);
+  const glow = shrine ? await page.evaluate(({ x, y }) => window.__terrabound.renderer.lightLevel(x, y), shrine) : -1;
+  await page.screenshot({ path: path.join(out, '16-shrine.png') });
+  check('a data shrine terminal glows in the dark', glow >= 16, JSON.stringify({ shrine, glow }));
+
   // Loot: aim the drill at a real chest in a ruin and break it with the mouse.
   const chestAt = await page.evaluate(() => {
     const g = window.__terrabound.game;

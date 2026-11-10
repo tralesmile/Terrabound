@@ -175,3 +175,38 @@ describe('world change log (render cache invalidation)', () => {
     expect(w.changesOverflow).toBe(true);
   });
 });
+
+describe('lore shrines and drone wrecks', () => {
+  it('appear underground on every seed, away from the pad', async () => {
+    const { PAD_CLEAR: CLEAR } = await import('../src/sim/structures');
+    for (const seed of SEEDS) {
+      const w = generateWorld(seed);
+      const shrines = w.structures.filter((s) => s.kind === 'shrine');
+      const wrecks = w.structures.filter((s) => s.kind === 'wreck');
+      expect(shrines.length).toBeGreaterThanOrEqual(3);
+      expect(wrecks.length).toBeGreaterThanOrEqual(5);
+      for (const s of [...shrines, ...wrecks]) {
+        expect(s.y0).toBeGreaterThan(w.padY + 20);
+        expect(Math.abs(s.x0 + 1 - w.padX)).toBeGreaterThanOrEqual(CLEAR);
+      }
+      for (const s of shrines) {
+        let terminals = 0;
+        for (let y = s.y0; y <= s.y1; y++) for (let x = s.x0; x <= s.x1; x++) if (w.get(x, y) === T.TERMINAL) terminals++;
+        expect(terminals).toBe(1);
+      }
+    }
+  });
+
+  it('hacking a terminal reveals a lore log', async () => {
+    const { LORE, loreAt } = await import('../src/sim/explore');
+    expect(LORE).toContain(loreAt(3, 100, 200));
+    expect(loreAt(3, 100, 200)).toBe(loreAt(3, 100, 200));
+    const g = new Game(defaultSave());
+    const x = g.world.padX + 2;
+    const y = g.world.padY - 1;
+    g.world.set(x, y, T.TERMINAL);
+    for (let i = 0; i < 120; i++) g.step(1 / 60, { moveX: 0, jump: false, dig: true, place: false, aim: { tx: x, ty: y } });
+    expect(g.world.get(x, y)).toBe(T.AIR);
+    expect(g.drainEvents().some((e) => e.t === 'lore')).toBe(true);
+  });
+});

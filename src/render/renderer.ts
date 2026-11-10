@@ -315,6 +315,21 @@ export class Renderer {
       ctx.fillRect(dx, dy + Math.max(2, ts * 0.22), ts, Math.max(1, ts * 0.08));
       return;
     }
+    if (t === T.TERMINAL) {
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      const u = ts / 16;
+      ctx.fillStyle = '#14181f';
+      ctx.fillRect(dx + 2 * u, dy + 2 * u, 12 * u, 14 * u);
+      ctx.fillStyle = '#3d4152';
+      ctx.fillRect(dx + 3 * u, dy + 3 * u, 10 * u, 12 * u);
+      ctx.fillStyle = '#0b2a2c';
+      ctx.fillRect(dx + 4 * u, dy + 4 * u, 8 * u, 6 * u);
+      ctx.fillStyle = '#36e0e8';
+      for (let r = 0; r < 3; r++) ctx.fillRect(dx + 5 * u, dy + (5 + r * 2) * u, (3 + ((tx + r) % 4)) * u, u);
+      ctx.fillStyle = '#ffcf4a';
+      ctx.fillRect(dx + 5 * u, dy + 12 * u, 2 * u, u);
+      return;
+    }
     if (t === T.TRUNK || t === T.LEAVES || t === T.PLANT || t === T.CHEST) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
       const bio = world.biome[tx] ?? 0;
@@ -608,7 +623,8 @@ export class Renderer {
       for (let yy = Math.max(0, y0); yy < Math.min(world.h, y0 + lh); yy++) {
         for (let xx = Math.max(0, x0); xx < Math.min(world.w, x0 + lw); xx++) {
           const tt = world.tiles[yy * world.w + xx];
-          if (tt === T.CRYSTAL && !world.isSolid(xx, yy - 1) || tt === T.CRYSTAL && !world.isSolid(xx, yy + 1)) sources.push({ x: xx, y: yy, level: 18 });
+          if (tt === T.TERMINAL) sources.push({ x: xx, y: yy, level: 22 });
+          else if (tt === T.CRYSTAL && !world.isSolid(xx, yy - 1) || tt === T.CRYSTAL && !world.isSolid(xx, yy + 1)) sources.push({ x: xx, y: yy, level: 18 });
           else if (tt === T.PLANT && yy > world.surface[xx] + 1) sources.push({ x: xx, y: yy, level: 14 });
         }
       }
