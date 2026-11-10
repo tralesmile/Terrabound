@@ -42,19 +42,20 @@ Art (do first, biggest visible win):
 - [x] Back-wall layer (save v3; nothing spawns in front of built walls): separate `walls` array in World; caves show darker dug-out walls behind, so underground is never flat black. Player-placed walls move to this layer.
 - [x] Terraria-style tile light map (flood-fill light from sky, torches, lamp, glowing ores) replacing the radial gradient; smooth per-tile interpolation; cached and only recomputed near changes.
 - [ ] Day/night cycle on the surface (sky colours, stars, light level), 10-minute day.
-- [ ] Parallax backgrounds per biome (3 layers: far mountains/ruined city skyline, mid structures, near foliage).
+- [ ] Parallax backgrounds per biome: skyline silhouettes per biome done (towers, giant trees, spires, mountains, ash cones) and sky palette blends between biomes; still todo: 2 more depth layers (mid structures, near foliage).
 
 World size and variety:
-- [ ] Bigger world: 1600 x 600 tiles (wide surface to explore, deep layers). Chunked render cache (32x32 tile chunks pre-drawn to offscreen canvases, redraw only dirty chunks); keep 60 fps and memory budget; perf test in e2e. Save format unaffected (world regenerates from seed; only diffs near the base persist).
-- [ ] Surface biomes left/right of the pad (data table in `src/sim/biomes.ts`): Rust Wastes (start), Overgrown Ruins (alien jungle), Crystal Flats, Ash Dunes, Frozen Spires. Each: tiles, colours, background, ores, enemies, music mood.
-- [ ] Trees and plants: alien trees of 3-4 shapes per biome (choppable for `biomass`, new item used in recipes), grass, bushes, flowers, mushrooms, vines in caves; decorative but harvestable.
-- [ ] Surface structures: ruined buildings, crashed ships, radio towers, abandoned outposts with loot chests (seeded loot tables, no paid randomness). At least 1 structure every ~60 tiles.
-- [ ] Underground cave biomes by depth and noise: mushroom caves, crystal caverns, lava/plasma pockets, flooded tunnels; ore veins shaped (not single dots).
-- [ ] Underground points of interest: sealed vaults with chests, mini-shrines with data logs (lore), drone wrecks to salvage, rare ore geodes.
+- [x] Bigger world: 1400 x 420 tiles (chosen over 1600x600 to keep worldgen ~100 ms and tests fast) (wide surface to explore, deep layers). Chunked render cache (32x32 tile chunks pre-drawn to offscreen canvases, redraw only dirty chunks); keep 60 fps and memory budget; perf test in e2e. Save format unaffected (world regenerates from seed; only diffs near the base persist).
+- [x] Surface biomes left/right of the pad (data table in `src/sim/biomes.ts`): Rust Wastes (start), Overgrown Ruins (alien jungle), Crystal Flats, Ash Dunes, Frozen Spires. Each: tiles, colours, background, ores, enemies, music mood.
+- [x] Trees and plants (canopy, pine, spire, wire, dead shapes; felling yields biomass; bio torch recipe): alien trees of 3-4 shapes per biome (choppable for `biomass`, new item used in recipes), grass, bushes, flowers, mushrooms, vines in caves; decorative but harvestable.
+- [x] Surface structures (ruins, radio towers, crashed ships with chests; see src/sim/structures.ts): ruined buildings, crashed ships, radio towers, abandoned outposts with loot chests (seeded loot tables, no paid randomness). At least 1 structure every ~60 tiles.
+- [ ] Underground cave biomes: glowing mushroom patches, crystal-lined caverns and deep big caverns done; still todo: lava/plasma pockets, flooded tunnels (need liquids), shaped ore veins.
+- [ ] Underground points of interest: sealed vaults with chests and crystal geodes done; still todo: lore shrines with data logs, drone wrecks to salvage.
+- [ ] Biome-specific enemies (one per biome, data-driven in enemies.ts) and a music mood per biome (needs P5 music).
 - [ ] Liquids v1: water/coolant and acid pools with simple cellular flow (deterministic), swim physics, acid damage.
-- [ ] Map screen (M key moves mute to settings): explored-area minimap with fog of war, pins for chests and pad.
-- [ ] Exploration rewards: discovering a biome or structure grants a codex entry and a one-time loot cache; new "explorer" achievements.
-- [ ] Simulated-player test: biomes, structures and chests appear within the expected distances on 25 seeds; no structure overlaps the pad.
+- [x] Map screen (M; mute moved to N and the HUD button), plus surface recall (R / HOME button, 2.5 s, cancelled by moving or damage): explored-area minimap with fog of war, pins for chests and pad.
+- [x] Exploration rewards: 10 codex entries (biomes + structure kinds) with one-time stash rewards, save v4. (Explorer achievements move to P4 achievements.)
+- [x] Simulated-player test (tests/biomes.test.ts over 8 seeds): biomes, structures and chests appear within the expected distances on 25 seeds; no structure overlaps the pad.
 
 ## P2 Base and automation (M2)
 

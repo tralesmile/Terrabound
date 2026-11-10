@@ -26,3 +26,8 @@
 - **Long sims need an explicit timeout.** The balance bot ran ~4-5 s against vitest's 5 s default and flaked under parallel load. Guard: heavy simulation tests pass a timeout (30 s) as the third `it` argument; never shrink their assertions instead.
 - **Odd sprite heights break chunk maths.** Debris chunk centres for a 7-row sprite landed below the feet; use `min(h, r0 + chunk)` and test bounds on every sprite.
 - **Check light/occlusion maths before writing the test.** A 1-tile pillar costs only 2x air, so light bleeds through it by design; occlusion tests need walls thicker than SOLID_COST/AIR_COST allows.
+- **Bigger worlds break fixtures that hard-code rows.** Tests used `body.y = 40` and "no torches in a fresh world". Guard: derive positions from `world.padY` / `surface[x]` and compare counts relative to a baseline.
+- **A bot that targets unreachable ore stands still forever.** The balance bot "got worse" when the world changed only because it locked onto ore out of reach. Guard: the bot filters by REACH and retreats at low HP; check the bot's own behaviour (print per-dive time/depth) before blaming the game.
+- **Structures that extend in one direction need side-aware offsets.** Left-side ruins overlapped the pad clear zone. Guard: test asserts every surface structure is outside PAD_CLEAR.
+- **E2e that teleports the player must wait for the camera.** The camera eases; aiming the mouse right after a teleport hits the wrong tile. Guard: `waitForFunction` on camX before converting tiles to screen.
+- **Shared-VM timings are noisy (2x swings).** Perf checks are coarse regression guards (12 ms/frame headless), not the 60 fps budget; measure with a warm cache and repeat before optimising.

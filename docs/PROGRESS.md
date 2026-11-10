@@ -135,3 +135,13 @@ Also: flood-fill tile light map (`src/render/lightmap.ts`: sky, torches, lamp, p
 **Next:** day/night cycle (scale SKY_LEVEL and sky colours), parallax per biome, bigger world with chunk cache, biomes. Torch light could get a warm tint.
 
 **Known issues:** main briefly held a commit whose gate had failed (balance test timeout, build itself fine); fixed within minutes. Metal seam variant tiles in visible horizontal stripes; inner (diagonal) corners are not autotiled; the old `buildBackdrop` is now unused.
+
+## 2026-11-10 Interactive session (owner asked to build without the schedule; schedule paused)
+
+**Done:** big world and exploration. World 1400x420 (was 160x260) with five surface biomes (`src/sim/biomes.ts`: seeded bands around the home Rust Wastes), biome crusts, crystal ore, deep caverns; `src/sim/structures.ts` places ruins, radio towers, crashed ships (each with a loot chest), sealed vaults, crystal geodes, trees (5 shapes, felling gives biomass), plants and glowing cave mushrooms; `src/sim/loot.ts` seeded chest loot. Pad terrain eases in over 24 columns (no cliffs at spawn). New art in `src/render/decor.ts` (ragged autotiled leaves, trunks, plants, chest, snow caps, sky palettes blended by biome, per-biome skyline silhouettes); crystals and mushrooms emit light. Chunk render cache (32x32 tiles, change log on World, prefetch, eviction). `src/sim/explore.ts`: fog map, codex (10 entries, one-time stash rewards, save v4), surface recall (R / HOME). Map screen `src/ui/map.ts` (M; pauses the dive); mute moved to N. Workshop stash line shows only owned items.
+
+**Numbers:** 143 unit tests, 44 e2e checks, bundle 93 kB (33.8 kB gzip). Worldgen ~100 ms. Headless frame draw ~4 ms while walking (software rendering); heap ~10-20 MB.
+
+**Next:** day/night cycle, liquids v1, biome enemies, lore shrines and drone wrecks, then P2 (power, machines, drones).
+
+**Known issues:** a new world is generated every dive, so the map and chests reset per dive (codex persists). Map cells are 4x4 tiles (coarse on phones). Leaves of neighbouring trees across a biome border can merge. Schedule is paused (owner request); re-enable `trig_01RvURhsU84NhxudKyvWTNqN` to resume runs.
