@@ -44,13 +44,20 @@ export function moveX(world: World, b: Body, dx: number): boolean {
 }
 
 /** Move along Y. Sets onGround when landing. Returns true if blocked. */
-export function moveY(world: World, b: Body, dy: number): boolean {
+export function moveY(world: World, b: Body, dy: number, drop = false): boolean {
   const sign = Math.sign(dy);
   let remaining = Math.abs(dy);
   while (remaining > EPS) {
     const step = Math.min(remaining, 0.25);
     remaining -= step;
+    const prev = b.y;
     b.y += sign * step;
+    if (sign > 0 && !drop && landsOnPlatform(world, b, prev)) {
+      b.y = Math.floor(b.y - EPS);
+      b.onGround = true;
+      b.vy = 0;
+      return true;
+    }
     if (boxCollides(world, b.x, b.y)) {
       if (sign > 0) {
         b.y = Math.floor(b.y - EPS);
@@ -65,14 +72,25 @@ export function moveY(world: World, b: Body, dy: number): boolean {
   return false;
 }
 
+/** One-way platforms: land only if the feet were at or above the tile top before this step. */
+function landsOnPlatform(world: World, b: Body, prevY: number): boolean {
+  const ty = Math.floor(b.y - EPS);
+  if (prevY > ty + EPS || b.y <= ty) return false;
+  const x0 = Math.floor(b.x - HALF_W);
+  const x1 = Math.floor(b.x + HALF_W - EPS);
+  for (let tx = x0; tx <= x1; tx++) if (world.isOneWay(tx, ty)) return true;
+  return false;
+}
+
 /** True if the body's torso overlaps a climbable tile (ladder). */
 export function onLadder(world: World, b: Body): boolean {
   const mid = Math.floor(b.y - BODY_H / 2);
   return world.isClimb(Math.floor(b.x), mid) || world.isClimb(Math.floor(b.x), Math.floor(b.y - 0.1));
 }
 
-export function probeGround(world: World, b: Body): boolean {
-  return boxCollides(world, b.x, b.y + 0.02);
+export function probeGround(world: World, b: Body, drop = false): boolean {
+  if (boxCollides(world, b.x, b.y + 0.02)) return true;
+  return !drop && landsOnPlatform(world, b, b.y);
 }
 
 /** Push the body up out of any solid it was spawned or teleported into (edge case: placed block under feet). */

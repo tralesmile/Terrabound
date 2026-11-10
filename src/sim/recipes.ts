@@ -13,6 +13,7 @@ export const RECIPES: Recipe[] = [
   { id: 'torch', name: 'Torch x2', out: 'torch', qty: 2, cost: { rust: 2, iron_scrap: 1 } },
   { id: 'ladder', name: 'Ladder x4', out: 'ladder', qty: 4, cost: { rust: 3, iron_scrap: 1 } },
   { id: 'scaffold', name: 'Scaffold x6', out: 'scaffold', qty: 6, cost: { rust: 4 } },
+  { id: 'platform', name: 'Platform x4', out: 'platform', qty: 4, cost: { rust: 3 } },
 ];
 
 export function recipeById(id: string): Recipe | undefined {

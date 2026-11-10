@@ -35,7 +35,8 @@ Rule: ship small vertical slices. Each item needs tests. Keep the game playable 
 - [x] Persistent base strip above the pad (15x10 tiles, src/sim/base.ts) saved in format v2 with v1 migration test; built tiles survive dives and reloads
 - [x] Hotbar shows only owned placeables plus the selected one (`visiblePlaceables`), so new build tiles fit at 360 px
 - [ ] Base grid: widen/extend beyond the 15x10 strip if needed (walls behind, background layer)
-- [ ] Build mode in base: blocks, walls, platforms, doors
+- [x] One-way platform tile (craftable, key 9, jump up through, S/Down drops, saved in base)
+- [ ] Build mode in base: back walls, doors
 - [ ] Power: solar cell, battery, wire; machines show state
 - [ ] Machines: smelter (rust and ore to plate), storage chest, conveyor, fabricator upgrade path
 - [ ] Drone v1: Miner drone mines assigned ore tiles in a base mine shaft

@@ -7,7 +7,7 @@ export const BASE_ROWS = 10;
 /** Flat list of triples: dx (from pad centre), dy (rows above the pad, 1 = just above), tile id. */
 export type BaseTiles = number[];
 
-const KEEP = new Set<number>([T.RUST, T.METAL, T.TORCH, T.LADDER, T.SCAFFOLD]);
+const KEEP = new Set<number>([T.RUST, T.METAL, T.TORCH, T.LADDER, T.SCAFFOLD, T.PLATFORM]);
 export const BASE_MAX_TILES = (BASE_HALF * 2 + 1) * BASE_ROWS;
 
 export function captureBase(world: World): BaseTiles {

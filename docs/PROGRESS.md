@@ -79,3 +79,13 @@
 **Next:** build-mode tiles (platform, door, back wall), power (solar, battery, wire), smelter, chest.
 
 **Known issues:** time budget this run went to baseline plus one small slice; stash-row on shop panel still lists all items.
+
+## 2026-11-10 Run 8
+
+**Done:** one-way platform tile (`oneWay` flag in tiles.ts, `landsOnPlatform` in physics.ts, `drop` param on moveY/probeGround fed by the down control), recipe, key 9, renderer, base persistence. 5 new unit tests (tests/platform.test.ts).
+
+**Numbers:** 72 unit tests, 24 e2e checks, bundle 51.3 kB (18.8 kB gzip).
+
+**Next:** back walls and doors, then power (solar, battery, wire), smelter, chest. Add an e2e check for platforms/ladders.
+
+**Known issues:** platform has no e2e check; the hotbar still lacks a touch way to press "down" onto a platform other than the stick-down.

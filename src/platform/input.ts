@@ -46,6 +46,7 @@ export class Input {
       else if (e.code === 'Digit6') this.onAction({ k: 'sel', i: 2 });
       else if (e.code === 'Digit7') this.onAction({ k: 'sel', i: 3 });
       else if (e.code === 'Digit8') this.onAction({ k: 'sel', i: 4 });
+      else if (e.code === 'Digit9') this.onAction({ k: 'sel', i: 5 });
       else if (this.ui.screen === 'title') this.onAction({ k: 'start' });
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));

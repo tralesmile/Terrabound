@@ -357,7 +357,7 @@ export class Game {
     if (Math.abs(mx) > 0.1) this.facing = mx > 0 ? 1 : -1;
 
     // Jump with coyote time, input buffer and variable height.
-    const grounded = probeGround(this.world, b);
+    const grounded = probeGround(this.world, b, c.down);
     this.coyote = grounded ? 0.1 : this.coyote - dt;
     this.jumpBuf = c.jump && !this.prevJump ? 0.12 : this.jumpBuf - dt;
     if (this.jumpBuf > 0 && this.coyote > 0) {
@@ -380,7 +380,7 @@ export class Game {
     b.onGround = false;
     moveX(this.world, b, b.vx * dt);
     const impact = b.vy;
-    moveY(this.world, b, b.vy * dt);
+    moveY(this.world, b, b.vy * dt, c.down);
     if (b.onGround && !this.wasGround) {
       this.emit({ t: 'land', speed: impact });
       if (impact > FALL_SAFE) this.hurt((impact - FALL_SAFE) * 6);

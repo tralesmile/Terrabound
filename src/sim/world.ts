@@ -49,6 +49,10 @@ export class World {
     return TILES[this.get(x, y)].solid;
   }
 
+  isOneWay(x: number, y: number): boolean {
+    return TILES[this.get(x, y)].oneWay === true;
+  }
+
   isClimb(x: number, y: number): boolean {
     return TILES[this.get(x, y)].climb === true;
   }

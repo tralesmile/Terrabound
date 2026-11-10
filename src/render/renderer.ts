@@ -115,6 +115,14 @@ export class Renderer {
           this.drawLadder(ctx, dx, dy, ts);
           continue;
         }
+        if (t === T.PLATFORM) {
+          if (ty >= world.surface[tx]) ctx.drawImage(this.backdrop, 0, 0, TS, TS, dx, dy, ts, ts);
+          ctx.fillStyle = '#9fb0c8';
+          ctx.fillRect(dx, dy, ts, Math.max(2, ts * 0.22));
+          ctx.fillStyle = '#55627a';
+          ctx.fillRect(dx, dy + Math.max(2, ts * 0.22), ts, Math.max(1, ts * 0.08));
+          continue;
+        }
         const v = Math.floor(hash2(tx, ty, 7) * VARIANTS);
         ctx.drawImage(this.atlas, v * TS, t * TS, TS, TS, dx, dy, ts, ts);
       }

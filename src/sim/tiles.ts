@@ -1,7 +1,7 @@
 /** Static content tables: tiles and items. Add new content here first, then wire it into worldgen/crafting. */
 
-export type ItemId = 'rust' | 'metal' | 'iron_scrap' | 'copper_wire' | 'torch' | 'ladder' | 'scaffold';
-export const ITEM_IDS: ItemId[] = ['rust', 'metal', 'iron_scrap', 'copper_wire', 'torch', 'ladder', 'scaffold'];
+export type ItemId = 'rust' | 'metal' | 'iron_scrap' | 'copper_wire' | 'torch' | 'ladder' | 'scaffold' | 'platform';
+export const ITEM_IDS: ItemId[] = ['rust', 'metal', 'iron_scrap', 'copper_wire', 'torch', 'ladder', 'scaffold', 'platform'];
 
 export const T = {
   AIR: 0,
@@ -14,6 +14,7 @@ export const T = {
   TORCH: 7,
   LADDER: 8,
   SCAFFOLD: 9,
+  PLATFORM: 10,
 } as const;
 
 export interface TileDef {
@@ -26,6 +27,8 @@ export interface TileDef {
   minable?: boolean;
   /** Player can climb here. */
   climb?: boolean;
+  /** Solid only from above: stand on it, jump up through it, press down to drop. */
+  oneWay?: boolean;
 }
 
 export const TILES: TileDef[] = [
@@ -39,6 +42,7 @@ export const TILES: TileDef[] = [
   { name: 'Torch', hardness: 0.1, solid: false, drop: 'torch', minable: true },
   { name: 'Ladder', hardness: 0.1, solid: false, drop: 'ladder', minable: true, climb: true },
   { name: 'Scaffold', hardness: 0.25, solid: true, drop: 'scaffold' },
+  { name: 'Platform', hardness: 0.15, solid: false, drop: 'platform', minable: true, oneWay: true },
 ];
 
 export interface ItemDef {
@@ -58,9 +62,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   torch: { name: 'Torch', color: '#ffb03a', places: T.TORCH, kit: true },
   ladder: { name: 'Ladder', color: '#c9a35a', places: T.LADDER, kit: true },
   scaffold: { name: 'Scaffold', color: '#7d8da6', places: T.SCAFFOLD, kit: true },
+  platform: { name: 'Platform', color: '#9fb0c8', places: T.PLATFORM, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform'];
 
 /** Placeables worth showing in the hotbar: owned ones plus the selected one, in PLACEABLE order. */
 export function visiblePlaceables(inv: Inventory, selected: ItemId): ItemId[] {
