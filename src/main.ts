@@ -3,7 +3,7 @@ import { Sfx } from './platform/audio';
 import { loadRaw, saveRaw } from './platform/storage';
 import { Fx } from './render/fx';
 import { Renderer } from './render/renderer';
-import { TILE_COLORS, drawGallery } from './render/sprites';
+import { ENEMY_ART_UNIT, ENEMY_W, TILE_COLORS, drawGallery, enemyFrame, spriteDebris } from './render/sprites';
 import { FIXED_DT, Game, NO_CONTROLS, type GameEvent, type Tool } from './sim/game';
 import { parseSave, serializeSave } from './sim/save';
 import { ITEMS } from './sim/tiles';
@@ -127,7 +127,9 @@ function boot(): void {
         fx.addShake(0.2);
         break;
       case 'enemykill':
-        fx.burst(e.x, e.y, '#ff7a5a', 14, 6);
+        // e.y is mid-body (feet - 0.5); shatter wants the feet.
+        fx.shatter(e.x, e.y + 0.5, spriteDebris(enemyFrame(e.kind, 0), ENEMY_W, false), ENEMY_ART_UNIT, e.kind === 'flyer' ? '#36e0e8' : '#ff7a5a');
+        fx.addShake(0.25);
         break;
       case 'pickup':
         fx.text(e.x + 0.5, e.y, `+1 ${ITEMS[e.item].name}`, ITEMS[e.item].color);
@@ -236,7 +238,7 @@ function boot(): void {
   window.addEventListener('error', (e) => console.error('Uncaught', e.error ?? e.message));
 
   if (new URLSearchParams(location.search).has('e2e')) {
-    (window as unknown as { __terrabound: unknown }).__terrabound = { game, ui, renderer, input, act };
+    (window as unknown as { __terrabound: unknown }).__terrabound = { game, ui, renderer, input, act, fx };
   }
   requestAnimationFrame(frame);
 }

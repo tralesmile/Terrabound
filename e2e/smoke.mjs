@@ -183,6 +183,21 @@ try {
   await page.mouse.up();
   check('pistol bolt fires', (await page.evaluate(() => window.__terrabound.game.battery)) > 0);
   await page.screenshot({ path: path.join(out, '06-pistol.png') });
+  // Killing an enemy shatters it into sprite debris with a shock ring.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.facing = 1;
+    g.enemies = [{ id: 3, kind: 'crawler', x: g.body.x + 3, y: g.body.y - 0.01, vx: 0, vy: 0, hp: 1, dir: 1, iframes: 0, age: 0, phase: 0 }];
+  });
+  await page.mouse.move(900, 400);
+  await page.mouse.down();
+  const killed = await page
+    .waitForFunction(() => window.__terrabound.game.enemies.length === 0, null, { timeout: 2000 })
+    .then(() => true, () => false);
+  await page.mouse.up();
+  const burst = await page.evaluate(() => ({ p: window.__terrabound.fx.particles.length, r: window.__terrabound.fx.rings.length }));
+  await page.screenshot({ path: path.join(out, '06b-kill-burst.png') });
+  check('enemy kill shatters into debris', killed && burst.p >= 15 && burst.r >= 1, JSON.stringify(burst));
   // Crafting and torches: craft at the base, place deep underground, screenshot the lit cave.
   await page.evaluate(() => {
     const g = window.__terrabound.game;

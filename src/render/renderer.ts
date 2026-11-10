@@ -6,7 +6,7 @@ import { hash2 } from '../sim/rng';
 import { T } from '../sim/tiles';
 import { BODY_H } from '../sim/physics';
 import type { Fx } from './fx';
-import { TILE_COLORS, TS, VARIANTS, buildAtlas, buildBackdrop, drawEnemySprite, drawPlayer, makeCanvas } from './sprites';
+import { ENEMY_SCALE, TILE_COLORS, TS, VARIANTS, buildAtlas, buildBackdrop, drawEnemySprite, drawPlayer, makeCanvas } from './sprites';
 import { TORCH_RADIUS } from '../sim/world';
 
 export interface Aim {
@@ -224,7 +224,7 @@ export class Renderer {
       const ey = this.sy(e.y, shakeY);
       const w = d.halfW * 2 * ts;
       const h = d.h * ts;
-      drawEnemySprite(ctx, e.kind, ex, ey, scale * 0.8, e.dir, time, e.iframes > 0);
+      drawEnemySprite(ctx, e.kind, ex, ey, scale * ENEMY_SCALE, e.dir, time, e.iframes > 0);
       if (e.hp < d.hp) {
         ctx.fillStyle = '#300';
         ctx.fillRect(ex - w / 2, ey - h - 4 * scale, w, 2 * scale);
@@ -269,6 +269,16 @@ export class Renderer {
       ctx.globalAlpha = Math.max(0, Math.min(1, p.life / p.max + 0.2));
       ctx.fillStyle = p.color;
       ctx.fillRect(this.sx(p.x, shakeX), this.sy(p.y, shakeY), p.size * scale, p.size * scale);
+    }
+    ctx.globalAlpha = 1;
+    for (const r of fx.rings) {
+      const k = 1 - r.life / r.max;
+      ctx.globalAlpha = Math.max(0, 1 - k);
+      ctx.strokeStyle = r.color;
+      ctx.lineWidth = scale * (2.5 - 1.5 * k);
+      ctx.beginPath();
+      ctx.arc(this.sx(r.x, shakeX), this.sy(r.y, shakeY), Math.max(1, r.r * ts * (0.2 + 0.8 * k)), 0, Math.PI * 2);
+      ctx.stroke();
     }
     ctx.globalAlpha = 1;
     ctx.font = `bold ${Math.round(scale * 5)}px ui-monospace, Menlo, Consolas, monospace`;

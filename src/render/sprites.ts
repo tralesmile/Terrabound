@@ -199,51 +199,71 @@ export function playerRows(frame: PlayerFrame, bob = 0): string[] {
   return rows.slice(0, PLAYER_H);
 }
 
-export const CRAWLER_ROWS: string[][] = [
-  [
-    '    oooooo',
-    '  ooccccccoo',
-    ' occcdccccCco',
-    'occcceeccccCco',
-    'occccEeccccCco',
-    ' oCCCCCCCCCCo',
-    '  ooooooooooo',
-    ' o o o  o o o',
-    'o  o o  o o  o',
-  ],
-  [
-    '    oooooo',
-    '  ooccccccoo',
-    ' occcdccccCco',
-    'occcceeccccCco',
-    'occccEeccccCco',
-    ' oCCCCCCCCCCo',
-    '  ooooooooooo',
-    '  o o oo o o',
-    ' o  o o  o o',
-  ],
+const CRAWLER_BODY = [
+  '    ooooooo',
+  '  oodddccccoo o',
+  ' odcccccccCCoo',
+  'occcccccccCCoooo',
+  'occcccccccColeeo',
+  'oCcccccccCColEeo',
+  ' oCCCCCCCCCooooo',
+  '  ooooooooooo',
 ];
+const CRAWLER_LEGS = [
+  ['  o  o   o  o', ' o  o   o  o'],
+  ['  o  o   o  o', '  o  o   o  o'],
+  ['  o  o   o  o', '   o  o   o  o'],
+  ['  o  o   o  o', '  o  o   o  o'],
+];
+/** Scrap crawler: beetle shell, head with glowing eye on the right, 4-step scuttle. 16x10. */
+export const CRAWLER_ROWS: string[][] = CRAWLER_LEGS.map((legs) => [...CRAWLER_BODY, ...legs]);
 
-export const FLYER_ROWS: string[][] = [
-  [
-    'wwwwo    owwww',
-    '  oooommoooo',
-    '    ommMmmo',
-    '    omeemmo',
-    '    ommmmmo',
-    '     oooooo',
-    '      oo',
-  ],
-  [
-    '     o    o',
-    '  oooommoooo',
-    '    ommMmmo',
-    '    ombbmmo',
-    '    ommmmmo',
-    'wwww oooooo wwww',
-    '      oo',
-  ],
-];
+const FLYER_BODY = ['  oooommoooo', '    ommMmmo', '    omeemmo', '    ommmmmo', '     oooooo', '      oo'];
+const ROTORS = ['wwwwwo    owwwww', '  wwwo    owww', '     o    o'];
+/** Drone wisp: rotor spins over 3 frames; the eye blinks via a remap at draw time. 16x7. */
+export const FLYER_ROWS: string[][] = ROTORS.map((r) => [r, ...FLYER_BODY]);
+
+export type EnemySpriteKind = 'crawler' | 'flyer';
+
+/** Picks the animation frame for an enemy at time t. Pure. */
+export function enemyFrame(kind: EnemySpriteKind, t: number): string[] {
+  const frames = kind === 'crawler' ? CRAWLER_ROWS : FLYER_ROWS;
+  const fps = kind === 'crawler' ? 10 : 24;
+  return frames[Math.floor(Math.max(0, t) * fps) % frames.length];
+}
+
+export const ENEMY_W = 16;
+/** Enemies draw at 0.8 of the player's art scale; one enemy art px in tiles. */
+export const ENEMY_SCALE = 0.8;
+export const ENEMY_ART_UNIT = ENEMY_SCALE / TS;
+
+export interface DebrisPiece {
+  /** Offset from the sprite's bottom-centre, in art px (y negative is up). */
+  dx: number;
+  dy: number;
+  color: string;
+}
+
+/**
+ * Splits a sprite into chunk x chunk art-px pieces, each coloured by its first
+ * opaque pixel. Used for the death "shatter" so debris matches the enemy. Pure.
+ */
+export function spriteDebris(rows: string[], width: number, flip: boolean, chunk = 2): DebrisPiece[] {
+  const out: DebrisPiece[] = [];
+  const h = rows.length;
+  for (let r0 = 0; r0 < h; r0 += chunk) {
+    for (let c0 = 0; c0 < width; c0 += chunk) {
+      let color: string | undefined;
+      for (let r = r0; r < Math.min(h, r0 + chunk) && !color; r++) {
+        for (let c = c0; c < c0 + chunk && !color; c++) color = PAL[rows[r][c] ?? ' '];
+      }
+      if (!color) continue;
+      const cx = c0 + chunk / 2;
+      out.push({ dx: (flip ? width - cx : cx) - width / 2, dy: (r0 + Math.min(h, r0 + chunk)) / 2 - h, color });
+    }
+  }
+  return out;
+}
 
 export function drawRows(
   ctx: CanvasRenderingContext2D,
@@ -306,7 +326,7 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, 
 
 export function drawEnemySprite(
   ctx: CanvasRenderingContext2D,
-  kind: 'crawler' | 'flyer',
+  kind: EnemySpriteKind,
   x: number,
   y: number,
   s: number,
@@ -314,10 +334,17 @@ export function drawEnemySprite(
   t: number,
   flash: boolean,
 ): void {
-  const frames = kind === 'crawler' ? CRAWLER_ROWS : FLYER_ROWS;
-  const w = kind === 'crawler' ? 16 : 16;
-  const rows = frames[Math.floor(t * (kind === 'crawler' ? 6 : 14)) % frames.length];
-  drawRows(ctx, rows, x - (w / 2) * s, y - rows.length * s, s, dir < 0, w, flash ? '#ffffff' : undefined);
+  const rows = enemyFrame(kind, t);
+  // Flyer eye blinks off briefly every 1.5 s; crawler eye pulses brighter.
+  const remap =
+    kind === 'flyer'
+      ? Math.floor(t * 4) % 6 === 0
+        ? { e: PAL.b }
+        : undefined
+      : Math.floor(t * 3) % 4 === 0
+        ? { e: PAL.E }
+        : undefined;
+  drawRows(ctx, rows, x - (ENEMY_W / 2) * s, y - rows.length * s, s, dir < 0, ENEMY_W, flash ? '#ffffff' : undefined, remap);
 }
 
 /** Gallery: every tile, the player frames and enemies at 4x. Used by `?gallery=1` and the e2e screenshot. */
@@ -340,7 +367,9 @@ export function drawGallery(canvas: HTMLCanvasElement): void {
     drawRows(ctx, playerRows(f), x, 100, z, false, PLAYER_W);
     x += PLAYER_W * z + 10;
   }
-  x += 20;
-  for (let i = 0; i < 2; i++) drawEnemySprite(ctx, 'crawler', x + 32 + i * 80, 100 + 24 * z, z, 1, i / 6, false);
-  for (let i = 0; i < 2; i++) drawEnemySprite(ctx, 'flyer', x + 200 + i * 80, 100 + 40 * z, z, 1, i / 14, false);
+  // Enemies: every frame in a row underneath the player frames.
+  let ex = 8 + (ENEMY_W / 2) * z;
+  for (let i = 0; i < CRAWLER_ROWS.length; i++, ex += ENEMY_W * z + 10) drawEnemySprite(ctx, 'crawler', ex, 210 + 10 * z, z, 1, (i + 0.01) / 10 + 0.4, false);
+  ex += 20;
+  for (let i = 0; i < FLYER_ROWS.length; i++, ex += ENEMY_W * z + 10) drawEnemySprite(ctx, 'flyer', ex, 210 + 10 * z, z, 1, (i + 0.01) / 24 + 0.5, false);
 }
