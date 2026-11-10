@@ -1,7 +1,8 @@
 import { ITEM_IDS, type Inventory } from './tiles';
+import { sanitizeBase, type BaseTiles } from './base';
 import { UPGRADES, type Levels } from './upgrades';
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 const MAX_COUNT = 1_000_000_000;
 
 export interface SaveData {
@@ -14,6 +15,8 @@ export interface SaveData {
   upgrades: Levels;
   stats: { deepest: number; deaths: number; playTime: number; banked: number };
   settings: { muted: boolean };
+  /** v2: persistent base tiles above the landing pad (see base.ts). */
+  base: BaseTiles;
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -26,6 +29,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     upgrades: {},
     stats: { deepest: 0, deaths: 0, playTime: 0, banked: 0 },
     settings: { muted: false },
+    base: [],
   };
 }
 
@@ -80,6 +84,8 @@ export function parseSave(raw: string | null | undefined): SaveData {
       banked: Math.floor(num(st.banked, 0, MAX_COUNT, 0)),
     },
     settings: { muted: se.muted === true },
+    // v1 saves have no base field: sanitizeBase(undefined) yields an empty base (migration v1 -> v2).
+    base: sanitizeBase(r.base),
   };
 }
 

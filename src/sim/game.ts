@@ -18,6 +18,7 @@ import {
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
 import { recipeById } from './recipes';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
+import { captureBase, stampBase } from './base';
 import { PAD_HALF, SPAWN_LIGHT_MAX, World, generateWorld } from './world';
 
 export const GRAVITY = 42;
@@ -152,6 +153,7 @@ export class Game {
     this.save.stats.banked += bankedTotal;
     this.save.carried = {};
     this.world = generateWorld(this.diveSeed());
+    stampBase(this.world, this.save.base);
     this.respawn();
   }
 
@@ -227,8 +229,10 @@ export class Game {
   }
 
   private newWorld(): void {
+    this.save.base = captureBase(this.world);
     this.save.runs += 1;
     this.world = generateWorld(this.diveSeed());
+    stampBase(this.world, this.save.base);
     this.respawn();
   }
 
@@ -669,6 +673,7 @@ export class Game {
   toSave(): SaveData {
     return {
       ...this.save,
+      base: captureBase(this.world),
       stash: { ...this.stash },
       carried: { ...this.carried },
       upgrades: { ...this.upgrades },

@@ -59,3 +59,13 @@
 **Next:** P2 base grid (save v2 + migration test), build mode, power, smelter. Also: balance test could use a smarter bot (ladders, return trip) and a gas/acid-aware path; hazard numbers (dmg 10/18, gas 5 dps) untuned by real play.
 
 **Known issues:** hazards are not saved (regenerated from seed, fine). Gas has no HUD warning yet. Balance bot teleports home instead of climbing.
+
+## 2026-11-10 Run 6
+
+**Done:** persistent base. `src/sim/base.ts` captures placeable tiles in a 15x10 strip above the landing pad and stamps them into every new dive world (and on load); `SaveData` v2 adds `base` (flat dx,dy,tile triples) with `sanitizeBase` and a v1 fixture migration test. 5 new unit tests.
+
+**Numbers:** 65 unit tests, 24 e2e checks, bundle 50.3 kB (18.5 kB gzip).
+
+**Next:** build mode UX in base (walls/platforms/doors tiles), power (solar, battery, wire), smelter, storage chest, then drones.
+
+**Known issues:** base only persists the five placeable tile types; no background walls yet. No e2e check for base persistence (unit-tested only).

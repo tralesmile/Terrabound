@@ -18,3 +18,4 @@
 - **Check whether a number is a game problem or a bot problem before tuning.** Balance changes only after the bot was verified to dig correctly.
 - **`git stash` ignores untracked files**; do not rely on it to isolate a new test file.
 - **The repo moved to `tralesmile/Terrabound`** (git prints a redirect warning on push; pushes still work).
+- **Tests that name upgrade ids must use real `UpgradeId`s** (`pick`, not `drill`); tsc catches it, so run `npx tsc --noEmit` before the full gate.
