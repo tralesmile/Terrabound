@@ -29,6 +29,7 @@ export const TILE_COLORS: Record<number, string> = {
   [T.COPPER]: '#e08a3c',
   [T.BEDROCK]: '#252938',
   [T.PAD]: '#36e0e8',
+  [T.TORCH]: '#ffb03a',
 };
 
 export function makeCanvas(w: number, h: number): HTMLCanvasElement {

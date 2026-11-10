@@ -29,3 +29,13 @@
 **Next:** hazards (acid, debris, gas), torches + crafting at the Fabricator, scaffold/ladder, spawn by light, Scrap-layer balance sim.
 
 **Known issues:** pistol aim on touch uses the tap position (no aim assist). Enemy art still placeholder rectangles. Pistol damage/cost untuned.
+
+## 2026-11-10 Run 3
+
+**Done:** torches (tile, item, minable, light model `World.lightAt`, darkness holes in the renderer), light-aware enemy spawning, Fabricator crafting (`recipes.ts`, `Game.craft`, workshop MAKE rows), "kit" items that stay in the pack when banking, key 6 selects torch, workshop text no longer clips under the buttons. 10 new unit tests, 2 new e2e checks, new screenshots 07-09.
+
+**Numbers:** 43 unit tests, 22 e2e checks, bundle 44.7 kB (16.6 kB gzip).
+
+**Next:** suit lamp upgrade, scaffold/ladder recipes and climbing, hazards (acid, debris, gas), Scrap-layer balance sim.
+
+**Known issues:** torch glow is subtle on the 07 screenshot (consider warmer tint). Torches placed in the open air need an adjacent solid tile.

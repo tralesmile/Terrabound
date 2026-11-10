@@ -21,10 +21,12 @@ Rule: ship small vertical slices. Each item needs tests. Keep the game playable 
 - [x] Energy blade (Q toggles drill/blade; arc swing, damage numbers)
 - [x] Pulse pistol (projectile with sweep collision); hit-stop
 - [x] Enemy spawning by depth (never inside walls or near the player; 25-seed test)
-- [ ] Spawning also by light level
+- [x] Spawning also by light level (enemies refuse to spawn where torch light > 0.3)
 - [ ] Hazards: drip acid tiles, falling debris with telegraph, gas pockets
-- [ ] Torches (craftable) that push back darkness; suit lamp upgrade
-- [ ] Crafting at the base Fabricator: recipes table, UI list; scaffold, ladder, torch, plate
+- [x] Torches (craftable, placeable, minable, light pushes back darkness)
+- [ ] Suit lamp upgrade
+- [x] Crafting at the base Fabricator: recipes table (src/sim/recipes.ts), UI rows in the workshop; torch done
+- [ ] More recipes: scaffold, ladder, plate
 - [ ] Scaffold and ladder placement and climbing physics
 - [ ] Simulated-player balance test for the Scrap layer
 

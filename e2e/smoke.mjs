@@ -183,6 +183,43 @@ try {
   await page.mouse.up();
   check('pistol bolt fires', (await page.evaluate(() => window.__terrabound.game.battery)) > 0);
   await page.screenshot({ path: path.join(out, '06-pistol.png') });
+  // Crafting and torches: craft at the base, place deep underground, screenshot the lit cave.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.body.x = g.world.padX + 0.5;
+    g.body.y = g.world.padY;
+    g.stash.rust = 10;
+    g.stash.iron_scrap = 10;
+    window.__terrabound.act({ k: 'craft', id: 'torch' });
+  });
+  check('crafting at the base yields torches', (await page.evaluate(() => window.__terrabound.game.carried.torch)) === 2);
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.body.y = g.world.padY + 30;
+    const bx = Math.floor(g.body.x);
+    const by = Math.floor(g.body.y);
+    for (let dx = -3; dx <= 3; dx++) for (let dy = -3; dy <= 0; dy++) g.world.set(bx + dx, by + dy, 0);
+    for (let dx = -3; dx <= 3; dx++) g.world.set(bx + dx, by + 1, 1);
+    g.world.set(bx + 3, by - 2, 1);
+    g.selected = 'torch';
+    g.world.set(bx + 2, by - 2, 7);
+    g.hp = 100;
+    g.battery = 200;
+  });
+  await page.waitForTimeout(600);
+  check('a torch tile is lit in the world', await page.evaluate(() => window.__terrabound.game.world.torches.size > 0));
+  await page.screenshot({ path: path.join(out, '07-torch.png') });
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.body.x = g.world.padX + 0.5;
+    g.body.y = g.world.padY;
+    g.stash.rust = 10;
+    g.stash.iron_scrap = 10;
+  });
+  await page.keyboard.press('KeyB');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(out, '08-shop-crafting.png') });
+  await page.keyboard.press('Escape');
   await page.keyboard.press('Digit1');
   check('1 selects the drill', (await page.evaluate(() => window.__terrabound.game.tool)) === 'drill');
 
@@ -206,6 +243,15 @@ try {
     return c.width >= 700 && c.height >= 1600;
   });
   check('canvas is sized for the device pixel ratio', canvasOk);
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.stash.rust = 20;
+    g.stash.iron_scrap = 20;
+    window.__terrabound.ui.shopOpen = true;
+  });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(out, '09-mobile-shop.png') });
+  await page.evaluate(() => { window.__terrabound.ui.shopOpen = false; });
   check('no console or page errors on mobile', merrors.length === 0, merrors.join(' | '));
   await mctx.close();
 } catch (e) {

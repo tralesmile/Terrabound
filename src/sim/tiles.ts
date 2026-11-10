@@ -1,7 +1,7 @@
 /** Static content tables: tiles and items. Add new content here first, then wire it into worldgen/crafting. */
 
-export type ItemId = 'rust' | 'metal' | 'iron_scrap' | 'copper_wire';
-export const ITEM_IDS: ItemId[] = ['rust', 'metal', 'iron_scrap', 'copper_wire'];
+export type ItemId = 'rust' | 'metal' | 'iron_scrap' | 'copper_wire' | 'torch';
+export const ITEM_IDS: ItemId[] = ['rust', 'metal', 'iron_scrap', 'copper_wire', 'torch'];
 
 export const T = {
   AIR: 0,
@@ -11,6 +11,7 @@ export const T = {
   COPPER: 4,
   BEDROCK: 5,
   PAD: 6,
+  TORCH: 7,
 } as const;
 
 export interface TileDef {
@@ -19,6 +20,8 @@ export interface TileDef {
   hardness: number;
   solid: boolean;
   drop: ItemId | null;
+  /** Breakable even though not solid (torches). */
+  minable?: boolean;
 }
 
 export const TILES: TileDef[] = [
@@ -29,6 +32,7 @@ export const TILES: TileDef[] = [
   { name: 'Copper vein', hardness: 1.6, solid: true, drop: 'copper_wire' },
   { name: 'Bedrock', hardness: Infinity, solid: true, drop: null },
   { name: 'Landing pad', hardness: Infinity, solid: true, drop: null },
+  { name: 'Torch', hardness: 0.1, solid: false, drop: 'torch', minable: true },
 ];
 
 export interface ItemDef {
@@ -36,6 +40,8 @@ export interface ItemDef {
   color: string;
   /** Tile placed when used as a block, or null. */
   places: number | null;
+  /** Kit items stay in the pack when you bank at the base (crafted gear). */
+  kit?: boolean;
 }
 
 export const ITEMS: Record<ItemId, ItemDef> = {
@@ -43,13 +49,14 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   metal: { name: 'Metal', color: '#8794a8', places: T.METAL },
   iron_scrap: { name: 'Iron scrap', color: '#d6c7b8', places: null },
   copper_wire: { name: 'Copper wire', color: '#e08a3c', places: null },
+  torch: { name: 'Torch', color: '#ffb03a', places: T.TORCH, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch'];
 
 export function isMinable(tile: number): boolean {
   const d = TILES[tile];
-  return !!d && d.solid && Number.isFinite(d.hardness);
+  return !!d && (d.solid || d.minable === true) && Number.isFinite(d.hardness);
 }
 
 export type Inventory = Partial<Record<ItemId, number>>;

@@ -95,6 +95,9 @@ export class Sfx {
       case 'bank':
         [523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.12, 'square', 0.08, undefined, i * 0.07));
         break;
+      case 'craft':
+        [330, 440, 587].forEach((f, i) => this.tone(f, 0.1, 'square', 0.08, undefined, i * 0.05));
+        break;
       case 'upgrade':
         [392, 523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.14, 'triangle', 0.14, undefined, i * 0.06));
         break;

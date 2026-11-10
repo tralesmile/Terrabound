@@ -5,7 +5,8 @@ import { hash2 } from '../sim/rng';
 import { T } from '../sim/tiles';
 import { BODY_H } from '../sim/physics';
 import type { Fx } from './fx';
-import { TILE_COLORS, TS, VARIANTS, buildAtlas, buildBackdrop, drawPlayer } from './sprites';
+import { TILE_COLORS, TS, VARIANTS, buildAtlas, buildBackdrop, drawPlayer, makeCanvas } from './sprites';
+import { TORCH_RADIUS } from '../sim/world';
 
 export interface Aim {
   tx: number;
@@ -15,6 +16,7 @@ export interface Aim {
 export class Renderer {
   private atlas = buildAtlas();
   private backdrop = buildBackdrop();
+  private dark: HTMLCanvasElement | null = null;
   /** Device pixels. */
   w = 1;
   h = 1;
@@ -101,6 +103,11 @@ export class Renderer {
         const dy = this.sy(ty, shakeY);
         if (t === T.AIR) {
           if (ty >= world.surface[tx]) ctx.drawImage(this.backdrop, 0, 0, TS, TS, dx, dy, ts, ts);
+          continue;
+        }
+        if (t === T.TORCH) {
+          if (ty >= world.surface[tx]) ctx.drawImage(this.backdrop, 0, 0, TS, TS, dx, dy, ts, ts);
+          this.drawTorch(ctx, dx, dy, ts, time + tx);
           continue;
         }
         const v = Math.floor(hash2(tx, ty, 7) * VARIANTS);
@@ -259,6 +266,16 @@ export class Renderer {
     }
   }
 
+  private drawTorch(ctx: CanvasRenderingContext2D, dx: number, dy: number, ts: number, t: number): void {
+    const u = ts / 16;
+    ctx.fillStyle = '#5a4630';
+    ctx.fillRect(dx + 7 * u, dy + 7 * u, 2 * u, 8 * u);
+    ctx.fillStyle = Math.floor(t * 8) % 2 === 0 ? '#ffd24a' : '#ff9a3c';
+    ctx.fillRect(dx + 6 * u, dy + 3 * u, 4 * u, 5 * u);
+    ctx.fillStyle = '#fff3b0';
+    ctx.fillRect(dx + 7 * u, dy + 5 * u, 2 * u, 2 * u);
+  }
+
   private drawDarkness(ctx: CanvasRenderingContext2D, game: Game, cx: number, cy: number, time: number): void {
     const depth = game.depth;
     const strength = Math.min(0.94, Math.max(0, (depth - 1) / 9) * 0.94);
@@ -267,8 +284,37 @@ export class Renderer {
       const g = ctx.createRadialGradient(cx, cy, radius * 0.25, cx, cy, radius);
       g.addColorStop(0, 'rgba(5,4,10,0)');
       g.addColorStop(1, `rgba(5,4,10,${strength})`);
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, this.w, this.h);
+      const world = game.world;
+      if (world.torches.size === 0) {
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, this.w, this.h);
+      } else {
+        // Darkness layer with torch-shaped holes punched through it.
+        if (!this.dark || this.dark.width !== this.w || this.dark.height !== this.h) this.dark = makeCanvas(this.w, this.h);
+        const dctx = this.dark.getContext('2d');
+        if (dctx) {
+          dctx.globalCompositeOperation = 'source-over';
+          dctx.clearRect(0, 0, this.w, this.h);
+          dctx.fillStyle = g;
+          dctx.fillRect(0, 0, this.w, this.h);
+          dctx.globalCompositeOperation = 'destination-out';
+          const ts = TS * this.scale;
+          const r = TORCH_RADIUS * ts;
+          for (const i of world.torches) {
+            const tx = i % world.w;
+            const ty = Math.floor(i / world.w);
+            const sx = this.sx(tx + 0.5, 0);
+            const sy = this.sy(ty + 0.5, 0);
+            if (sx < -r || sx > this.w + r || sy < -r || sy > this.h + r) continue;
+            const hole = dctx.createRadialGradient(sx, sy, 0, sx, sy, r);
+            hole.addColorStop(0, 'rgba(0,0,0,1)');
+            hole.addColorStop(1, 'rgba(0,0,0,0)');
+            dctx.fillStyle = hole;
+            dctx.fillRect(sx - r, sy - r, r * 2, r * 2);
+          }
+          ctx.drawImage(this.dark, 0, 0);
+        }
+      }
     }
     const low = game.battery / game.derived.maxBattery;
     if (low < 0.2 && !game.isAtBase()) {

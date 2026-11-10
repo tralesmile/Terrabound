@@ -16,7 +16,8 @@ import {
   pay,
 } from './tiles';
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
-import { PAD_HALF, World, generateWorld } from './world';
+import { recipeById } from './recipes';
+import { PAD_HALF, SPAWN_LIGHT_MAX, World, generateWorld } from './world';
 
 export const GRAVITY = 42;
 export const MAX_FALL = 28;
@@ -50,6 +51,7 @@ export type GameEvent =
   | { t: 'land'; speed: number }
   | { t: 'lowbattery' }
   | { t: 'upgrade'; id: string }
+  | { t: 'craft'; id: string }
   | { t: 'newdive' }
   | { t: 'swing'; dir: number }
   | { t: 'enemyhit'; x: number; y: number; dmg: number }
@@ -123,8 +125,16 @@ export class Game {
     this.upgrades = { ...save.upgrades };
     // Crash/refresh safety: loot carried at last save is banked, never lost.
     const carried = { ...save.carried };
-    const bankedTotal = invTotal(carried);
-    for (const id of Object.keys(carried) as ItemId[]) invAdd(this.stash, id, carried[id] ?? 0);
+    let bankedTotal = 0;
+    for (const id of Object.keys(carried) as ItemId[]) {
+      const n = carried[id] ?? 0;
+      if (ITEMS[id].kit) {
+        invAdd(this.carried, id, n);
+        continue;
+      }
+      bankedTotal += n;
+      invAdd(this.stash, id, n);
+    }
     this.save.stats.banked += bankedTotal;
     this.save.carried = {};
     this.world = generateWorld(this.diveSeed());
@@ -205,10 +215,15 @@ export class Game {
 
   /** Move carried loot into the stash. Returns the number of items banked. */
   bank(): number {
-    const total = invTotal(this.carried);
+    let total = 0;
+    for (const id of Object.keys(this.carried) as ItemId[]) {
+      const n = this.carried[id] ?? 0;
+      if (n <= 0 || ITEMS[id].kit) continue;
+      total += n;
+      invAdd(this.stash, id, n);
+      delete this.carried[id];
+    }
     if (total > 0) {
-      for (const id of Object.keys(this.carried) as ItemId[]) invAdd(this.stash, id, this.carried[id] ?? 0);
-      this.carried = {};
       this.save.stats.banked += total;
       this.emit({ t: 'bank', total });
     }
@@ -234,6 +249,17 @@ export class Game {
     pay(this.stash, cost);
     this.upgrades[def.id] = level + 1;
     this.emit({ t: 'upgrade', id: def.id });
+    return true;
+  }
+
+  /** Craft at the base: pay from the stash, output goes to the pack (needs room). */
+  craft(id: string): boolean {
+    const r = recipeById(id);
+    if (!r || !this.isAtBase() || !canAfford(this.stash, r.cost)) return false;
+    if (invTotal(this.carried) + r.qty > this.derived.packCap) return false;
+    pay(this.stash, r.cost);
+    invAdd(this.carried, r.out, r.qty);
+    this.emit({ t: 'craft', id: r.id });
     return true;
   }
 
@@ -540,6 +566,7 @@ export class Game {
       const e = makeEnemy(this.nextEnemyId, kind, Math.floor(x) + 0.5, Math.floor(y) + 1, this.rng() * 6.28);
       if (e.y < this.world.padY + 6 || e.y >= this.world.h - 1 || e.x < 2 || e.x >= this.world.w - 2) continue;
       if (enemyBoxHits(this.world, e)) continue;
+      if (this.world.lightAt(e.x, e.y - 0.5) > SPAWN_LIGHT_MAX) continue;
       if (!ENEMIES[kind].flying && !this.world.isSolid(Math.floor(e.x), Math.floor(e.y + 0.05))) continue;
       this.nextEnemyId++;
       this.enemies.push(e);

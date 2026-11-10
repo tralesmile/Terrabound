@@ -78,6 +78,9 @@ function boot(): void {
       case 'buy':
         if (game.buyUpgrade(a.id)) saveNow();
         break;
+      case 'craft':
+        if (game.craft(a.id)) saveNow();
+        break;
       case 'dive':
         if (game.newDive()) {
           ui.shopOpen = false;

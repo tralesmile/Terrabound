@@ -1,6 +1,7 @@
 import type { Game, Tool } from '../sim/game';
 import { ITEM_IDS, ITEMS, PLACEABLE, invCount, invTotal, type Inventory } from '../sim/tiles';
 import { UPGRADES } from '../sim/upgrades';
+import { RECIPES } from '../sim/recipes';
 
 export type UiAction =
   | { k: 'start' }
@@ -9,6 +10,7 @@ export type UiAction =
   | { k: 'mode' }
   | { k: 'mute' }
   | { k: 'buy'; id: string }
+  | { k: 'craft'; id: string }
   | { k: 'dive' }
   | { k: 'sel'; i: number }
   | { k: 'tool' }
@@ -169,7 +171,7 @@ export class UI {
     if (this.touch) this.button(ctx, bx, by, bwid, bhgt, this.placeMode ? 'MODE BUILD' : 'MODE DIG', { k: 'mode' }, u * 0.8, { color: this.placeMode ? '#7a5a1f' : '#1f6f78' });
 
     // Hotbar: tools first, then placeable blocks.
-    const slot = Math.min(u * 3.4, (w - u * 2) / 6.4);
+    const slot = Math.min(u * 3.4, (w - u * 2) / 7.4);
     const gap = u * 0.4;
     const count = TOOL_SLOTS.length + PLACEABLE.length;
     const total = count * slot + (count - 1) * gap + gap * 2;
@@ -224,7 +226,7 @@ export class UI {
     ctx.fillRect(0, 0, w, h);
     const pw = Math.min(w - u * 2, u * 40);
     const rowH = u * 2.9;
-    const ph = Math.min(h - u * 2, u * 2.4 + u * 2 + UPGRADES.length * rowH + u * 5.6);
+    const ph = Math.min(h - u * 2, u * 2.4 + u * 2 + (UPGRADES.length + RECIPES.length) * rowH + u * 5.6);
     const px = (w - pw) / 2;
     const py = (h - ph) / 2;
     ctx.fillStyle = '#12121c';
@@ -255,9 +257,19 @@ export class UI {
       ctx.fillStyle = 'rgba(255,255,255,0.05)';
       ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
       this.text(ctx, `${up.name}  Lv ${lv}/${up.maxLevel}`, px + u, ry + rowH * 0.3, Math.round(u * 0.95));
-      this.text(ctx, maxed ? up.desc : `${up.desc}   Cost: ${costText(cost ?? {})}`, px + u, ry + rowH * 0.68, Math.round(u * 0.72), maxed ? '#8a90a2' : afford ? '#9ff6a0' : '#ff8a8a');
+      this.text(ctx, maxed ? up.desc : `${up.desc}   Cost: ${costText(cost ?? {})}`, px + u, ry + rowH * 0.68, Math.round(u * 0.72), maxed ? '#8a90a2' : afford ? '#9ff6a0' : '#ff8a8a', 'left', pw - u * 8);
       const bw = u * 5.5;
       this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, maxed ? 'MAX' : 'BUY', { k: 'buy', id: up.id }, u * 0.9, { enabled: afford && !maxed });
+      ry += rowH;
+    }
+    for (const r of RECIPES) {
+      const afford = ITEM_IDS.every((id) => (game.stash[id] ?? 0) >= (r.cost[id] ?? 0));
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
+      this.text(ctx, `Fabricator: ${r.name}`, px + u, ry + rowH * 0.3, Math.round(u * 0.95));
+      this.text(ctx, `Cost: ${costText(r.cost)}`, px + u, ry + rowH * 0.68, Math.round(u * 0.72), afford ? '#9ff6a0' : '#ff8a8a');
+      const bw = u * 5.5;
+      this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, 'MAKE', { k: 'craft', id: r.id }, u * 0.9, { enabled: afford });
       ry += rowH;
     }
 

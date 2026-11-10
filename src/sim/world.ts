@@ -4,6 +4,9 @@ import { T, TILES } from './tiles';
 export const WORLD_W = 160;
 export const WORLD_H = 260;
 export const PAD_HALF = 4;
+export const TORCH_RADIUS = 7;
+/** Enemies refuse to spawn where light exceeds this. */
+export const SPAWN_LIGHT_MAX = 0.3;
 
 export class World {
   readonly tiles: Uint8Array;
@@ -12,6 +15,8 @@ export class World {
   /** Tile column of the landing pad centre and the pad's row. */
   readonly padX: number;
   readonly padY: number;
+  /** Tile indices (y * w + x) of every torch; kept in sync by set(). */
+  readonly torches = new Set<number>();
 
   constructor(
     readonly w: number,
@@ -33,12 +38,27 @@ export class World {
 
   set(x: number, y: number, t: number): boolean {
     if (x < 0 || x >= this.w || y < 0 || y >= this.h) return false;
-    this.tiles[y * this.w + x] = t;
+    const i = y * this.w + x;
+    if (this.tiles[i] === T.TORCH) this.torches.delete(i);
+    if (t === T.TORCH) this.torches.add(i);
+    this.tiles[i] = t;
     return true;
   }
 
   isSolid(x: number, y: number): boolean {
     return TILES[this.get(x, y)].solid;
+  }
+
+  /** Light 0..1 at a point from torches (linear falloff). */
+  lightAt(x: number, y: number): number {
+    let best = 0;
+    for (const i of this.torches) {
+      const tx = (i % this.w) + 0.5;
+      const ty = Math.floor(i / this.w) + 0.5;
+      const l = 1 - Math.hypot(x - tx, y - ty) / TORCH_RADIUS;
+      if (l > best) best = l;
+    }
+    return best;
   }
 }
 
