@@ -119,35 +119,206 @@ export function buildBackdrop(): HTMLCanvasElement {
   return c;
 }
 
+/** Palette-indexed pixel maps. Rows are right-padded with transparent pixels to the sprite width. */
+export const PAL: Record<string, string> = {
+  o: '#161a24',
+  h: '#d9dde8',
+  H: '#8e98b0',
+  v: '#1fb8c0',
+  V: '#c6fbff',
+  s: '#e8a33d',
+  S: '#b87a1f',
+  p: '#3a4356',
+  P: '#566077',
+  b: '#36e0e8',
+  l: '#2b2f3a',
+  L: '#4a5266',
+  g: '#c47f1f',
+  e: '#ff4a3a',
+  E: '#ffd0a0',
+  c: '#d9663a',
+  C: '#8f3d22',
+  d: '#f0a070',
+  m: '#6d4bd0',
+  M: '#b48aff',
+  w: '#ffffff',
+};
+
+export const PLAYER_W = 16;
+export const PLAYER_H = 24;
+
+const HEAD = [
+  '     oooooo',
+  '    ohhhhhHo',
+  '   ohhhhhhhHo',
+  '   ohhhvvvvvo',
+  '   ohhhvVVVvo',
+  '   ohhhvvvvvo',
+  '   oHhhhhhhHo',
+  '    oooooooo',
+];
+const TORSO = [
+  '  ooosssssso',
+  ' oppossssSso',
+  ' opbosssSSsog',
+  ' opbosssSSSgo',
+  ' oppoSSSSSSo',
+  '  oooooooooo',
+];
+const LEGS: Record<string, string[]> = {
+  stand: ['    olllLlo', '    olllLlo', '    olo olo', '    olo olo', '    olo olo', '    olo olo', '   olLo olLo', '   oooo oooo'],
+  runA: ['    olllLlo', '   olllo oLlo', '  olLo   olo', '  olo    olo', ' olLo     olLo', ' olo       olo', 'olLo       olLo', 'oooo       oooo'],
+  runB: ['    olllLlo', '    olo olo', '    olo olo', '    olo olo', '    olo olo', '   olLo olLo', '   oooo oooo', ''],
+  runC: ['    olllLlo', '    olLollo', '    ollo olo', '    olo  olo', '    olo  olo', '    olLo olLo', '    oooo oooo', ''],
+  jump: ['    olllLlo', '   ollo ollo', '   olo   olo', '   olLo  olLo', '   oooo  oooo', '', '', ''],
+  fall: ['    olllLlo', '    olo olo', '    olo olo', '    olLo olLo', '    oooo oooo', '', '', ''],
+};
+
+export type PlayerFrame = 'stand' | 'runA' | 'runB' | 'runC' | 'jump' | 'fall';
+export const PLAYER_FRAMES: PlayerFrame[] = ['stand', 'runA', 'runB', 'runC', 'jump', 'fall'];
+
+/** Full player sprite rows (24 rows) for a frame. */
+export function playerRows(frame: PlayerFrame, bob = 0): string[] {
+  const rows = [...HEAD, ...TORSO, ...LEGS[frame]];
+  while (rows.length < PLAYER_H) rows.push('');
+  // Breathing / run bob: shift head+torso down by `bob` rows, legs stay planted.
+  if (bob > 0) {
+    const upper = rows.slice(0, 14);
+    return [...Array(bob).fill(''), ...upper, ...rows.slice(14 + bob)].slice(0, PLAYER_H);
+  }
+  return rows.slice(0, PLAYER_H);
+}
+
+export const CRAWLER_ROWS: string[][] = [
+  [
+    '    oooooo',
+    '  ooccccccoo',
+    ' occcdccccCco',
+    'occcceeccccCco',
+    'occccEeccccCco',
+    ' oCCCCCCCCCCo',
+    '  ooooooooooo',
+    ' o o o  o o o',
+    'o  o o  o o  o',
+  ],
+  [
+    '    oooooo',
+    '  ooccccccoo',
+    ' occcdccccCco',
+    'occcceeccccCco',
+    'occccEeccccCco',
+    ' oCCCCCCCCCCo',
+    '  ooooooooooo',
+    '  o o oo o o',
+    ' o  o o  o o',
+  ],
+];
+
+export const FLYER_ROWS: string[][] = [
+  [
+    'wwwwo    owwww',
+    '  oooommoooo',
+    '    ommMmmo',
+    '    omeemmo',
+    '    ommmmmo',
+    '     oooooo',
+    '      oo',
+  ],
+  [
+    '     o    o',
+    '  oooommoooo',
+    '    ommMmmo',
+    '    ombbmmo',
+    '    ommmmmo',
+    'wwww oooooo wwww',
+    '      oo',
+  ],
+];
+
+export function drawRows(
+  ctx: CanvasRenderingContext2D,
+  rows: string[],
+  x: number,
+  y: number,
+  s: number,
+  flip: boolean,
+  width: number,
+  tint?: string,
+): void {
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r];
+    for (let c = 0; c < row.length; c++) {
+      const ch = row[c];
+      const color = PAL[ch];
+      if (!color) continue;
+      const cx = flip ? width - 1 - c : c;
+      ctx.fillStyle = tint ?? color;
+      ctx.fillRect(Math.round(x + cx * s), Math.round(y + r * s), Math.ceil(s), Math.ceil(s));
+    }
+  }
+}
+
 export interface PlayerPose {
   facing: number;
   walking: boolean;
   t: number;
   airborne: boolean;
+  vy?: number;
 }
 
-/** Draws the Salvager in 1px art units; (x, y) is the bottom-centre in screen px, s is px per art unit. */
+export function poseFrame(pose: PlayerPose): { frame: PlayerFrame; bob: number } {
+  if (pose.airborne) return { frame: (pose.vy ?? 0) > 0 ? 'fall' : 'jump', bob: 0 };
+  if (pose.walking) {
+    const seq: PlayerFrame[] = ['runA', 'runB', 'runC', 'runB'];
+    const i = Math.floor(pose.t * 10) % 4;
+    return { frame: seq[i], bob: i % 2 === 1 ? 1 : 0 };
+  }
+  return { frame: 'stand', bob: Math.floor(pose.t * 2) % 2 };
+}
+
+/** Draws the Salvager; (x, y) is the bottom-centre in screen px, s is px per art unit. */
 export function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: PlayerPose): void {
-  const f = pose.facing;
-  const px = (ox: number, oy: number, w: number, h: number, color: string) => {
-    const rx = f > 0 ? ox : -ox - w;
-    ctx.fillStyle = color;
-    ctx.fillRect(Math.round(x + rx * s), Math.round(y + oy * s), Math.ceil(w * s), Math.ceil(h * s));
-  };
-  const step = pose.walking && !pose.airborne ? Math.floor(pose.t * 10) % 2 : 0;
-  const bob = pose.walking && !pose.airborne ? (Math.floor(pose.t * 10) % 2 === 0 ? 0 : -1) : 0;
-  // Legs.
-  px(-4, -6, 3, 6 - (step ? 1 : 0), '#2b2f3a');
-  px(1, -6, 3, 6 - (step ? 0 : 1), '#2b2f3a');
-  // Torso and backpack battery.
-  px(-5, -17 + bob, 10, 11, '#e8a33d');
-  px(-5, -9 + bob, 10, 2, '#c47f1f');
-  px(-8, -16 + bob, 3, 8, '#36e0e8');
-  px(-8, -16 + bob, 3, 1, '#9ff6fa');
-  // Arm.
-  px(2, -15 + bob, 5, 3, '#c47f1f');
-  // Head and visor.
-  px(-4, -26 + bob, 8, 9, '#d9dde8');
-  px(0, -24 + bob, 5, 4, '#36e0e8');
-  px(0, -24 + bob, 5, 1, '#c6fbff');
+  const { frame, bob } = poseFrame(pose);
+  drawRows(ctx, playerRows(frame, bob), x - (PLAYER_W / 2) * s, y - PLAYER_H * s, s, pose.facing < 0, PLAYER_W);
+}
+
+export function drawEnemySprite(
+  ctx: CanvasRenderingContext2D,
+  kind: 'crawler' | 'flyer',
+  x: number,
+  y: number,
+  s: number,
+  dir: number,
+  t: number,
+  flash: boolean,
+): void {
+  const frames = kind === 'crawler' ? CRAWLER_ROWS : FLYER_ROWS;
+  const w = kind === 'crawler' ? 16 : 16;
+  const rows = frames[Math.floor(t * (kind === 'crawler' ? 6 : 14)) % frames.length];
+  drawRows(ctx, rows, x - (w / 2) * s, y - rows.length * s, s, dir < 0, w, flash ? '#ffffff' : undefined);
+}
+
+/** Gallery: every tile, the player frames and enemies at 4x. Used by `?gallery=1` and the e2e screenshot. */
+export function drawGallery(canvas: HTMLCanvasElement): void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const atlas = buildAtlas();
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = '#2a2f40';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const z = 4;
+  let x = 8;
+  for (let id = 1; id < TILES.length; id++) {
+    ctx.drawImage(atlas, 0, id * TS, TS, TS, x, 8, TS * z, TS * z);
+    x += TS * z + 6;
+    if (x > canvas.width - TS * z) break;
+  }
+  x = 8;
+  for (const f of PLAYER_FRAMES) {
+    drawRows(ctx, playerRows(f), x, 100, z, false, PLAYER_W);
+    x += PLAYER_W * z + 10;
+  }
+  x += 20;
+  for (let i = 0; i < 2; i++) drawEnemySprite(ctx, 'crawler', x + 32 + i * 80, 100 + 24 * z, z, 1, i / 6, false);
+  for (let i = 0; i < 2; i++) drawEnemySprite(ctx, 'flyer', x + 200 + i * 80, 100 + 40 * z, z, 1, i / 14, false);
 }

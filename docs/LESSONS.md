@@ -21,3 +21,4 @@
 - **Tests that name upgrade ids must use real `UpgradeId`s** (`pick`, not `drill`); tsc catches it, so run `npx tsc --noEmit` before the full gate.
 - **Hotbar width is now bounded by owned items**, not the PLACEABLE table; keys 4+ still index the full table, so a key for an unowned item selects it (shows slot with 0).
 - **Jump height is ~2-3 tiles.** A test placing a platform 5 tiles above the feet never lands; derive geometry from a measured jump apex, not a guess.
+- **Sprite maps drift in width.** Guard: tests/sprites.test.ts checks row widths and palette keys; review `e2e/out/10-gallery.png` after art edits.

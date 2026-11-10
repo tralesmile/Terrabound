@@ -5,7 +5,7 @@ import { hash2 } from '../sim/rng';
 import { T } from '../sim/tiles';
 import { BODY_H } from '../sim/physics';
 import type { Fx } from './fx';
-import { TILE_COLORS, TS, VARIANTS, buildAtlas, buildBackdrop, drawPlayer, makeCanvas } from './sprites';
+import { TILE_COLORS, TS, VARIANTS, buildAtlas, buildBackdrop, drawEnemySprite, drawPlayer, makeCanvas } from './sprites';
 import { TORCH_RADIUS } from '../sim/world';
 
 export interface Aim {
@@ -223,10 +223,7 @@ export class Renderer {
       const ey = this.sy(e.y, shakeY);
       const w = d.halfW * 2 * ts;
       const h = d.h * ts;
-      ctx.fillStyle = e.iframes > 0 ? '#ffffff' : d.flying ? '#b04aff' : '#d9663a';
-      ctx.fillRect(ex - w / 2, ey - h, w, h);
-      ctx.fillStyle = '#1a0f10';
-      ctx.fillRect(ex + e.dir * w * 0.15 - w * 0.12, ey - h * 0.7, w * 0.24, h * 0.22);
+      drawEnemySprite(ctx, e.kind, ex, ey, scale * 0.8, e.dir, time, e.iframes > 0);
       if (e.hp < d.hp) {
         ctx.fillStyle = '#300';
         ctx.fillRect(ex - w / 2, ey - h - 4 * scale, w, 2 * scale);
@@ -259,6 +256,7 @@ export class Renderer {
       walking: Math.abs(b.vx) > 1,
       t: time,
       airborne: !b.onGround,
+      vy: b.vy,
     });
 
     // Particles and floating text.

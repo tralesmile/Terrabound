@@ -103,3 +103,13 @@
 ## 2026-11-10 Owner feedback (interactive)
 
 Owner played: works well, sounds good. Problems: map too small, graphics bad (player and enemies), world feels blank. Wants biomes/worlds, trees, loot places, closer to Terraria with our own identity. Added BACKLOG phase **P1.5 World and art overhaul** at top priority, ahead of the remaining P2 automation items. Runs should start with the art quality bar and player rig.
+
+## 2026-11-10 Run 10
+
+**Done:** `docs/ART.md`; palette-indexed pixel sprites (player 16x24 with idle/run/jump/fall frames, crawler and flyer 2 frames each, hit flash); gallery screen `?e2e=1&gallery=1` with e2e screenshot `10-gallery.png`; tests/sprites.test.ts.
+
+**Numbers:** 77 unit tests, 25 e2e checks.
+
+**Next:** finish player rig (dig, hurt, climb, suit tier), tile autotiling and back-wall layer, then bigger world with chunk cache.
+
+**Known issues:** gallery lacks torch/ladder/door tiles (no LOOK entry; drawn procedurally in renderer); enemy sprites not yet reviewed in live play.

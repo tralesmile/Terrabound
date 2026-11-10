@@ -3,7 +3,7 @@ import { Sfx } from './platform/audio';
 import { loadRaw, saveRaw } from './platform/storage';
 import { Fx } from './render/fx';
 import { Renderer } from './render/renderer';
-import { TILE_COLORS } from './render/sprites';
+import { TILE_COLORS, drawGallery } from './render/sprites';
 import { FIXED_DT, Game, NO_CONTROLS, type GameEvent, type Tool } from './sim/game';
 import { parseSave, serializeSave } from './sim/save';
 import { ITEMS } from './sim/tiles';
@@ -18,6 +18,17 @@ function fatal(err: unknown): void {
 }
 
 function boot(): void {
+  if (new URLSearchParams(location.search).has('gallery')) {
+    const gc = document.getElementById('game') as HTMLCanvasElement | null;
+    if (gc) {
+      gc.width = 1100;
+      gc.height = 460;
+      gc.style.width = '1100px';
+      gc.style.height = '460px';
+      drawGallery(gc);
+    }
+    return;
+  }
   const canvas = document.getElementById('game') as HTMLCanvasElement | null;
   const ctx = canvas?.getContext('2d', { alpha: false });
   if (!canvas || !ctx) {

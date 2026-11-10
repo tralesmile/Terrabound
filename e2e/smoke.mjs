@@ -269,6 +269,15 @@ try {
   await page.evaluate(() => { window.__terrabound.ui.shopOpen = false; });
   check('no console or page errors on mobile', merrors.length === 0, merrors.join(' | '));
   await mctx.close();
+  const gctx = await browser.newContext({ viewport: { width: 1100, height: 460 } });
+  const gpage = await gctx.newPage();
+  const gerrors = [];
+  gpage.on('pageerror', (e) => gerrors.push(e.message));
+  await gpage.goto(base + '&gallery=1');
+  await gpage.waitForTimeout(300);
+  await gpage.screenshot({ path: path.join(out, '10-gallery.png') });
+  check('sprite gallery renders without errors', gerrors.length === 0, gerrors.join(' | '));
+  await gctx.close();
 } catch (e) {
   console.error(e);
   failures.push('exception: ' + (e instanceof Error ? e.message : String(e)));
