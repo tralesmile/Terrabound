@@ -8,7 +8,7 @@ import { BODY_H } from '../sim/physics';
 import type { Fx } from './fx';
 import { EDGE_N, MASKS, edgeMask, growsMoss, isBlock } from './autotile';
 import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, drawEnemySprite, drawPlayer, makeCanvas } from './sprites';
-import { TORCH_RADIUS } from '../sim/world';
+import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 
 export interface Aim {
   tx: number;
@@ -19,7 +19,6 @@ export class Renderer {
   private atlas = buildAtlas();
   private moss = buildMoss();
   private wallAtlas = buildWallAtlas();
-  private dark: HTMLCanvasElement | null = null;
   /** Device pixels. */
   w = 1;
   h = 1;
@@ -373,45 +372,52 @@ export class Renderer {
     ctx.fillRect(dx + 7 * u, dy + 5 * u, 2 * u, 2 * u);
   }
 
-  private drawDarkness(ctx: CanvasRenderingContext2D, game: Game, cx: number, cy: number, time: number): void {
-    const depth = game.depth;
-    const strength = Math.min(0.94, Math.max(0, (depth - 1) / 9) * 0.94);
-    if (strength > 0.01) {
-      const radius = (game.derived.lampRadius + Math.max(0, 2.5 - depth / 40)) * TS * this.scale;
-      const g = ctx.createRadialGradient(cx, cy, radius * 0.25, cx, cy, radius);
-      g.addColorStop(0, 'rgba(5,4,10,0)');
-      g.addColorStop(1, `rgba(5,4,10,${strength})`);
-      const world = game.world;
-      if (world.torches.size === 0) {
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, this.w, this.h);
-      } else {
-        // Darkness layer with torch-shaped holes punched through it.
-        if (!this.dark || this.dark.width !== this.w || this.dark.height !== this.h) this.dark = makeCanvas(this.w, this.h);
-        const dctx = this.dark.getContext('2d');
-        if (dctx) {
-          dctx.globalCompositeOperation = 'source-over';
-          dctx.clearRect(0, 0, this.w, this.h);
-          dctx.fillStyle = g;
-          dctx.fillRect(0, 0, this.w, this.h);
-          dctx.globalCompositeOperation = 'destination-out';
-          const ts = TS * this.scale;
-          const r = TORCH_RADIUS * ts;
-          for (const i of world.torches) {
-            const tx = i % world.w;
-            const ty = Math.floor(i / world.w);
-            const sx = this.sx(tx + 0.5, 0);
-            const sy = this.sy(ty + 0.5, 0);
-            if (sx < -r || sx > this.w + r || sy < -r || sy > this.h + r) continue;
-            const hole = dctx.createRadialGradient(sx, sy, 0, sx, sy, r);
-            hole.addColorStop(0, 'rgba(0,0,0,1)');
-            hole.addColorStop(1, 'rgba(0,0,0,0)');
-            dctx.fillStyle = hole;
-            dctx.fillRect(sx - r, sy - r, r * 2, r * 2);
-          }
-          ctx.drawImage(this.dark, 0, 0);
+  /** Flood-fill light map for the visible region (plus a margin so off-screen torches still reach in). */
+  private lightKey = '';
+  private light: LightGrid | null = null;
+  private lightCanvas: HTMLCanvasElement | null = null;
+
+  /** Current light level at a tile (debug/e2e). */
+  lightLevel(tx: number, ty: number): number {
+    return this.light ? levelAt(this.light, tx, ty) : -1;
+  }
+
+  private drawDarkness(ctx: CanvasRenderingContext2D, game: Game, _cx: number, _cy: number, time: number): void {
+    const world = game.world;
+    const ts = TS * this.scale;
+    const margin = Math.ceil(LEVEL_CAP / AIR_COST / 2);
+    const x0 = Math.floor(this.camX - this.w / 2 / ts) - margin;
+    const y0 = Math.floor(this.camY - this.h / 2 / ts) - margin;
+    const lw = Math.ceil(this.w / ts) + margin * 2 + 2;
+    const lh = Math.ceil(this.h / ts) + margin * 2 + 2;
+    const b = game.body;
+    const ptx = Math.floor(b.x);
+    const pty = Math.floor(b.y - BODY_H / 2);
+    const lampR = game.derived.lampRadius;
+    const key = `${x0},${y0},${lw},${lh},${ptx},${pty},${lampR},${world.version},${world.torches.size}`;
+    if (key !== this.lightKey || !this.light) {
+      this.lightKey = key;
+      const sources = frameSources(world.torches, world.w, { x: ptx, y: pty, radius: lampR }, { x: world.padX, y: world.padY });
+      this.light = computeLight(world, x0, y0, lw, lh, sources, SKY_LEVEL);
+      if (!this.lightCanvas || this.lightCanvas.width !== lw || this.lightCanvas.height !== lh) this.lightCanvas = makeCanvas(lw, lh);
+      const lctx = this.lightCanvas.getContext('2d');
+      if (lctx) {
+        const img = lctx.createImageData(lw, lh);
+        const lv = this.light.levels;
+        for (let k = 0; k < lv.length; k++) {
+          img.data[k * 4] = 5;
+          img.data[k * 4 + 1] = 4;
+          img.data[k * 4 + 2] = 10;
+          img.data[k * 4 + 3] = Math.round(255 * DARK_MAX * (1 - brightness(lv[k])));
         }
+        lctx.putImageData(img, 0, 0);
       }
+    }
+    if (this.lightCanvas) {
+      // One pixel per tile, scaled with smoothing: per-tile light with soft interpolation between tiles.
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(this.lightCanvas, 0, 0, lw, lh, this.sx(x0, 0), this.sy(y0, 0), lw * ts, lh * ts);
+      ctx.imageSmoothingEnabled = false;
     }
     const low = game.battery / game.derived.maxBattery;
     if (low < 0.2 && !game.isAtBase()) {

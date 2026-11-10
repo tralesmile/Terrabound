@@ -223,6 +223,14 @@ try {
   });
   await page.waitForTimeout(600);
   check('a torch tile is lit in the world', await page.evaluate(() => window.__terrabound.game.world.torches.size > 0));
+  const lit = await page.evaluate(() => {
+    const { game: g, renderer: r } = window.__terrabound;
+    const bx = Math.floor(g.body.x);
+    const by = Math.floor(g.body.y);
+    // Far rock: the solid cell farthest from the pocket that is still on screen.
+    return { torch: r.lightLevel(bx + 2, by - 2), rock: r.lightLevel(bx - 10, by + 6) };
+  });
+  check('light map lights the torch and leaves deep rock dark', lit.torch >= 32 && lit.rock === 0, JSON.stringify(lit));
   await page.screenshot({ path: path.join(out, '07-torch.png') });
   // Hazards: a telegraphed acid drip and a gas pocket render and hurt without errors.
   await page.evaluate(() => {

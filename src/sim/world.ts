@@ -23,6 +23,8 @@ export class World {
   readonly padY: number;
   /** Tile indices (y * w + x) of every torch; kept in sync by set(). */
   readonly torches = new Set<number>();
+  /** Bumped on every tile or wall change so renderers can cache derived data (light map). */
+  version = 0;
 
   constructor(
     readonly w: number,
@@ -49,6 +51,7 @@ export class World {
     if (this.tiles[i] === T.TORCH) this.torches.delete(i);
     if (t === T.TORCH) this.torches.add(i);
     this.tiles[i] = t;
+    this.version++;
     return true;
   }
 
@@ -60,6 +63,7 @@ export class World {
   setWall(x: number, y: number, wall: number): boolean {
     if (x < 0 || x >= this.w || y < 0 || y >= this.h) return false;
     this.walls[y * this.w + x] = wall;
+    this.version++;
     return true;
   }
 
