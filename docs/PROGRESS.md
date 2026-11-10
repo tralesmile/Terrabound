@@ -140,7 +140,7 @@ Also: flood-fill tile light map (`src/render/lightmap.ts`: sky, torches, lamp, p
 
 **Done:** big world and exploration. World 1400x420 (was 160x260) with five surface biomes (`src/sim/biomes.ts`: seeded bands around the home Rust Wastes), biome crusts, crystal ore, deep caverns; `src/sim/structures.ts` places ruins, radio towers, crashed ships (each with a loot chest), sealed vaults, crystal geodes, trees (5 shapes, felling gives biomass), plants and glowing cave mushrooms; `src/sim/loot.ts` seeded chest loot. Pad terrain eases in over 24 columns (no cliffs at spawn). New art in `src/render/decor.ts` (ragged autotiled leaves, trunks, plants, chest, snow caps, sky palettes blended by biome, per-biome skyline silhouettes); crystals and mushrooms emit light. Chunk render cache (32x32 tiles, change log on World, prefetch, eviction). `src/sim/explore.ts`: fog map, codex (10 entries, one-time stash rewards, save v4), surface recall (R / HOME). Map screen `src/ui/map.ts` (M; pauses the dive); mute moved to N. Workshop stash line shows only owned items.
 
-**Numbers:** 143 unit tests, 44 e2e checks, bundle 93 kB (33.8 kB gzip). Worldgen ~100 ms. Headless frame draw ~4 ms while walking (software rendering); heap ~10-20 MB.
+**Numbers:** 143 unit tests, ~38 e2e checks, bundle 93 kB (33.8 kB gzip). Worldgen ~100 ms. Headless frame draw ~4 ms while walking (software rendering); heap ~10-20 MB.
 
 **Next:** day/night cycle, liquids v1, biome enemies, lore shrines and drone wrecks, then P2 (power, machines, drones).
 
@@ -148,6 +148,6 @@ Also: flood-fill tile light map (`src/render/lightmap.ts`: sky, torches, lamp, p
 
 Later in the same session: day/night cycle with night surface spawns; one enemy per biome (vine stalker, shard mite, ember wisp, frost hulk); data shrines with 12 lore logs and drone wrecks (codex now 12 entries).
 
-**Numbers (end of session):** 153 unit tests, 50 e2e checks, bundle 99 kB (36.1 kB gzip).
+**Numbers (end of session):** 153 unit tests, 42 e2e checks, bundle 99 kB (36.1 kB gzip).
 
 **Next:** liquids v1 (water/coolant, acid pools), lore/codex screen, then P2 base automation (power, smelter, chests, drones). Owner decision pending on persistent world vs new world per dive.
