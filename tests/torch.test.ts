@@ -129,3 +129,18 @@ describe('kit items', () => {
     expect(g.stash.iron_scrap).toBe(5);
   });
 });
+
+describe('suit lamp', () => {
+  it('raises lamp radius per level, is buyable, and survives saves', async () => {
+    const { derive } = await import('../src/sim/upgrades');
+    expect(derive({ lamp: 2 }).lampRadius).toBeGreaterThan(derive({}).lampRadius);
+    const g = new Game();
+    g.stash = { iron_scrap: 50, copper_wire: 20 };
+    expect(g.buyUpgrade('lamp')).toBe(true);
+    expect(g.upgrades.lamp).toBe(1);
+    const back = parseSave(serializeSave(g.toSave()));
+    expect(back.upgrades.lamp).toBe(1);
+    // Old saves without the lamp load fine.
+    expect(parseSave(JSON.stringify({ v: 1, upgrades: { battery: 2 } })).upgrades).toEqual({ battery: 2 });
+  });
+});

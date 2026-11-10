@@ -280,7 +280,7 @@ export class Renderer {
     const depth = game.depth;
     const strength = Math.min(0.94, Math.max(0, (depth - 1) / 9) * 0.94);
     if (strength > 0.01) {
-      const radius = (6.5 + Math.max(0, 2.5 - depth / 40)) * TS * this.scale;
+      const radius = (game.derived.lampRadius + Math.max(0, 2.5 - depth / 40)) * TS * this.scale;
       const g = ctx.createRadialGradient(cx, cy, radius * 0.25, cx, cy, radius);
       g.addColorStop(0, 'rgba(5,4,10,0)');
       g.addColorStop(1, `rgba(5,4,10,${strength})`);

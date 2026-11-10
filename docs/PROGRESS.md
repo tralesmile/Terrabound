@@ -34,8 +34,8 @@
 
 **Done:** torches (tile, item, minable, light model `World.lightAt`, darkness holes in the renderer), light-aware enemy spawning, Fabricator crafting (`recipes.ts`, `Game.craft`, workshop MAKE rows), "kit" items that stay in the pack when banking, key 6 selects torch, workshop text no longer clips under the buttons. 10 new unit tests, 2 new e2e checks, new screenshots 07-09.
 
-**Numbers:** 43 unit tests, 22 e2e checks, bundle 44.7 kB (16.6 kB gzip).
+**Numbers:** 44 unit tests, 22 e2e checks, bundle 44.9 kB (16.7 kB gzip). Suit lamp upgrade added late in the run.
 
-**Next:** suit lamp upgrade, scaffold/ladder recipes and climbing, hazards (acid, debris, gas), Scrap-layer balance sim.
+**Next:** scaffold/ladder recipes and climbing, hazards (acid, debris, gas), Scrap-layer balance sim.
 
 **Known issues:** torch glow is subtle on the 07 screenshot (consider warmer tint). Torches placed in the open air need an adjacent solid tile.

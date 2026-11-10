@@ -1,6 +1,6 @@
 import type { Inventory } from './tiles';
 
-export type UpgradeId = 'battery' | 'pick' | 'pack' | 'boots' | 'armor';
+export type UpgradeId = 'battery' | 'pick' | 'pack' | 'boots' | 'armor' | 'lamp';
 
 export interface UpgradeDef {
   id: UpgradeId;
@@ -48,6 +48,13 @@ export const UPGRADES: UpgradeDef[] = [
     maxLevel: 5,
     cost: (l) => ({ metal: scale(10, l), iron_scrap: scale(5, l) }),
   },
+  {
+    id: 'lamp',
+    name: 'Suit lamp',
+    desc: '+1.5 tiles of light',
+    maxLevel: 4,
+    cost: (l) => ({ iron_scrap: scale(7, l), copper_wire: scale(2, l) }),
+  },
 ];
 
 export type Levels = Partial<Record<UpgradeId, number>>;
@@ -60,6 +67,8 @@ export interface Derived {
   packCap: number;
   speed: number;
   maxHp: number;
+  /** Suit lamp light radius in tiles. */
+  lampRadius: number;
 }
 
 export function derive(l: Levels): Derived {
@@ -70,5 +79,6 @@ export function derive(l: Levels): Derived {
     packCap: 30 + 12 * g('pack'),
     speed: 7 + 0.5 * g('boots'),
     maxHp: 100 + 20 * g('armor'),
+    lampRadius: 6.5 + 1.5 * g('lamp'),
   };
 }

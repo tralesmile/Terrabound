@@ -24,7 +24,7 @@ Rule: ship small vertical slices. Each item needs tests. Keep the game playable 
 - [x] Spawning also by light level (enemies refuse to spawn where torch light > 0.3)
 - [ ] Hazards: drip acid tiles, falling debris with telegraph, gas pockets
 - [x] Torches (craftable, placeable, minable, light pushes back darkness)
-- [ ] Suit lamp upgrade
+- [x] Suit lamp upgrade (4 levels, +1.5 tiles of light)
 - [x] Crafting at the base Fabricator: recipes table (src/sim/recipes.ts), UI rows in the workshop; torch done
 - [ ] More recipes: scaffold, ladder, plate
 - [ ] Scaffold and ladder placement and climbing physics
