@@ -162,3 +162,16 @@ describe('workshop stash line', () => {
     expect(recipeById('biotorch')?.cost.biomass).toBe(3);
   });
 });
+
+describe('world change log (render cache invalidation)', () => {
+  it('records tile and wall changes, starts empty, and flags overflow instead of growing forever', () => {
+    const w = generateWorld(4);
+    expect(w.changes.length).toBe(0);
+    w.set(5, 60, T.AIR);
+    w.setWall(6, 60, 0);
+    expect(w.changes).toEqual([60 * w.w + 5, 60 * w.w + 6]);
+    for (let i = 0; i < 5000; i++) w.set(10 + (i % 50), 70, T.RUST);
+    expect(w.changes.length).toBeLessThanOrEqual(4096);
+    expect(w.changesOverflow).toBe(true);
+  });
+});

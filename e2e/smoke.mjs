@@ -349,6 +349,55 @@ try {
   check('breaking a ruin chest fills the pack with loot', !!chestAt && loot > 0, JSON.stringify({ chestAt, loot }));
   await page.screenshot({ path: path.join(out, '12-chest-loot.png') });
 
+  // Chunk cache: a tile changed in the sim must change on screen next frame.
+  const cacheOk = await page.evaluate(async () => {
+    const t = window.__terrabound;
+    const g = t.game;
+    const w = g.world;
+    const x = w.padX + 40;
+    const y = w.surface[x] + 3;
+    g.body.x = x + 0.5;
+    g.body.y = w.surface[x] - 0.01;
+    for (let i = 0; i < 30; i++) {
+      t.renderer.follow(g, 1 / 60);
+      t.renderer.draw(g, t.fx, null, 0);
+    }
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const r = t.renderer;
+    const ts = 16 * r.scale;
+    const px = Math.round(r.w / 2 + (x + 0.5 - r.camX) * ts);
+    const py = Math.round(r.h / 2 + (y + 0.5 - r.camY) * ts);
+    const sample = () => Array.from(ctx.getImageData(px, py, 1, 1).data).join(',');
+    w.set(x, y, 17); // crystal: bright, unmistakable
+    t.renderer.draw(g, t.fx, null, 0);
+    const a = sample();
+    w.set(x, y, 2); // metal
+    t.renderer.draw(g, t.fx, null, 0);
+    const b = sample();
+    return { a, b, changed: a !== b };
+  });
+  check('chunk cache redraws a changed tile immediately', cacheOk.changed, JSON.stringify(cacheOk));
+  // Frame cost in the big world: time renderer.draw directly over many frames (includes light map rebuilds).
+  const perf = await page.evaluate(() => {
+    const t = window.__terrabound;
+    const g = t.game;
+    g.body.x = g.world.padX + 60.5;
+    g.body.y = g.world.surface[g.world.padX + 60] - 0.01;
+    const n = 120;
+    const t0 = performance.now();
+    for (let i = 0; i < n; i++) {
+      g.body.x += 0.25; // walk: forces light map rebuilds as the player crosses tiles
+      t.renderer.follow(g, 1 / 60);
+      t.renderer.draw(g, t.fx, null, i / 60);
+    }
+    return { ms: (performance.now() - t0) / n, heapMB: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1e6) : -1 };
+  });
+  console.log('perf', JSON.stringify(perf));
+  // Headless Chrome renders in software on a shared VM, so this is a coarse regression guard, not the 60 fps budget.
+  check('average frame draw under 12 ms while walking in the big world', perf.ms < 12, JSON.stringify(perf));
+  check('JS heap under 200 MB', perf.heapMB < 200, JSON.stringify(perf));
+
   // Let it run a few seconds idle to catch loop errors.
   await page.waitForTimeout(2000);
   check('no console or page errors on desktop', errors.length === 0, errors.join(' | '));

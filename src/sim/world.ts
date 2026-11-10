@@ -33,6 +33,10 @@ export class World {
   readonly torches = new Set<number>();
   /** Points of interest placed by worldgen (ruins, towers, ships, vaults, geodes). */
   readonly structures: Structure[] = [];
+  /** Tile indices changed since the renderer last looked (render caches drain this; capped). */
+  readonly changes: number[] = [];
+  /** Set when `changes` overflowed: caches must rebuild everything. */
+  changesOverflow = false;
   /** Bumped on every tile or wall change so renderers can cache derived data (light map). */
   version = 0;
 
@@ -63,6 +67,7 @@ export class World {
     if (t === T.TORCH) this.torches.add(i);
     this.tiles[i] = t;
     this.version++;
+    this.mark(i);
     return true;
   }
 
@@ -75,7 +80,17 @@ export class World {
     if (x < 0 || x >= this.w || y < 0 || y >= this.h) return false;
     this.walls[y * this.w + x] = wall;
     this.version++;
+    this.mark(y * this.w + x);
     return true;
+  }
+
+  private mark(i: number): void {
+    // Unbounded growth would leak if nothing drains it (tests, headless sims): past the cap, flag a full refresh.
+    if (this.changes.length >= 4096) {
+      this.changes.length = 0;
+      this.changesOverflow = true;
+    }
+    this.changes.push(i);
   }
 
   isSolid(x: number, y: number): boolean {
@@ -199,6 +214,8 @@ export function generateWorld(seed: number, w = WORLD_W, h = WORLD_H): World {
   }
   decorate(world);
   world.version = 0;
+  world.changes.length = 0;
+  world.changesOverflow = false;
   return world;
 }
 

@@ -12,6 +12,12 @@ import { B, BIOME_IDS } from '../sim/biomes';
 import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, drawEnemySprite, drawPlayer, makeCanvas } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 
+/** Chunk size in tiles for the render cache. */
+export const CHUNK = 32;
+/** Cache size before far chunks are evicted. */
+export const MAX_CHUNKS = 48;
+const chunkKey = (cx: number, cy: number): number => cy * 4096 + cx;
+
 export interface Aim {
   tx: number;
   ty: number;
@@ -106,89 +112,23 @@ export class Renderer {
       this.drawSkyDecor(ctx, horizon, time, world);
     }
 
-    // Tiles.
+    // Tiles: cached chunks, then per-frame animated tiles.
     const x0 = Math.floor(this.camX - w / 2 / ts) - 1;
     const x1 = Math.ceil(this.camX + w / 2 / ts) + 1;
     const y0 = Math.floor(this.camY - h / 2 / ts) - 1;
     const y1 = Math.ceil(this.camY + h / 2 / ts) + 1;
-    const get = (x: number, y: number): number => world.get(x, y);
-    for (let ty = y0; ty <= y1; ty++) {
-      for (let tx = x0; tx <= x1; tx++) {
-        if (tx < 0 || tx >= world.w || ty < 0 || ty >= world.h) continue;
-        const t = world.tiles[ty * world.w + tx];
-        const dx = this.sx(tx, shakeX);
-        const dy = this.sy(ty, shakeY);
-        if (t === T.AIR) {
-          this.drawBack(ctx, world, tx, ty, dx, dy, ts);
-          continue;
-        }
-        if (t === T.TORCH) {
-          this.drawBack(ctx, world, tx, ty, dx, dy, ts);
-          this.drawTorch(ctx, dx, dy, ts, time + tx);
-          continue;
-        }
-        if (t === T.LADDER) {
-          this.drawBack(ctx, world, tx, ty, dx, dy, ts);
-          this.drawLadder(ctx, dx, dy, ts);
-          continue;
-        }
-        if (t === T.PLATFORM) {
-          this.drawBack(ctx, world, tx, ty, dx, dy, ts);
-          ctx.fillStyle = '#9fb0c8';
-          ctx.fillRect(dx, dy, ts, Math.max(2, ts * 0.22));
-          ctx.fillStyle = '#55627a';
-          ctx.fillRect(dx, dy + Math.max(2, ts * 0.22), ts, Math.max(1, ts * 0.08));
-          continue;
-        }
-        if (t === T.TRUNK || t === T.LEAVES || t === T.PLANT || t === T.CHEST) {
-          this.drawBack(ctx, world, tx, ty, dx, dy, ts);
-          const bio = world.biome[tx] ?? 0;
-          const v2 = Math.floor(hash2(tx, ty, 7) * 4);
-          if (t === T.TRUNK) {
-            // Inside a canopy, foliage continues behind the trunk so crowns never split in two.
-            if (get(tx - 1, ty) === T.LEAVES && get(tx + 1, ty) === T.LEAVES) {
-              const m = leafMask(get, tx, ty) & ~(2 | 8);
-              ctx.drawImage(this.decor.leaves, (m * LEAF_VARIANTS + (v2 % LEAF_VARIANTS)) * TS, bio * TS, TS, TS, dx, dy, ts, ts);
-            }
-            ctx.drawImage(this.decor.trunks, (v2 % 2) * TS, bio * TS, TS, TS, dx, dy, ts, ts);
-          }
-          else if (t === T.LEAVES) {
-            const m = leafMask(get, tx, ty);
-            ctx.drawImage(this.decor.leaves, (m * LEAF_VARIANTS + (v2 % LEAF_VARIANTS)) * TS, bio * TS, TS, TS, dx, dy, ts, ts);
-          } else if (t === T.PLANT) {
-            const row = ty > world.surface[tx] + 1 ? CAVE_ROW : bio;
-            ctx.drawImage(this.decor.plants, (v2 % PLANT_VARIANTS) * TS, row * TS, TS, TS, dx, dy, ts, ts);
-          } else {
-            const bob = Math.sin(time * 3 + tx) > 0.6 ? scale : 0;
-            ctx.drawImage(this.decor.chest, 0, 0, TS, TS, dx, dy - bob, ts, ts);
-          }
-          continue;
-        }
-        if (t === T.WALL || t === T.DOOR) {
-          // T.WALL is legacy (pre-v3 saves migrate it to the wall layer); still drawn if ever present.
-          this.drawBack(ctx, world, tx, ty, dx, dy, ts);
-          ctx.fillStyle = t === T.WALL ? '#3a4356' : '#6fa8c9';
-          const inset = t === T.WALL ? 0 : ts * 0.25;
-          ctx.fillRect(dx + inset, dy, ts - inset * 2, ts);
-          ctx.fillStyle = t === T.WALL ? '#2f3748' : '#3d6e8a';
-          ctx.fillRect(dx + inset, dy, Math.max(1, ts * 0.08), ts);
-          if (t === T.DOOR) {
-            ctx.fillStyle = '#ffd36b';
-            ctx.fillRect(dx + ts * 0.58, dy + ts * 0.5, Math.max(2, ts * 0.1), Math.max(2, ts * 0.1));
-          }
-          continue;
-        }
-        const v = Math.floor(hash2(tx, ty, 7) * VARIANTS);
-        const mask = isBlock(t) ? edgeMask(get, tx, ty) : MASKS - 1;
-        // Rounded corners are transparent: show the cave wall behind them underground.
-        if (mask !== 0) this.drawBack(ctx, world, tx, ty, dx, dy, ts);
-        ctx.drawImage(this.atlas, atlasCol(v, mask) * TS, t * TS, TS, TS, dx, dy, ts, ts);
-        if (mask & EDGE_N && ty <= world.surface[tx]) {
-          if (growsMoss(t) && world.biome[tx] !== B.ASH) ctx.drawImage(this.moss, v * TS, 0, TS, MOSS_H, dx, dy, ts, MOSS_H * scale);
-          else if (growsSnow(t)) ctx.drawImage(this.decor.snow, v * TS, 0, TS, SNOW_H, dx, dy, ts, SNOW_H * scale);
-        }
+    this.syncChunks(world);
+    const cx0 = Math.floor(Math.max(0, x0) / CHUNK);
+    const cx1 = Math.floor(Math.min(world.w - 1, x1) / CHUNK);
+    const cy0 = Math.floor(Math.max(0, y0) / CHUNK);
+    const cy1 = Math.floor(Math.min(world.h - 1, y1) / CHUNK);
+    for (let cy = cy0; cy <= cy1; cy++) {
+      for (let cx = cx0; cx <= cx1; cx++) {
+        ctx.drawImage(this.chunk(world, cx, cy), this.sx(cx * CHUNK, shakeX), this.sy(cy * CHUNK, shakeY), CHUNK * ts, CHUNK * ts);
       }
     }
+    this.prefetchChunk(world, cx0, cy0, cx1, cy1);
+    this.drawDynamic(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
 
     // Aim highlight and crack overlay.
     if (aim) {
@@ -341,6 +281,177 @@ export class Renderer {
     ctx.globalAlpha = 1;
 
     this.drawDarkness(ctx, game, px, py - 14 * scale, time);
+  }
+
+  /** Static art of one tile (cached in chunks): back wall, block, decor, lichen. */
+  private drawTile(ctx: CanvasRenderingContext2D, world: Game['world'], tx: number, ty: number, dx: number, dy: number, ts: number, scale: number): void {
+    const t = world.tiles[ty * world.w + tx];
+    const get = (x: number, y: number): number => world.get(x, y);
+    if (t === T.AIR) {
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      return;
+    }
+    if (t === T.TORCH) {
+      // Flame flickers: drawn each frame by drawDynamic, only the wall is cached.
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      return;
+    }
+    if (t === T.LADDER) {
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      this.drawLadder(ctx, dx, dy, ts);
+      return;
+    }
+    if (t === T.PLATFORM) {
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      ctx.fillStyle = '#9fb0c8';
+      ctx.fillRect(dx, dy, ts, Math.max(2, ts * 0.22));
+      ctx.fillStyle = '#55627a';
+      ctx.fillRect(dx, dy + Math.max(2, ts * 0.22), ts, Math.max(1, ts * 0.08));
+      return;
+    }
+    if (t === T.TRUNK || t === T.LEAVES || t === T.PLANT || t === T.CHEST) {
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      const bio = world.biome[tx] ?? 0;
+      const v2 = Math.floor(hash2(tx, ty, 7) * 4);
+      if (t === T.TRUNK) {
+        // Inside a canopy, foliage continues behind the trunk so crowns never split in two.
+        if (get(tx - 1, ty) === T.LEAVES && get(tx + 1, ty) === T.LEAVES) {
+          const m = leafMask(get, tx, ty) & ~(2 | 8);
+          ctx.drawImage(this.decor.leaves, (m * LEAF_VARIANTS + (v2 % LEAF_VARIANTS)) * TS, bio * TS, TS, TS, dx, dy, ts, ts);
+        }
+        ctx.drawImage(this.decor.trunks, (v2 % 2) * TS, bio * TS, TS, TS, dx, dy, ts, ts);
+      }
+      else if (t === T.LEAVES) {
+        const m = leafMask(get, tx, ty);
+        ctx.drawImage(this.decor.leaves, (m * LEAF_VARIANTS + (v2 % LEAF_VARIANTS)) * TS, bio * TS, TS, TS, dx, dy, ts, ts);
+      } else if (t === T.PLANT) {
+        const row = ty > world.surface[tx] + 1 ? CAVE_ROW : bio;
+        ctx.drawImage(this.decor.plants, (v2 % PLANT_VARIANTS) * TS, row * TS, TS, TS, dx, dy, ts, ts);
+      }
+      // Chests bob: drawn each frame by drawDynamic.
+      return;
+    }
+    if (t === T.WALL || t === T.DOOR) {
+      // T.WALL is legacy (pre-v3 saves migrate it to the wall layer); still drawn if ever present.
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      ctx.fillStyle = t === T.WALL ? '#3a4356' : '#6fa8c9';
+      const inset = t === T.WALL ? 0 : ts * 0.25;
+      ctx.fillRect(dx + inset, dy, ts - inset * 2, ts);
+      ctx.fillStyle = t === T.WALL ? '#2f3748' : '#3d6e8a';
+      ctx.fillRect(dx + inset, dy, Math.max(1, ts * 0.08), ts);
+      if (t === T.DOOR) {
+        ctx.fillStyle = '#ffd36b';
+        ctx.fillRect(dx + ts * 0.58, dy + ts * 0.5, Math.max(2, ts * 0.1), Math.max(2, ts * 0.1));
+      }
+      return;
+    }
+    const v = Math.floor(hash2(tx, ty, 7) * VARIANTS);
+    const mask = isBlock(t) ? edgeMask(get, tx, ty) : MASKS - 1;
+    // Rounded corners are transparent: show the cave wall behind them underground.
+    if (mask !== 0) this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+    ctx.drawImage(this.atlas, atlasCol(v, mask) * TS, t * TS, TS, TS, dx, dy, ts, ts);
+    if (mask & EDGE_N && ty <= world.surface[tx]) {
+      if (growsMoss(t) && world.biome[tx] !== B.ASH) ctx.drawImage(this.moss, v * TS, 0, TS, MOSS_H, dx, dy, ts, MOSS_H * scale);
+      else if (growsSnow(t)) ctx.drawImage(this.decor.snow, v * TS, 0, TS, SNOW_H, dx, dy, ts, SNOW_H * scale);
+    }
+  }
+
+  /** Per-frame tile art: torch flames and bobbing chests over the cached chunks. */
+  private drawDynamic(ctx: CanvasRenderingContext2D, world: Game['world'], x0: number, y0: number, x1: number, y1: number, shakeX: number, shakeY: number, time: number): void {
+    const ts = TS * this.scale;
+    for (let ty = Math.max(0, y0); ty <= Math.min(world.h - 1, y1); ty++) {
+      for (let tx = Math.max(0, x0); tx <= Math.min(world.w - 1, x1); tx++) {
+        const t = world.tiles[ty * world.w + tx];
+        if (t === T.TORCH) this.drawTorch(ctx, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time + tx);
+        else if (t === T.CHEST) {
+          const bob = Math.sin(time * 3 + tx) > 0.6 ? this.scale : 0;
+          ctx.drawImage(this.decor.chest, 0, 0, TS, TS, this.sx(tx, shakeX), this.sy(ty, shakeY) - bob, ts, ts);
+        }
+      }
+    }
+  }
+
+  /** Chunk cache: CHUNK x CHUNK tiles pre-drawn at 1x; redrawn only when a tile in or next to it changes. */
+  private chunks = new Map<number, HTMLCanvasElement>();
+  private chunkWorld: Game['world'] | null = null;
+  private chunkSeen = 0;
+
+  private syncChunks(world: Game['world']): void {
+    if (this.chunkWorld !== world) {
+      this.chunks.clear();
+      this.chunkWorld = world;
+      this.chunkSeen = world.changes.length;
+      return;
+    }
+    if (world.changesOverflow) {
+      world.changesOverflow = false;
+      world.changes.length = 0;
+      this.chunks.clear();
+      return;
+    }
+    const ch = world.changes;
+    for (let k = this.chunkSeen; k < ch.length; k++) {
+      const i = ch[k];
+      const x = i % world.w;
+      const y = Math.floor(i / world.w);
+      // Neighbours change autotile edges and leaf masks, so touch adjacent chunks too.
+      for (const [ox, oy] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) {
+        this.chunks.delete(chunkKey(Math.floor((x + ox) / CHUNK), Math.floor((y + oy) / CHUNK)));
+      }
+    }
+    world.changes.length = 0;
+    this.chunkSeen = 0;
+    // Bound memory (each chunk is 512x512, ~1 MB): evict chunks far from the camera.
+    if (this.chunks.size > MAX_CHUNKS) {
+      const ccx = this.camX / CHUNK;
+      const ccy = this.camY / CHUNK;
+      for (const key of this.chunks.keys()) {
+        const kx = key % 4096;
+        const ky = Math.floor(key / 4096);
+        if (Math.abs(kx + 0.5 - ccx) > 3 || Math.abs(ky + 0.5 - ccy) > 3) this.chunks.delete(key);
+      }
+    }
+  }
+
+  /** Build at most one missing chunk per frame in a one-chunk ring around the view, so walking never stalls. */
+  private prefetchChunk(world: Game['world'], cx0: number, cy0: number, cx1: number, cy1: number): void {
+    const maxCx = Math.floor((world.w - 1) / CHUNK);
+    const maxCy = Math.floor((world.h - 1) / CHUNK);
+    for (let cy = Math.max(0, cy0 - 1); cy <= Math.min(maxCy, cy1 + 1); cy++) {
+      for (let cx = Math.max(0, cx0 - 1); cx <= Math.min(maxCx, cx1 + 1); cx++) {
+        if (!this.chunks.has(chunkKey(cx, cy))) {
+          this.chunk(world, cx, cy);
+          return;
+        }
+      }
+    }
+  }
+
+  private chunk(world: Game['world'], cx: number, cy: number): HTMLCanvasElement {
+    const key = chunkKey(cx, cy);
+    let c = this.chunks.get(key);
+    if (c) return c;
+    c = makeCanvas(CHUNK * TS, CHUNK * TS);
+    const cctx = c.getContext('2d');
+    if (cctx) {
+      cctx.imageSmoothingEnabled = false;
+      for (let y = 0; y < CHUNK; y++) {
+        const ty = cy * CHUNK + y;
+        if (ty < 0 || ty >= world.h) continue;
+        for (let x = 0; x < CHUNK; x++) {
+          const tx = cx * CHUNK + x;
+          if (tx < 0 || tx >= world.w) continue;
+          this.drawTile(cctx, world, tx, ty, x * TS, y * TS, TS, 1);
+        }
+      }
+    }
+    this.chunks.set(key, c);
+    return c;
+  }
+
+  /** Number of cached chunks (debug/e2e). */
+  chunkCount(): number {
+    return this.chunks.size;
   }
 
   private reachable(game: Game, aim: Aim): boolean {
