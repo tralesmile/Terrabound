@@ -1,7 +1,9 @@
 /** Data-driven enemies with deterministic AI. No DOM, no Math.random: all randomness comes from the seeded rng passed in. */
 import type { World } from './world';
+import type { ItemId } from './tiles';
+import { B } from './biomes';
 
-export type EnemyKind = 'crawler' | 'flyer';
+export type EnemyKind = 'crawler' | 'flyer' | 'vine' | 'mite' | 'ember' | 'hulk';
 
 export interface EnemyDef {
   name: string;
@@ -13,12 +15,32 @@ export interface EnemyDef {
   flying: boolean;
   /** Minimum depth (tiles below the pad) where it may spawn. */
   minDepth: number;
+  /** Spawns only when the player is in this surface biome's columns. Undefined = anywhere. */
+  biome?: number;
+  /** Item dropped on death (default iron scrap). */
+  drop?: ItemId;
+  /** Ground enemy that leaps toward the player every few seconds. */
+  hop?: boolean;
 }
 
 export const ENEMIES: Record<EnemyKind, EnemyDef> = {
   crawler: { name: 'Scrap crawler', hp: 24, speed: 2.2, contact: 12, halfW: 0.4, h: 0.7, flying: false, minDepth: 8 },
   flyer: { name: 'Drone wisp', hp: 14, speed: 3, contact: 8, halfW: 0.3, h: 0.5, flying: true, minDepth: 14 },
+  vine: { name: 'Vine stalker', hp: 30, speed: 3.0, contact: 12, halfW: 0.4, h: 0.7, flying: false, minDepth: 8, biome: B.JUNGLE, drop: 'biomass' },
+  mite: { name: 'Shard mite', hp: 16, speed: 3.2, contact: 9, halfW: 0.3, h: 0.5, flying: false, minDepth: 8, biome: B.CRYSTAL, drop: 'crystal', hop: true },
+  ember: { name: 'Ember wisp', hp: 18, speed: 3.8, contact: 10, halfW: 0.3, h: 0.5, flying: true, minDepth: 10, biome: B.ASH, drop: 'copper_wire' },
+  hulk: { name: 'Frost hulk', hp: 60, speed: 1.4, contact: 18, halfW: 0.55, h: 0.95, flying: false, minDepth: 12, biome: B.FROST },
 };
+
+/** Kinds allowed at this depth in this biome (biome kinds only in their biome). */
+export function spawnableKinds(depth: number, biome: number, flyingOnly = false): EnemyKind[] {
+  return (Object.keys(ENEMIES) as EnemyKind[]).filter((k) => {
+    const d = ENEMIES[k];
+    if (flyingOnly && !d.flying) return false;
+    if (!flyingOnly && depth < d.minDepth) return false;
+    return d.biome === undefined || d.biome === biome;
+  });
+}
 
 export interface Enemy {
   id: number;
@@ -102,6 +124,8 @@ export function stepEnemy(world: World, e: Enemy, dt: number, px: number, py: nu
   else e.vx *= Math.max(0, 1 - 6 * dt);
   e.vy = Math.min(28, e.vy + G * dt);
   const grounded = world.isSolid(Math.floor(e.x), Math.floor(e.y + 0.05));
+  // Hoppers leap at a nearby player on a fixed rhythm (phase keeps a pack out of sync).
+  if (d.hop && grounded && near && Math.floor((e.age + e.phase) / 1.6) !== Math.floor((e.age + e.phase - dt) / 1.6)) e.vy = -11;
   const r = moveAxis(world, e, e.vx * dt, e.vy * dt);
   if (r.hitY) e.vy = 0;
   if (r.hitX) {

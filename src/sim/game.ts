@@ -1,5 +1,5 @@
 import { mixSeed, mulberry32 } from './rng';
-import { ENEMIES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, stepEnemy } from './enemies';
+import { ENEMIES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
 import { type Body, moveX, moveY, onLadder, probeGround, unstick, BODY_H, HALF_W } from './physics';
 import { defaultSave, type SaveData } from './save';
 import {
@@ -728,7 +728,7 @@ export class Game {
       }
       if (e.hp <= 0) {
         this.emit({ t: 'enemykill', x: e.x, y: e.y - 0.5, kind: e.kind });
-        if (invTotal(this.carried) < this.derived.packCap) invAdd(this.carried, 'iron_scrap', 1);
+        if (invTotal(this.carried) < this.derived.packCap) invAdd(this.carried, ENEMIES[e.kind].drop ?? 'iron_scrap', 1);
       }
     }
     this.enemies = alive;
@@ -749,7 +749,9 @@ export class Game {
     // At night, drone wisps also hunt on the surface (never near the pad).
     const nightSurface = this.depth < 8 && isNight(this.time) && Math.abs(this.body.x - this.world.padX) > NIGHT_SAFE;
     if (this.depth < 8 && !nightSurface) return null;
-    const kinds = (Object.keys(ENEMIES) as EnemyKind[]).filter((k) => (nightSurface ? ENEMIES[k].flying : this.depth >= ENEMIES[k].minDepth));
+    const col = Math.min(this.world.w - 1, Math.max(0, Math.floor(this.body.x)));
+    const kinds = spawnableKinds(this.depth, this.world.biome[col], nightSurface);
+    if (kinds.length === 0) return null;
     const kind = kinds[Math.floor(this.rng() * kinds.length)];
     const b = this.body;
     for (let i = 0; i < 12; i++) {

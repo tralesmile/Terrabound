@@ -1,5 +1,6 @@
 import { hash2 } from '../sim/rng';
 import { T, TILES } from '../sim/tiles';
+import type { EnemyKind } from '../sim/enemies';
 import { EDGE_N, MASKS, edgeMask, edgePixel, growsMoss } from './autotile';
 
 /** Tile size in logical pixels. All art is generated in code: zero asset files, zero asset cost, tiny bundle. */
@@ -566,9 +567,27 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, 
   drawRows(ctx, rows, ox, oy, s, flip, PLAYER_W, pose.hurt ? '#ffffff' : undefined, { s: c1, S: c2 });
 }
 
+/** Per-kind look: base sprite, palette swap and size relative to the base sprite. */
+export interface EnemyLook {
+  sprite: EnemySpriteKind;
+  remap?: Record<string, string>;
+  size: number;
+  /** Debris colour when it shatters. */
+  burst: string;
+}
+
+export const ENEMY_LOOKS: Record<EnemyKind, EnemyLook> = {
+  crawler: { sprite: 'crawler', size: 1, burst: '#ff7a5a' },
+  flyer: { sprite: 'flyer', size: 1, burst: '#36e0e8' },
+  vine: { sprite: 'crawler', remap: { c: '#4f9a3f', C: '#2a5e2b', d: '#9fe07a', e: '#ff7ab8', E: '#ffd0e8' }, size: 1.05, burst: '#7fcf5a' },
+  mite: { sprite: 'crawler', remap: { c: '#8a5fd6', C: '#4f3a8a', d: '#e2c4ff', e: '#8ff4ff', E: '#ffffff' }, size: 0.72, burst: '#c08cff' },
+  ember: { sprite: 'flyer', remap: { m: '#5a2a1a', M: '#ff8a3c', e: '#ffd24a', w: '#ffb08a' }, size: 1.05, burst: '#ff8a3c' },
+  hulk: { sprite: 'crawler', remap: { c: '#9fcbe8', C: '#4e6a88', d: '#f4fbff', e: '#36e0e8', E: '#c8ffff' }, size: 1.45, burst: '#cfe8ff' },
+};
+
 export function drawEnemySprite(
   ctx: CanvasRenderingContext2D,
-  kind: EnemySpriteKind,
+  kind: EnemyKind,
   x: number,
   y: number,
   s: number,
@@ -576,17 +595,20 @@ export function drawEnemySprite(
   t: number,
   flash: boolean,
 ): void {
-  const rows = enemyFrame(kind, t);
+  const look = ENEMY_LOOKS[kind];
+  const rows = enemyFrame(look.sprite, t);
+  const sz = s * look.size;
   // Flyer eye blinks off briefly every 1.5 s; crawler eye pulses brighter.
-  const remap =
-    kind === 'flyer'
+  const blink =
+    look.sprite === 'flyer'
       ? Math.floor(t * 4) % 6 === 0
         ? { e: PAL.b }
         : undefined
       : Math.floor(t * 3) % 4 === 0
-        ? { e: PAL.E }
+        ? { e: look.remap?.E ?? PAL.E }
         : undefined;
-  drawRows(ctx, rows, x - (ENEMY_W / 2) * s, y - rows.length * s, s, dir < 0, ENEMY_W, flash ? '#ffffff' : undefined, remap);
+  const remap = look.remap || blink ? { ...(look.remap ?? {}), ...(blink ?? {}) } : undefined;
+  drawRows(ctx, rows, x - (ENEMY_W / 2) * sz, y - rows.length * sz, sz, dir < 0, ENEMY_W, flash ? '#ffffff' : undefined, remap);
 }
 
 /** Gallery: every tile, the player frames and enemies at 4x. Used by `?gallery=1` and the e2e screenshot. */
@@ -651,4 +673,9 @@ export function drawGallery(canvas: HTMLCanvasElement): void {
   for (let i = 0; i < CRAWLER_ROWS.length; i++, ex += ENEMY_W * z + 10) drawEnemySprite(ctx, 'crawler', ex, 210 + 10 * z, z, 1, (i + 0.01) / 10 + 0.4, false);
   ex += 20;
   for (let i = 0; i < FLYER_ROWS.length; i++, ex += ENEMY_W * z + 10) drawEnemySprite(ctx, 'flyer', ex, 210 + 10 * z, z, 1, (i + 0.01) / 24 + 0.5, false);
+  ex += 30;
+  for (const k of ['vine', 'mite', 'ember', 'hulk'] as EnemyKind[]) {
+    drawEnemySprite(ctx, k, ex, 210 + 10 * z, z, 1, 0.4, false);
+    ex += ENEMY_W * z * ENEMY_LOOKS[k].size + 12;
+  }
 }

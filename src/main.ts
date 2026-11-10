@@ -4,7 +4,7 @@ import { Sfx } from './platform/audio';
 import { loadRaw, saveRaw } from './platform/storage';
 import { Fx } from './render/fx';
 import { Renderer } from './render/renderer';
-import { ENEMY_ART_UNIT, ENEMY_W, TILE_COLORS, drawGallery, enemyFrame, spriteDebris } from './render/sprites';
+import { ENEMY_ART_UNIT, ENEMY_LOOKS, ENEMY_W, TILE_COLORS, drawGallery, enemyFrame, spriteDebris } from './render/sprites';
 import { FIXED_DT, Game, NO_CONTROLS, type GameEvent, type Tool } from './sim/game';
 import { parseSave, serializeSave } from './sim/save';
 import { ITEMS, type ItemId } from './sim/tiles';
@@ -140,7 +140,7 @@ function boot(): void {
         break;
       case 'enemykill':
         // e.y is mid-body (feet - 0.5); shatter wants the feet.
-        fx.shatter(e.x, e.y + 0.5, spriteDebris(enemyFrame(e.kind, 0), ENEMY_W, false), ENEMY_ART_UNIT, e.kind === 'flyer' ? '#36e0e8' : '#ff7a5a');
+        fx.shatter(e.x, e.y + 0.5, spriteDebris(enemyFrame(ENEMY_LOOKS[e.kind].sprite, 0), ENEMY_W, false), ENEMY_ART_UNIT * ENEMY_LOOKS[e.kind].size, ENEMY_LOOKS[e.kind].burst);
         fx.addShake(0.25);
         break;
       case 'pickup':
