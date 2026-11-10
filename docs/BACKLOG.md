@@ -30,6 +30,32 @@ Rule: ship small vertical slices. Each item needs tests. Keep the game playable 
 - [x] Scaffold and ladder placement and climbing physics (jump climbs, S/Down or stick-down descends, cling otherwise; keys 7/8 select)
 - [x] Simulated-player balance test for the Scrap layer (tests/balance.test.ts; first upgrade within 4 dives on >=50% of seeds for a dumb bot, deaths <25%)
 
+## P1.5 World and art overhaul (OWNER PRIORITY 2026-11-10: do this before anything else)
+
+Owner feedback after playing: the game works and sounds good, but the map is too small, the graphics are bad (player and enemies especially) and the world feels blank. Goal: Terraria-level richness with our own identity (dead machine-planet "the Hollow", drones, battery clock). Each item is a vertical slice with tests; review the screenshots after every visual change and add a sprite-gallery screenshot (`?e2e=1&gallery=1`) so every sprite is reviewed at 4x.
+
+Art (do first, biggest visible win):
+- [ ] Art quality bar: write `docs/ART.md` (palette ramps of 4-5 shades per material, 1 px dark outline on characters, top-left light, dithering rules, silhouette-first). Add a gallery screen that draws every tile, item, character and enemy at 4x, captured by e2e.
+- [ ] Player rig: 16x24 px, separate head/helmet with glowing visor, torso, backpack with battery light, arms, legs; animations idle (breathing), run (6 frames), jump, fall, dig/swing, hurt flash, climb. Facing flip. Suit colour shows upgrade tier.
+- [ ] Enemies redrawn with distinct silhouettes and 2-4 frame animations: Crawler (scrap-beetle with legs, glowing eye), Flyer (rotor drone with blinking light); hit flash and death burst.
+- [ ] Tiles: autotiling (edge and corner variants via 4-neighbour mask) so blocks have rounded, outlined edges; per-material texture detail (rivets on metal, flakes on rust, glints on ore); grass/moss tops on surface blocks.
+- [ ] Back-wall layer: separate `walls` array in World; caves show darker dug-out walls behind, so underground is never flat black. Player-placed walls move to this layer.
+- [ ] Terraria-style tile light map (flood-fill light from sky, torches, lamp, glowing ores) replacing the radial gradient; smooth per-tile interpolation; cached and only recomputed near changes.
+- [ ] Day/night cycle on the surface (sky colours, stars, light level), 10-minute day.
+- [ ] Parallax backgrounds per biome (3 layers: far mountains/ruined city skyline, mid structures, near foliage).
+
+World size and variety:
+- [ ] Bigger world: 1600 x 600 tiles (wide surface to explore, deep layers). Chunked render cache (32x32 tile chunks pre-drawn to offscreen canvases, redraw only dirty chunks); keep 60 fps and memory budget; perf test in e2e. Save format unaffected (world regenerates from seed; only diffs near the base persist).
+- [ ] Surface biomes left/right of the pad (data table in `src/sim/biomes.ts`): Rust Wastes (start), Overgrown Ruins (alien jungle), Crystal Flats, Ash Dunes, Frozen Spires. Each: tiles, colours, background, ores, enemies, music mood.
+- [ ] Trees and plants: alien trees of 3-4 shapes per biome (choppable for `biomass`, new item used in recipes), grass, bushes, flowers, mushrooms, vines in caves; decorative but harvestable.
+- [ ] Surface structures: ruined buildings, crashed ships, radio towers, abandoned outposts with loot chests (seeded loot tables, no paid randomness). At least 1 structure every ~60 tiles.
+- [ ] Underground cave biomes by depth and noise: mushroom caves, crystal caverns, lava/plasma pockets, flooded tunnels; ore veins shaped (not single dots).
+- [ ] Underground points of interest: sealed vaults with chests, mini-shrines with data logs (lore), drone wrecks to salvage, rare ore geodes.
+- [ ] Liquids v1: water/coolant and acid pools with simple cellular flow (deterministic), swim physics, acid damage.
+- [ ] Map screen (M key moves mute to settings): explored-area minimap with fog of war, pins for chests and pad.
+- [ ] Exploration rewards: discovering a biome or structure grants a codex entry and a one-time loot cache; new "explorer" achievements.
+- [ ] Simulated-player test: biomes, structures and chests appear within the expected distances on 25 seeds; no structure overlaps the pad.
+
 ## P2 Base and automation (M2)
 
 - [x] Persistent base strip above the pad (15x10 tiles, src/sim/base.ts) saved in format v2 with v1 migration test; built tiles survive dives and reloads

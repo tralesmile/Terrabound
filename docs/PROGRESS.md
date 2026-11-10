@@ -99,3 +99,7 @@
 **Next:** power (solar, battery, wire), smelter, chest, then drones. Hotbar now has 8 placeables; check 06-mobile-play.png once more owned.
 
 **Known issues:** walls occupy the tile (no layer behind ladders/torches); no e2e for doors; hazards/enemy spawn ignore doors.
+
+## 2026-11-10 Owner feedback (interactive)
+
+Owner played: works well, sounds good. Problems: map too small, graphics bad (player and enemies), world feels blank. Wants biomes/worlds, trees, loot places, closer to Terraria with our own identity. Added BACKLOG phase **P1.5 World and art overhaul** at top priority, ahead of the remaining P2 automation items. Runs should start with the art quality bar and player rig.

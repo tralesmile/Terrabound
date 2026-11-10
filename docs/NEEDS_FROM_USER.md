@@ -22,3 +22,7 @@ Ask Claude "what do you need from me?" to get this list. Runs never wait on thes
 
 - Runs fast-forward `main` whenever `npm run check` is green.
 - No paid services at all until you approve them here.
+
+## Optional decision
+
+- **Art source:** runs draw all art in code (free, tiny). If you want a faster jump in quality, you can approve free CC0 pixel-art packs (no cost, no attribution required) or supply your own art. Default until you say otherwise: code-drawn art following `docs/ART.md`.
