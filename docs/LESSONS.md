@@ -22,3 +22,6 @@
 - **Hotbar width is now bounded by owned items**, not the PLACEABLE table; keys 4+ still index the full table, so a key for an unowned item selects it (shows slot with 0).
 - **Jump height is ~2-3 tiles.** A test placing a platform 5 tiles above the feet never lands; derive geometry from a measured jump apex, not a guess.
 - **Sprite maps drift in width.** Guard: tests/sprites.test.ts checks row widths and palette keys; review `e2e/out/10-gallery.png` after art edits.
+- **A piped gate lies.** `npm run check 2>&1 | grep ... && git commit && git push` pushed a red build to main because the `&&` saw grep's exit code. Guard: `npm run ship` (scripts/ship.sh, `set -euo pipefail`) is the only push path; if you capture logs, redirect to a file and check `$?`.
+- **Long sims need an explicit timeout.** The balance bot ran ~4-5 s against vitest's 5 s default and flaked under parallel load. Guard: heavy simulation tests pass a timeout (30 s) as the third `it` argument; never shrink their assertions instead.
+- **Odd sprite heights break chunk maths.** Debris chunk centres for a 7-row sprite landed below the feet; use `min(h, r0 + chunk)` and test bounds on every sprite.

@@ -37,9 +37,9 @@ Owner feedback after playing: the game works and sounds good, but the map is too
 Art (do first, biggest visible win):
 - [x] Art quality bar: write `docs/ART.md` (palette ramps of 4-5 shades per material, 1 px dark outline on characters, top-left light, dithering rules, silhouette-first). Add a gallery screen that draws every tile, item, character and enemy at 4x, captured by e2e.
 - [x] Player rig (16x24 sprite, idle bob, 4-frame run, jump, fall, climb, swing arm, hurt flash, suit tier colour by armor level): 16x24 px, separate head/helmet with glowing visor, torso, backpack with battery light, arms, legs; animations idle (breathing), run (6 frames), jump, fall, dig/swing, hurt flash, climb. Facing flip. Suit colour shows upgrade tier.
-- [ ] Enemies redrawn (DONE: first pass sprites, 2 frames each, hit flash; TODO: polish, death burst) with distinct silhouettes and 2-4 frame animations: Crawler (scrap-beetle with legs, glowing eye), Flyer (rotor drone with blinking light); hit flash and death burst.
-- [ ] Tiles: autotiling (edge and corner variants via 4-neighbour mask) so blocks have rounded, outlined edges; per-material texture detail (rivets on metal, flakes on rust, glints on ore); grass/moss tops on surface blocks.
-- [ ] Back-wall layer: separate `walls` array in World; caves show darker dug-out walls behind, so underground is never flat black. Player-placed walls move to this layer.
+- [x] Enemies redrawn (4-step crawler scuttle, 3-frame rotor flyer with blinking eye, hit flash, shatter death burst) with distinct silhouettes and 2-4 frame animations: Crawler (scrap-beetle with legs, glowing eye), Flyer (rotor drone with blinking light); hit flash and death burst.
+- [x] Tiles: autotiling (edge and corner variants via 4-neighbour mask) so blocks have rounded, outlined edges; per-material texture detail (rivets on metal, flakes on rust, glints on ore); grass/moss tops on surface blocks.
+- [x] Back-wall layer (save v3; nothing spawns in front of built walls): separate `walls` array in World; caves show darker dug-out walls behind, so underground is never flat black. Player-placed walls move to this layer.
 - [ ] Terraria-style tile light map (flood-fill light from sky, torches, lamp, glowing ores) replacing the radial gradient; smooth per-tile interpolation; cached and only recomputed near changes.
 - [ ] Day/night cycle on the surface (sky colours, stars, light level), 10-minute day.
 - [ ] Parallax backgrounds per biome (3 layers: far mountains/ruined city skyline, mid structures, near foliage).

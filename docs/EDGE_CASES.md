@@ -32,7 +32,7 @@ Status: `done` (implemented and tested), `part` (partly), `todo`. Update when yo
 | Case | Status | Notes |
 | --- | --- | --- |
 | Corrupt or hostile JSON | done | `parseSave` never throws |
-| Old and future save versions | part | Migration hook exists; add fixtures when v2 ships |
+| Old and future save versions | done | v1->v2 (base) and v2->v3 (walls) migrations with fixtures in tests/base.test.ts and tests/walls.test.ts |
 | localStorage blocked or full | done | Memory fallback |
 | Crash or refresh mid-dive | done | Carried loot banked on load |
 | Two tabs open at once | todo | Last-writer-wins; add storage-event merge or warning |
