@@ -132,10 +132,24 @@ try {
   await page.evaluate(() => window.__terrabound.act({ k: 'buy', id: 'battery' }));
   check('buying an upgrade raises max battery', (await page.evaluate(() => window.__terrabound.game.derived.maxBattery)) === 300);
   await page.keyboard.press('Escape');
+  // Dig a marker hole in the world; the world persists until death, so it must survive the reload.
+  const mark = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const x = g.world.padX + 45;
+    const y = g.world.surface[x] + 3;
+    g.world.set(x, y, 0);
+    return { x, y, seed: g.world.seed };
+  });
+  // Unload saves through pagehide; reload like a player closing and reopening the tab.
   await page.reload();
   await page.waitForFunction(() => window.__terrabound);
   const persisted = await page.evaluate(() => window.__terrabound.game.upgrades.battery);
   check('progress persists across reload', persisted === 1, `battery level ${persisted}`);
+  const worldKept = await page.evaluate(({ x, y, seed }) => {
+    const g = window.__terrabound.game;
+    return g.world.seed === seed && g.world.get(x, y) === 0;
+  }, mark);
+  check('the world (dug tiles) persists across reload', worldKept, JSON.stringify(mark));
 
   // Dive and die: loot is halved, a new world starts, nothing crashes.
   await page.keyboard.press('Space');

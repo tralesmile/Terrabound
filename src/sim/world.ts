@@ -33,6 +33,9 @@ export class World {
   readonly torches = new Set<number>();
   /** Points of interest placed by worldgen (ruins, towers, ships, vaults, geodes). */
   readonly structures: Structure[] = [];
+  /** Persistent edits since generation: index -> tile / wall (saved as a diff, see persist.ts). */
+  readonly edits = new Map<number, number>();
+  readonly wallEdits = new Map<number, number>();
   /** Tile indices changed since the renderer last looked (render caches drain this; capped). */
   readonly changes: number[] = [];
   /** Set when `changes` overflowed: caches must rebuild everything. */
@@ -68,6 +71,7 @@ export class World {
     this.tiles[i] = t;
     this.version++;
     this.mark(i);
+    this.edits.set(i, t);
     return true;
   }
 
@@ -81,6 +85,7 @@ export class World {
     this.walls[y * this.w + x] = wall;
     this.version++;
     this.mark(y * this.w + x);
+    this.wallEdits.set(y * this.w + x, wall);
     return true;
   }
 
@@ -216,6 +221,8 @@ export function generateWorld(seed: number, w = WORLD_W, h = WORLD_H): World {
   world.version = 0;
   world.changes.length = 0;
   world.changesOverflow = false;
+  world.edits.clear();
+  world.wallEdits.clear();
   return world;
 }
 

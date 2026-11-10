@@ -20,6 +20,7 @@ import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgr
 import { recipeById } from './recipes';
 import { chestLoot } from './loot';
 import { isNight } from './daynight';
+import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
 import { captureBase, captureWalls, stampBase, stampWalls } from './base';
@@ -174,10 +175,14 @@ export class Game {
     }
     this.save.stats.banked += bankedTotal;
     this.save.carried = {};
+    // The current world persists until death: regenerate it from its seed, then replay the player's edits.
     this.world = generateWorld(this.diveSeed());
+    this.fog = new FogMap(this.world);
+    this.fog.revealSky(this.world);
+    applyDiff(this.world, this.fog, this.save.world);
     stampBase(this.world, this.save.base);
     stampWalls(this.world, this.save.walls);
-    this.respawn();
+    this.respawn(false);
   }
 
   get derived(): Derived {
@@ -227,9 +232,12 @@ export class Game {
     if (this.events.length < 256) this.events.push(e);
   }
 
-  private respawn(): void {
-    this.fog = new FogMap(this.world);
-    this.fog.revealSky(this.world);
+  /** Put the player on the pad with full health and battery. A fresh world also gets a fresh map. */
+  private respawn(freshWorld: boolean): void {
+    if (freshWorld) {
+      this.fog = new FogMap(this.world);
+      this.fog.revealSky(this.world);
+    }
     this.recallT = 0;
     this.shots = [];
     this.fallers = [];
@@ -259,9 +267,10 @@ export class Game {
     this.save.walls = captureWalls(this.world);
     this.save.runs += 1;
     this.world = generateWorld(this.diveSeed());
+    this.save.world = null;
     stampBase(this.world, this.save.base);
     stampWalls(this.world, this.save.walls);
-    this.respawn();
+    this.respawn(true);
   }
 
   /** Move carried loot into the stash. Returns the number of items banked. */
@@ -282,6 +291,7 @@ export class Game {
     return total;
   }
 
+  /** Abandon this world for a freshly generated one (from the workshop). Loot is banked first. */
   newDive(): boolean {
     if (!this.isAtBase()) return false;
     this.bank();
@@ -851,6 +861,7 @@ export class Game {
       stats: { ...this.save.stats },
       settings: { ...this.save.settings },
       codex: [...this.save.codex],
+      world: captureDiff(this.world, this.fog),
     };
   }
 

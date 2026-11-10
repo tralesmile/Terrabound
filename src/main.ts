@@ -105,7 +105,12 @@ function boot(): void {
         if (game.craft(a.id)) saveNow();
         break;
       case 'dive':
-        if (game.newDive()) {
+        // Abandoning a world you have explored is a big step: ask for a second tap within 3 s.
+        if (ui.newWorldArmed <= 0) {
+          ui.newWorldArmed = 3;
+          ui.toast('Tap again to abandon this world for a new one', '#ff9a3c');
+        } else if (game.newDive()) {
+          ui.newWorldArmed = 0;
           ui.shopOpen = false;
           saveNow();
         }
@@ -175,7 +180,7 @@ function boot(): void {
         ui.toast('Upgrade installed', '#36e0e8');
         break;
       case 'newdive':
-        ui.toast('New dive - good luck', '#ffcf4a');
+        ui.toast('New world - good luck', '#ffcf4a');
         break;
       case 'chest':
         fx.burst(e.x + 0.5, e.y + 0.5, '#ffcf4a', 18, 6);

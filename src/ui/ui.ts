@@ -41,13 +41,14 @@ const TOOL_SLOTS: { tool: Tool; label: string; color: string }[] = [
 ];
 
 const FONT = 'ui-monospace, Menlo, Consolas, "Courier New", monospace';
-const SHORT: Record<string, string> = { rust: 'rust', metal: 'metal', iron_scrap: 'iron', copper_wire: 'copper' };
+/** Short cost labels; any item without one falls back to its lower-cased display name. */
+const SHORT: Partial<Record<ItemId, string>> = { rust: 'rust', metal: 'metal', iron_scrap: 'iron', copper_wire: 'copper' };
 
 export function costText(cost: Inventory): string {
   const parts: string[] = [];
   for (const id of ITEM_IDS) {
     const n = cost[id] ?? 0;
-    if (n > 0) parts.push(`${n} ${SHORT[id]}`);
+    if (n > 0) parts.push(`${n} ${SHORT[id] ?? ITEMS[id].name.toLowerCase()}`);
   }
   return parts.join(', ');
 }
@@ -60,6 +61,8 @@ export function stashLine(stash: Inventory): ItemId[] {
 
 export class UI {
   mapOpen = false;
+  /** Seconds left to confirm abandoning the world (NEW WORLD needs two taps). */
+  newWorldArmed = 0;
   private mapView = new MapView();
   screen: 'title' | 'play' = 'title';
   shopOpen = false;
@@ -74,6 +77,7 @@ export class UI {
   }
 
   update(dt: number): void {
+    this.newWorldArmed = Math.max(0, this.newWorldArmed - dt);
     for (const t of this.toasts) t.life -= dt;
     this.toasts = this.toasts.filter((t) => t.life > 0);
   }
@@ -320,7 +324,7 @@ export class UI {
 
     const fy = py + ph - u * 4.4;
     const bw = (pw - u * 3) / 2;
-    this.button(ctx, px + u, fy, bw, u * 2.4, 'NEW DIVE', { k: 'dive' }, u, { color: '#7a5a1f' });
+    this.button(ctx, px + u, fy, bw, u * 2.4, this.newWorldArmed > 0 ? 'CONFIRM?' : 'NEW WORLD', { k: 'dive' }, u, { color: this.newWorldArmed > 0 ? '#a33a2a' : '#7a5a1f', pulse: this.newWorldArmed > 0 });
     this.button(ctx, px + u * 2 + bw, fy, bw, u * 2.4, 'CLOSE', { k: 'close' }, u);
     this.text(ctx, `Best depth ${game.stats.deepest}m   Dives ${game.runs}   Deaths ${game.stats.deaths}`, px + pw / 2, py + ph - u * 0.9, Math.round(u * 0.65), '#8a90a2', 'center', pw - u);
   }

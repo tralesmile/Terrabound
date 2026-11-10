@@ -210,3 +210,15 @@ describe('lore shrines and drone wrecks', () => {
     expect(g.drainEvents().some((e) => e.t === 'lore')).toBe(true);
   });
 });
+
+describe('cost labels', () => {
+  it('every item has a readable cost label (no "undefined")', async () => {
+    const { costText } = await import('../src/ui/ui');
+    const { ITEM_IDS } = await import('../src/sim/tiles');
+    for (const id of ITEM_IDS) {
+      const t = costText({ [id]: 2 });
+      expect(t).not.toContain('undefined');
+      expect(t.startsWith('2 ')).toBe(true);
+    }
+  });
+});

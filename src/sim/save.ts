@@ -2,8 +2,11 @@ import { ITEM_IDS, type Inventory } from './tiles';
 import { legacyWalls, sanitizeBase, sanitizeWalls, type BaseTiles } from './base';
 import { UPGRADES, type Levels } from './upgrades';
 import { CODEX_IDS } from './explore';
+import { sanitizeDiff, type WorldDiff } from './persist';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
+/** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
+export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
 
 export interface SaveData {
@@ -22,6 +25,8 @@ export interface SaveData {
   walls: BaseTiles;
   /** v4: codex entries discovered (biomes, points of interest); each pays a one-time reward. */
   codex: string[];
+  /** v5: the current world persists until death: edits since generation and the explored map (persist.ts). */
+  world: WorldDiff | null;
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -37,6 +42,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     base: [],
     walls: [],
     codex: [],
+    world: null,
   };
 }
 
@@ -97,6 +103,8 @@ export function parseSave(raw: string | null | undefined): SaveData {
     walls: typeof r.v === 'number' && r.v >= 3 ? sanitizeWalls(r.walls) : legacyWalls(r.base),
     // v3 -> v4: no codex yet (empty); unknown or duplicate ids are dropped.
     codex: sanitizeCodex(r.codex),
+    // v4 -> v5: no stored world; the game regenerates the current seed fresh.
+    world: sanitizeDiff(r.world),
   };
 }
 
@@ -108,5 +116,7 @@ function sanitizeCodex(v: unknown): string[] {
 }
 
 export function serializeSave(s: SaveData): string {
-  return JSON.stringify(s);
+  const full = JSON.stringify(s);
+  if (full.length <= SAVE_SOFT_LIMIT) return full;
+  return JSON.stringify({ ...s, world: null });
 }
