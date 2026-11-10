@@ -21,7 +21,12 @@ Ask Claude "what do you need from me?" to get this list. Runs never wait on thes
 ## Defaults the runs assume (tell Claude to change)
 
 - Runs fast-forward `main` whenever `npm run check` is green.
+- The 2-hour schedule is paused since 2026-11-10 (owner asked to build without it). Ask Claude to re-enable it.
 - No paid services at all until you approve them here.
+
+## Decision wanted (runs continue with the default meanwhile)
+
+- **World per dive or persistent world?** The world is now big (1400x420, five biomes, ruins, vaults, chests, map). Today every dive generates a fresh world, so the map and chests reset (the codex and base persist). Option A (default): keep fresh worlds per dive, roguelite style. Option B: keep one world until you die (Terraria-like; dug tunnels, opened chests and the map stay), which needs a compact save of world changes.
 
 ## Optional decision
 

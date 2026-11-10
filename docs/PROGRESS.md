@@ -145,3 +145,9 @@ Also: flood-fill tile light map (`src/render/lightmap.ts`: sky, torches, lamp, p
 **Next:** day/night cycle, liquids v1, biome enemies, lore shrines and drone wrecks, then P2 (power, machines, drones).
 
 **Known issues:** a new world is generated every dive, so the map and chests reset per dive (codex persists). Map cells are 4x4 tiles (coarse on phones). Leaves of neighbouring trees across a biome border can merge. Schedule is paused (owner request); re-enable `trig_01RvURhsU84NhxudKyvWTNqN` to resume runs.
+
+Later in the same session: day/night cycle with night surface spawns; one enemy per biome (vine stalker, shard mite, ember wisp, frost hulk); data shrines with 12 lore logs and drone wrecks (codex now 12 entries).
+
+**Numbers (end of session):** 153 unit tests, 50 e2e checks, bundle 99 kB (36.1 kB gzip).
+
+**Next:** liquids v1 (water/coolant, acid pools), lore/codex screen, then P2 base automation (power, smelter, chests, drones). Owner decision pending on persistent world vs new world per dive.

@@ -30,7 +30,10 @@ Rule: ship small vertical slices. Each item needs tests. Keep the game playable 
 - [x] Scaffold and ladder placement and climbing physics (jump climbs, S/Down or stick-down descends, cling otherwise; keys 7/8 select)
 - [x] Simulated-player balance test for the Scrap layer (tests/balance.test.ts; first upgrade within 4 dives on >=50% of seeds for a dumb bot, deaths <25%)
 
-## P1.5 World and art overhaul (OWNER PRIORITY 2026-11-10: do this before anything else)
+## P1.5 World and art overhaul
+
+Open design question for the owner (see NEEDS_FROM_USER): keep a new world per dive (roguelite) or keep one persistent world until death (Terraria-like).
+ (OWNER PRIORITY 2026-11-10: do this before anything else)
 
 Owner feedback after playing: the game works and sounds good, but the map is too small, the graphics are bad (player and enemies especially) and the world feels blank. Goal: Terraria-level richness with our own identity (dead machine-planet "the Hollow", drones, battery clock). Each item is a vertical slice with tests; review the screenshots after every visual change and add a sprite-gallery screenshot (`?e2e=1&gallery=1`) so every sprite is reviewed at 4x.
 
@@ -41,7 +44,7 @@ Art (do first, biggest visible win):
 - [x] Tiles: autotiling (edge and corner variants via 4-neighbour mask) so blocks have rounded, outlined edges; per-material texture detail (rivets on metal, flakes on rust, glints on ore); grass/moss tops on surface blocks.
 - [x] Back-wall layer (save v3; nothing spawns in front of built walls): separate `walls` array in World; caves show darker dug-out walls behind, so underground is never flat black. Player-placed walls move to this layer.
 - [x] Terraria-style tile light map (flood-fill light from sky, torches, lamp, glowing ores) replacing the radial gradient; smooth per-tile interpolation; cached and only recomputed near changes.
-- [ ] Day/night cycle on the surface (sky colours, stars, light level), 10-minute day.
+- [x] Day/night cycle (src/sim/daynight.ts): 10-minute day, night sky palette, sun and moon, dimmer sky light, drone wisps hunt the surface at night beyond 30 columns of the pad.
 - [ ] Parallax backgrounds per biome: skyline silhouettes per biome done (towers, giant trees, spires, mountains, ash cones) and sky palette blends between biomes; still todo: 2 more depth layers (mid structures, near foliage).
 
 World size and variety:
@@ -50,8 +53,8 @@ World size and variety:
 - [x] Trees and plants (canopy, pine, spire, wire, dead shapes; felling yields biomass; bio torch recipe): alien trees of 3-4 shapes per biome (choppable for `biomass`, new item used in recipes), grass, bushes, flowers, mushrooms, vines in caves; decorative but harvestable.
 - [x] Surface structures (ruins, radio towers, crashed ships with chests; see src/sim/structures.ts): ruined buildings, crashed ships, radio towers, abandoned outposts with loot chests (seeded loot tables, no paid randomness). At least 1 structure every ~60 tiles.
 - [ ] Underground cave biomes: glowing mushroom patches, crystal-lined caverns and deep big caverns done; still todo: lava/plasma pockets, flooded tunnels (need liquids), shaped ore veins.
-- [ ] Underground points of interest: sealed vaults with chests and crystal geodes done; still todo: lore shrines with data logs, drone wrecks to salvage.
-- [ ] Biome-specific enemies (one per biome, data-driven in enemies.ts) and a music mood per biome (needs P5 music).
+- [x] Underground points of interest: sealed vaults, crystal geodes, data shrines (12 lore logs) and drone wrecks.
+- [x] Biome-specific enemies: vine stalker, shard mite (hops), ember wisp, frost hulk. (Music mood per biome moves to P5 music.)
 - [ ] Liquids v1: water/coolant and acid pools with simple cellular flow (deterministic), swim physics, acid damage.
 - [x] Map screen (M; mute moved to N and the HUD button), plus surface recall (R / HOME button, 2.5 s, cancelled by moving or damage): explored-area minimap with fog of war, pins for chests and pad.
 - [x] Exploration rewards: 10 codex entries (biomes + structure kinds) with one-time stash rewards, save v4. (Explorer achievements move to P4 achievements.)
