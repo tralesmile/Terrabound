@@ -17,6 +17,16 @@ const deepGame = (seed = 1) => {
   return g;
 };
 
+/** Carve an open corridor with a floor so test shots and enemies are not stuck in rock. */
+const openCorridor = (g: Game, len = 14) => {
+  g.body.y = Math.floor(g.body.y);
+  const bx = Math.floor(g.body.x);
+  for (let dx = -2; dx <= len; dx++) {
+    for (let dy = -4; dy <= -1; dy++) g.world.set(bx + dx, g.body.y + dy, 0);
+    g.world.set(bx + dx, g.body.y, 1);
+  }
+};
+
 describe('enemies', () => {
   it('spawns only in open space, away from the player, over many seeds', () => {
     for (let seed = 1; seed <= 25; seed++) {
@@ -105,7 +115,49 @@ describe('enemies', () => {
     run(g, 1, { dig: true, aim: { tx, ty } });
     expect(g.world.get(tx, ty)).toBe(1);
     g.toggleTool();
+    expect(g.tool).toBe('pistol');
+    g.toggleTool();
     expect(g.tool).toBe('drill');
+  });
+
+  it('pistol bolt hits an enemy in line and is consumed', () => {
+    const g = deepGame();
+    g.setTool('pistol');
+    openCorridor(g);
+    g.enemies = [makeEnemy(7, 'crawler', g.body.x + 6, g.body.y - 0.01)];
+    g.facing = 1;
+    run(g, 0.6, { dig: true, aim: { tx: Math.floor(g.body.x) + 6, ty: Math.floor(g.body.y) - 1 } });
+    expect(g.enemies[0].hp).toBeLessThan(ENEMIES.crawler.hp);
+    expect(g.shots.length).toBeLessThanOrEqual(1);
+  });
+
+  it('pistol bolts stop at walls and never tunnel through a thin one', () => {
+    const g = deepGame();
+    g.setTool('pistol');
+    openCorridor(g);
+    const wx = Math.floor(g.body.x) + 3;
+    const wy = Math.floor(g.body.y) - 1;
+    for (let y = wy - 3; y <= wy + 1; y++) g.world.set(wx, y, 1);
+    const e = makeEnemy(8, 'crawler', wx + 3, g.body.y - 0.01);
+    g.enemies = [e];
+    run(g, 1.2, { dig: true, aim: { tx: wx + 3, ty: wy } });
+    expect(e.hp).toBe(ENEMIES.crawler.hp);
+    expect(g.shots.length).toBeLessThanOrEqual(3);
+  });
+
+  it('pistol has a cooldown, costs battery and hit-stop freezes briefly', () => {
+    const g = deepGame();
+    g.setTool('pistol');
+    openCorridor(g);
+    const bat = g.battery;
+    run(g, 0.2, { dig: true });
+    expect(g.shots.length).toBe(1);
+    expect(g.battery).toBeLessThan(bat);
+    g.enemies = [makeEnemy(9, 'crawler', g.body.x + 1, g.body.y)];
+    g.damageEnemy(g.enemies[0], 1, 1);
+    const t = g.time;
+    g.step(FIXED_DT, NO_CONTROLS);
+    expect(g.time).toBe(t);
   });
 
   it('enemies vanish at the base', () => {

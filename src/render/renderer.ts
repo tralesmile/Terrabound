@@ -170,6 +170,17 @@ export class Renderer {
         ctx.fillRect(ex - w / 2, ey - h - 4 * scale, (w * Math.max(0, e.hp)) / d.hp, 2 * scale);
       }
     }
+    for (const sh of game.shots) {
+      const sxp = this.sx(sh.x, shakeX);
+      const syp = this.sy(sh.y, shakeY);
+      const len = Math.hypot(sh.vx, sh.vy) || 1;
+      ctx.strokeStyle = '#ffd24a';
+      ctx.lineWidth = scale * 1.6;
+      ctx.beginPath();
+      ctx.moveTo(sxp - (sh.vx / len) * ts * 0.7, syp - (sh.vy / len) * ts * 0.7);
+      ctx.lineTo(sxp, syp);
+      ctx.stroke();
+    }
     if (game.swing > 0) {
       const k = 1 - game.swing / 0.18;
       ctx.strokeStyle = `rgba(120,255,255,${1 - k})`;

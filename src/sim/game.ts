@@ -53,9 +53,26 @@ export type GameEvent =
   | { t: 'newdive' }
   | { t: 'swing'; dir: number }
   | { t: 'enemyhit'; x: number; y: number; dmg: number }
-  | { t: 'enemykill'; x: number; y: number; kind: EnemyKind };
+  | { t: 'enemykill'; x: number; y: number; kind: EnemyKind }
+  | { t: 'shoot'; x: number; y: number }
+  | { t: 'shothit'; x: number; y: number };
 
-export type Tool = 'drill' | 'blade';
+export type Tool = 'drill' | 'blade' | 'pistol';
+export const TOOLS: readonly Tool[] = ['drill', 'blade', 'pistol'];
+export const PISTOL_DMG = 8;
+export const PISTOL_CD = 0.35;
+export const PISTOL_SPEED = 22;
+export const PISTOL_LIFE = 0.9;
+export const PISTOL_COST = 0.5;
+export const HITSTOP = 0.04;
+
+export interface Shot {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+}
 export const BLADE_DMG = 12;
 export const BLADE_RANGE = 2.1;
 export const BLADE_CD = 0.32;
@@ -81,6 +98,10 @@ export class Game {
   private nextEnemyId = 1;
   private spawnCd = 3;
   private bladeCd = 0;
+  private pistolCd = 0;
+  shots: Shot[] = [];
+  /** Seconds of sim freeze after landing a hit (game feel). */
+  hitStop = 0;
   mining: { tx: number; ty: number; progress: number } | null = null;
   facing = 1;
   time = 0;
@@ -158,6 +179,7 @@ export class Game {
   }
 
   private respawn(): void {
+    this.shots = [];
     const d = this.derived;
     this.body = { x: this.world.padX + 0.5, y: this.world.padY, vx: 0, vy: 0, onGround: true };
     unstick(this.world, this.body);
@@ -233,7 +255,7 @@ export class Game {
   }
 
   toggleTool(): void {
-    this.setTool(this.tool === 'drill' ? 'blade' : 'drill');
+    this.setTool(TOOLS[(TOOLS.indexOf(this.tool) + 1) % TOOLS.length]);
   }
 
   cycleSelected(): void {
@@ -271,6 +293,10 @@ export class Game {
   step(dt: number, c: Controls): void {
     if (!(dt > 0) || dt > 0.25) dt = Math.min(Math.max(dt || 0, 0), 0.25); // clamp tab-switch spikes
     if (dt === 0) return;
+    if (this.hitStop > 0) {
+      this.hitStop = Math.max(0, this.hitStop - dt);
+      return;
+    }
     this.time += dt;
     this.save.stats.playTime += dt;
     const d = this.derived;
@@ -312,6 +338,7 @@ export class Game {
     this.fullCd = Math.max(0, this.fullCd - dt);
     let mining = false;
     if (c.dig && this.tool === 'blade') this.blade();
+    if (c.dig && this.tool === 'pistol') this.firePistol(c.aim);
     if (c.dig && this.tool === 'drill' && c.aim && this.reachable(c.aim.tx, c.aim.ty)) {
       const { tx, ty } = c.aim;
       const tile = this.world.get(tx, ty);
@@ -365,6 +392,7 @@ export class Game {
     }
 
     this.stepEnemies(dt);
+    this.stepShots(dt);
 
     // Base services, battery and survival.
     if (this.isAtBase()) {
@@ -402,7 +430,62 @@ export class Game {
     e.iframes = 0.15;
     e.vx = dir * 9;
     e.vy = ENEMIES[e.kind].flying ? e.vy : -5;
+    this.hitStop = HITSTOP;
     this.emit({ t: 'enemyhit', x: e.x, y: e.y - 0.5, dmg });
+  }
+
+  private firePistol(aim: Controls['aim']): void {
+    if (this.pistolCd > 0) return;
+    const b = this.body;
+    const ox = b.x;
+    const oy = b.y - BODY_H * 0.55;
+    let dx = this.facing;
+    let dy = 0;
+    if (aim) {
+      dx = aim.tx + 0.5 - ox;
+      dy = aim.ty + 0.5 - oy;
+    }
+    let len = Math.hypot(dx, dy);
+    if (len < 0.3) {
+      dx = this.facing;
+      dy = 0;
+      len = 1;
+    }
+    if (!this.isAtBase()) this.battery = Math.max(0, this.battery - PISTOL_COST);
+    this.pistolCd = PISTOL_CD;
+    this.shots.push({ x: ox, y: oy, vx: (dx / len) * PISTOL_SPEED, vy: (dy / len) * PISTOL_SPEED, life: PISTOL_LIFE });
+    this.emit({ t: 'shoot', x: ox, y: oy });
+  }
+
+  /** Sweep shots in small steps so fast bolts never tunnel through walls or enemies. */
+  private stepShots(dt: number): void {
+    this.pistolCd = Math.max(0, this.pistolCd - dt);
+    const keep: Shot[] = [];
+    for (const s of this.shots) {
+      s.life -= dt;
+      const dist = Math.hypot(s.vx, s.vy) * dt;
+      const n = Math.max(1, Math.ceil(dist / 0.2));
+      let alive = s.life > 0;
+      for (let i = 0; i < n && alive; i++) {
+        s.x += (s.vx * dt) / n;
+        s.y += (s.vy * dt) / n;
+        if (this.world.isSolid(Math.floor(s.x), Math.floor(s.y))) {
+          this.emit({ t: 'shothit', x: s.x, y: s.y });
+          alive = false;
+          break;
+        }
+        for (const e of this.enemies) {
+          if (e.hp > 0 && enemyOverlapsBox(e, s.x, s.y + 0.1, 0.1, 0.2)) {
+            this.damageEnemy(e, PISTOL_DMG, Math.sign(s.vx) || 1);
+            this.emit({ t: 'shothit', x: s.x, y: s.y });
+            alive = false;
+            break;
+          }
+        }
+      }
+      if (alive) keep.push(s);
+    }
+    this.shots = keep;
   }
 
   private stepEnemies(dt: number): void {

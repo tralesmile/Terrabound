@@ -4,10 +4,12 @@ import { loadRaw, saveRaw } from './platform/storage';
 import { Fx } from './render/fx';
 import { Renderer } from './render/renderer';
 import { TILE_COLORS } from './render/sprites';
-import { FIXED_DT, Game, NO_CONTROLS, type GameEvent } from './sim/game';
+import { FIXED_DT, Game, NO_CONTROLS, type GameEvent, type Tool } from './sim/game';
 import { parseSave, serializeSave } from './sim/save';
 import { ITEMS } from './sim/tiles';
 import { UI, type UiAction } from './ui/ui';
+
+const TOOL_NAMES: Record<Tool, string> = { drill: 'Mining drill', blade: 'Energy blade', pistol: 'Pulse pistol' };
 
 function fatal(err: unknown): void {
   console.error('Terrabound fatal error', err);
@@ -84,7 +86,11 @@ function boot(): void {
         break;
       case 'tool':
         game.toggleTool();
-        ui.toast(game.tool === 'blade' ? 'Energy blade' : 'Mining drill', '#36e0e8');
+        ui.toast(TOOL_NAMES[game.tool], '#36e0e8');
+        break;
+      case 'settool':
+        game.setTool(a.t);
+        ui.toast(TOOL_NAMES[a.t], '#36e0e8');
         break;
       case 'sel':
         game.selectPlaceable(a.i);

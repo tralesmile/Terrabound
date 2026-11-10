@@ -109,6 +109,12 @@ export class Sfx {
       case 'full':
         this.tone(120, 0.15, 'square', 0.12);
         break;
+      case 'shoot':
+        if (this.ok('shoot', 80)) this.tone(900, 0.09, 'square', 0.07, 300);
+        break;
+      case 'shothit':
+        if (this.ok('shothit', 60)) this.noise(0.04, 0.15);
+        break;
       case 'newdive':
         this.tone(200, 0.4, 'triangle', 0.15, 800);
         break;

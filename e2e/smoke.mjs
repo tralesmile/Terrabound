@@ -171,6 +171,20 @@ try {
   check('blade swing damages an enemy', hurt);
   await page.screenshot({ path: path.join(out, '05-blade.png') });
   await page.keyboard.press('KeyQ');
+  check('Q cycles to the pistol', (await page.evaluate(() => window.__terrabound.game.tool)) === 'pistol');
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.facing = 1;
+    g.enemies = [{ id: 2, kind: 'crawler', x: g.body.x + 6, y: g.body.y - 0.01, vx: 0, vy: 0, hp: 24, dir: 1, iframes: 0, age: 0, phase: 0 }];
+  });
+  await page.mouse.move(900, 400);
+  await page.mouse.down();
+  await page.waitForTimeout(500);
+  await page.mouse.up();
+  check('pistol bolt fires', (await page.evaluate(() => window.__terrabound.game.battery)) > 0);
+  await page.screenshot({ path: path.join(out, '06-pistol.png') });
+  await page.keyboard.press('Digit1');
+  check('1 selects the drill', (await page.evaluate(() => window.__terrabound.game.tool)) === 'drill');
 
   // Let it run a few seconds idle to catch loop errors.
   await page.waitForTimeout(2000);

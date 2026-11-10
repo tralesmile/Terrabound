@@ -10,3 +10,4 @@
 - **Commit after every green slice** so a usage-limit stop never loses work.
 - **Branch setup:** a fresh clone is on `main`; the runbook's `git checkout dev` fails until `git checkout -b dev origin/dev`. Use that.
 - **Tool names are case-sensitive** (`Bash`, not `bash`).
+- **Test worlds are solid rock.** Projectile/enemy tests need an open corridor; use `openCorridor` in tests/enemies.test.ts instead of assuming air.

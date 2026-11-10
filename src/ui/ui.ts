@@ -1,4 +1,4 @@
-import type { Game } from '../sim/game';
+import type { Game, Tool } from '../sim/game';
 import { ITEM_IDS, ITEMS, PLACEABLE, invCount, invTotal, type Inventory } from '../sim/tiles';
 import { UPGRADES } from '../sim/upgrades';
 
@@ -11,7 +11,8 @@ export type UiAction =
   | { k: 'buy'; id: string }
   | { k: 'dive' }
   | { k: 'sel'; i: number }
-  | { k: 'tool' };
+  | { k: 'tool' }
+  | { k: 'settool'; t: Tool };
 
 interface Rect {
   x: number;
@@ -26,6 +27,12 @@ interface Toast {
   color: string;
   life: number;
 }
+
+const TOOL_SLOTS: { tool: Tool; label: string; color: string }[] = [
+  { tool: 'drill', label: 'DRL', color: '#9aa3b8' },
+  { tool: 'blade', label: 'BLD', color: '#36e0e8' },
+  { tool: 'pistol', label: 'GUN', color: '#ffd24a' },
+];
 
 const FONT = 'ui-monospace, Menlo, Consolas, "Courier New", monospace';
 const SHORT: Record<string, string> = { rust: 'rust', metal: 'metal', iron_scrap: 'iron', copper_wire: 'copper' };
@@ -161,12 +168,26 @@ export class UI {
     }
     if (this.touch) this.button(ctx, bx, by, bwid, bhgt, this.placeMode ? 'MODE BUILD' : 'MODE DIG', { k: 'mode' }, u * 0.8, { color: this.placeMode ? '#7a5a1f' : '#1f6f78' });
 
-    // Hotbar.
-    const slot = u * 3.4;
-    const gap = u * 0.5;
-    const total = PLACEABLE.length * slot + (PLACEABLE.length - 1) * gap;
+    // Hotbar: tools first, then placeable blocks.
+    const slot = Math.min(u * 3.4, (w - u * 2) / 6.4);
+    const gap = u * 0.4;
+    const count = TOOL_SLOTS.length + PLACEABLE.length;
+    const total = count * slot + (count - 1) * gap + gap * 2;
     let sx = (w - total) / 2;
     const sy = h - slot - u * 2.2;
+    TOOL_SLOTS.forEach((ts, i) => {
+      const sel = game.tool === ts.tool;
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(sx, sy, slot, slot);
+      ctx.strokeStyle = sel ? '#36e0e8' : '#454a5c';
+      ctx.lineWidth = sel ? 3 : 2;
+      ctx.strokeRect(sx + 1, sy + 1, slot - 2, slot - 2);
+      ctx.fillStyle = ts.color;
+      ctx.fillRect(sx + slot * 0.22, sy + slot * 0.18, slot * 0.56, slot * 0.4);
+      this.text(ctx, ts.label, sx + slot / 2, sy + slot * 0.8, Math.round(u * 0.8), '#fff', 'center');
+      this.rects.push({ x: sx, y: sy, w: slot, h: slot, a: { k: 'settool', t: ts.tool } });
+      sx += slot + gap + (i === TOOL_SLOTS.length - 1 ? gap * 2 : 0);
+    });
     PLACEABLE.forEach((id, i) => {
       const sel = game.selected === id;
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
@@ -193,7 +214,7 @@ export class UI {
     // Contextual warnings and first-minute hints.
     if (low && !game.isAtBase() && Math.floor(time * 2.5) % 2 === 0) this.text(ctx, 'BATTERY LOW - RETURN TO THE PAD', w / 2, h * 0.2, Math.round(u * 1.2), '#ff9a3c', 'center', w - u * 2);
     if (game.stats.playTime < 40) {
-      const hint = this.touch ? 'Left thumb: move, drag up to jump. Right side: dig.' : 'A/D move, W jump. Hold click to dig, right click to build, Q drill or blade. Return to the pad to bank loot.';
+      const hint = this.touch ? 'Left thumb: move, drag up to jump. Right side: dig.' : 'A/D move, W jump. Hold click to dig, right click to build, 1-3 or Q switch tool. Return to the pad to bank loot.';
       this.text(ctx, hint, w / 2, h - u * 0.7, Math.round(u * 0.75), '#c9d0e4', 'center', w - u * 2);
     }
   }
