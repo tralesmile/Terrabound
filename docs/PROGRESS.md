@@ -113,3 +113,13 @@ Owner played: works well, sounds good. Problems: map too small, graphics bad (pl
 **Next:** finish player rig (dig, hurt, climb, suit tier), tile autotiling and back-wall layer, then bigger world with chunk cache.
 
 **Known issues:** gallery lacks torch/ladder/door tiles (no LOOK entry; drawn procedurally in renderer); enemy sprites not yet reviewed in live play.
+
+## 2026-11-10 Run 11
+
+**Done:** player rig finished: climb frames, swing arm, hurt flash, suit colour by armor tier. Owner feedback payload matched existing P1.5 priorities.
+
+**Numbers:** 77 unit tests, 25 e2e checks.
+
+**Next:** enemy polish and death burst, tile autotiling, back-wall layer, bigger world with chunk cache.
+
+**Known issues:** swing arm is a simple 2px extension; no unit test for pose selection yet.

@@ -170,12 +170,22 @@ const LEGS: Record<string, string[]> = {
   runA: ['    olllLlo', '   olllo oLlo', '  olLo   olo', '  olo    olo', ' olLo     olLo', ' olo       olo', 'olLo       olLo', 'oooo       oooo'],
   runB: ['    olllLlo', '    olo olo', '    olo olo', '    olo olo', '    olo olo', '   olLo olLo', '   oooo oooo', ''],
   runC: ['    olllLlo', '    olLollo', '    ollo olo', '    olo  olo', '    olo  olo', '    olLo olLo', '    oooo oooo', ''],
+  climbA: ['    olllLlo', '    olo olo', '    olLo olo', '    olo  olLo', '    olo olo', '    oLo olo', '    ooo ooo', ''],
+  climbB: ['    olllLlo', '    olo olo', '    olo olLo', '    olLo olo', '    olo  olo', '    olo oLo', '    ooo ooo', ''],
   jump: ['    olllLlo', '   ollo ollo', '   olo   olo', '   olLo  olLo', '   oooo  oooo', '', '', ''],
   fall: ['    olllLlo', '    olo olo', '    olo olo', '    olLo olLo', '    oooo oooo', '', '', ''],
 };
 
-export type PlayerFrame = 'stand' | 'runA' | 'runB' | 'runC' | 'jump' | 'fall';
-export const PLAYER_FRAMES: PlayerFrame[] = ['stand', 'runA', 'runB', 'runC', 'jump', 'fall'];
+export type PlayerFrame = 'stand' | 'runA' | 'runB' | 'runC' | 'jump' | 'fall' | 'climbA' | 'climbB';
+export const PLAYER_FRAMES: PlayerFrame[] = ['stand', 'runA', 'runB', 'runC', 'jump', 'fall', 'climbA', 'climbB'];
+
+/** Suit colours by armor tier (0-3+): shirt, shade. */
+export const SUIT_TIERS: [string, string][] = [
+  ['#e8a33d', '#b87a1f'],
+  ['#7fd36a', '#4f9a3f'],
+  ['#5aa6ff', '#3a70c0'],
+  ['#d98aff', '#9a52c8'],
+];
 
 /** Full player sprite rows (24 rows) for a frame. */
 export function playerRows(frame: PlayerFrame, bob = 0): string[] {
@@ -244,12 +254,13 @@ export function drawRows(
   flip: boolean,
   width: number,
   tint?: string,
+  remap?: Record<string, string>,
 ): void {
   for (let r = 0; r < rows.length; r++) {
     const row = rows[r];
     for (let c = 0; c < row.length; c++) {
       const ch = row[c];
-      const color = PAL[ch];
+      const color = remap?.[ch] ?? PAL[ch];
       if (!color) continue;
       const cx = flip ? width - 1 - c : c;
       ctx.fillStyle = tint ?? color;
@@ -264,9 +275,14 @@ export interface PlayerPose {
   t: number;
   airborne: boolean;
   vy?: number;
+  climbing?: boolean;
+  hurt?: boolean;
+  swing?: boolean;
+  tier?: number;
 }
 
 export function poseFrame(pose: PlayerPose): { frame: PlayerFrame; bob: number } {
+  if (pose.climbing) return { frame: Math.floor(pose.t * 8) % 2 ? 'climbA' : 'climbB', bob: 0 };
   if (pose.airborne) return { frame: (pose.vy ?? 0) > 0 ? 'fall' : 'jump', bob: 0 };
   if (pose.walking) {
     const seq: PlayerFrame[] = ['runA', 'runB', 'runC', 'runB'];
@@ -279,7 +295,13 @@ export function poseFrame(pose: PlayerPose): { frame: PlayerFrame; bob: number }
 /** Draws the Salvager; (x, y) is the bottom-centre in screen px, s is px per art unit. */
 export function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: PlayerPose): void {
   const { frame, bob } = poseFrame(pose);
-  drawRows(ctx, playerRows(frame, bob), x - (PLAYER_W / 2) * s, y - PLAYER_H * s, s, pose.facing < 0, PLAYER_W);
+  let rows = playerRows(frame, bob);
+  const [c1, c2] = SUIT_TIERS[Math.min(SUIT_TIERS.length - 1, pose.tier ?? 0)];
+  const ox = x - (PLAYER_W / 2) * s;
+  const oy = y - PLAYER_H * s;
+  const flip = pose.facing < 0;
+  if (pose.swing) rows = rows.map((r, i) => (i >= 9 && i <= 11 ? r.padEnd(PLAYER_W - 2) + 'gg' : r));
+  drawRows(ctx, rows, ox, oy, s, flip, PLAYER_W, pose.hurt ? '#ffffff' : undefined, { s: c1, S: c2 });
 }
 
 export function drawEnemySprite(

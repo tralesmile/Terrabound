@@ -1,5 +1,6 @@
 import type { Game } from '../sim/game';
 import { REACH } from '../sim/game';
+import { onLadder } from '../sim/physics';
 import { ENEMIES } from '../sim/enemies';
 import { hash2 } from '../sim/rng';
 import { T } from '../sim/tiles';
@@ -257,6 +258,10 @@ export class Renderer {
       t: time,
       airborne: !b.onGround,
       vy: b.vy,
+      climbing: onLadder(game.world, b) && !b.onGround,
+      hurt: game.iframes > 0 && Math.floor(time * 20) % 2 === 0,
+      swing: game.swing > 0,
+      tier: game.upgrades.armor ?? 0,
     });
 
     // Particles and floating text.
