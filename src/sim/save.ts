@@ -1,8 +1,9 @@
 import { ITEM_IDS, type Inventory } from './tiles';
 import { legacyWalls, sanitizeBase, sanitizeWalls, type BaseTiles } from './base';
 import { UPGRADES, type Levels } from './upgrades';
+import { CODEX_IDS } from './explore';
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 const MAX_COUNT = 1_000_000_000;
 
 export interface SaveData {
@@ -19,6 +20,8 @@ export interface SaveData {
   base: BaseTiles;
   /** v3: player-built back walls in the base strip (wall-layer ids). */
   walls: BaseTiles;
+  /** v4: codex entries discovered (biomes, points of interest); each pays a one-time reward. */
+  codex: string[];
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -33,6 +36,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     settings: { muted: false },
     base: [],
     walls: [],
+    codex: [],
   };
 }
 
@@ -91,7 +95,16 @@ export function parseSave(raw: string | null | undefined): SaveData {
     base: sanitizeBase(r.base),
     // v2 -> v3: back walls moved from base tiles to their own layer.
     walls: typeof r.v === 'number' && r.v >= 3 ? sanitizeWalls(r.walls) : legacyWalls(r.base),
+    // v3 -> v4: no codex yet (empty); unknown or duplicate ids are dropped.
+    codex: sanitizeCodex(r.codex),
   };
+}
+
+function sanitizeCodex(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  const out: string[] = [];
+  for (const id of v) if (typeof id === 'string' && CODEX_IDS.has(id) && !out.includes(id)) out.push(id);
+  return out;
 }
 
 export function serializeSave(s: SaveData): string {

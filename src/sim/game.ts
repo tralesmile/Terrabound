@@ -19,6 +19,7 @@ import {
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
 import { recipeById } from './recipes';
 import { chestLoot } from './loot';
+import { FogMap, RECALL_TIME, codexEntry, discoveriesAt } from './explore';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
 import { captureBase, captureWalls, stampBase, stampWalls } from './base';
 import { PAD_HALF, SPAWN_LIGHT_MAX, W, World, generateWorld } from './world';
@@ -53,6 +54,10 @@ export type GameEvent =
   | { t: 'place'; x: number; y: number }
   | { t: 'full' }
   | { t: 'chest'; x: number; y: number; items: number }
+  | { t: 'discover'; id: string; name: string }
+  | { t: 'recallstart' }
+  | { t: 'recallcancel' }
+  | { t: 'recall' }
   | { t: 'fell'; x: number; y: number; tiles: number }
   | { t: 'hurt'; amount: number }
   | { t: 'bank'; total: number }
@@ -128,6 +133,11 @@ export class Game {
   time = 0;
   runDeepest = 0;
   events: GameEvent[] = [];
+  /** Explored map for this dive. */
+  fog!: FogMap;
+  /** Surface recall progress in seconds (0 = idle). */
+  recallT = 0;
+  private discoverCd = 0;
   private save: SaveData;
   private coyote = 0;
   private jumpBuf = 0;
@@ -140,6 +150,7 @@ export class Game {
 
   constructor(save: SaveData = defaultSave()) {
     this.save = structuredClone(save);
+    if (!Array.isArray(this.save.codex)) this.save.codex = [];
     this.stash = { ...save.stash };
     this.upgrades = { ...save.upgrades };
     // Crash/refresh safety: loot carried at last save is banked, never lost.
@@ -210,6 +221,9 @@ export class Game {
   }
 
   private respawn(): void {
+    this.fog = new FogMap(this.world);
+    this.fog.revealSky(this.world);
+    this.recallT = 0;
     this.shots = [];
     this.fallers = [];
     this.hazards = placeHazards(this.world);
@@ -333,7 +347,69 @@ export class Game {
     this.newWorld();
   }
 
+  /** Standing on open ground under the sky, away from the pad: you can beam home. */
+  canRecall(): boolean {
+    const b = this.body;
+    const tx = Math.floor(b.x);
+    if (this.isAtBase() || this.hp <= 0 || tx < 0 || tx >= this.world.w) return false;
+    return b.onGround && b.y <= this.world.surface[tx] + 0.5;
+  }
+
+  /** Start channelling the recall. Moving, digging or taking damage cancels it. */
+  startRecall(): boolean {
+    if (this.recallT > 0 || !this.canRecall()) return false;
+    this.recallT = 1e-6;
+    this.emit({ t: 'recallstart' });
+    return true;
+  }
+
+  private cancelRecall(): void {
+    if (this.recallT <= 0) return;
+    this.recallT = 0;
+    this.emit({ t: 'recallcancel' });
+  }
+
+  private stepExplore(dt: number, c: Controls): void {
+    const b = this.body;
+    this.fog.reveal(b.x, b.y - BODY_H / 2);
+    this.discoverCd -= dt;
+    if (this.discoverCd <= 0) {
+      this.discoverCd = 0.25;
+      for (const id of discoveriesAt(this.world, b.x, b.y)) this.discover(id);
+    }
+    if (this.recallT > 0) {
+      if (Math.abs(c.moveX) > 0.1 || c.jump || c.dig || c.place || !this.canRecall()) this.cancelRecall();
+      else {
+        this.recallT += dt;
+        if (this.recallT >= RECALL_TIME) {
+          this.recallT = 0;
+          b.x = this.world.padX + 0.5;
+          b.y = this.world.padY;
+          b.vx = 0;
+          b.vy = 0;
+          this.mining = null;
+          this.emit({ t: 'recall' });
+        }
+      }
+    }
+  }
+
+  /** First visit to a codex entry: record it and pay its one-time reward into the stash. */
+  discover(id: string): boolean {
+    const entry = codexEntry(id);
+    if (!entry || this.save.codex.includes(id)) return false;
+    this.save.codex.push(id);
+    for (const k of Object.keys(entry.reward) as ItemId[]) invAdd(this.stash, k, entry.reward[k] ?? 0);
+    this.emit({ t: 'discover', id, name: entry.name });
+    return true;
+  }
+
+  get codex(): readonly string[] {
+    return this.save.codex;
+  }
+
   private hurt(amount: number): void {
+    this.cancelRecall();
     this.hp -= amount;
     this.emit({ t: 'hurt', amount });
   }
@@ -357,6 +433,7 @@ export class Game {
     this.save.stats.playTime += dt;
     const d = this.derived;
     const b = this.body;
+    this.stepExplore(dt, c);
 
     // Horizontal control with quick acceleration.
     const mx = Math.max(-1, Math.min(1, c.moveX));
@@ -754,6 +831,7 @@ export class Game {
       upgrades: { ...this.upgrades },
       stats: { ...this.save.stats },
       settings: { ...this.save.settings },
+      codex: [...this.save.codex],
     };
   }
 

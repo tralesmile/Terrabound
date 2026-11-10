@@ -98,6 +98,23 @@ export class Sfx {
       case 'craft':
         [330, 440, 587].forEach((f, i) => this.tone(f, 0.1, 'square', 0.08, undefined, i * 0.05));
         break;
+      case 'discover':
+        [523, 784, 1047, 1319].forEach((f, i) => this.tone(f, 0.18, 'triangle', 0.12, undefined, i * 0.09));
+        break;
+      case 'chest':
+        this.tone(220, 0.08, 'square', 0.1, 440);
+        [659, 880, 1175].forEach((f, i) => this.tone(f, 0.1, 'square', 0.07, undefined, 0.08 + i * 0.05));
+        break;
+      case 'fell':
+        this.noise(0.3, 0.35);
+        this.tone(120, 0.3, 'triangle', 0.15, 50);
+        break;
+      case 'recallstart':
+        this.tone(220, 1.2, 'sine', 0.08, 880);
+        break;
+      case 'recall':
+        [880, 660, 1320].forEach((f, i) => this.tone(f, 0.12, 'sine', 0.12, undefined, i * 0.06));
+        break;
       case 'upgrade':
         [392, 523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.14, 'triangle', 0.14, undefined, i * 0.06));
         break;

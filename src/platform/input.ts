@@ -35,7 +35,9 @@ export class Input {
       if (e.code === 'KeyB' || e.code === 'Tab') {
         e.preventDefault();
         this.onAction({ k: this.ui.shopOpen ? 'close' : 'shop' });
-      } else if (e.code === 'KeyM') this.onAction({ k: 'mute' });
+      } else if (e.code === 'KeyM') this.onAction({ k: 'map' });
+      else if (e.code === 'KeyN') this.onAction({ k: 'mute' });
+      else if (e.code === 'KeyR') this.onAction({ k: 'recall' });
       else if (e.code === 'Escape') this.onAction({ k: 'close' });
       else if (e.code === 'KeyQ') this.onAction({ k: 'tool' });
       else if (e.code === 'Digit1') this.onAction({ k: 'settool', t: 'drill' });

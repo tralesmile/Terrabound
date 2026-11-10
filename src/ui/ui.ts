@@ -1,4 +1,6 @@
 import type { Game, Tool } from '../sim/game';
+import { MapView } from './map';
+import { CODEX, RECALL_TIME } from '../sim/explore';
 import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type Inventory, type ItemId } from '../sim/tiles';
 import { UPGRADES } from '../sim/upgrades';
 import { RECIPES } from '../sim/recipes';
@@ -14,7 +16,9 @@ export type UiAction =
   | { k: 'dive' }
   | { k: 'sel'; i: number }
   | { k: 'tool' }
-  | { k: 'settool'; t: Tool };
+  | { k: 'settool'; t: Tool }
+  | { k: 'map' }
+  | { k: 'recall' };
 
 interface Rect {
   x: number;
@@ -55,6 +59,8 @@ export function stashLine(stash: Inventory): ItemId[] {
 }
 
 export class UI {
+  mapOpen = false;
+  private mapView = new MapView();
   screen: 'title' | 'play' = 'title';
   shopOpen = false;
   placeMode = false;
@@ -130,7 +136,24 @@ export class UI {
       this.drawShop(ctx, game, w, h, u);
       return;
     }
+    if (this.mapOpen) {
+      this.drawMapScreen(ctx, game, w, h, u, time);
+      return;
+    }
     this.drawHud(ctx, game, w, h, u, time);
+  }
+
+  private drawMapScreen(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, time: number): void {
+    ctx.fillStyle = 'rgba(6,5,12,0.92)';
+    ctx.fillRect(0, 0, w, h);
+    this.text(ctx, 'MAP', u, u * 1.4, Math.round(u * 1.4), '#36e0e8');
+    const found = game.codex.length;
+    this.text(ctx, `Codex ${found}/${CODEX.length}`, u * 5, u * 1.4, Math.round(u * 0.9), '#ffcf4a', 'left', w - u * 12);
+    const bw = u * 6;
+    this.button(ctx, w - bw - u, u * 0.4, bw, u * 2.2, 'CLOSE', { k: 'map' }, u * 0.9);
+    this.mapView.draw(ctx, game, u, u * 3.2, w - u * 2, h - u * 6.4, u, time);
+    const hint = game.canRecall() ? (this.touch ? 'Surface: tap HOME to beam to the pad' : 'Surface: hold still and press R to beam to the pad') : 'Reach the surface to beam home';
+    this.text(ctx, hint, w / 2, h - u * 1.6, Math.round(u * 0.8), '#8a90a2', 'center', w - u * 2);
   }
 
   private drawTitle(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, time: number): void {
@@ -144,7 +167,7 @@ export class UI {
     this.button(ctx, w / 2 - bw / 2, h * 0.55, bw, bh, this.touch ? 'TAP TO START' : 'CLICK OR PRESS ANY KEY', { k: 'start' }, u, { pulse: Math.floor(time * 2) % 2 === 0 });
     const best = game.stats.deepest;
     if (best > 0) this.text(ctx, `Best depth ${best}m   Deaths ${game.stats.deaths}`, w / 2, h * 0.55 + bh + u * 1.6, Math.round(u * 0.9), '#c9d0e4', 'center');
-    if (!this.touch) this.text(ctx, 'A/D move  W/Space jump  Hold click: dig  Right click: build  B: workshop', w / 2, h - u * 1.6, Math.round(u * 0.7), '#8a90a2', 'center', w - u * 2);
+    if (!this.touch) this.text(ctx, 'A/D move  W/Space jump  Hold click: dig  Right click: build  B: workshop  M: map  R: beam home', w / 2, h - u * 1.6, Math.round(u * 0.7), '#8a90a2', 'center', w - u * 2);
   }
 
   private drawHud(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, time: number): void {
@@ -168,6 +191,16 @@ export class UI {
     const bx = w - bwid - u;
     this.button(ctx, bx, by, bwid, bhgt, game.muted ? 'SOUND OFF' : 'SOUND ON', { k: 'mute' }, u * 0.8);
     by += bhgt + u * 0.5;
+    this.button(ctx, bx, by, bwid, bhgt, 'MAP', { k: 'map' }, u * 0.9);
+    by += bhgt + u * 0.5;
+    if (game.recallT > 0) {
+      const pct = Math.min(99, Math.floor((game.recallT / RECALL_TIME) * 100));
+      this.button(ctx, bx, by, bwid, bhgt, `BEAM ${pct}%`, { k: 'recall' }, u * 0.8, { color: '#1f6f78', pulse: true });
+      by += bhgt + u * 0.5;
+    } else if (game.canRecall()) {
+      this.button(ctx, bx, by, bwid, bhgt, 'HOME', { k: 'recall' }, u * 0.9);
+      by += bhgt + u * 0.5;
+    }
     if (game.isAtBase()) {
       const can = game.affordableUpgrades().length > 0;
       this.button(ctx, bx, by, bwid, bhgt, can ? 'SHOP !' : 'SHOP', { k: 'shop' }, u, { pulse: can && Math.floor(time * 2) % 2 === 0 });

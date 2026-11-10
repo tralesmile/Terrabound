@@ -349,6 +349,33 @@ try {
   check('breaking a ruin chest fills the pack with loot', !!chestAt && loot > 0, JSON.stringify({ chestAt, loot }));
   await page.screenshot({ path: path.join(out, '12-chest-loot.png') });
 
+  // Map: M opens it (pauses the dive), M closes it. Then beam home from the surface with R.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const x = g.world.padX + 90;
+    g.enemies = [];
+    g.fallers = [];
+    g.body.x = x + 0.5;
+    g.body.y = g.world.surface[x] - 0.01;
+    g.body.vx = g.body.vy = 0;
+  });
+  await page.waitForTimeout(500);
+  await page.keyboard.press('KeyM');
+  await page.waitForTimeout(300);
+  const mapState = await page.evaluate(() => ({ open: window.__terrabound.ui.mapOpen, t: window.__terrabound.game.time }));
+  await page.waitForTimeout(300);
+  const paused = (await page.evaluate(() => window.__terrabound.game.time)) === mapState.t;
+  await page.screenshot({ path: path.join(out, '13-map.png') });
+  check('M opens the map and pauses the dive', mapState.open && paused, JSON.stringify(mapState));
+  await page.keyboard.press('KeyM');
+  check('M closes the map', !(await page.evaluate(() => window.__terrabound.ui.mapOpen)));
+  await page.waitForTimeout(200);
+  check('beam home is offered on the surface', await page.evaluate(() => window.__terrabound.game.canRecall()));
+  await page.keyboard.press('KeyR');
+  await page.waitForFunction(() => window.__terrabound.game.isAtBase(), null, { timeout: 5000 }).catch(() => {});
+  check('R beams the player home from the surface', await page.evaluate(() => window.__terrabound.game.isAtBase()));
+  check('codex records discoveries', (await page.evaluate(() => window.__terrabound.game.codex.length)) >= 2);
+
   // Chunk cache: a tile changed in the sim must change on screen next frame.
   const cacheOk = await page.evaluate(async () => {
     const t = window.__terrabound;
@@ -427,6 +454,14 @@ try {
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(out, '09-mobile-shop.png') });
   await page.evaluate(() => { window.__terrabound.ui.shopOpen = false; });
+  await page.waitForTimeout(200);
+  // Tap the MAP button like a player would.
+  const mapBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'map'));
+  if (mapBtn) await page.touchscreen.tap(mapBtn.x + mapBtn.w / 2, mapBtn.y + mapBtn.h / 2);
+  await page.waitForTimeout(400);
+  check('tapping MAP opens the map on mobile', await page.evaluate(() => window.__terrabound.ui.mapOpen), JSON.stringify(mapBtn));
+  await page.screenshot({ path: path.join(out, '14-mobile-map.png') });
+  await page.evaluate(() => { window.__terrabound.ui.mapOpen = false; });
   check('no console or page errors on mobile', merrors.length === 0, merrors.join(' | '));
   await mctx.close();
   const gctx = await browser.newContext({ viewport: { width: 1100, height: 1040 } });

@@ -7,7 +7,8 @@ import { Renderer } from './render/renderer';
 import { ENEMY_ART_UNIT, ENEMY_W, TILE_COLORS, drawGallery, enemyFrame, spriteDebris } from './render/sprites';
 import { FIXED_DT, Game, NO_CONTROLS, type GameEvent, type Tool } from './sim/game';
 import { parseSave, serializeSave } from './sim/save';
-import { ITEMS } from './sim/tiles';
+import { ITEMS, type ItemId } from './sim/tiles';
+import { codexEntry } from './sim/explore';
 import { UI, type UiAction } from './ui/ui';
 
 const TOOL_NAMES: Record<Tool, string> = { drill: 'Mining drill', blade: 'Energy blade', pistol: 'Pulse pistol' };
@@ -79,6 +80,14 @@ function boot(): void {
         break;
       case 'close':
         ui.shopOpen = false;
+        ui.mapOpen = false;
+        break;
+      case 'map':
+        if (ui.screen === 'play' && !ui.shopOpen) ui.mapOpen = !ui.mapOpen;
+        break;
+      case 'recall':
+        if (!game.startRecall() && game.recallT === 0) ui.toast(game.isAtBase() ? 'Already at the pad' : 'Beam home works on the surface only', '#ff9a3c');
+        ui.mapOpen = false;
         break;
       case 'mode':
         ui.placeMode = !ui.placeMode;
@@ -168,6 +177,34 @@ function boot(): void {
       case 'newdive':
         ui.toast('New dive - good luck', '#ffcf4a');
         break;
+      case 'chest':
+        fx.burst(e.x + 0.5, e.y + 0.5, '#ffcf4a', 18, 6);
+        fx.addShake(0.3);
+        ui.toast(e.items > 0 ? `Chest: +${e.items} items` : 'Chest: pack full!', '#ffcf4a');
+        break;
+      case 'fell':
+        fx.addShake(0.35);
+        ui.toast('Timber! +biomass', '#7fcf5a');
+        break;
+      case 'discover': {
+        const entry = codexEntry(e.id);
+        const gift = entry ? Object.entries(entry.reward).map(([k, n]) => `${n} ${ITEMS[k as ItemId].name}`).join(', ') : '';
+        ui.toast(`Discovered: ${e.name}`, '#ffcf4a');
+        if (gift) ui.toast(`Codex reward: ${gift}`, '#9ff6a0');
+        fx.burst(game.body.x, game.body.y - 1.5, '#ffcf4a', 16, 6);
+        saveNow();
+        break;
+      }
+      case 'recallstart':
+        ui.toast('Beaming home... hold still', '#36e0e8');
+        break;
+      case 'recallcancel':
+        ui.toast('Beam cancelled', '#ff9a3c');
+        break;
+      case 'recall':
+        fx.burst(game.body.x, game.body.y - 1, '#36e0e8', 30, 8);
+        ui.toast('Back at the pad', '#36e0e8');
+        break;
       default:
         break;
     }
@@ -188,7 +225,8 @@ function boot(): void {
         acc += dt;
         let steps = 0;
         while (acc >= FIXED_DT && steps < 6) {
-          game.step(FIXED_DT, ui.shopOpen ? NO_CONTROLS : input.read());
+          // The map pauses the dive (single player, no reason to punish looking).
+          if (!ui.mapOpen) game.step(FIXED_DT, ui.shopOpen ? NO_CONTROLS : input.read());
           acc -= FIXED_DT;
           steps++;
         }

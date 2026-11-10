@@ -10,7 +10,7 @@ npm run dev      # dev server
 npm run check    # typecheck + unit tests + build + browser e2e
 ```
 
-Controls: A/D or arrows move, W/Space jump, mouse left dig, right build, B workshop at the pad, M mute. Touch: left side stick, right side dig.
+Controls: A/D or arrows move, W/Space jump, mouse left dig, right build, B workshop at the pad, M map, R beam home (on the surface), N mute. Touch: left side stick, right side dig.
 
 ## Docs
 
