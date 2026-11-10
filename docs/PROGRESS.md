@@ -151,3 +151,13 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 **Numbers (end of session):** 153 unit tests, 42 e2e checks, bundle 99 kB (36.1 kB gzip).
 
 **Next:** liquids v1 (water/coolant, acid pools), lore/codex screen, then P2 base automation (power, smelter, chests, drones). Owner decision pending on persistent world vs new world per dive.
+
+## 2026-11-10 (late) Interactive session, part 2
+
+**Done:** persistent world until death (owner chose it): the world regenerates from its seed and replays saved edits and the explored map (save v5, `src/sim/persist.ts`, run-length encoded, never throws, dropped from the save past 2.5 MB). Death or two-tap NEW WORLD starts a fresh world. Liquids v1 (`src/sim/liquids.ts`): water and acid pools in caves, deterministic volume-conserving flow near the player, swimming with a leap out at the surface, acid damage, blocks plug liquid. Fixed the "3 undefined" cost label for new items.
+
+**Numbers:** 172 unit tests, 44 e2e checks, bundle 103 kB (37.7 kB gzip), headless frame ~3 ms.
+
+**Next:** remaining P1.5 polish (extra parallax layers, shaped ore veins), then P2 base automation: power, smelter, storage, conveyors, miner drones, offline production.
+
+**Known issues:** worldgen pools are not pre-settled, so water visibly flows for a few seconds when you first get near. Leaves across biome borders can merge. Map cells are coarse on phones.

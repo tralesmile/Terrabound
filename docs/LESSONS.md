@@ -31,3 +31,6 @@
 - **Structures that extend in one direction need side-aware offsets.** Left-side ruins overlapped the pad clear zone. Guard: test asserts every surface structure is outside PAD_CLEAR.
 - **E2e that teleports the player must wait for the camera.** The camera eases; aiming the mouse right after a teleport hits the wrong tile. Guard: `waitForFunction` on camX before converting tiles to screen.
 - **Shared-VM timings are noisy (2x swings).** Perf checks are coarse regression guards (12 ms/frame headless), not the 60 fps budget; measure with a warm cache and repeat before optimising.
+- **Commit messages with double quotes break `git commit -m "..."`.** Guard: write the message to a file and use `git commit -F`.
+- **Cellular liquid rules can settle into staircases or stranded puddles.** Guard: tests assert volume conservation, flat-within-1 settling and draining into a dug hole; the row scan only moves to strictly lower spots so settled pools never jitter.
+- **A screenshot caught "Cost: 3 undefined"** after adding items. Guard: a test renders a cost label for every item id.

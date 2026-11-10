@@ -32,7 +32,7 @@ Rule: ship small vertical slices. Each item needs tests. Keep the game playable 
 
 ## P1.5 World and art overhaul
 
-Open design question for the owner (see NEEDS_FROM_USER): keep a new world per dive (roguelite) or keep one persistent world until death (Terraria-like).
+Owner decision 2026-11-10: one persistent world until death (done, save v5). NEW WORLD in the workshop abandons it on purpose.
  (OWNER PRIORITY 2026-11-10: do this before anything else)
 
 Owner feedback after playing: the game works and sounds good, but the map is too small, the graphics are bad (player and enemies especially) and the world feels blank. Goal: Terraria-level richness with our own identity (dead machine-planet "the Hollow", drones, battery clock). Each item is a vertical slice with tests; review the screenshots after every visual change and add a sprite-gallery screenshot (`?e2e=1&gallery=1`) so every sprite is reviewed at 4x.
@@ -55,7 +55,8 @@ World size and variety:
 - [ ] Underground cave biomes: glowing mushroom patches, crystal-lined caverns and deep big caverns done; still todo: lava/plasma pockets, flooded tunnels (need liquids), shaped ore veins.
 - [x] Underground points of interest: sealed vaults, crystal geodes, data shrines (12 lore logs) and drone wrecks.
 - [x] Biome-specific enemies: vine stalker, shard mite (hops), ember wisp, frost hulk. (Music mood per biome moves to P5 music.)
-- [ ] Liquids v1: water/coolant and acid pools with simple cellular flow (deterministic), swim physics, acid damage.
+- [x] Persistent world until death: edits + explored map in save v5 (src/sim/persist.ts), two-tap NEW WORLD.
+- [x] Liquids v1: coolant water and acid pools (src/sim/liquids.ts), flooded cave basins, swimming, acid damage, plug with blocks. Todo later: lava/plasma, pumps (P2), pre-settled pools at worldgen.
 - [x] Map screen (M; mute moved to N and the HUD button), plus surface recall (R / HOME button, 2.5 s, cancelled by moving or damage): explored-area minimap with fog of war, pins for chests and pad.
 - [x] Exploration rewards: 10 codex entries (biomes + structure kinds) with one-time stash rewards, save v4. (Explorer achievements move to P4 achievements.)
 - [x] Simulated-player test (tests/biomes.test.ts over 8 seeds): biomes, structures and chests appear within the expected distances on 25 seeds; no structure overlaps the pad.
