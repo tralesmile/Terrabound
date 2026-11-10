@@ -49,6 +49,10 @@ export class World {
     return TILES[this.get(x, y)].solid;
   }
 
+  isClimb(x: number, y: number): boolean {
+    return TILES[this.get(x, y)].climb === true;
+  }
+
   /** Light 0..1 at a point from torches (linear falloff). */
   lightAt(x: number, y: number): number {
     let best = 0;

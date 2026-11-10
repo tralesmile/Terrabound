@@ -171,9 +171,9 @@ export class UI {
     if (this.touch) this.button(ctx, bx, by, bwid, bhgt, this.placeMode ? 'MODE BUILD' : 'MODE DIG', { k: 'mode' }, u * 0.8, { color: this.placeMode ? '#7a5a1f' : '#1f6f78' });
 
     // Hotbar: tools first, then placeable blocks.
-    const slot = Math.min(u * 3.4, (w - u * 2) / 7.4);
     const gap = u * 0.4;
     const count = TOOL_SLOTS.length + PLACEABLE.length;
+    const slot = Math.min(u * 3.4, (w - u * 2 - (count + 1) * gap) / count);
     const total = count * slot + (count - 1) * gap + gap * 2;
     let sx = (w - total) / 2;
     const sy = h - slot - u * 2.2;
@@ -244,7 +244,7 @@ export class UI {
       ctx.fillRect(sx, sy - u * 0.4, u * 0.8, u * 0.8);
       const label = `${game.stash[id] ?? 0}`;
       this.text(ctx, label, sx + u * 1.1, sy, Math.round(u * 0.95));
-      sx += u * 1.5 + label.length * u * 0.6 + u * 1.2;
+      sx += (pw - u * 2) / ITEM_IDS.length;
     }
 
     // Rows.

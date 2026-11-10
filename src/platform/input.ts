@@ -44,6 +44,8 @@ export class Input {
       else if (e.code === 'Digit4') this.onAction({ k: 'sel', i: 0 });
       else if (e.code === 'Digit5') this.onAction({ k: 'sel', i: 1 });
       else if (e.code === 'Digit6') this.onAction({ k: 'sel', i: 2 });
+      else if (e.code === 'Digit7') this.onAction({ k: 'sel', i: 3 });
+      else if (e.code === 'Digit8') this.onAction({ k: 'sel', i: 4 });
       else if (this.ui.screen === 'title') this.onAction({ k: 'start' });
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
@@ -121,6 +123,7 @@ export class Input {
     if (k.has('KeyA') || k.has('ArrowLeft')) moveX -= 1;
     if (k.has('KeyD') || k.has('ArrowRight')) moveX += 1;
     let jump = k.has('KeyW') || k.has('ArrowUp') || k.has('Space');
+    let down = k.has('KeyS') || k.has('ArrowDown');
     let dig = false;
     let place = false;
     let aimCss: { x: number; y: number } | null = this.mouse.has ? { x: this.mouse.x, y: this.mouse.y } : null;
@@ -132,6 +135,7 @@ export class Input {
         const dead = 10;
         if (Math.abs(dx) > dead) moveX = Math.max(-1, Math.min(1, dx / 50));
         if (dy < -28) jump = true;
+        if (dy > 28) down = true;
       } else {
         aimCss = { x: p.x, y: p.y };
         const placing = p.button === 2 || this.ui.placeMode;
@@ -146,6 +150,6 @@ export class Input {
       const t = this.renderer.screenToTile(aimCss.x * d, aimCss.y * d);
       aim = { tx: t.tx, ty: t.ty };
     }
-    return { moveX, jump, dig, place, aim };
+    return { moveX, jump, dig, place, aim, down };
   }
 }

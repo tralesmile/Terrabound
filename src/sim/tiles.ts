@@ -1,7 +1,7 @@
 /** Static content tables: tiles and items. Add new content here first, then wire it into worldgen/crafting. */
 
-export type ItemId = 'rust' | 'metal' | 'iron_scrap' | 'copper_wire' | 'torch';
-export const ITEM_IDS: ItemId[] = ['rust', 'metal', 'iron_scrap', 'copper_wire', 'torch'];
+export type ItemId = 'rust' | 'metal' | 'iron_scrap' | 'copper_wire' | 'torch' | 'ladder' | 'scaffold';
+export const ITEM_IDS: ItemId[] = ['rust', 'metal', 'iron_scrap', 'copper_wire', 'torch', 'ladder', 'scaffold'];
 
 export const T = {
   AIR: 0,
@@ -12,6 +12,8 @@ export const T = {
   BEDROCK: 5,
   PAD: 6,
   TORCH: 7,
+  LADDER: 8,
+  SCAFFOLD: 9,
 } as const;
 
 export interface TileDef {
@@ -22,6 +24,8 @@ export interface TileDef {
   drop: ItemId | null;
   /** Breakable even though not solid (torches). */
   minable?: boolean;
+  /** Player can climb here. */
+  climb?: boolean;
 }
 
 export const TILES: TileDef[] = [
@@ -33,6 +37,8 @@ export const TILES: TileDef[] = [
   { name: 'Bedrock', hardness: Infinity, solid: true, drop: null },
   { name: 'Landing pad', hardness: Infinity, solid: true, drop: null },
   { name: 'Torch', hardness: 0.1, solid: false, drop: 'torch', minable: true },
+  { name: 'Ladder', hardness: 0.1, solid: false, drop: 'ladder', minable: true, climb: true },
+  { name: 'Scaffold', hardness: 0.25, solid: true, drop: 'scaffold' },
 ];
 
 export interface ItemDef {
@@ -50,9 +56,11 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   iron_scrap: { name: 'Iron scrap', color: '#d6c7b8', places: null },
   copper_wire: { name: 'Copper wire', color: '#e08a3c', places: null },
   torch: { name: 'Torch', color: '#ffb03a', places: T.TORCH, kit: true },
+  ladder: { name: 'Ladder', color: '#c9a35a', places: T.LADDER, kit: true },
+  scaffold: { name: 'Scaffold', color: '#7d8da6', places: T.SCAFFOLD, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold'];
 
 export function isMinable(tile: number): boolean {
   const d = TILES[tile];

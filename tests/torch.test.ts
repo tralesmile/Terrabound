@@ -144,3 +144,57 @@ describe('suit lamp', () => {
     expect(parseSave(JSON.stringify({ v: 1, upgrades: { battery: 2 } })).upgrades).toEqual({ battery: 2 });
   });
 });
+
+describe('ladders and scaffold', () => {
+  it('ladder is climbable, non-solid, minable; scaffold is solid', () => {
+    expect(isMinable(T.LADDER)).toBe(true);
+    expect(isMinable(T.SCAFFOLD)).toBe(true);
+    const g = new Game();
+    g.world.set(30, 60, T.LADDER);
+    expect(g.world.isSolid(30, 60)).toBe(false);
+    expect(g.world.isClimb(30, 60)).toBe(true);
+    g.world.set(30, 61, T.SCAFFOLD);
+    expect(g.world.isSolid(30, 61)).toBe(true);
+  });
+
+  it('player climbs up a ladder shaft and clings without falling', () => {
+    const g = new Game();
+    for (let y = 50; y <= 70; y++) {
+      g.world.set(40, y, T.LADDER);
+      g.world.set(39, y, T.RUST);
+      g.world.set(41, y, T.RUST);
+    }
+    g.world.set(40, 71, T.RUST);
+    g.body.x = 40.5;
+    g.body.y = 70.9;
+    g.body.vy = 0;
+    run(g, 1, { jump: true });
+    expect(g.body.y).toBeLessThan(67);
+    const y = g.body.y;
+    run(g, 1);
+    expect(Math.abs(g.body.y - y)).toBeLessThan(0.05);
+    run(g, 1, { down: true });
+    expect(g.body.y).toBeGreaterThan(y + 4);
+  });
+
+  it('crafting ladder and scaffold keeps them in the pack when banking', () => {
+    for (const id of ['ladder', 'scaffold']) {
+      const g = new Game();
+      g.stash.rust = 20;
+      g.stash.iron_scrap = 5;
+      g.body.x = g.world.padX + 0.5;
+      g.body.y = g.world.padY;
+      expect(RECIPES.some((r) => r.id === id)).toBe(true);
+      expect(g.craft(id)).toBe(true);
+      expect((g.carried as Record<string, number>)[id]).toBeGreaterThan(0);
+      run(g, 0.5);
+      expect((g.carried as Record<string, number>)[id]).toBeGreaterThan(0);
+    }
+  });
+
+  it('old saves without ladder/scaffold still parse', () => {
+    const s = parseSave(JSON.stringify({ ...defaultSave(), v: defaultSave().v }));
+    expect(s.stash.ladder ?? 0).toBe(0);
+    expect(serializeSave(s)).toBeTruthy();
+  });
+});

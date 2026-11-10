@@ -13,3 +13,4 @@
 - **Test worlds are solid rock.** Projectile/enemy tests need an open corridor; use `openCorridor` in tests/enemies.test.ts instead of assuming air.
 - **Auto-bank eats crafted items.** Crafting at the base put items in the pack, which the base banked straight back. Guard: `kit` flag on ItemDef (banking skips kit items) plus a unit test; any new craftable gear must set `kit: true`.
 - **Shop panel text can clip under buttons.** Pass a `maxW` to `text()` for any row with a right-side button.
+- **Adding items widens the hotbar and stash row.** Slot sizes are now computed from the item count, but adding more than ~10 placeables will need a scrolling bar. Guard: always view 06-mobile-play.png and 09-mobile-shop.png after adding an item.

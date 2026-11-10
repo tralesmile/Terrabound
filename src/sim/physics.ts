@@ -65,6 +65,12 @@ export function moveY(world: World, b: Body, dy: number): boolean {
   return false;
 }
 
+/** True if the body's torso overlaps a climbable tile (ladder). */
+export function onLadder(world: World, b: Body): boolean {
+  const mid = Math.floor(b.y - BODY_H / 2);
+  return world.isClimb(Math.floor(b.x), mid) || world.isClimb(Math.floor(b.x), Math.floor(b.y - 0.1));
+}
+
 export function probeGround(world: World, b: Body): boolean {
   return boxCollides(world, b.x, b.y + 0.02);
 }

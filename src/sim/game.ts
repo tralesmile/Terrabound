@@ -1,6 +1,6 @@
 import { mixSeed, mulberry32 } from './rng';
 import { ENEMIES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, stepEnemy } from './enemies';
-import { type Body, moveX, moveY, probeGround, unstick, BODY_H, HALF_W } from './physics';
+import { type Body, moveX, moveY, onLadder, probeGround, unstick, BODY_H, HALF_W } from './physics';
 import { defaultSave, type SaveData } from './save';
 import {
   type Inventory,
@@ -23,6 +23,8 @@ export const GRAVITY = 42;
 export const MAX_FALL = 28;
 export const JUMP_V = 15.5;
 export const FALL_SAFE = 19;
+export const CLIMB_UP = 5;
+export const CLIMB_DOWN = 7;
 export const REACH = 4.2;
 export const FIXED_DT = 1 / 60;
 
@@ -32,6 +34,8 @@ export interface Controls {
   jump: boolean;
   dig: boolean;
   place: boolean;
+  /** Optional: descend ladders faster. */
+  down?: boolean;
   /** Tile under the pointer, or null. */
   aim: { tx: number; ty: number } | null;
 }
@@ -346,7 +350,14 @@ export class Game {
     if (!c.jump && b.vy < -6) b.vy = -6;
     this.prevJump = c.jump;
 
-    b.vy = Math.min(MAX_FALL, b.vy + GRAVITY * dt);
+    if (onLadder(this.world, b)) {
+      // Climbing: no gravity; jump climbs, down descends, otherwise cling.
+      b.vy = c.jump ? -CLIMB_UP : c.down ? CLIMB_DOWN : 0;
+      b.vx *= 0.6;
+      this.coyote = 0.1;
+    } else {
+      b.vy = Math.min(MAX_FALL, b.vy + GRAVITY * dt);
+    }
     b.onGround = false;
     moveX(this.world, b, b.vx * dt);
     const impact = b.vy;

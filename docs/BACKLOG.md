@@ -26,8 +26,8 @@ Rule: ship small vertical slices. Each item needs tests. Keep the game playable 
 - [x] Torches (craftable, placeable, minable, light pushes back darkness)
 - [x] Suit lamp upgrade (4 levels, +1.5 tiles of light)
 - [x] Crafting at the base Fabricator: recipes table (src/sim/recipes.ts), UI rows in the workshop; torch done
-- [ ] More recipes: scaffold, ladder, plate
-- [ ] Scaffold and ladder placement and climbing physics
+- [x] More recipes: scaffold, ladder (plate deferred: metal already drops from tiles; revisit with smelter in P2)
+- [x] Scaffold and ladder placement and climbing physics (jump climbs, S/Down or stick-down descends, cling otherwise; keys 7/8 select)
 - [ ] Simulated-player balance test for the Scrap layer
 
 ## P2 Base and automation (M2)

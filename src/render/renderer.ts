@@ -110,6 +110,11 @@ export class Renderer {
           this.drawTorch(ctx, dx, dy, ts, time + tx);
           continue;
         }
+        if (t === T.LADDER) {
+          if (ty >= world.surface[tx]) ctx.drawImage(this.backdrop, 0, 0, TS, TS, dx, dy, ts, ts);
+          this.drawLadder(ctx, dx, dy, ts);
+          continue;
+        }
         const v = Math.floor(hash2(tx, ty, 7) * VARIANTS);
         ctx.drawImage(this.atlas, v * TS, t * TS, TS, TS, dx, dy, ts, ts);
       }
@@ -264,6 +269,15 @@ export class Renderer {
       const win = Math.floor(hash2(i, 7, 5) * th);
       if (Math.floor(time * 0.7 + i) % 5 !== 0) ctx.fillRect(x + ts * 0.4, base - (win + 1) * ts + ts * 0.3, this.scale * 2, this.scale * 2);
     }
+  }
+
+  private drawLadder(ctx: CanvasRenderingContext2D, dx: number, dy: number, ts: number): void {
+    const u = ts / 16;
+    ctx.fillStyle = '#8a6a36';
+    ctx.fillRect(dx + 3 * u, dy, 2 * u, ts);
+    ctx.fillRect(dx + 11 * u, dy, 2 * u, ts);
+    ctx.fillStyle = '#c9a35a';
+    for (let r = 2; r < 16; r += 5) ctx.fillRect(dx + 3 * u, dy + r * u, 10 * u, 2 * u);
   }
 
   private drawTorch(ctx: CanvasRenderingContext2D, dx: number, dy: number, ts: number, t: number): void {
