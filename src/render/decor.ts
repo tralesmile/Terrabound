@@ -343,3 +343,15 @@ export function drawDecorGallery(ctx: CanvasRenderingContext2D, x0: number, y0: 
   ctx.drawImage(d.chest, 0, 0, TS, TS, x + 8, y, TS * z, TS * z);
   ctx.drawImage(d.snow, 0, 0, TS * 4, SNOW_H, x + cell + 16, y, TS * 4 * z, SNOW_H * z);
 }
+
+/** Night sky stops (same layout as SKY entries). */
+export const NIGHT_SKY: [string, string, string, string] = ['#020309', '#080b1e', '#1c1d3c', '#05060f'];
+
+/** Linear blend of two #rrggbb colours (t = 0 gives a, 1 gives b). */
+export function mixHex(a: string, b: string, t: number): string {
+  const [ar, ag, ab] = rgb(a);
+  const [br, bg, bb] = rgb(b);
+  const k = Math.min(1, Math.max(0, t));
+  const c = (x: number, y: number): string => Math.round(x + (y - x) * k).toString(16).padStart(2, '0');
+  return `#${c(ar, br)}${c(ag, bg)}${c(ab, bb)}`;
+}

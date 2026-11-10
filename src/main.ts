@@ -195,6 +195,12 @@ function boot(): void {
         saveNow();
         break;
       }
+      case 'nightfall':
+        ui.toast('Night falls: drones hunt the surface', '#b06bff');
+        break;
+      case 'dawn':
+        ui.toast('Dawn breaks', '#ffcf4a');
+        break;
       case 'recallstart':
         ui.toast('Beaming home... hold still', '#36e0e8');
         break;

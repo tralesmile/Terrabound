@@ -376,6 +376,28 @@ try {
   check('R beams the player home from the surface', await page.evaluate(() => window.__terrabound.game.isAtBase()));
   check('codex records discoveries', (await page.evaluate(() => window.__terrabound.game.codex.length)) >= 2);
 
+  // Day/night: the sky darkens at night and the moon is out.
+  const skyAt = async (t) => {
+    await page.evaluate((tt) => {
+      const g = window.__terrabound.game;
+      g.time = tt;
+      const x = g.world.padX + 50;
+      g.enemies = [];
+      g.body.x = x + 0.5;
+      g.body.y = g.world.surface[x] - 0.01;
+    }, t);
+    await page.waitForTimeout(400);
+    return page.evaluate(() => {
+      const d = document.getElementById('game').getContext('2d').getImageData(20, 140, 1, 1).data;
+      return d[0] + d[1] + d[2];
+    });
+  };
+  const daySky = await skyAt(30);
+  const nightSky = await skyAt(400);
+  await page.screenshot({ path: path.join(out, '15-night.png') });
+  check('the sky is darker at night', nightSky < daySky * 0.7, JSON.stringify({ daySky, nightSky }));
+  await skyAt(30);
+
   // Chunk cache: a tile changed in the sim must change on screen next frame.
   const cacheOk = await page.evaluate(async () => {
     const t = window.__terrabound;

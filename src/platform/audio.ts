@@ -109,6 +109,12 @@ export class Sfx {
         this.noise(0.3, 0.35);
         this.tone(120, 0.3, 'triangle', 0.15, 50);
         break;
+      case 'nightfall':
+        [330, 262, 196].forEach((f, i) => this.tone(f, 0.4, 'sine', 0.1, undefined, i * 0.25));
+        break;
+      case 'dawn':
+        [392, 523, 659].forEach((f, i) => this.tone(f, 0.3, 'sine', 0.08, undefined, i * 0.2));
+        break;
       case 'recallstart':
         this.tone(220, 1.2, 'sine', 0.08, 880);
         break;

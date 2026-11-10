@@ -7,7 +7,8 @@ import { T } from '../sim/tiles';
 import { BODY_H } from '../sim/physics';
 import type { Fx } from './fx';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, leafMask } from './autotile';
-import { CAVE_ROW, LEAF_VARIANTS, PLANT_VARIANTS, SNOW_H, blendSky, buildDecor } from './decor';
+import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, SNOW_H, blendSky, buildDecor, mixHex } from './decor';
+import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { B, BIOME_IDS } from '../sim/biomes';
 import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, drawEnemySprite, drawPlayer, makeCanvas } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
@@ -30,6 +31,8 @@ export class Renderer {
   private decor = buildDecor();
   /** Blended sky palette for the camera position (updated each frame). */
   private sky: [string, string, string, string] = ['#0b1026', '#2a1f4d', '#e87f5b', '#1a1536'];
+  /** Daylight 0..1 of the current frame. */
+  private day = 1;
   /** Device pixels. */
   w = 1;
   h = 1;
@@ -103,13 +106,16 @@ export class Renderer {
     if (skyBottom > 0) {
       const horizon = this.sy(world.padY, shakeY);
       const g = ctx.createLinearGradient(0, Math.min(0, horizon - ts * 22), 0, horizon);
-      this.sky = this.skyAt(world);
+      const dl = daylight(game.time);
+      this.day = dl;
+      const base = this.skyAt(world);
+      this.sky = [0, 1, 2, 3].map((k) => mixHex(base[k], NIGHT_SKY[k], 1 - dl)) as [string, string, string, string];
       g.addColorStop(0, this.sky[0]);
       g.addColorStop(0.55, this.sky[1]);
       g.addColorStop(1, this.sky[2]);
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, Math.min(h, skyBottom));
-      this.drawSkyDecor(ctx, horizon, time, world);
+      this.drawSkyDecor(ctx, horizon, time, world, game.time);
     }
 
     // Tiles: cached chunks, then per-frame animated tiles.
@@ -471,19 +477,29 @@ export class Renderer {
     return blendSky(weights);
   }
 
-  private drawSkyDecor(ctx: CanvasRenderingContext2D, horizon: number, time: number, world: Game['world']): void {
+  private drawSkyDecor(ctx: CanvasRenderingContext2D, horizon: number, time: number, world: Game['world'], gameTime: number): void {
     const ts = TS * this.scale;
-    // Dead sun.
-    const sunX = this.w * 0.78 - (this.camX % 200) * 0.2;
-    const sunY = horizon - ts * 9;
-    const sg = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, ts * 5);
-    sg.addColorStop(0, 'rgba(255,184,107,0.55)');
-    sg.addColorStop(1, 'rgba(255,184,107,0)');
-    ctx.fillStyle = sg;
-    ctx.fillRect(sunX - ts * 5, sunY - ts * 5, ts * 10, ts * 10);
-    // Stars.
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    for (let i = 0; i < 60; i++) {
+    // Sun by day, moon by night, arcing across the sky with the day phase.
+    const ph = dayPhase(gameTime);
+    const sh = sunHeight(gameTime);
+    const arc = (p: number): number => this.w * (0.1 + 0.8 * ((p % 0.5) / 0.5));
+    const body = (x: number, hgt: number, core: string, glow: string, r: number): void => {
+      const y = horizon - ts * 2 - hgt * ts * 12;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, ts * r * 2.5);
+      g.addColorStop(0, glow);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x - ts * r * 2.5, y - ts * r * 2.5, ts * r * 5, ts * r * 5);
+      ctx.fillStyle = core;
+      ctx.beginPath();
+      ctx.arc(x, y, ts * r * 0.45, 0, Math.PI * 2);
+      ctx.fill();
+    };
+    if (sh > -0.2) body(arc(ph), sh, 'rgba(255,214,150,0.95)', 'rgba(255,184,107,0.5)', 2);
+    else body(arc(ph - 0.5), -sh, 'rgba(220,230,255,0.9)', 'rgba(160,180,255,0.25)', 1.2);
+    // Stars: faint by day, bright at night.
+    ctx.fillStyle = `rgba(255,255,255,${(0.15 + 0.75 * (1 - this.day)).toFixed(3)})`;
+    for (let i = 0; i < 90; i++) {
       const sx = hash2(i, 1, 9) * this.w;
       const sy = hash2(i, 2, 9) * Math.max(1, horizon - ts * 6);
       if (sy < horizon - ts * 4) ctx.fillRect(sx, sy, this.scale, this.scale);
@@ -582,7 +598,9 @@ export class Renderer {
     const ptx = Math.floor(b.x);
     const pty = Math.floor(b.y - BODY_H / 2);
     const lampR = game.derived.lampRadius;
-    const key = `${x0},${y0},${lw},${lh},${ptx},${pty},${lampR},${world.version},${world.torches.size}`;
+    // Night dims the open sky (but keeps it readable); steps of 4 levels so the cache is not rebuilt every frame.
+    const skyLevel = Math.round((SKY_LEVEL * (0.45 + 0.55 * daylight(game.time))) / 4) * 4;
+    const key = `${x0},${y0},${lw},${lh},${ptx},${pty},${lampR},${world.version},${world.torches.size},${skyLevel}`;
     if (key !== this.lightKey || !this.light) {
       this.lightKey = key;
       const sources = frameSources(world.torches, world.w, { x: ptx, y: pty, radius: lampR }, { x: world.padX, y: world.padY });
@@ -594,7 +612,7 @@ export class Renderer {
           else if (tt === T.PLANT && yy > world.surface[xx] + 1) sources.push({ x: xx, y: yy, level: 14 });
         }
       }
-      this.light = computeLight(world, x0, y0, lw, lh, sources, SKY_LEVEL);
+      this.light = computeLight(world, x0, y0, lw, lh, sources, skyLevel);
       if (!this.lightCanvas || this.lightCanvas.width !== lw || this.lightCanvas.height !== lh) this.lightCanvas = makeCanvas(lw, lh);
       const lctx = this.lightCanvas.getContext('2d');
       if (lctx) {

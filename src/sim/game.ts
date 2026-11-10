@@ -19,6 +19,7 @@ import {
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
 import { recipeById } from './recipes';
 import { chestLoot } from './loot';
+import { isNight } from './daynight';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt } from './explore';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
 import { captureBase, captureWalls, stampBase, stampWalls } from './base';
@@ -32,6 +33,8 @@ export const CLIMB_UP = 5;
 export const CLIMB_DOWN = 7;
 export const REACH = 4.2;
 export const FIXED_DT = 1 / 60;
+/** Columns around the pad where nothing spawns at night. */
+export const NIGHT_SAFE = 30;
 
 export interface Controls {
   /** -1..1 */
@@ -58,6 +61,8 @@ export type GameEvent =
   | { t: 'recallstart' }
   | { t: 'recallcancel' }
   | { t: 'recall' }
+  | { t: 'nightfall' }
+  | { t: 'dawn' }
   | { t: 'fell'; x: number; y: number; tiles: number }
   | { t: 'hurt'; amount: number }
   | { t: 'bank'; total: number }
@@ -138,6 +143,7 @@ export class Game {
   /** Surface recall progress in seconds (0 = idle). */
   recallT = 0;
   private discoverCd = 0;
+  private wasNight = false;
   private save: SaveData;
   private coyote = 0;
   private jumpBuf = 0;
@@ -371,6 +377,11 @@ export class Game {
 
   private stepExplore(dt: number, c: Controls): void {
     const b = this.body;
+    const night = isNight(this.time);
+    if (night !== this.wasNight) {
+      this.wasNight = night;
+      this.emit({ t: night ? 'nightfall' : 'dawn' });
+    }
     this.fog.reveal(b.x, b.y - BODY_H / 2);
     this.discoverCd -= dt;
     if (this.discoverCd <= 0) {
@@ -734,8 +745,11 @@ export class Game {
 
   /** Spawn an enemy in open cave space near, but never on, the player and never inside walls. */
   trySpawn(): Enemy | null {
-    if (this.enemies.length >= MAX_ENEMIES || this.depth < 8) return null;
-    const kinds = (Object.keys(ENEMIES) as EnemyKind[]).filter((k) => this.depth >= ENEMIES[k].minDepth);
+    if (this.enemies.length >= MAX_ENEMIES) return null;
+    // At night, drone wisps also hunt on the surface (never near the pad).
+    const nightSurface = this.depth < 8 && isNight(this.time) && Math.abs(this.body.x - this.world.padX) > NIGHT_SAFE;
+    if (this.depth < 8 && !nightSurface) return null;
+    const kinds = (Object.keys(ENEMIES) as EnemyKind[]).filter((k) => (nightSurface ? ENEMIES[k].flying : this.depth >= ENEMIES[k].minDepth));
     const kind = kinds[Math.floor(this.rng() * kinds.length)];
     const b = this.body;
     for (let i = 0; i < 12; i++) {
@@ -743,7 +757,8 @@ export class Game {
       const x = b.x + side * (9 + this.rng() * 8);
       const y = b.y + (this.rng() - 0.5) * 10;
       const e = makeEnemy(this.nextEnemyId, kind, Math.floor(x) + 0.5, Math.floor(y) + 1, this.rng() * 6.28);
-      if (e.y < this.world.padY + 6 || e.y >= this.world.h - 1 || e.x < 2 || e.x >= this.world.w - 2) continue;
+      if ((!nightSurface && e.y < this.world.padY + 6) || e.y < 2 || e.y >= this.world.h - 1 || e.x < 2 || e.x >= this.world.w - 2) continue;
+      if (nightSurface && Math.abs(e.x - this.world.padX) <= NIGHT_SAFE) continue;
       if (enemyBoxHits(this.world, e)) continue;
       if (this.world.lightAt(e.x, e.y - 0.5) > SPAWN_LIGHT_MAX) continue;
       // Player-built back walls make a room safe: nothing spawns in front of them.
