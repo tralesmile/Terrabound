@@ -46,7 +46,7 @@ export function enemyBoxHits(world: World, e: Enemy): boolean {
   const x1 = Math.floor(e.x + d.halfW - EPS);
   const y0 = Math.floor(e.y - d.h);
   const y1 = Math.floor(e.y - EPS);
-  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (world.isSolid(tx, ty)) return true;
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (world.blocksEnemy(tx, ty)) return true;
   return false;
 }
 

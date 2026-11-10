@@ -36,7 +36,7 @@ Rule: ship small vertical slices. Each item needs tests. Keep the game playable 
 - [x] Hotbar shows only owned placeables plus the selected one (`visiblePlaceables`), so new build tiles fit at 360 px
 - [ ] Base grid: widen/extend beyond the 15x10 strip if needed (walls behind, background layer)
 - [x] One-way platform tile (craftable, key 9, jump up through, S/Down drops, saved in base)
-- [ ] Build mode in base: back walls, doors
+- [x] Build mode in base: back walls and doors (door passable for player, blocks enemies via `enemyBlock`; keys 0 and -)
 - [ ] Power: solar cell, battery, wire; machines show state
 - [ ] Machines: smelter (rust and ore to plate), storage chest, conveyor, fabricator upgrade path
 - [ ] Drone v1: Miner drone mines assigned ore tiles in a base mine shaft

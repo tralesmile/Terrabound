@@ -49,6 +49,11 @@ export class World {
     return TILES[this.get(x, y)].solid;
   }
 
+  blocksEnemy(x: number, y: number): boolean {
+    const d = TILES[this.get(x, y)];
+    return d.solid || d.enemyBlock === true;
+  }
+
   isOneWay(x: number, y: number): boolean {
     return TILES[this.get(x, y)].oneWay === true;
   }

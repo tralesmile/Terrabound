@@ -1,7 +1,7 @@
 /** Static content tables: tiles and items. Add new content here first, then wire it into worldgen/crafting. */
 
-export type ItemId = 'rust' | 'metal' | 'iron_scrap' | 'copper_wire' | 'torch' | 'ladder' | 'scaffold' | 'platform';
-export const ITEM_IDS: ItemId[] = ['rust', 'metal', 'iron_scrap', 'copper_wire', 'torch', 'ladder', 'scaffold', 'platform'];
+export type ItemId = 'rust' | 'metal' | 'iron_scrap' | 'copper_wire' | 'torch' | 'ladder' | 'scaffold' | 'platform' | 'door' | 'wall';
+export const ITEM_IDS: ItemId[] = ['rust', 'metal', 'iron_scrap', 'copper_wire', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall'];
 
 export const T = {
   AIR: 0,
@@ -15,6 +15,8 @@ export const T = {
   LADDER: 8,
   SCAFFOLD: 9,
   PLATFORM: 10,
+  DOOR: 11,
+  WALL: 12,
 } as const;
 
 export interface TileDef {
@@ -29,6 +31,8 @@ export interface TileDef {
   climb?: boolean;
   /** Solid only from above: stand on it, jump up through it, press down to drop. */
   oneWay?: boolean;
+  /** Player walks through, enemies cannot. */
+  enemyBlock?: boolean;
 }
 
 export const TILES: TileDef[] = [
@@ -43,6 +47,8 @@ export const TILES: TileDef[] = [
   { name: 'Ladder', hardness: 0.1, solid: false, drop: 'ladder', minable: true, climb: true },
   { name: 'Scaffold', hardness: 0.25, solid: true, drop: 'scaffold' },
   { name: 'Platform', hardness: 0.15, solid: false, drop: 'platform', minable: true, oneWay: true },
+  { name: 'Door', hardness: 0.3, solid: false, drop: 'door', minable: true, enemyBlock: true },
+  { name: 'Back wall', hardness: 0.2, solid: false, drop: 'wall', minable: true },
 ];
 
 export interface ItemDef {
@@ -63,9 +69,11 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   ladder: { name: 'Ladder', color: '#c9a35a', places: T.LADDER, kit: true },
   scaffold: { name: 'Scaffold', color: '#7d8da6', places: T.SCAFFOLD, kit: true },
   platform: { name: 'Platform', color: '#9fb0c8', places: T.PLATFORM, kit: true },
+  door: { name: 'Door', color: '#6fa8c9', places: T.DOOR, kit: true },
+  wall: { name: 'Back wall', color: '#5a6478', places: T.WALL, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall'];
 
 /** Placeables worth showing in the hotbar: owned ones plus the selected one, in PLACEABLE order. */
 export function visiblePlaceables(inv: Inventory, selected: ItemId): ItemId[] {

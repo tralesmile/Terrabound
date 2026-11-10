@@ -14,6 +14,8 @@ export const RECIPES: Recipe[] = [
   { id: 'ladder', name: 'Ladder x4', out: 'ladder', qty: 4, cost: { rust: 3, iron_scrap: 1 } },
   { id: 'scaffold', name: 'Scaffold x6', out: 'scaffold', qty: 6, cost: { rust: 4 } },
   { id: 'platform', name: 'Platform x4', out: 'platform', qty: 4, cost: { rust: 3 } },
+  { id: 'door', name: 'Door x1', out: 'door', qty: 1, cost: { rust: 2, iron_scrap: 1 } },
+  { id: 'wall', name: 'Back wall x6', out: 'wall', qty: 6, cost: { rust: 3 } },
 ];
 
 export function recipeById(id: string): Recipe | undefined {

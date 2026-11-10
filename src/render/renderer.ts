@@ -123,6 +123,19 @@ export class Renderer {
           ctx.fillRect(dx, dy + Math.max(2, ts * 0.22), ts, Math.max(1, ts * 0.08));
           continue;
         }
+        if (t === T.WALL || t === T.DOOR) {
+          if (ty >= world.surface[tx]) ctx.drawImage(this.backdrop, 0, 0, TS, TS, dx, dy, ts, ts);
+          ctx.fillStyle = t === T.WALL ? '#3a4356' : '#6fa8c9';
+          const inset = t === T.WALL ? 0 : ts * 0.25;
+          ctx.fillRect(dx + inset, dy, ts - inset * 2, ts);
+          ctx.fillStyle = t === T.WALL ? '#2f3748' : '#3d6e8a';
+          ctx.fillRect(dx + inset, dy, Math.max(1, ts * 0.08), ts);
+          if (t === T.DOOR) {
+            ctx.fillStyle = '#ffd36b';
+            ctx.fillRect(dx + ts * 0.58, dy + ts * 0.5, Math.max(2, ts * 0.1), Math.max(2, ts * 0.1));
+          }
+          continue;
+        }
         const v = Math.floor(hash2(tx, ty, 7) * VARIANTS);
         ctx.drawImage(this.atlas, v * TS, t * TS, TS, TS, dx, dy, ts, ts);
       }

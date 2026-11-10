@@ -89,3 +89,13 @@
 **Next:** back walls and doors, then power (solar, battery, wire), smelter, chest. Add an e2e check for platforms/ladders.
 
 **Known issues:** platform has no e2e check; the hotbar still lacks a touch way to press "down" onto a platform other than the stick-down.
+
+## 2026-11-10 Run 9
+
+**Done:** door and back-wall tiles (craftable, minable, saved in base). Doors let the player through but block enemies (`enemyBlock`, `World.blocksEnemy`); walls are decor. Keys 0 and - select them. 3 unit tests (tests/doors.test.ts).
+
+**Numbers:** 75 unit tests, 24 e2e checks, bundle 52.3 kB (19.1 kB gzip).
+
+**Next:** power (solar, battery, wire), smelter, chest, then drones. Hotbar now has 8 placeables; check 06-mobile-play.png once more owned.
+
+**Known issues:** walls occupy the tile (no layer behind ladders/torches); no e2e for doors; hazards/enemy spawn ignore doors.
