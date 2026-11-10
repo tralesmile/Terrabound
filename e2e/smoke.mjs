@@ -253,6 +253,29 @@ try {
   await page.keyboard.press('Digit1');
   check('1 selects the drill', (await page.evaluate(() => window.__terrabound.game.tool)) === 'drill');
 
+  // Back walls: '-' selects the wall, a right click builds it in the wall layer behind the player.
+  await page.evaluate(() => { window.__terrabound.game.carried.wall = 4; });
+  await page.keyboard.press('Minus');
+  const wallSel = await page.evaluate(() => window.__terrabound.game.selected);
+  const wpos = await page.evaluate(() => {
+    const { game: g, renderer: r } = window.__terrabound;
+    const tx = Math.floor(g.body.x) + 1;
+    const ty = g.world.padY - 1;
+    const ts = 16 * r.scale;
+    return { tx, ty, sx: r.w / 2 + (tx + 0.5 - r.camX) * ts, sy: r.h / 2 + (ty + 0.5 - r.camY) * ts };
+  });
+  await page.mouse.move(wpos.sx, wpos.sy);
+  await page.mouse.down({ button: 'right' });
+  await page.waitForTimeout(200);
+  await page.mouse.up({ button: 'right' });
+  const wallState = await page.evaluate(({ tx, ty }) => {
+    const w = window.__terrabound.game.world;
+    return { wall: w.wall(tx, ty), tile: w.get(tx, ty) };
+  }, wpos);
+  check('- selects the back wall and right click builds it behind', wallSel === 'wall' && wallState.wall === 3 && wallState.tile === 0, JSON.stringify({ wallSel, ...wallState }));
+  await page.screenshot({ path: path.join(out, '08b-back-wall.png') });
+  await page.keyboard.press('Digit1');
+
   // Let it run a few seconds idle to catch loop errors.
   await page.waitForTimeout(2000);
   check('no console or page errors on desktop', errors.length === 0, errors.join(' | '));

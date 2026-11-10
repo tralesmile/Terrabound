@@ -7,6 +7,7 @@ import {
   type ItemId,
   ITEMS,
   PLACEABLE,
+  T,
   TILES,
   canAfford,
   invAdd,
@@ -18,8 +19,8 @@ import {
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
 import { recipeById } from './recipes';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
-import { captureBase, stampBase } from './base';
-import { PAD_HALF, SPAWN_LIGHT_MAX, World, generateWorld } from './world';
+import { captureBase, captureWalls, stampBase, stampWalls } from './base';
+import { PAD_HALF, SPAWN_LIGHT_MAX, W, World, generateWorld } from './world';
 
 export const GRAVITY = 42;
 export const MAX_FALL = 28;
@@ -154,6 +155,7 @@ export class Game {
     this.save.carried = {};
     this.world = generateWorld(this.diveSeed());
     stampBase(this.world, this.save.base);
+    stampWalls(this.world, this.save.walls);
     this.respawn();
   }
 
@@ -230,9 +232,11 @@ export class Game {
 
   private newWorld(): void {
     this.save.base = captureBase(this.world);
+    this.save.walls = captureWalls(this.world);
     this.save.runs += 1;
     this.world = generateWorld(this.diveSeed());
     stampBase(this.world, this.save.base);
+    stampWalls(this.world, this.save.walls);
     this.respawn();
   }
 
@@ -398,8 +402,10 @@ export class Game {
     if (c.dig && this.tool === 'drill' && c.aim && this.reachable(c.aim.tx, c.aim.ty)) {
       const { tx, ty } = c.aim;
       const tile = this.world.get(tx, ty);
-      if (isMinable(tile)) {
-        const def = TILES[tile];
+      // Nothing in front: the drill works on a player-built back wall instead.
+      const onWall = !isMinable(tile) && !TILES[tile].solid && this.world.wall(tx, ty) === W.PLATE;
+      if (isMinable(tile) || onWall) {
+        const def = onWall ? TILES[T.WALL] : TILES[tile];
         const blockedByPack = def.drop !== null && invTotal(this.carried) >= d.packCap;
         if (blockedByPack) {
           if (this.fullCd === 0) {
@@ -416,8 +422,9 @@ export class Game {
             this.emit({ t: 'dig', x: tx, y: ty });
           }
           if (this.mining.progress >= 1) {
-            this.world.set(tx, ty, 0);
-            this.emit({ t: 'break', x: tx, y: ty, tile });
+            if (onWall) this.world.setWall(tx, ty, W.NONE);
+            else this.world.set(tx, ty, 0);
+            this.emit({ t: 'break', x: tx, y: ty, tile: onWall ? T.WALL : tile });
             if (def.drop) {
               invAdd(this.carried, def.drop, 1);
               this.emit({ t: 'pickup', item: def.drop, x: tx, y: ty });
@@ -441,6 +448,12 @@ export class Game {
         !this.overlapsPlayer(tx, ty)
       ) {
         this.world.set(tx, ty, item.places);
+        invAdd(this.carried, this.selected, -1);
+        this.placeCd = 0.12;
+        this.emit({ t: 'place', x: tx, y: ty });
+      } else if (item.placesWall !== undefined && invCount(this.carried, this.selected) > 0 && this.canPlaceWall(tx, ty)) {
+        // Back walls sit behind tiles, so they may overlap the player, torches and ladders.
+        this.world.setWall(tx, ty, item.placesWall);
         invAdd(this.carried, this.selected, -1);
         this.placeCd = 0.12;
         this.emit({ t: 'place', x: tx, y: ty });
@@ -651,12 +664,24 @@ export class Game {
       if (e.y < this.world.padY + 6 || e.y >= this.world.h - 1 || e.x < 2 || e.x >= this.world.w - 2) continue;
       if (enemyBoxHits(this.world, e)) continue;
       if (this.world.lightAt(e.x, e.y - 0.5) > SPAWN_LIGHT_MAX) continue;
+      // Player-built back walls make a room safe: nothing spawns in front of them.
+      if (this.world.wall(Math.floor(e.x), Math.floor(e.y - 0.05)) === W.PLATE) continue;
       if (!ENEMIES[kind].flying && !this.world.isSolid(Math.floor(e.x), Math.floor(e.y + 0.05))) continue;
       this.nextEnemyId++;
       this.enemies.push(e);
       return e;
     }
     return null;
+  }
+
+  /** A back wall needs an open (non-solid) cell with no built wall, touching a block or another built wall. */
+  canPlaceWall(x: number, y: number): boolean {
+    const wl = this.world;
+    if (x < 0 || y < 0 || x >= wl.w || y >= wl.h) return false;
+    if (wl.isSolid(x, y) || wl.wall(x, y) === W.PLATE) return false;
+    if (wl.wall(x, y) !== W.NONE) return true; // lining an existing cave wall
+    const nb: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    return this.hasSolidNeighbour(x, y) || nb.some(([dx, dy]) => wl.wall(x + dx, y + dy) === W.PLATE);
   }
 
   private hasSolidNeighbour(x: number, y: number): boolean {
@@ -674,6 +699,7 @@ export class Game {
     return {
       ...this.save,
       base: captureBase(this.world),
+      walls: captureWalls(this.world),
       stash: { ...this.stash },
       carried: { ...this.carried },
       upgrades: { ...this.upgrades },

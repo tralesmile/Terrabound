@@ -58,6 +58,8 @@ export interface ItemDef {
   places: number | null;
   /** Kit items stay in the pack when you bank at the base (crafted gear). */
   kit?: boolean;
+  /** Wall-layer id placed behind tiles instead of a tile (back walls). */
+  placesWall?: number;
 }
 
 export const ITEMS: Record<ItemId, ItemDef> = {
@@ -70,7 +72,8 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   scaffold: { name: 'Scaffold', color: '#7d8da6', places: T.SCAFFOLD, kit: true },
   platform: { name: 'Platform', color: '#9fb0c8', places: T.PLATFORM, kit: true },
   door: { name: 'Door', color: '#6fa8c9', places: T.DOOR, kit: true },
-  wall: { name: 'Back wall', color: '#5a6478', places: T.WALL, kit: true },
+  // 3 = W.PLATE (world.ts); kept numeric to avoid an import cycle.
+  wall: { name: 'Back wall', color: '#5a6478', places: null, placesWall: 3, kit: true },
 };
 
 export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall'];

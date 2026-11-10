@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { Game } from '../src/sim/game';
 import { T, isMinable } from '../src/sim/tiles';
 import { RECIPES } from '../src/sim/recipes';
-import { captureBase, sanitizeBase } from '../src/sim/base';
+import { captureBase, captureWalls, sanitizeBase, sanitizeWalls } from '../src/sim/base';
+import { W } from '../src/sim/world';
 import { enemyBoxHits, makeEnemy } from '../src/sim/enemies';
 
 describe('doors and back walls', () => {
@@ -29,15 +30,17 @@ describe('doors and back walls', () => {
     expect(enemyBoxHits(g.world, e)).toBe(true);
   });
 
-  it('survive base capture', () => {
+  it('survive base capture (doors as tiles, back walls in the wall layer)', () => {
     const g = new Game();
     const x = g.world.padX + 1;
     const y = g.world.padY - 2;
     g.world.set(x, y, T.DOOR);
-    g.world.set(x + 1, y, T.WALL);
+    g.world.setWall(x + 1, y, W.PLATE);
     const flat = captureBase(g.world);
-    const back = sanitizeBase(flat);
-    expect(back.length).toBe(flat.length);
-    expect(flat.length).toBeGreaterThanOrEqual(6);
+    expect(sanitizeBase(flat)).toEqual(flat);
+    expect(flat).toEqual([1, 2, T.DOOR]);
+    const walls = captureWalls(g.world);
+    expect(walls).toEqual([2, 2, W.PLATE]);
+    expect(sanitizeWalls(walls)).toEqual(walls);
   });
 });

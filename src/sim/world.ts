@@ -8,8 +8,14 @@ export const TORCH_RADIUS = 7;
 /** Enemies refuse to spawn where light exceeds this. */
 export const SPAWN_LIGHT_MAX = 0.3;
 
+/** Back-wall layer ids (separate from tiles; never solid). Natural cave walls are not minable. */
+export const W = { NONE: 0, CAVE_RUST: 1, CAVE_ROCK: 2, PLATE: 3 } as const;
+export const WALL_IDS = [W.NONE, W.CAVE_RUST, W.CAVE_ROCK, W.PLATE] as const;
+
 export class World {
   readonly tiles: Uint8Array;
+  /** Back walls behind tiles (W ids). Underground is lined with natural cave walls. */
+  readonly walls: Uint8Array;
   /** Surface row (first solid row) per column, before digging. */
   readonly surface: Int16Array;
   /** Tile column of the landing pad centre and the pad's row. */
@@ -24,6 +30,7 @@ export class World {
     readonly seed: number,
   ) {
     this.tiles = new Uint8Array(w * h);
+    this.walls = new Uint8Array(w * h);
     this.surface = new Int16Array(w);
     this.padX = Math.floor(w / 2);
     this.padY = 0;
@@ -42,6 +49,17 @@ export class World {
     if (this.tiles[i] === T.TORCH) this.torches.delete(i);
     if (t === T.TORCH) this.torches.add(i);
     this.tiles[i] = t;
+    return true;
+  }
+
+  wall(x: number, y: number): number {
+    if (x < 0 || x >= this.w || y < 0 || y >= this.h) return W.NONE;
+    return this.walls[y * this.w + x];
+  }
+
+  setWall(x: number, y: number, wall: number): boolean {
+    if (x < 0 || x >= this.w || y < 0 || y >= this.h) return false;
+    this.walls[y * this.w + x] = wall;
     return true;
   }
 
@@ -102,6 +120,7 @@ export function generateWorld(seed: number, w = WORLD_W, h = WORLD_H): World {
     for (let y = s; y < h; y++) {
       const d = y - s;
       let t: number = d < 4 + Math.floor(valueNoise(x / 5, y / 5, seed + 11) * 4) ? T.RUST : T.METAL;
+      world.walls[y * w + x] = t === T.RUST ? W.CAVE_RUST : W.CAVE_ROCK;
 
       // Caves: smooth noise above a threshold, only below a safe crust.
       if (d > 6 && y < h - 3) {

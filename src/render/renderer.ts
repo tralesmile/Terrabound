@@ -7,7 +7,7 @@ import { T } from '../sim/tiles';
 import { BODY_H } from '../sim/physics';
 import type { Fx } from './fx';
 import { EDGE_N, MASKS, edgeMask, growsMoss, isBlock } from './autotile';
-import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildBackdrop, buildMoss, drawEnemySprite, drawPlayer, makeCanvas } from './sprites';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, drawEnemySprite, drawPlayer, makeCanvas } from './sprites';
 import { TORCH_RADIUS } from '../sim/world';
 
 export interface Aim {
@@ -17,8 +17,8 @@ export interface Aim {
 
 export class Renderer {
   private atlas = buildAtlas();
-  private backdrop = buildBackdrop();
   private moss = buildMoss();
+  private wallAtlas = buildWallAtlas();
   private dark: HTMLCanvasElement | null = null;
   /** Device pixels. */
   w = 1;
@@ -50,6 +50,14 @@ export class Renderer {
     const { w, h } = game.world;
     this.camX = w <= halfW * 2 ? w / 2 : Math.min(w - halfW, Math.max(halfW, this.camX));
     this.camY = h <= halfH * 2 ? h / 2 : Math.min(h - halfH + 2, Math.max(-6 + halfH, this.camY));
+  }
+
+  /** Back-wall layer: cave walls underground, player-built plates; nothing (sky) otherwise. */
+  private drawBack(ctx: CanvasRenderingContext2D, world: Game['world'], tx: number, ty: number, dx: number, dy: number, ts: number): void {
+    const wl = world.wall(tx, ty);
+    if (wl === 0) return;
+    const v = Math.floor(hash2(tx, ty, 11) * VARIANTS);
+    ctx.drawImage(this.wallAtlas, v * TS, wl * TS, TS, TS, dx, dy, ts, ts);
   }
 
   screenToTile(sx: number, sy: number): Aim {
@@ -106,21 +114,21 @@ export class Renderer {
         const dx = this.sx(tx, shakeX);
         const dy = this.sy(ty, shakeY);
         if (t === T.AIR) {
-          if (ty >= world.surface[tx]) ctx.drawImage(this.backdrop, 0, 0, TS, TS, dx, dy, ts, ts);
+          this.drawBack(ctx, world, tx, ty, dx, dy, ts);
           continue;
         }
         if (t === T.TORCH) {
-          if (ty >= world.surface[tx]) ctx.drawImage(this.backdrop, 0, 0, TS, TS, dx, dy, ts, ts);
+          this.drawBack(ctx, world, tx, ty, dx, dy, ts);
           this.drawTorch(ctx, dx, dy, ts, time + tx);
           continue;
         }
         if (t === T.LADDER) {
-          if (ty >= world.surface[tx]) ctx.drawImage(this.backdrop, 0, 0, TS, TS, dx, dy, ts, ts);
+          this.drawBack(ctx, world, tx, ty, dx, dy, ts);
           this.drawLadder(ctx, dx, dy, ts);
           continue;
         }
         if (t === T.PLATFORM) {
-          if (ty >= world.surface[tx]) ctx.drawImage(this.backdrop, 0, 0, TS, TS, dx, dy, ts, ts);
+          this.drawBack(ctx, world, tx, ty, dx, dy, ts);
           ctx.fillStyle = '#9fb0c8';
           ctx.fillRect(dx, dy, ts, Math.max(2, ts * 0.22));
           ctx.fillStyle = '#55627a';
@@ -128,7 +136,8 @@ export class Renderer {
           continue;
         }
         if (t === T.WALL || t === T.DOOR) {
-          if (ty >= world.surface[tx]) ctx.drawImage(this.backdrop, 0, 0, TS, TS, dx, dy, ts, ts);
+          // T.WALL is legacy (pre-v3 saves migrate it to the wall layer); still drawn if ever present.
+          this.drawBack(ctx, world, tx, ty, dx, dy, ts);
           ctx.fillStyle = t === T.WALL ? '#3a4356' : '#6fa8c9';
           const inset = t === T.WALL ? 0 : ts * 0.25;
           ctx.fillRect(dx + inset, dy, ts - inset * 2, ts);
@@ -143,7 +152,7 @@ export class Renderer {
         const v = Math.floor(hash2(tx, ty, 7) * VARIANTS);
         const mask = isBlock(t) ? edgeMask(get, tx, ty) : MASKS - 1;
         // Rounded corners are transparent: show the cave wall behind them underground.
-        if (mask !== 0 && ty >= world.surface[tx]) ctx.drawImage(this.backdrop, 0, 0, TS, TS, dx, dy, ts, ts);
+        if (mask !== 0) this.drawBack(ctx, world, tx, ty, dx, dy, ts);
         ctx.drawImage(this.atlas, atlasCol(v, mask) * TS, t * TS, TS, TS, dx, dy, ts, ts);
         if (mask & EDGE_N && growsMoss(t) && ty <= world.surface[tx]) {
           ctx.drawImage(this.moss, v * TS, 0, TS, MOSS_H, dx, dy, ts, MOSS_H * scale);

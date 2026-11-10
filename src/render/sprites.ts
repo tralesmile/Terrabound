@@ -195,6 +195,67 @@ export function buildAtlas(): HTMLCanvasElement {
   return canvas;
 }
 
+/** Back-wall looks by wall id (W in world.ts): dark, low-contrast so the foreground reads first. */
+const WALL_LOOK: Record<number, Look> = {
+  1: { base: '#2e2026', light: '#3a2a2f', dark: '#22171c', detail: 'flakes' },
+  2: { base: '#1e2230', light: '#272c3c', dark: '#161923', detail: 'cracks' },
+  3: { base: '#2f3748', light: '#3d475c', dark: '#232a38', detail: 'rivets' },
+};
+export const WALL_KINDS = 4;
+
+/** One wall variant as TS*TS colours (null for W.NONE). Panels get a bevel so built rooms read as rooms. */
+export function wallTexture(wall: number, v: number): (string | null)[] {
+  const look = WALL_LOOK[wall];
+  if (!look) return new Array(TS * TS).fill(null);
+  const px: string[] = new Array(TS * TS).fill(look.base);
+  const put = (x: number, y: number, c: string): void => {
+    if (x >= 0 && y >= 0 && x < TS && y < TS) px[y * TS + x] = c;
+  };
+  for (let y = 0; y < TS; y++) {
+    for (let x = 0; x < TS; x++) {
+      const h = hash2(x + v * 13, y + wall * 29, 4321);
+      if (h > 0.9) put(x, y, look.light);
+      else if (h < 0.1) put(x, y, look.dark);
+    }
+  }
+  if (look.detail === 'flakes') {
+    for (let i = 0; i < 3; i++) put(2 + Math.floor(hash2(i, v, 51) * 12), 2 + Math.floor(hash2(v, i, 53) * 12), look.light);
+  } else if (look.detail === 'cracks') {
+    let cx = 3 + Math.floor(hash2(v, 7, 61) * 10);
+    for (let y = 0; y < TS; y++) {
+      put(cx, y, look.dark);
+      if (hash2(y, v, 62) > 0.6) cx += hash2(y, v, 63) > 0.5 ? 1 : -1;
+    }
+  } else if (look.detail === 'rivets') {
+    for (let i = 0; i < TS; i++) {
+      put(i, 0, look.light);
+      put(0, i, look.light);
+      put(i, TS - 1, look.dark);
+      put(TS - 1, i, look.dark);
+    }
+    for (const [rx, ry] of [[2, 2], [13, 2], [2, 13], [13, 13]]) put(rx, ry, '#566077');
+  }
+  return px;
+}
+
+export function buildWallAtlas(): HTMLCanvasElement {
+  const c = makeCanvas(TS * VARIANTS, TS * WALL_KINDS);
+  const ctx = c.getContext('2d');
+  if (!ctx) return c;
+  for (let wl = 1; wl < WALL_KINDS; wl++) {
+    for (let v = 0; v < VARIANTS; v++) {
+      const px = wallTexture(wl, v);
+      for (let i = 0; i < px.length; i++) {
+        const col = px[i];
+        if (!col) continue;
+        ctx.fillStyle = col;
+        ctx.fillRect(v * TS + (i % TS), wl * TS + Math.floor(i / TS), 1, 1);
+      }
+    }
+  }
+  return c;
+}
+
 /** Lichen strips for exposed surface tops: VARIANTS cells of TS x MOSS_H, drips hang down. */
 export const MOSS_H = 5;
 export function mossPixels(v: number): (string | null)[] {
@@ -490,6 +551,9 @@ export function drawGallery(canvas: HTMLCanvasElement): void {
     x += TS * z + 6;
     if (x > canvas.width - TS * z) break;
   }
+  // Back walls (cave rust, cave rock, built plate) after the tiles.
+  const walls = buildWallAtlas();
+  for (let wl = 1; wl < WALL_KINDS; wl++, x += TS * z + 6) ctx.drawImage(walls, 0, wl * TS, TS, TS, x + 20, 8, TS * z, TS * z);
   x = 8;
   for (const f of PLAYER_FRAMES) {
     drawRows(ctx, playerRows(f), x, 100, z, false, PLAYER_W);
@@ -512,6 +576,10 @@ export function drawGallery(canvas: HTMLCanvasElement): void {
   for (let my = 0; my < MAP.length; my++) {
     for (let mx = 0; mx < MAP[my].length; mx++) {
       const t = mapGet(mx, my);
+      const gx0 = 8 + mx * TS * mz;
+      const gy0 = 280 + my * TS * mz;
+      const inside = my > 0 && MAP.slice(0, my).some((r) => r[mx] === 'R' || r[mx] === 'M');
+      if (inside) ctx.drawImage(walls, 0, (my < 3 ? 1 : 2) * TS, TS, TS, gx0, gy0, TS * mz, TS * mz);
       if (t === T.AIR) continue;
       const mask = edgeMask(mapGet, mx, my);
       const v = (mx * 7 + my * 3) % VARIANTS;

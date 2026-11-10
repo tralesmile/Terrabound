@@ -1,8 +1,8 @@
 import { ITEM_IDS, type Inventory } from './tiles';
-import { sanitizeBase, type BaseTiles } from './base';
+import { legacyWalls, sanitizeBase, sanitizeWalls, type BaseTiles } from './base';
 import { UPGRADES, type Levels } from './upgrades';
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 const MAX_COUNT = 1_000_000_000;
 
 export interface SaveData {
@@ -17,6 +17,8 @@ export interface SaveData {
   settings: { muted: boolean };
   /** v2: persistent base tiles above the landing pad (see base.ts). */
   base: BaseTiles;
+  /** v3: player-built back walls in the base strip (wall-layer ids). */
+  walls: BaseTiles;
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -30,6 +32,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     stats: { deepest: 0, deaths: 0, playTime: 0, banked: 0 },
     settings: { muted: false },
     base: [],
+    walls: [],
   };
 }
 
@@ -86,6 +89,8 @@ export function parseSave(raw: string | null | undefined): SaveData {
     settings: { muted: se.muted === true },
     // v1 saves have no base field: sanitizeBase(undefined) yields an empty base (migration v1 -> v2).
     base: sanitizeBase(r.base),
+    // v2 -> v3: back walls moved from base tiles to their own layer.
+    walls: typeof r.v === 'number' && r.v >= 3 ? sanitizeWalls(r.walls) : legacyWalls(r.base),
   };
 }
 
