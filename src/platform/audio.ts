@@ -115,6 +115,15 @@ export class Sfx {
       case 'shoot':
         if (this.ok('shoot', 80)) this.tone(900, 0.09, 'square', 0.07, 300);
         break;
+      case 'drip':
+        if (this.ok('drip', 200)) this.tone(900, 0.06, 'sine', 0.05, 500);
+        break;
+      case 'splash':
+        if (this.ok('splash', 80)) this.noise(0.06, 0.1);
+        break;
+      case 'gas':
+        if (this.ok('gas', 300)) this.tone(110, 0.15, 'triangle', 0.08, 90);
+        break;
       case 'shothit':
         if (this.ok('shothit', 60)) this.noise(0.04, 0.15);
         break;

@@ -209,6 +209,21 @@ try {
   await page.waitForTimeout(600);
   check('a torch tile is lit in the world', await page.evaluate(() => window.__terrabound.game.world.torches.size > 0));
   await page.screenshot({ path: path.join(out, '07-torch.png') });
+  // Hazards: a telegraphed acid drip and a gas pocket render and hurt without errors.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.enemies = [];
+    g.iframes = 0;
+    g.hp = 100;
+    g.hazards.gas.push({ x: g.body.x + 2.5, y: g.body.y - 1, r: 2.5 });
+    g.fallers.push({ kind: 'acid', x: g.body.x, y: g.body.y - 3, vy: 0, warn: 0.6 });
+    g.fallers.push({ kind: 'debris', x: g.body.x - 2, y: g.body.y - 3, vy: 0, warn: 5 });
+  });
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: path.join(out, '07b-hazards.png') });
+  check('hazard telegraphs are live', (await page.evaluate(() => window.__terrabound.game.fallers.length)) >= 2);
+  await page.waitForTimeout(1200);
+  check('acid drop lands or hurts', (await page.evaluate(() => window.__terrabound.game.fallers.filter((f) => f.kind === 'acid').length)) === 0);
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     g.body.x = g.world.padX + 0.5;

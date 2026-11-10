@@ -17,6 +17,7 @@ import {
 } from './tiles';
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
 import { recipeById } from './recipes';
+import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
 import { PAD_HALF, SPAWN_LIGHT_MAX, World, generateWorld } from './world';
 
 export const GRAVITY = 42;
@@ -61,7 +62,10 @@ export type GameEvent =
   | { t: 'enemyhit'; x: number; y: number; dmg: number }
   | { t: 'enemykill'; x: number; y: number; kind: EnemyKind }
   | { t: 'shoot'; x: number; y: number }
-  | { t: 'shothit'; x: number; y: number };
+  | { t: 'shothit'; x: number; y: number }
+  | { t: 'drip'; x: number; y: number }
+  | { t: 'splash'; x: number; y: number; kind: 'acid' | 'debris' }
+  | { t: 'gas' };
 
 export type Tool = 'drill' | 'blade' | 'pistol';
 export const TOOLS: readonly Tool[] = ['drill', 'blade', 'pistol'];
@@ -106,6 +110,12 @@ export class Game {
   private bladeCd = 0;
   private pistolCd = 0;
   shots: Shot[] = [];
+  fallers: Faller[] = [];
+  hazards: HazardField = { emitters: [], gas: [] };
+  /** True while the player stands in a gas pocket (render/HUD). */
+  inGas = false;
+  private debrisCd = 5;
+  private gasTick = 0;
   /** Seconds of sim freeze after landing a hit (game feel). */
   hitStop = 0;
   mining: { tx: number; ty: number; progress: number } | null = null;
@@ -194,6 +204,11 @@ export class Game {
 
   private respawn(): void {
     this.shots = [];
+    this.fallers = [];
+    this.hazards = placeHazards(this.world);
+    this.inGas = false;
+    this.debrisCd = 5;
+    this.gasTick = 0;
     const d = this.derived;
     this.body = { x: this.world.padX + 0.5, y: this.world.padY, vx: 0, vy: 0, onGround: true };
     unstick(this.world, this.body);
@@ -430,6 +445,7 @@ export class Game {
 
     this.stepEnemies(dt);
     this.stepShots(dt);
+    this.stepHazards(dt);
 
     // Base services, battery and survival.
     if (this.isAtBase()) {
@@ -523,6 +539,59 @@ export class Game {
       if (alive) keep.push(s);
     }
     this.shots = keep;
+  }
+
+  private stepHazards(dt: number): void {
+    if (this.isAtBase()) {
+      this.fallers = [];
+      this.inGas = false;
+      return;
+    }
+    const b = this.body;
+    // Acid emitters near the player start a telegraphed drip.
+    for (const em of this.hazards.emitters) {
+      em.cd -= dt;
+      if (em.cd > 0) continue;
+      em.cd = HAZARD.acidPeriod;
+      if (Math.abs(em.x - b.x) > 14 || Math.abs(em.y - b.y) > 12 || this.fallers.length >= 16) continue;
+      this.fallers.push({ kind: 'acid', x: em.x, y: em.y + 0.3, vy: 0, warn: HAZARD.acidWarn });
+      this.emit({ t: 'drip', x: em.x, y: em.y });
+    }
+    // Debris drops above the player when a ceiling is nearby.
+    this.debrisCd -= dt;
+    if (this.debrisCd <= 0) {
+      this.debrisCd = HAZARD.debrisPeriod * (0.7 + this.rng() * 0.6);
+      if (this.depth >= HAZARD.debrisMinDepth && this.fallers.length < 16) {
+        const x = Math.floor(b.x + (this.rng() - 0.5) * 6);
+        const row = findCeiling(this.world, x, Math.floor(b.y - 2), 10);
+        if (row >= 0 && !this.world.isSolid(x, row)) {
+          this.fallers.push({ kind: 'debris', x: x + 0.5, y: row + 0.2, vy: 0, warn: HAZARD.debrisWarn });
+        }
+      }
+    }
+    const keep: Faller[] = [];
+    for (const f of this.fallers) {
+      const hit = this.iframes === 0 && fallerHits(f, b.x, b.y, HALF_W, BODY_H);
+      if (hit) {
+        this.hurt(FALLER_DMG[f.kind]);
+        this.iframes = IFRAMES;
+        this.emit({ t: 'splash', x: f.x, y: f.y, kind: f.kind });
+        continue;
+      }
+      if (stepFaller(this.world, f, dt)) keep.push(f);
+      else this.emit({ t: 'splash', x: f.x, y: f.y, kind: f.kind });
+    }
+    this.fallers = keep;
+    // Gas: steady damage with a pulse every half second.
+    this.inGas = inGas(this.hazards.gas, b.x, b.y - BODY_H / 2);
+    if (this.inGas) {
+      this.gasTick += dt;
+      if (this.gasTick >= 0.5) {
+        this.gasTick -= 0.5;
+        this.hurt(HAZARD.gasDps * 0.5);
+        this.emit({ t: 'gas' });
+      }
+    } else this.gasTick = 0;
   }
 
   private stepEnemies(dt: number): void {

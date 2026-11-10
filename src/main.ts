@@ -125,6 +125,9 @@ function boot(): void {
         fx.addShake(0.5);
         fx.burst(game.body.x, game.body.y - 1, '#ff5a5a', 8, 5);
         break;
+      case 'splash':
+        fx.burst(e.x, e.y, e.kind === 'acid' ? '#8aff4a' : '#9aa3b8', 6, 3);
+        break;
       case 'land':
         if (e.speed > 9) fx.burst(game.body.x, game.body.y, '#9aa3b8', 5, 3);
         break;

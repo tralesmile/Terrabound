@@ -22,7 +22,7 @@ Rule: ship small vertical slices. Each item needs tests. Keep the game playable 
 - [x] Pulse pistol (projectile with sweep collision); hit-stop
 - [x] Enemy spawning by depth (never inside walls or near the player; 25-seed test)
 - [x] Spawning also by light level (enemies refuse to spawn where torch light > 0.3)
-- [ ] Hazards: drip acid tiles, falling debris with telegraph, gas pockets
+- [x] Hazards: acid drips (telegraphed), falling debris (telegraphed, dodgeable), gas pockets (src/sim/hazards.ts)
 - [x] Torches (craftable, placeable, minable, light pushes back darkness)
 - [x] Suit lamp upgrade (4 levels, +1.5 tiles of light)
 - [x] Crafting at the base Fabricator: recipes table (src/sim/recipes.ts), UI rows in the workshop; torch done

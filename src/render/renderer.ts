@@ -165,6 +165,37 @@ export class Renderer {
       ctx.lineWidth = scale * 0.6;
       ctx.stroke();
     }
+    for (const g of game.hazards.gas) {
+      const gx = this.sx(g.x, shakeX);
+      const gy = this.sy(g.y, shakeY);
+      if (gx < -g.r * ts || gx > this.w + g.r * ts) continue;
+      const grad = ctx.createRadialGradient(gx, gy, 0, gx, gy, g.r * ts);
+      grad.addColorStop(0, 'rgba(120,255,90,0.38)');
+      grad.addColorStop(1, 'rgba(120,255,90,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(gx - g.r * ts, gy - g.r * ts, g.r * 2 * ts, g.r * 2 * ts);
+    }
+    for (const f of game.fallers) {
+      const fx = this.sx(f.x, shakeX);
+      const fy = this.sy(f.y, shakeY);
+      const acid = f.kind === 'acid';
+      if (f.warn > 0) {
+        // Telegraph: pulsing marker and a faint line down to the floor.
+        const pulse = 0.5 + 0.5 * Math.sin(f.warn * 24);
+        ctx.fillStyle = acid ? `rgba(140,255,70,${0.4 + 0.5 * pulse})` : `rgba(255,200,80,${0.4 + 0.5 * pulse})`;
+        ctx.beginPath();
+        ctx.arc(fx, fy, ts * (acid ? 0.18 : 0.35) * (1 + 0.3 * pulse), 0, Math.PI * 2);
+        ctx.fill();
+        if (!acid) {
+          ctx.fillStyle = `rgba(255,200,80,${0.15 * pulse})`;
+          ctx.fillRect(fx - ts * 0.35, fy, ts * 0.7, ts * 6);
+        }
+      } else {
+        ctx.fillStyle = acid ? '#8aff4a' : '#8b7f72';
+        const r = ts * (acid ? 0.14 : 0.32);
+        ctx.fillRect(fx - r, fy - r * (acid ? 2.2 : 1), r * 2, r * (acid ? 2.2 : 2));
+      }
+    }
     for (const e of game.enemies) {
       const d = ENEMIES[e.kind];
       const ex = this.sx(e.x, shakeX);
