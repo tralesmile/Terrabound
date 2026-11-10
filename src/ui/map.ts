@@ -18,6 +18,8 @@ export function cellColor(game: Game, cx: number, cy: number): string {
   const y = cy * CELL + (CELL >> 1);
   const t = w.get(x, y);
   if (t === T.CHEST) return '#ffcf4a';
+  if (t === T.WATER) return '#2a82dc';
+  if (t === T.ACID_POOL) return '#7fff4a';
   if (!TILES[t].solid) {
     if (y < w.surface[Math.min(w.w - 1, Math.max(0, x))]) return SKY[w.biome[Math.min(w.w - 1, Math.max(0, x))]]?.[1] ?? '#2a1f4d';
     return AIR_DEEP;

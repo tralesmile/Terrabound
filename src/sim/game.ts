@@ -19,6 +19,7 @@ import {
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
 import { recipeById } from './recipes';
 import { chestLoot } from './loot';
+import { LIQUID_HZ, flowLiquids, isLiquid } from './liquids';
 import { isNight } from './daynight';
 import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
@@ -30,6 +31,11 @@ export const GRAVITY = 42;
 export const MAX_FALL = 28;
 export const JUMP_V = 15.5;
 export const FALL_SAFE = 19;
+/** Swimming: max stroke speed up, max sink speed, acid damage per second. */
+export const SWIM_UP = 7;
+export const SINK = 3;
+export const LEAP_V = 14;
+export const ACID_DPS = 24;
 export const CLIMB_UP = 5;
 export const CLIMB_DOWN = 7;
 export const REACH = 4.2;
@@ -146,6 +152,11 @@ export class Game {
   recallT = 0;
   private discoverCd = 0;
   private wasNight = false;
+  /** Liquid tile the player's body centre is in (0 = none). */
+  inLiquid = 0;
+  private acidTick = 0;
+  private liquidAcc = 0;
+  private liquidTick = 0;
   private save: SaveData;
   private coyote = 0;
   private jumpBuf = 0;
@@ -475,7 +486,25 @@ export class Game {
     if (!c.jump && b.vy < -6) b.vy = -6;
     this.prevJump = c.jump;
 
-    if (onLadder(this.world, b)) {
+    const swimT = this.world.get(Math.floor(b.x), Math.floor(b.y - BODY_H / 2));
+    const wasLiquid = this.inLiquid;
+    this.inLiquid = isLiquid(swimT) ? swimT : 0;
+    // Breaking the surface while stroking up: leap out, so pools can be left onto a ledge.
+    if (wasLiquid && !this.inLiquid && c.jump && b.vy < 0) b.vy = -LEAP_V;
+    if (this.inLiquid) {
+      // Swimming: slow sink, jump strokes upward, no fall damage, drag on both axes.
+      b.vx *= 1 - Math.min(1, 6 * dt);
+      b.vy = c.jump ? Math.max(-SWIM_UP, b.vy - GRAVITY * 1.2 * dt) : Math.min(SINK, b.vy + GRAVITY * 0.25 * dt);
+      this.coyote = 0.05;
+      this.wasGround = true;
+      if (this.inLiquid === T.ACID_POOL) {
+        this.acidTick -= dt;
+        if (this.acidTick <= 0) {
+          this.acidTick = 0.25;
+          this.hurt(ACID_DPS / 4);
+        }
+      }
+    } else if (onLadder(this.world, b)) {
       // Climbing: no gravity; jump climbs, down descends, otherwise cling.
       b.vy = c.jump ? -CLIMB_UP : c.down ? CLIMB_DOWN : 0;
       b.vx *= 0.6;
@@ -494,6 +523,11 @@ export class Game {
     this.wasGround = b.onGround;
 
     this.runDeepest = Math.max(this.runDeepest, this.depth);
+    this.liquidAcc += dt;
+    if (this.liquidAcc >= 1 / LIQUID_HZ) {
+      this.liquidAcc = 0;
+      flowLiquids(this.world, b.x, b.y, this.liquidTick++);
+    }
 
     // Mining.
     this.placeCd = Math.max(0, this.placeCd - dt);
@@ -548,7 +582,8 @@ export class Game {
       if (
         item.places !== null &&
         invCount(this.carried, this.selected) > 0 &&
-        this.world.get(tx, ty) === 0 &&
+        // Blocks can be placed into liquid (displacing it), so players can dam and plug pools.
+        (this.world.get(tx, ty) === 0 || isLiquid(this.world.get(tx, ty))) &&
         this.hasSolidNeighbour(tx, ty) &&
         !this.overlapsPlayer(tx, ty)
       ) {

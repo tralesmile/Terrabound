@@ -55,6 +55,8 @@ export const T = {
   CHEST: 22,
   TERMINAL: 23,
   WRECK: 24,
+  WATER: 25,
+  ACID_POOL: 26,
 } as const;
 
 export interface TileDef {
@@ -73,6 +75,8 @@ export interface TileDef {
   enemyBlock?: boolean;
   /** Emits a faint light (crystals). */
   glow?: boolean;
+  /** Flows (liquids.ts); swimmable; blocks placing only until displaced. */
+  liquid?: boolean;
 }
 
 export const TILES: TileDef[] = [
@@ -101,6 +105,8 @@ export const TILES: TileDef[] = [
   { name: 'Loot chest', hardness: 0.4, solid: false, drop: null, minable: true },
   { name: 'Data terminal', hardness: 0.6, solid: false, drop: null, minable: true, glow: true },
   { name: 'Drone wreck', hardness: 0.8, solid: true, drop: 'copper_wire' },
+  { name: 'Coolant water', hardness: Infinity, solid: false, drop: null, liquid: true },
+  { name: 'Acid pool', hardness: Infinity, solid: false, drop: null, liquid: true, glow: true },
 ];
 
 export interface ItemDef {

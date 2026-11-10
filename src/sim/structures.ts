@@ -253,6 +253,23 @@ function underground(world: World, out: Structure[]): void {
         put(world, x, y - 1, T.CRYSTAL);
     }
   }
+  // Flooded tunnels and acid pools: fill cave basins in seeded wet patches (liquids settle when you get near).
+  for (let y = padY + 18; y < world.h - 4; y++) {
+    for (let x = 2; x < world.w - 2; x++) {
+      if (world.get(x, y) !== T.AIR || !solidAt(world, x, y + 1)) continue;
+      const deep = y > padY + 110;
+      const wet = valueNoise(x / 30, y / 30, seed + (deep ? 6 : 5));
+      if (wet < 0.7) continue;
+      const liquid = deep && wet > 0.78 ? T.ACID_POOL : T.WATER;
+      // Fill this floor cell and up to two above while walls hold it on both sides.
+      for (let k = 0; k < 3; k++) {
+        const yy = y - k;
+        if (world.get(x, yy) !== T.AIR) break;
+        if (!solidAt(world, x - 1, yy) && world.get(x - 1, yy) === T.AIR && k > 0) break;
+        put(world, x, yy, liquid);
+      }
+    }
+  }
   // Sealed vaults: dig in to loot them.
   const vaults = Math.floor(world.w / 110);
   for (let i = 0; i < vaults; i++) {

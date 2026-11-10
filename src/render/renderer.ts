@@ -315,6 +315,20 @@ export class Renderer {
       ctx.fillRect(dx, dy + Math.max(2, ts * 0.22), ts, Math.max(1, ts * 0.08));
       return;
     }
+    if (t === T.WATER || t === T.ACID_POOL) {
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      const acid = t === T.ACID_POOL;
+      ctx.fillStyle = acid ? 'rgba(120,255,80,0.55)' : 'rgba(40,130,220,0.6)';
+      ctx.fillRect(dx, dy, ts, ts);
+      const above = world.get(tx, ty - 1);
+      if (above !== T.WATER && above !== T.ACID_POOL) {
+        // Surface: bright line and a little sparkle.
+        ctx.fillStyle = acid ? '#c8ff8a' : '#9fd8ff';
+        ctx.fillRect(dx, dy, ts, Math.max(1, ts / 8));
+        if ((tx * 7) % 5 === 0) ctx.fillRect(dx + ts / 4, dy + ts / 4, ts / 8, ts / 16);
+      }
+      return;
+    }
     if (t === T.TERMINAL) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
       const u = ts / 16;
@@ -624,6 +638,7 @@ export class Renderer {
         for (let xx = Math.max(0, x0); xx < Math.min(world.w, x0 + lw); xx++) {
           const tt = world.tiles[yy * world.w + xx];
           if (tt === T.TERMINAL) sources.push({ x: xx, y: yy, level: 22 });
+          else if (tt === T.ACID_POOL && world.get(xx, yy - 1) !== T.ACID_POOL) sources.push({ x: xx, y: yy, level: 14 });
           else if (tt === T.CRYSTAL && !world.isSolid(xx, yy - 1) || tt === T.CRYSTAL && !world.isSolid(xx, yy + 1)) sources.push({ x: xx, y: yy, level: 18 });
           else if (tt === T.PLANT && yy > world.surface[xx] + 1) sources.push({ x: xx, y: yy, level: 14 });
         }

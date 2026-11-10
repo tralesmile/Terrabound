@@ -206,6 +206,8 @@ export const TILE_COLORS: Record<number, string> = {
   [T.CHEST]: '#c9a35a',
   [T.TERMINAL]: '#36e0e8',
   [T.WRECK]: '#e8a33d',
+  [T.WATER]: '#2a82dc',
+  [T.ACID_POOL]: '#7fff4a',
 };
 
 export function makeCanvas(w: number, h: number): HTMLCanvasElement {

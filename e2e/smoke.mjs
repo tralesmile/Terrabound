@@ -347,6 +347,34 @@ try {
   await page.screenshot({ path: path.join(out, '16-shrine.png') });
   check('a data shrine terminal glows in the dark', glow >= 16, JSON.stringify({ shrine, glow }));
 
+  // Liquids: drop into a real flooded cave and swim up with the jump key.
+  const poolAt = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    for (let y = w.padY + 20; y < w.h - 5; y++) {
+      for (let x = 30; x < w.w - 30; x++) {
+        if (w.get(x, y) !== 25 || w.get(x, y - 1) !== 25 || w.get(x, y - 2) === 25) continue;
+        g.enemies = [];
+        g.body.x = x + 0.5;
+        g.body.y = y + 0.9;
+        g.body.vx = g.body.vy = 0;
+        return { x, y };
+      }
+    }
+    return null;
+  });
+  await page.waitForTimeout(500);
+  const swim = await page.evaluate(() => ({ inLiquid: window.__terrabound.game.inLiquid, y: window.__terrabound.game.body.y }));
+  await page.screenshot({ path: path.join(out, '17-water.png') });
+  await page.keyboard.down('KeyW');
+  let swamUp = swim.y;
+  for (let i = 0; i < 8; i++) {
+    await page.waitForTimeout(60);
+    swamUp = Math.min(swamUp, await page.evaluate(() => window.__terrabound.game.body.y));
+  }
+  await page.keyboard.up('KeyW');
+  check('the player swims in a flooded cave and W strokes upward', !!poolAt && swim.inLiquid === 25 && swamUp < swim.y - 0.5, JSON.stringify({ poolAt, swim, swamUp }));
+
   // Loot: aim the drill at a real chest in a ruin and break it with the mouse.
   const chestAt = await page.evaluate(() => {
     const g = window.__terrabound.game;
