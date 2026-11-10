@@ -18,6 +18,7 @@ import {
 } from './tiles';
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
 import { recipeById } from './recipes';
+import { chestLoot } from './loot';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
 import { captureBase, captureWalls, stampBase, stampWalls } from './base';
 import { PAD_HALF, SPAWN_LIGHT_MAX, W, World, generateWorld } from './world';
@@ -51,6 +52,8 @@ export type GameEvent =
   | { t: 'pickup'; item: ItemId; x: number; y: number }
   | { t: 'place'; x: number; y: number }
   | { t: 'full' }
+  | { t: 'chest'; x: number; y: number; items: number }
+  | { t: 'fell'; x: number; y: number; tiles: number }
   | { t: 'hurt'; amount: number }
   | { t: 'bank'; total: number }
   | { t: 'death'; lost: number }
@@ -429,6 +432,8 @@ export class Game {
               invAdd(this.carried, def.drop, 1);
               this.emit({ t: 'pickup', item: def.drop, x: tx, y: ty });
             }
+            if (tile === T.CHEST) this.openChest(tx, ty, d.packCap);
+            if (tile === T.TRUNK) this.fellTree(tx, ty, d.packCap);
             this.mining = null;
           }
         }
@@ -672,6 +677,50 @@ export class Game {
       return e;
     }
     return null;
+  }
+
+  /** Loot from a broken chest goes into the pack, as much as fits. */
+  openChest(tx: number, ty: number, cap: number): number {
+    const loot = chestLoot(this.world.seed, tx, ty, ty - this.world.padY);
+    let got = 0;
+    for (const id of Object.keys(loot) as ItemId[]) {
+      const n = Math.min(loot[id] ?? 0, Math.max(0, cap - invTotal(this.carried)));
+      if (n <= 0) continue;
+      invAdd(this.carried, id, n);
+      got += n;
+      this.emit({ t: 'pickup', item: id, x: tx, y: ty });
+    }
+    if (got === 0) this.emit({ t: 'full' });
+    this.emit({ t: 'chest', x: tx, y: ty, items: got });
+    return got;
+  }
+
+  /** Cutting a trunk fells the whole connected tree: biomass for each trunk, a little for leaves. */
+  fellTree(tx: number, ty: number, cap: number): number {
+    const wl = this.world;
+    const stack: [number, number][] = [[tx, ty - 1], [tx - 1, ty], [tx + 1, ty]];
+    let trunks = 0;
+    let leaves = 0;
+    let guard = 0;
+    while (stack.length > 0 && guard++ < 400) {
+      const [x, y] = stack.pop() as [number, number];
+      const t = wl.get(x, y);
+      if (t !== T.TRUNK && t !== T.LEAVES) continue;
+      // Only what stood above the cut falls.
+      if (y > ty) continue;
+      wl.set(x, y, T.AIR);
+      if (t === T.TRUNK) trunks++;
+      else leaves++;
+      this.emit({ t: 'break', x, y, tile: t });
+      stack.push([x + 1, y], [x - 1, y], [x, y - 1], [x, y + 1]);
+    }
+    const n = Math.min(trunks + Math.ceil(leaves / 6), Math.max(0, cap - invTotal(this.carried)));
+    if (n > 0) {
+      invAdd(this.carried, 'biomass', n);
+      this.emit({ t: 'pickup', item: 'biomass', x: tx, y: ty });
+    }
+    this.emit({ t: 'fell', x: tx, y: ty, tiles: trunks + leaves });
+    return n;
   }
 
   /** A back wall needs an open (non-solid) cell with no built wall, touching a block or another built wall. */

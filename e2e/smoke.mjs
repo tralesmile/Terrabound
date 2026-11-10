@@ -239,14 +239,16 @@ try {
     g.iframes = 0;
     g.hp = 100;
     g.hazards.gas.push({ x: g.body.x + 2.5, y: g.body.y - 1, r: 2.5 });
-    g.fallers.push({ kind: 'acid', x: g.body.x, y: g.body.y - 3, vy: 0, warn: 0.6 });
+    // Tagged so natural drips from the (now larger) world cannot be confused with this one.
+    window.__testAcid = { kind: 'acid', x: g.body.x, y: g.body.y - 3, vy: 0, warn: 0.6 };
+    g.fallers.push(window.__testAcid);
     g.fallers.push({ kind: 'debris', x: g.body.x - 2, y: g.body.y - 3, vy: 0, warn: 5 });
   });
   await page.waitForTimeout(250);
   await page.screenshot({ path: path.join(out, '07b-hazards.png') });
   check('hazard telegraphs are live', (await page.evaluate(() => window.__terrabound.game.fallers.length)) >= 2);
   await page.waitForTimeout(1200);
-  check('acid drop lands or hurts', (await page.evaluate(() => window.__terrabound.game.fallers.filter((f) => f.kind === 'acid').length)) === 0);
+  check('acid drop lands or hurts', await page.evaluate(() => !window.__terrabound.game.fallers.includes(window.__testAcid)));
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     g.body.x = g.world.padX + 0.5;
@@ -284,6 +286,69 @@ try {
   await page.screenshot({ path: path.join(out, '08b-back-wall.png') });
   await page.keyboard.press('Digit1');
 
+  // World tour: stand on the surface of every biome (and near a structure) and screenshot it.
+  const biomeNames = ['wastes', 'jungle', 'crystal', 'ash', 'frost'];
+  const seen = [];
+  for (let b = 0; b < biomeNames.length; b++) {
+    const ok = await page.evaluate((bid) => {
+      const g = window.__terrabound.game;
+      const w = g.world;
+      // Middle of the biome's first band, nudged toward a structure when one is close.
+      const cols = [];
+      for (let x = 30; x < w.w - 30; x++) if (w.biome[x] === bid && Math.abs(x - w.padX) > 40) cols.push(x);
+      if (bid === 0) cols.push(w.padX + 30);
+      if (cols.length === 0) return false;
+      let x = cols[Math.floor(cols.length / 4)];
+      const st = w.structures.find((s) => s.kind !== 'vault' && s.kind !== 'geode' && w.biome[s.x0] === bid);
+      if (st) x = st.x0 - 6;
+      g.enemies = [];
+      g.fallers = [];
+      g.hp = g.derived.maxHp;
+      g.battery = g.derived.maxBattery;
+      g.body.x = x + 0.5;
+      g.body.y = w.surface[x] - 0.01;
+      g.body.vx = 0;
+      g.body.vy = 0;
+      return true;
+    }, b);
+    await page.waitForTimeout(500);
+    if (ok) seen.push(biomeNames[b]);
+    await page.screenshot({ path: path.join(out, `11-biome-${biomeNames[b]}.png`) });
+  }
+  check('every biome can be visited and renders', seen.length === biomeNames.length, seen.join(','));
+  // Loot: aim the drill at a real chest in a ruin and break it with the mouse.
+  const chestAt = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    for (let x = 2; x < w.w - 2; x++) {
+      for (let y = 5; y < w.padY + 5; y++) {
+        if (w.get(x, y) !== 22 || Math.abs(x - w.padX) < 30) continue;
+        // Stand beside the chest on its floor.
+        for (let dy = -3; dy <= -1; dy++) w.set(x - 1, y + dy + 1, 0);
+        g.body.x = x - 0.5;
+        g.body.y = y + 1 - 0.01;
+        g.body.vx = g.body.vy = 0;
+        g.carried = {};
+        g.setTool('drill');
+        return { x, y };
+      }
+    }
+    return null;
+  });
+  await page.waitForTimeout(400);
+  if (chestAt) {
+    // The camera eases toward a teleported player; aim only once it has settled.
+    await page.waitForFunction(() => Math.abs(window.__terrabound.renderer.camX - window.__terrabound.game.body.x) < 0.3, null, { timeout: 3000 }).catch(() => {});
+    const pos = await tileToCss(page, chestAt.x, chestAt.y);
+    await page.mouse.move(pos.x, pos.y);
+    await page.mouse.down();
+    await page.waitForTimeout(1200);
+    await page.mouse.up();
+  }
+  const loot = await page.evaluate(() => Object.values(window.__terrabound.game.carried).reduce((a, n) => a + (n || 0), 0));
+  check('breaking a ruin chest fills the pack with loot', !!chestAt && loot > 0, JSON.stringify({ chestAt, loot }));
+  await page.screenshot({ path: path.join(out, '12-chest-loot.png') });
+
   // Let it run a few seconds idle to catch loop errors.
   await page.waitForTimeout(2000);
   check('no console or page errors on desktop', errors.length === 0, errors.join(' | '));
@@ -315,7 +380,7 @@ try {
   await page.evaluate(() => { window.__terrabound.ui.shopOpen = false; });
   check('no console or page errors on mobile', merrors.length === 0, merrors.join(' | '));
   await mctx.close();
-  const gctx = await browser.newContext({ viewport: { width: 1100, height: 640 } });
+  const gctx = await browser.newContext({ viewport: { width: 1100, height: 1040 } });
   const gpage = await gctx.newPage();
   const gerrors = [];
   gpage.on('pageerror', (e) => gerrors.push(e.message));

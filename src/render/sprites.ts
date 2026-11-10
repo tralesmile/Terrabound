@@ -14,7 +14,7 @@ interface Look {
   speckCount?: number;
   /** Bright pixel on each speck (ore glint). */
   glint?: string;
-  detail?: 'rivets' | 'flakes' | 'cracks' | 'frame' | 'pad';
+  detail?: 'rivets' | 'flakes' | 'cracks' | 'frame' | 'pad' | 'bricks' | 'facets' | 'ripples' | 'roots';
 }
 
 const LOOK: Record<number, Look> = {
@@ -25,6 +25,12 @@ const LOOK: Record<number, Look> = {
   [T.BEDROCK]: { base: '#1a1d29', light: '#252938', dark: '#101219', detail: 'cracks' },
   [T.SCAFFOLD]: { base: '#3b4658', light: '#7d8da6', dark: '#2a3242', speck: '#c9a35a', speckCount: 0, detail: 'frame' },
   [T.PAD]: { base: '#2b3a4a', light: '#36e0e8', dark: '#1d2733', detail: 'pad' },
+  [T.SOIL]: { base: '#4a3a2a', light: '#5e4a34', dark: '#33281d', speck: '#3f6a34', speckCount: 3, detail: 'roots' },
+  [T.ASH]: { base: '#4a4446', light: '#5e5759', dark: '#343032', speck: '#ff8a3c', speckCount: 1, detail: 'ripples' },
+  [T.FROST]: { base: '#5a7390', light: '#7f9ab8', dark: '#41566e', speck: '#cfe8ff', speckCount: 3, detail: 'cracks' },
+  [T.SAND]: { base: '#6a5a8a', light: '#8272a6', dark: '#4e4268', speck: '#d8b8ff', speckCount: 4, detail: 'ripples' },
+  [T.CRYSTAL]: { base: '#3a2a5e', light: '#8a5fd6', dark: '#261c40', detail: 'facets' },
+  [T.RUIN]: { base: '#3d4152', light: '#525870', dark: '#2a2d3a', detail: 'bricks' },
 };
 
 const OUTLINE = '#161a24';
@@ -88,6 +94,44 @@ export function tileTexture(id: number, v: number): (string | null)[] {
       put(7, 7, '#c9a35a');
       put(8, 8, '#c9a35a');
       break;
+    case 'bricks':
+      for (let y = 0; y < TS; y++) {
+        const row = Math.floor(y / 4);
+        for (let x = 0; x < TS; x++) {
+          if (y % 4 === 3) put(x, y, look.dark);
+          else if ((x + (row % 2) * 4 + v) % 8 === 0) put(x, y, look.dark);
+          else if (y % 4 === 0) put(x, y, look.light);
+        }
+      }
+      if (v === 3) for (let i = 0; i < 4; i++) put(6 + i, 9 + (i % 2), '#4f9a3f');
+      break;
+    case 'facets': {
+      // Two or three bright crystal prisms in dark matrix.
+      const n = 2 + (v % 2);
+      for (let k = 0; k < n; k++) {
+        const cx = 3 + Math.floor(hash2(k, v, 71) * 10);
+        const cy = 3 + Math.floor(hash2(v, k, 73) * 9);
+        for (let i = 0; i < 5; i++) {
+          put(cx, cy + i, look.light);
+          put(cx + 1, cy + i, i < 2 ? '#e8d8ff' : '#b08ae8');
+          if (i > 1) put(cx - 1, cy + i, '#6a48b0');
+        }
+        put(cx, cy - 1, '#ffffff');
+      }
+      break;
+    }
+    case 'ripples':
+      for (let y = 3; y < TS; y += 5) for (let x = 0; x < TS; x++) if (hash2(x >> 2, y, v + 81) > 0.35) put(x, y + ((x >> 3) & 1), look.light);
+      break;
+    case 'roots':
+      for (let i = 0; i < 2; i++) {
+        let rx = 3 + Math.floor(hash2(i, v, 83) * 10);
+        for (let y = 0; y < 9; y++) {
+          put(rx, y, '#6b4a2e');
+          if (hash2(y, i + v, 84) > 0.6) rx += hash2(y, v, 85) > 0.5 ? 1 : -1;
+        }
+      }
+      break;
     case 'pad':
       for (let x = 1; x < TS - 1; x++) {
         put(x, 1, look.light);
@@ -148,6 +192,16 @@ export const TILE_COLORS: Record<number, string> = {
   [T.PLATFORM]: '#9fb0c8',
   [T.DOOR]: '#6fa8c9',
   [T.WALL]: '#3a4356',
+  [T.SOIL]: '#5e4a34',
+  [T.ASH]: '#5e5759',
+  [T.FROST]: '#9fcbe8',
+  [T.SAND]: '#8272a6',
+  [T.CRYSTAL]: '#c08cff',
+  [T.RUIN]: '#525870',
+  [T.TRUNK]: '#6b4a2e',
+  [T.LEAVES]: '#4f9a3f',
+  [T.PLANT]: '#7fcf5a',
+  [T.CHEST]: '#c9a35a',
 };
 
 export function makeCanvas(w: number, h: number): HTMLCanvasElement {
@@ -547,13 +601,13 @@ export function drawGallery(canvas: HTMLCanvasElement): void {
   let x = 8;
   for (let id = 1; id < TILES.length; id++) {
     if (!LOOK[id]) continue;
-    ctx.drawImage(atlas, atlasCol(0, MASKS - 1) * TS, id * TS, TS, TS, x, 8, TS * z, TS * z);
-    x += TS * z + 6;
-    if (x > canvas.width - TS * z) break;
+    ctx.drawImage(atlas, atlasCol(0, MASKS - 1) * TS, id * TS, TS, TS, x, 8, TS * 3, TS * 3);
+    x += TS * 3 + 6;
+    if (x > canvas.width - TS * 3) break;
   }
   // Back walls (cave rust, cave rock, built plate) after the tiles.
   const walls = buildWallAtlas();
-  for (let wl = 1; wl < WALL_KINDS; wl++, x += TS * z + 6) ctx.drawImage(walls, 0, wl * TS, TS, TS, x + 20, 8, TS * z, TS * z);
+  for (let wl = 1; wl < WALL_KINDS; wl++, x += TS * 3 + 6) ctx.drawImage(walls, 0, wl * TS, TS, TS, x + 20, 8, TS * 3, TS * 3);
   x = 8;
   for (const f of PLAYER_FRAMES) {
     drawRows(ctx, playerRows(f), x, 100, z, false, PLAYER_W);

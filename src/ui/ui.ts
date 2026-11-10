@@ -1,5 +1,5 @@
 import type { Game, Tool } from '../sim/game';
-import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type Inventory } from '../sim/tiles';
+import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type Inventory, type ItemId } from '../sim/tiles';
 import { UPGRADES } from '../sim/upgrades';
 import { RECIPES } from '../sim/recipes';
 
@@ -49,6 +49,11 @@ export function costText(cost: Inventory): string {
 }
 
 /** Canvas-drawn HUD and menus. All coordinates are CSS pixels. */
+/** Stash items worth listing: owned ones, base materials first, at most 8. */
+export function stashLine(stash: Inventory): ItemId[] {
+  return ITEM_IDS.filter((id) => (stash[id] ?? 0) > 0).slice(0, 8);
+}
+
 export class UI {
   screen: 'title' | 'play' = 'title';
   shopOpen = false;
@@ -241,13 +246,18 @@ export class UI {
     // Stash line.
     let sx = px + u;
     const sy = py + u * 3.3;
-    for (const id of ITEM_IDS) {
+    // Only what you own, so the line stays readable however many item types exist; at most 8 slots.
+    const owned = stashLine(game.stash);
+    const slot = (pw - u * 2) / Math.max(4, owned.length);
+    for (const id of owned) {
       ctx.fillStyle = ITEMS[id].color;
       ctx.fillRect(sx, sy - u * 0.4, u * 0.8, u * 0.8);
-      const label = `${game.stash[id] ?? 0}`;
-      this.text(ctx, label, sx + u * 1.1, sy, Math.round(u * 0.95));
-      sx += (pw - u * 2) / ITEM_IDS.length;
+      const n = game.stash[id] ?? 0;
+      const label = n >= 1000 ? `${Math.floor(n / 1000)}k` : `${n}`;
+      this.text(ctx, label, sx + u * 1.1, sy, Math.round(u * 0.95), '#fff', 'left', slot - u * 1.3);
+      sx += slot;
     }
+    if (owned.length === 0) this.text(ctx, 'Stash empty: dive and bank loot', px + u, sy, Math.round(u * 0.9), '#8a93a8');
 
     // Rows.
     let ry = py + u * 4.6;

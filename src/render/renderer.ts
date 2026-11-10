@@ -6,7 +6,9 @@ import { hash2 } from '../sim/rng';
 import { T } from '../sim/tiles';
 import { BODY_H } from '../sim/physics';
 import type { Fx } from './fx';
-import { EDGE_N, MASKS, edgeMask, growsMoss, isBlock } from './autotile';
+import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, leafMask } from './autotile';
+import { CAVE_ROW, LEAF_VARIANTS, PLANT_VARIANTS, SNOW_H, blendSky, buildDecor } from './decor';
+import { B, BIOME_IDS } from '../sim/biomes';
 import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, drawEnemySprite, drawPlayer, makeCanvas } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 
@@ -19,6 +21,9 @@ export class Renderer {
   private atlas = buildAtlas();
   private moss = buildMoss();
   private wallAtlas = buildWallAtlas();
+  private decor = buildDecor();
+  /** Blended sky palette for the camera position (updated each frame). */
+  private sky: [string, string, string, string] = ['#0b1026', '#2a1f4d', '#e87f5b', '#1a1536'];
   /** Device pixels. */
   w = 1;
   h = 1;
@@ -92,12 +97,13 @@ export class Renderer {
     if (skyBottom > 0) {
       const horizon = this.sy(world.padY, shakeY);
       const g = ctx.createLinearGradient(0, Math.min(0, horizon - ts * 22), 0, horizon);
-      g.addColorStop(0, '#0b1026');
-      g.addColorStop(0.55, '#2a1f4d');
-      g.addColorStop(1, '#e87f5b');
+      this.sky = this.skyAt(world);
+      g.addColorStop(0, this.sky[0]);
+      g.addColorStop(0.55, this.sky[1]);
+      g.addColorStop(1, this.sky[2]);
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, Math.min(h, skyBottom));
-      this.drawSkyDecor(ctx, horizon, time);
+      this.drawSkyDecor(ctx, horizon, time, world);
     }
 
     // Tiles.
@@ -134,6 +140,30 @@ export class Renderer {
           ctx.fillRect(dx, dy + Math.max(2, ts * 0.22), ts, Math.max(1, ts * 0.08));
           continue;
         }
+        if (t === T.TRUNK || t === T.LEAVES || t === T.PLANT || t === T.CHEST) {
+          this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+          const bio = world.biome[tx] ?? 0;
+          const v2 = Math.floor(hash2(tx, ty, 7) * 4);
+          if (t === T.TRUNK) {
+            // Inside a canopy, foliage continues behind the trunk so crowns never split in two.
+            if (get(tx - 1, ty) === T.LEAVES && get(tx + 1, ty) === T.LEAVES) {
+              const m = leafMask(get, tx, ty) & ~(2 | 8);
+              ctx.drawImage(this.decor.leaves, (m * LEAF_VARIANTS + (v2 % LEAF_VARIANTS)) * TS, bio * TS, TS, TS, dx, dy, ts, ts);
+            }
+            ctx.drawImage(this.decor.trunks, (v2 % 2) * TS, bio * TS, TS, TS, dx, dy, ts, ts);
+          }
+          else if (t === T.LEAVES) {
+            const m = leafMask(get, tx, ty);
+            ctx.drawImage(this.decor.leaves, (m * LEAF_VARIANTS + (v2 % LEAF_VARIANTS)) * TS, bio * TS, TS, TS, dx, dy, ts, ts);
+          } else if (t === T.PLANT) {
+            const row = ty > world.surface[tx] + 1 ? CAVE_ROW : bio;
+            ctx.drawImage(this.decor.plants, (v2 % PLANT_VARIANTS) * TS, row * TS, TS, TS, dx, dy, ts, ts);
+          } else {
+            const bob = Math.sin(time * 3 + tx) > 0.6 ? scale : 0;
+            ctx.drawImage(this.decor.chest, 0, 0, TS, TS, dx, dy - bob, ts, ts);
+          }
+          continue;
+        }
         if (t === T.WALL || t === T.DOOR) {
           // T.WALL is legacy (pre-v3 saves migrate it to the wall layer); still drawn if ever present.
           this.drawBack(ctx, world, tx, ty, dx, dy, ts);
@@ -153,8 +183,9 @@ export class Renderer {
         // Rounded corners are transparent: show the cave wall behind them underground.
         if (mask !== 0) this.drawBack(ctx, world, tx, ty, dx, dy, ts);
         ctx.drawImage(this.atlas, atlasCol(v, mask) * TS, t * TS, TS, TS, dx, dy, ts, ts);
-        if (mask & EDGE_N && growsMoss(t) && ty <= world.surface[tx]) {
-          ctx.drawImage(this.moss, v * TS, 0, TS, MOSS_H, dx, dy, ts, MOSS_H * scale);
+        if (mask & EDGE_N && ty <= world.surface[tx]) {
+          if (growsMoss(t) && world.biome[tx] !== B.ASH) ctx.drawImage(this.moss, v * TS, 0, TS, MOSS_H, dx, dy, ts, MOSS_H * scale);
+          else if (growsSnow(t)) ctx.drawImage(this.decor.snow, v * TS, 0, TS, SNOW_H, dx, dy, ts, SNOW_H * scale);
         }
       }
     }
@@ -318,7 +349,18 @@ export class Renderer {
     return dx * dx + dy * dy <= REACH * REACH;
   }
 
-  private drawSkyDecor(ctx: CanvasRenderingContext2D, horizon: number, time: number): void {
+  /** Sky palette blended from the biomes around the camera, so walking between biomes fades the sky. */
+  private skyAt(world: Game['world']): [string, string, string, string] {
+    const weights = BIOME_IDS.map(() => 0);
+    const cx = Math.floor(this.camX);
+    for (let dx = -60; dx <= 60; dx += 6) {
+      const x = Math.min(world.w - 1, Math.max(0, cx + dx));
+      weights[world.biome[x] ?? 0] += 1 - Math.abs(dx) / 66;
+    }
+    return blendSky(weights);
+  }
+
+  private drawSkyDecor(ctx: CanvasRenderingContext2D, horizon: number, time: number, world: Game['world']): void {
     const ts = TS * this.scale;
     // Dead sun.
     const sunX = this.w * 0.78 - (this.camX % 200) * 0.2;
@@ -335,21 +377,56 @@ export class Renderer {
       const sy = hash2(i, 2, 9) * Math.max(1, horizon - ts * 6);
       if (sy < horizon - ts * 4) ctx.fillRect(sx, sy, this.scale, this.scale);
     }
-    // Ruined towers on a parallax layer.
+    // Parallax skyline; each silhouette takes the shape of the biome it stands over.
     const par = 0.55;
     const left = Math.floor(this.camX * par - this.w / 2 / ts) - 3;
     const right = Math.ceil(this.camX * par + this.w / 2 / ts) + 3;
+    const base = horizon + ts * 2;
     for (let i = Math.floor(left / 4); i <= Math.ceil(right / 4); i++) {
       const wx = i * 4 + hash2(i, 3, 5) * 3;
+      const col = Math.min(world.w - 1, Math.max(0, Math.round(this.camX + (wx - this.camX * par))));
+      const bio = world.biome[col] ?? 0;
       const th = 3 + Math.floor(hash2(i, 4, 5) * 11);
       const tw = 1.4 + hash2(i, 5, 5) * 1.8;
       const x = Math.round(this.w / 2 + (wx - this.camX * par) * ts);
-      const base = horizon + ts * 2;
-      ctx.fillStyle = '#1a1536';
-      ctx.fillRect(x, base - th * ts, Math.round(tw * ts), th * ts);
-      ctx.fillStyle = hash2(i, 6, 5) > 0.5 ? 'rgba(232,127,91,0.8)' : 'rgba(54,224,232,0.7)';
-      const win = Math.floor(hash2(i, 7, 5) * th);
-      if (Math.floor(time * 0.7 + i) % 5 !== 0) ctx.fillRect(x + ts * 0.4, base - (win + 1) * ts + ts * 0.3, this.scale * 2, this.scale * 2);
+      ctx.fillStyle = this.sky[3];
+      if (bio === B.JUNGLE) {
+        // Giant alien trees.
+        ctx.fillRect(x + ts * 0.5, base - th * ts, Math.max(2, ts * 0.5), th * ts);
+        ctx.beginPath();
+        ctx.ellipse(x + ts * 0.75, base - th * ts, ts * (1.6 + tw), ts * (1 + tw * 0.4), 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (bio === B.CRYSTAL || bio === B.FROST || bio === B.ASH) {
+        // Spires, mountains or ash cones.
+        const half = bio === B.CRYSTAL ? tw * ts * 0.5 : tw * ts * (bio === B.FROST ? 2.4 : 2);
+        const peak = bio === B.ASH ? th * 0.6 : th;
+        ctx.beginPath();
+        ctx.moveTo(x - half, base);
+        ctx.lineTo(x + (bio === B.ASH ? -half * 0.25 : 0), base - peak * ts);
+        if (bio === B.ASH) ctx.lineTo(x + half * 0.25, base - peak * ts);
+        ctx.lineTo(x + half, base);
+        ctx.fill();
+        if (bio === B.FROST) {
+          ctx.fillStyle = 'rgba(230,246,255,0.55)';
+          ctx.beginPath();
+          ctx.moveTo(x - half * 0.25, base - peak * ts * 0.75);
+          ctx.lineTo(x, base - peak * ts);
+          ctx.lineTo(x + half * 0.25, base - peak * ts * 0.75);
+          ctx.fill();
+        } else if (bio === B.ASH && Math.floor(time * 2 + i) % 3 !== 0) {
+          ctx.fillStyle = 'rgba(255,120,50,0.7)';
+          ctx.fillRect(x - half * 0.2, base - peak * ts, half * 0.4, this.scale * 2);
+        } else if (bio === B.CRYSTAL) {
+          ctx.fillStyle = 'rgba(200,170,255,0.6)';
+          ctx.fillRect(x - this.scale, base - peak * ts * 0.7, this.scale * 2, this.scale * 2);
+        }
+      } else {
+        // Ruined towers with blinking windows.
+        ctx.fillRect(x, base - th * ts, Math.round(tw * ts), th * ts);
+        ctx.fillStyle = hash2(i, 6, 5) > 0.5 ? 'rgba(232,127,91,0.8)' : 'rgba(54,224,232,0.7)';
+        const win = Math.floor(hash2(i, 7, 5) * th);
+        if (Math.floor(time * 0.7 + i) % 5 !== 0) ctx.fillRect(x + ts * 0.4, base - (win + 1) * ts + ts * 0.3, this.scale * 2, this.scale * 2);
+      }
     }
   }
 
@@ -398,6 +475,14 @@ export class Renderer {
     if (key !== this.lightKey || !this.light) {
       this.lightKey = key;
       const sources = frameSources(world.torches, world.w, { x: ptx, y: pty, radius: lampR }, { x: world.padX, y: world.padY });
+      // Crystals and cave mushrooms glow faintly, so deep caves have landmarks.
+      for (let yy = Math.max(0, y0); yy < Math.min(world.h, y0 + lh); yy++) {
+        for (let xx = Math.max(0, x0); xx < Math.min(world.w, x0 + lw); xx++) {
+          const tt = world.tiles[yy * world.w + xx];
+          if (tt === T.CRYSTAL && !world.isSolid(xx, yy - 1) || tt === T.CRYSTAL && !world.isSolid(xx, yy + 1)) sources.push({ x: xx, y: yy, level: 18 });
+          else if (tt === T.PLANT && yy > world.surface[xx] + 1) sources.push({ x: xx, y: yy, level: 14 });
+        }
+      }
       this.light = computeLight(world, x0, y0, lw, lh, sources, SKY_LEVEL);
       if (!this.lightCanvas || this.lightCanvas.width !== lw || this.lightCanvas.height !== lh) this.lightCanvas = makeCanvas(lw, lh);
       const lctx = this.lightCanvas.getContext('2d');

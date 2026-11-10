@@ -11,6 +11,7 @@ export interface Recipe {
 /** Fabricator recipes (base only). Inputs come from the stash, outputs go to the pack. */
 export const RECIPES: Recipe[] = [
   { id: 'torch', name: 'Torch x2', out: 'torch', qty: 2, cost: { rust: 2, iron_scrap: 1 } },
+  { id: 'biotorch', name: 'Bio torch x3', out: 'torch', qty: 3, cost: { biomass: 3 } },
   { id: 'ladder', name: 'Ladder x4', out: 'ladder', qty: 4, cost: { rust: 3, iron_scrap: 1 } },
   { id: 'scaffold', name: 'Scaffold x6', out: 'scaffold', qty: 6, cost: { rust: 4 } },
   { id: 'platform', name: 'Platform x4', out: 'platform', qty: 4, cost: { rust: 3 } },

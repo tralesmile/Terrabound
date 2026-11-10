@@ -12,7 +12,7 @@ export const EDGE_W = 8;
 export const MASKS = 16;
 
 /** Tiles that merge into one continuous mass (no seam between them). */
-const BLOCKS = new Set<number>([T.RUST, T.METAL, T.IRON, T.COPPER, T.BEDROCK, T.PAD, T.SCAFFOLD]);
+const BLOCKS = new Set<number>([T.RUST, T.METAL, T.IRON, T.COPPER, T.BEDROCK, T.PAD, T.SCAFFOLD, T.SOIL, T.ASH, T.FROST, T.SAND, T.CRYSTAL, T.RUIN]);
 
 export function isBlock(t: number): boolean {
   return BLOCKS.has(t);
@@ -57,5 +57,21 @@ export function edgePixel(mask: number, x: number, y: number, size: number): Edg
 
 /** Surface tiles that grow lichen on an exposed top. */
 export function growsMoss(t: number): boolean {
-  return t === T.RUST || t === T.METAL;
+  return t === T.RUST || t === T.METAL || t === T.SOIL || t === T.RUIN;
+}
+
+/** Frost tops get a snow cap instead of lichen. */
+export function growsSnow(t: number): boolean {
+  return t === T.FROST;
+}
+
+/** Leaves merge with other leaves and with trunks (no outline between them). */
+export function leafMask(get: (x: number, y: number) => number, x: number, y: number): number {
+  const joined = (t: number): boolean => t === T.LEAVES || t === T.TRUNK;
+  let m = 0;
+  if (!joined(get(x, y - 1))) m |= EDGE_N;
+  if (!joined(get(x + 1, y))) m |= EDGE_E;
+  if (!joined(get(x, y + 1))) m |= EDGE_S;
+  if (!joined(get(x - 1, y))) m |= EDGE_W;
+  return m;
 }

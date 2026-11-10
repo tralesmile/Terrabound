@@ -1,3 +1,4 @@
+import { drawDecorGallery } from './render/decor';
 import { Input } from './platform/input';
 import { Sfx } from './platform/audio';
 import { loadRaw, saveRaw } from './platform/storage';
@@ -22,10 +23,12 @@ function boot(): void {
     const gc = document.getElementById('game') as HTMLCanvasElement | null;
     if (gc) {
       gc.width = 1100;
-      gc.height = 640;
+      gc.height = 1040;
       gc.style.width = '1100px';
-      gc.style.height = '640px';
+      gc.style.height = '1040px';
       drawGallery(gc);
+      const gctx = gc.getContext('2d');
+      if (gctx) drawDecorGallery(gctx, 8, 660, 3);
     }
     return;
   }

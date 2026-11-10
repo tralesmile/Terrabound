@@ -13,7 +13,7 @@ const deepGame = (seed = 1) => {
   const s = defaultSave();
   s.seedBase = seed;
   const g = new Game(s);
-  g.body.y = 40;
+  g.body.y = g.world.padY + 10;
   return g;
 };
 

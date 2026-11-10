@@ -13,13 +13,14 @@ const run = (g: Game, seconds: number, c: Partial<Controls> = {}) => {
 describe('torches and light', () => {
   it('tracks torches in the world and falls off with distance', () => {
     const w = generateWorld(5);
+    const before = w.torches.size;
     expect(w.lightAt(10, 100)).toBe(0);
     w.set(10, 100, T.TORCH);
     expect(w.lightAt(10.5, 100.5)).toBeCloseTo(1, 5);
     expect(w.lightAt(10.5 + TORCH_RADIUS / 2, 100.5)).toBeCloseTo(0.5, 5);
     expect(w.lightAt(10.5 + TORCH_RADIUS + 1, 100.5)).toBe(0);
     w.set(10, 100, T.AIR);
-    expect(w.torches.size).toBe(0);
+    expect(w.torches.size).toBe(before);
     expect(w.lightAt(10.5, 100.5)).toBe(0);
   });
 

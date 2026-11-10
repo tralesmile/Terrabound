@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { FIXED_DT, Game, NO_CONTROLS, type Controls } from '../src/sim/game';
+import { FIXED_DT, Game, NO_CONTROLS, REACH, type Controls } from '../src/sim/game';
 import { defaultSave } from '../src/sim/save';
 import { T } from '../src/sim/tiles';
 
 /**
  * Simple simulated player for the Scrap layer: sink a shaft straight down, grab ore within reach,
- * stop when the pack is full or the battery is at 35%, then "return" to the pad and bank.
+ * stop when the pack is full, the battery is at 35% or health is under 40%, then "return" to the pad and bank.
  * It is deliberately dumb: it is a floor on the economy, not a ceiling.
  */
 function botDive(g: Game): { gained: number; died: boolean; depth: number } {
@@ -30,7 +30,9 @@ function botDive(g: Game): { gained: number; died: boolean; depth: number } {
     for (let dx = -3; dx <= 3; dx++) {
       for (let dy = -4; dy <= 2; dy++) {
         const tile = g.world.get(bx + dx, by + dy);
-        if (tile === T.IRON || tile === T.COPPER) {
+        if (tile === T.IRON || tile === T.COPPER || tile === T.CRYSTAL) {
+          // Only ore the drill can actually reach (REACH is measured from the body centre).
+          if (Math.hypot(bx + dx + 0.5 - b.x, by + dy + 0.5 - (b.y - 0.9)) > REACH - 0.1) continue;
           const d = Math.hypot(dx, dy);
           if (d < best) {
             best = d;
@@ -44,16 +46,18 @@ function botDive(g: Game): { gained: number; died: boolean; depth: number } {
     g.step(FIXED_DT, c);
     if (g.runs !== runsBefore) return { gained: 0, died: true, depth: 0 };
     if (g.battery < start.maxBattery * 0.35) break;
+    // Like any player, head home when badly hurt.
+    if (g.hp < start.maxHp * 0.4) break;
     if (Object.values(g.carried).reduce((a, n) => a + (n ?? 0), 0) >= start.packCap) break;
   }
   const depth = g.runDeepest;
-  const before = (g.stash.iron_scrap ?? 0) + (g.stash.rust ?? 0) + (g.stash.metal ?? 0) + (g.stash.copper_wire ?? 0);
+  const before = (g.stash.iron_scrap ?? 0) + (g.stash.rust ?? 0) + (g.stash.metal ?? 0) + (g.stash.copper_wire ?? 0) + (g.stash.crystal ?? 0);
   // Return trip is abstracted: teleport onto the pad and bank.
   g.body.x = g.world.padX + 0.5;
   g.body.y = g.world.padY;
   g.body.vx = g.body.vy = 0;
   g.step(FIXED_DT, NO_CONTROLS);
-  const after = (g.stash.iron_scrap ?? 0) + (g.stash.rust ?? 0) + (g.stash.metal ?? 0) + (g.stash.copper_wire ?? 0);
+  const after = (g.stash.iron_scrap ?? 0) + (g.stash.rust ?? 0) + (g.stash.metal ?? 0) + (g.stash.copper_wire ?? 0) + (g.stash.crystal ?? 0);
   return { gained: after - before, died: false, depth };
 }
 

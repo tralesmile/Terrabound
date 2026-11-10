@@ -1,7 +1,32 @@
 /** Static content tables: tiles and items. Add new content here first, then wire it into worldgen/crafting. */
 
-export type ItemId = 'rust' | 'metal' | 'iron_scrap' | 'copper_wire' | 'torch' | 'ladder' | 'scaffold' | 'platform' | 'door' | 'wall';
-export const ITEM_IDS: ItemId[] = ['rust', 'metal', 'iron_scrap', 'copper_wire', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall'];
+export type ItemId =
+  | 'rust'
+  | 'metal'
+  | 'iron_scrap'
+  | 'copper_wire'
+  | 'crystal'
+  | 'biomass'
+  | 'torch'
+  | 'ladder'
+  | 'scaffold'
+  | 'platform'
+  | 'door'
+  | 'wall';
+export const ITEM_IDS: ItemId[] = [
+  'rust',
+  'metal',
+  'iron_scrap',
+  'copper_wire',
+  'crystal',
+  'biomass',
+  'torch',
+  'ladder',
+  'scaffold',
+  'platform',
+  'door',
+  'wall',
+];
 
 export const T = {
   AIR: 0,
@@ -17,6 +42,17 @@ export const T = {
   PLATFORM: 10,
   DOOR: 11,
   WALL: 12,
+  /** Biome crusts: dig like rust and drop rust. */
+  SOIL: 13,
+  ASH: 14,
+  FROST: 15,
+  SAND: 16,
+  CRYSTAL: 17,
+  RUIN: 18,
+  TRUNK: 19,
+  LEAVES: 20,
+  PLANT: 21,
+  CHEST: 22,
 } as const;
 
 export interface TileDef {
@@ -33,6 +69,8 @@ export interface TileDef {
   oneWay?: boolean;
   /** Player walks through, enemies cannot. */
   enemyBlock?: boolean;
+  /** Emits a faint light (crystals). */
+  glow?: boolean;
 }
 
 export const TILES: TileDef[] = [
@@ -49,6 +87,16 @@ export const TILES: TileDef[] = [
   { name: 'Platform', hardness: 0.15, solid: false, drop: 'platform', minable: true, oneWay: true },
   { name: 'Door', hardness: 0.3, solid: false, drop: 'door', minable: true, enemyBlock: true },
   { name: 'Back wall', hardness: 0.2, solid: false, drop: 'wall', minable: true },
+  { name: 'Overgrown soil', hardness: 0.35, solid: true, drop: 'rust' },
+  { name: 'Ash', hardness: 0.3, solid: true, drop: 'rust' },
+  { name: 'Frost crust', hardness: 0.45, solid: true, drop: 'rust' },
+  { name: 'Crystal sand', hardness: 0.3, solid: true, drop: 'rust' },
+  { name: 'Crystal', hardness: 1.4, solid: true, drop: 'crystal', glow: true },
+  { name: 'Ruin brick', hardness: 1.0, solid: true, drop: 'metal' },
+  { name: 'Tree trunk', hardness: 0.5, solid: false, drop: 'biomass', minable: true },
+  { name: 'Leaves', hardness: 0.08, solid: false, drop: null, minable: true },
+  { name: 'Plant', hardness: 0.05, solid: false, drop: 'biomass', minable: true },
+  { name: 'Loot chest', hardness: 0.4, solid: false, drop: null, minable: true },
 ];
 
 export interface ItemDef {
@@ -67,6 +115,8 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   metal: { name: 'Metal', color: '#8794a8', places: T.METAL },
   iron_scrap: { name: 'Iron scrap', color: '#d6c7b8', places: null },
   copper_wire: { name: 'Copper wire', color: '#e08a3c', places: null },
+  crystal: { name: 'Crystal', color: '#c08cff', places: null },
+  biomass: { name: 'Biomass', color: '#7fcf5a', places: null },
   torch: { name: 'Torch', color: '#ffb03a', places: T.TORCH, kit: true },
   ladder: { name: 'Ladder', color: '#c9a35a', places: T.LADDER, kit: true },
   scaffold: { name: 'Scaffold', color: '#7d8da6', places: T.SCAFFOLD, kit: true },

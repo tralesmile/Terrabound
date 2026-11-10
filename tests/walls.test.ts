@@ -31,6 +31,9 @@ describe('back-wall layer: generation', () => {
         const s = w.surface[x];
         for (let y = 0; y < w.h; y += 3) {
           const wl = w.wall(x, y);
+          // Structures (ruins, ships, vaults) carry built plate walls; everywhere else follows the rule.
+          const inStructure = w.structures.some((st) => x >= st.x0 - 1 && x <= st.x1 + 1 && y >= st.y0 - 1 && y <= st.y1 + 1);
+          if (inStructure && wl === W.PLATE) continue;
           if (y < s) expect(wl).toBe(W.NONE);
           else expect([W.CAVE_RUST, W.CAVE_ROCK]).toContain(wl);
         }
