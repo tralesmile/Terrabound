@@ -25,3 +25,4 @@
 - **A piped gate lies.** `npm run check 2>&1 | grep ... && git commit && git push` pushed a red build to main because the `&&` saw grep's exit code. Guard: `npm run ship` (scripts/ship.sh, `set -euo pipefail`) is the only push path; if you capture logs, redirect to a file and check `$?`.
 - **Long sims need an explicit timeout.** The balance bot ran ~4-5 s against vitest's 5 s default and flaked under parallel load. Guard: heavy simulation tests pass a timeout (30 s) as the third `it` argument; never shrink their assertions instead.
 - **Odd sprite heights break chunk maths.** Debris chunk centres for a 7-row sprite landed below the feet; use `min(h, r0 + chunk)` and test bounds on every sprite.
+- **Check light/occlusion maths before writing the test.** A 1-tile pillar costs only 2x air, so light bleeds through it by design; occlusion tests need walls thicker than SOLID_COST/AIR_COST allows.

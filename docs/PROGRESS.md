@@ -128,8 +128,10 @@ Owner played: works well, sounds good. Problems: map too small, graphics bad (pl
 
 **Done:** enemy polish (4-step crawler with eye on the facing side, 3-frame rotor flyer with blinking eye, sprite-shatter death burst with shock ring and smoke); autotiling (16 edge masks x 4 variants, outlined rounded corners, rivets/flakes/glints/cracks, lichen on surface tops; atlas via ImageData ~45 ms); back-wall layer (`World.walls`, natural cave walls below the surface, built walls behind tiles, drill removes built walls, no spawns in front of built walls, save v3 with v2 migration). Added `npm run ship` (gated push). Gallery is now 1100x640 with a terrain sample and wall swatches.
 
-**Numbers:** 108 unit tests (+31), 28 e2e checks (+3), bundle 63.0 kB (23.0 kB gzip).
+Also: flood-fill tile light map (`src/render/lightmap.ts`: sky, torches, lamp, pad; 4 per air tile, 8 per rock tile; smoothed 1 px/tile overlay, cached on `world.version`).
 
-**Next:** tile light map (flood fill from sky, torches, lamp) replacing the radial gradient; then day/night, parallax per biome, bigger world with chunk cache.
+**Numbers:** 120 unit tests (+43), 29 e2e checks (+4), bundle 64.4 kB (23.5 kB gzip). Light map ~<1 ms for an 80x60 region.
+
+**Next:** day/night cycle (scale SKY_LEVEL and sky colours), parallax per biome, bigger world with chunk cache, biomes. Torch light could get a warm tint.
 
 **Known issues:** main briefly held a commit whose gate had failed (balance test timeout, build itself fine); fixed within minutes. Metal seam variant tiles in visible horizontal stripes; inner (diagonal) corners are not autotiled; the old `buildBackdrop` is now unused.
