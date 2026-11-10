@@ -62,6 +62,11 @@ export const ITEMS: Record<ItemId, ItemDef> = {
 
 export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold'];
 
+/** Placeables worth showing in the hotbar: owned ones plus the selected one, in PLACEABLE order. */
+export function visiblePlaceables(inv: Inventory, selected: ItemId): ItemId[] {
+  return PLACEABLE.filter((id) => id === selected || (inv[id] ?? 0) > 0);
+}
+
 export function isMinable(tile: number): boolean {
   const d = TILES[tile];
   return !!d && (d.solid || d.minable === true) && Number.isFinite(d.hardness);

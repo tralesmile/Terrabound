@@ -33,6 +33,7 @@ Rule: ship small vertical slices. Each item needs tests. Keep the game playable 
 ## P2 Base and automation (M2)
 
 - [x] Persistent base strip above the pad (15x10 tiles, src/sim/base.ts) saved in format v2 with v1 migration test; built tiles survive dives and reloads
+- [x] Hotbar shows only owned placeables plus the selected one (`visiblePlaceables`), so new build tiles fit at 360 px
 - [ ] Base grid: widen/extend beyond the 15x10 strip if needed (walls behind, background layer)
 - [ ] Build mode in base: blocks, walls, platforms, doors
 - [ ] Power: solar cell, battery, wire; machines show state

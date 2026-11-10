@@ -69,3 +69,13 @@
 **Next:** build mode UX in base (walls/platforms/doors tiles), power (solar, battery, wire), smelter, storage chest, then drones.
 
 **Known issues:** base only persists the five placeable tile types; no background walls yet. No e2e check for base persistence (unit-tested only).
+
+## 2026-11-10 Run 7
+
+**Done:** hotbar lists only owned placeables plus the selected one (`visiblePlaceables` in tiles.ts, 2 unit tests); removes the 9-slot width limit so build-mode tiles can be added. Checked 06-mobile-play.png.
+
+**Numbers:** 62 unit tests, 24 e2e checks, bundle 50.4 kB (18.5 kB gzip).
+
+**Next:** build-mode tiles (platform, door, back wall), power (solar, battery, wire), smelter, chest.
+
+**Known issues:** time budget this run went to baseline plus one small slice; stash-row on shop panel still lists all items.

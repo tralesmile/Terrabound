@@ -1,5 +1,5 @@
 import type { Game, Tool } from '../sim/game';
-import { ITEM_IDS, ITEMS, PLACEABLE, invCount, invTotal, type Inventory } from '../sim/tiles';
+import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type Inventory } from '../sim/tiles';
 import { UPGRADES } from '../sim/upgrades';
 import { RECIPES } from '../sim/recipes';
 
@@ -172,7 +172,8 @@ export class UI {
 
     // Hotbar: tools first, then placeable blocks.
     const gap = u * 0.4;
-    const count = TOOL_SLOTS.length + PLACEABLE.length;
+    const shown = visiblePlaceables(game.carried, game.selected);
+    const count = TOOL_SLOTS.length + shown.length;
     const slot = Math.min(u * 3.4, (w - u * 2 - (count + 1) * gap) / count);
     const total = count * slot + (count - 1) * gap + gap * 2;
     let sx = (w - total) / 2;
@@ -190,7 +191,8 @@ export class UI {
       this.rects.push({ x: sx, y: sy, w: slot, h: slot, a: { k: 'settool', t: ts.tool } });
       sx += slot + gap + (i === TOOL_SLOTS.length - 1 ? gap * 2 : 0);
     });
-    PLACEABLE.forEach((id, i) => {
+    shown.forEach((id) => {
+      const i = PLACEABLE.indexOf(id);
       const sel = game.selected === id;
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
       ctx.fillRect(sx, sy, slot, slot);

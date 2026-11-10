@@ -19,3 +19,4 @@
 - **`git stash` ignores untracked files**; do not rely on it to isolate a new test file.
 - **The repo moved to `tralesmile/Terrabound`** (git prints a redirect warning on push; pushes still work).
 - **Tests that name upgrade ids must use real `UpgradeId`s** (`pick`, not `drill`); tsc catches it, so run `npx tsc --noEmit` before the full gate.
+- **Hotbar width is now bounded by owned items**, not the PLACEABLE table; keys 4+ still index the full table, so a key for an unowned item selects it (shows slot with 0).
