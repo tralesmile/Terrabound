@@ -1,5 +1,6 @@
 import { hash2 } from '../sim/rng';
 import { T, TILES } from '../sim/tiles';
+import { EDGE_N, MASKS, edgeMask, edgePixel, growsMoss } from './autotile';
 
 /** Tile size in logical pixels. All art is generated in code: zero asset files, zero asset cost, tiny bundle. */
 export const TS = 16;
@@ -11,17 +12,128 @@ interface Look {
   dark: string;
   speck?: string;
   speckCount?: number;
+  /** Bright pixel on each speck (ore glint). */
+  glint?: string;
+  detail?: 'rivets' | 'flakes' | 'cracks' | 'frame' | 'pad';
 }
 
 const LOOK: Record<number, Look> = {
-  [T.RUST]: { base: '#7a4a3a', light: '#935c48', dark: '#5f382c' },
-  [T.METAL]: { base: '#4a5568', light: '#5d6a80', dark: '#384154' },
-  [T.IRON]: { base: '#4a5568', light: '#5d6a80', dark: '#384154', speck: '#d6c7b8', speckCount: 9 },
-  [T.COPPER]: { base: '#4a5568', light: '#5d6a80', dark: '#384154', speck: '#e08a3c', speckCount: 9 },
-  [T.BEDROCK]: { base: '#1a1d29', light: '#252938', dark: '#101219' },
-  [T.SCAFFOLD]: { base: '#55627a', light: '#7d8da6', dark: '#3b4658', speck: '#c9a35a', speckCount: 3 },
-  [T.PAD]: { base: '#2b3a4a', light: '#36e0e8', dark: '#1d2733' },
+  [T.RUST]: { base: '#7a4a3a', light: '#935c48', dark: '#5f382c', detail: 'flakes' },
+  [T.METAL]: { base: '#4a5568', light: '#5d6a80', dark: '#384154', detail: 'rivets' },
+  [T.IRON]: { base: '#4a5568', light: '#5d6a80', dark: '#384154', speck: '#d6c7b8', speckCount: 7, glint: '#fff6e8' },
+  [T.COPPER]: { base: '#4a5568', light: '#5d6a80', dark: '#384154', speck: '#e08a3c', speckCount: 7, glint: '#ffd0a0' },
+  [T.BEDROCK]: { base: '#1a1d29', light: '#252938', dark: '#101219', detail: 'cracks' },
+  [T.SCAFFOLD]: { base: '#3b4658', light: '#7d8da6', dark: '#2a3242', speck: '#c9a35a', speckCount: 0, detail: 'frame' },
+  [T.PAD]: { base: '#2b3a4a', light: '#36e0e8', dark: '#1d2733', detail: 'pad' },
 };
+
+const OUTLINE = '#161a24';
+
+/** Base texture of one tile variant as TS*TS colours (null = transparent). Pure apart from hash2. */
+export function tileTexture(id: number, v: number): (string | null)[] {
+  const look = LOOK[id];
+  const px: (string | null)[] = new Array(TS * TS).fill(look ? look.base : null);
+  if (!look) return px;
+  const put = (x: number, y: number, c: string): void => {
+    if (x >= 0 && y >= 0 && x < TS && y < TS) px[y * TS + x] = c;
+  };
+  for (let y = 0; y < TS; y++) {
+    for (let x = 0; x < TS; x++) {
+      const h = hash2(x + v * 31, y + id * 17, 1234);
+      if (h > 0.88) put(x, y, look.light);
+      else if (h < 0.08) put(x, y, look.dark);
+    }
+  }
+  switch (look.detail) {
+    case 'rivets':
+      if (v % 2 === 0) {
+        for (const [rx, ry] of [[3, 3], [12, 3], [3, 12], [12, 12]]) {
+          put(rx, ry, '#8e98b0');
+          put(rx + 1, ry + 1, look.dark);
+        }
+      } else if (v === 1) {
+        for (let x = 0; x < TS; x++) {
+          put(x, 7, look.dark);
+          put(x, 8, look.light);
+        }
+      }
+      break;
+    case 'flakes':
+      for (let i = 0; i < 4; i++) {
+        const fx = 2 + Math.floor(hash2(i, v, 41) * 11);
+        const fy = 2 + Math.floor(hash2(v, i, 43) * 11);
+        put(fx, fy, '#a8705a');
+        put(fx + 1, fy, '#a8705a');
+        put(fx, fy + 1, look.dark);
+        put(fx + 1, fy + 1, look.dark);
+      }
+      break;
+    case 'cracks': {
+      let cx = 3 + Math.floor(hash2(v, 5, 77) * 10);
+      for (let y = 2; y < 14; y++) {
+        put(cx, y, look.dark);
+        if (hash2(y, v, 78) > 0.5) cx += hash2(y, v, 79) > 0.5 ? 1 : -1;
+      }
+      break;
+    }
+    case 'frame':
+      for (let i = 0; i < TS; i++) {
+        put(i, 1, look.light);
+        put(1, i, look.light);
+        put(i, TS - 2, look.dark);
+        put(TS - 2, i, look.dark);
+        put(i, i, '#55627a');
+        put(TS - 1 - i, i, '#55627a');
+      }
+      put(7, 7, '#c9a35a');
+      put(8, 8, '#c9a35a');
+      break;
+    case 'pad':
+      for (let x = 1; x < TS - 1; x++) {
+        put(x, 1, look.light);
+        put(x, 2, look.light);
+      }
+      put(3 + (v % 2) * 6, 6, '#ffcf4a');
+      put(4 + (v % 2) * 6, 6, '#ffcf4a');
+      put(3 + (v % 2) * 6, 7, '#ffcf4a');
+      put(4 + (v % 2) * 6, 7, '#ffcf4a');
+      break;
+  }
+  if (look.speck) {
+    for (let i = 0; i < (look.speckCount ?? 0); i++) {
+      const x = 2 + Math.floor(hash2(i, v, id * 91) * 11);
+      const y = 2 + Math.floor(hash2(v, i, id * 57) * 11);
+      put(x, y, look.speck);
+      put(x + 1, y, look.speck);
+      put(x, y + 1, look.speck);
+      put(x + 1, y + 1, look.dark);
+      if (look.glint && i % 2 === 0) put(x, y, look.glint);
+    }
+  }
+  return px;
+}
+
+/** Texture plus autotile edges for one neighbour mask. */
+export function autotilePixels(id: number, v: number, mask: number): (string | null)[] {
+  const look = LOOK[id];
+  const px = tileTexture(id, v);
+  if (!look) return px;
+  for (let y = 0; y < TS; y++) {
+    for (let x = 0; x < TS; x++) {
+      const e = edgePixel(mask, x, y, TS);
+      if (e === 'x') px[y * TS + x] = null;
+      else if (e === 'o') px[y * TS + x] = OUTLINE;
+      else if (e === 'l') px[y * TS + x] = look.light;
+      else if (e === 'd') px[y * TS + x] = look.dark;
+    }
+  }
+  return px;
+}
+
+/** Atlas column for a variant and neighbour mask. */
+export function atlasCol(v: number, mask: number): number {
+  return mask * VARIANTS + v;
+}
 
 export const TILE_COLORS: Record<number, string> = {
   [T.RUST]: '#935c48',
@@ -45,56 +157,71 @@ export function makeCanvas(w: number, h: number): HTMLCanvasElement {
   return c;
 }
 
-/** Atlas: one row per tile id, VARIANTS columns. */
+function hexRgb(c: string): [number, number, number] {
+  const n = parseInt(c.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/** Atlas: one row per tile id; columns are MASKS x VARIANTS autotile cells (see atlasCol). */
 export function buildAtlas(): HTMLCanvasElement {
-  const canvas = makeCanvas(TS * VARIANTS, TS * TILES.length);
+  const cols = MASKS * VARIANTS;
+  const canvas = makeCanvas(TS * cols, TS * TILES.length);
   const ctx = canvas.getContext('2d');
   if (!ctx) return canvas;
+  const img = ctx.createImageData(canvas.width, canvas.height);
+  const cache = new Map<string, [number, number, number]>();
   for (let id = 1; id < TILES.length; id++) {
-    const look = LOOK[id];
-    if (!look) continue;
-    for (let v = 0; v < VARIANTS; v++) {
-      const ox = v * TS;
-      const oy = id * TS;
-      ctx.fillStyle = look.base;
-      ctx.fillRect(ox, oy, TS, TS);
-      // Pixel noise.
-      for (let y = 0; y < TS; y++) {
-        for (let x = 0; x < TS; x++) {
-          const h = hash2(x + v * 31, y + id * 17, 1234);
-          if (h > 0.86) {
-            ctx.fillStyle = look.light;
-            ctx.fillRect(ox + x, oy + y, 1, 1);
-          } else if (h < 0.1) {
-            ctx.fillStyle = look.dark;
-            ctx.fillRect(ox + x, oy + y, 1, 1);
-          }
+    if (!LOOK[id]) continue;
+    for (let mask = 0; mask < MASKS; mask++) {
+      for (let v = 0; v < VARIANTS; v++) {
+        const px = autotilePixels(id, v, mask);
+        const ox = atlasCol(v, mask) * TS;
+        const oy = id * TS;
+        for (let i = 0; i < px.length; i++) {
+          const c = px[i];
+          if (!c) continue;
+          let rgb = cache.get(c);
+          if (!rgb) cache.set(c, (rgb = hexRgb(c)));
+          const o = ((oy + Math.floor(i / TS)) * canvas.width + ox + (i % TS)) * 4;
+          img.data[o] = rgb[0];
+          img.data[o + 1] = rgb[1];
+          img.data[o + 2] = rgb[2];
+          img.data[o + 3] = 255;
         }
-      }
-      // Bevel: bright top-left, dark bottom-right.
-      ctx.fillStyle = look.light;
-      ctx.fillRect(ox, oy, TS, 1);
-      ctx.fillRect(ox, oy, 1, TS);
-      ctx.fillStyle = look.dark;
-      ctx.fillRect(ox, oy + TS - 1, TS, 1);
-      ctx.fillRect(ox + TS - 1, oy, 1, TS);
-      if (look.speck) {
-        ctx.fillStyle = look.speck;
-        for (let i = 0; i < (look.speckCount ?? 0); i++) {
-          const x = 2 + Math.floor(hash2(i, v, id * 91) * 11);
-          const y = 2 + Math.floor(hash2(v, i, id * 57) * 11);
-          ctx.fillRect(ox + x, oy + y, 2, 2);
-        }
-      }
-      if (id === T.PAD) {
-        ctx.fillStyle = look.light;
-        ctx.fillRect(ox + 1, oy + 1, TS - 2, 2);
-        ctx.fillStyle = '#ffcf4a';
-        ctx.fillRect(ox + 3 + (v % 2) * 6, oy + 6, 2, 2);
       }
     }
   }
+  ctx.putImageData(img, 0, 0);
   return canvas;
+}
+
+/** Lichen strips for exposed surface tops: VARIANTS cells of TS x MOSS_H, drips hang down. */
+export const MOSS_H = 5;
+export function mossPixels(v: number): (string | null)[] {
+  const px: (string | null)[] = new Array(TS * MOSS_H).fill(null);
+  for (let x = 0; x < TS; x++) {
+    px[x] = hash2(x, v, 301) > 0.5 ? '#7fd36a' : '#4f9a3f';
+    px[TS + x] = '#4f9a3f';
+    const drip = Math.floor(hash2(x, v, 302) * 6) - 2;
+    for (let y = 2; y < 2 + drip && y < MOSS_H; y++) px[y * TS + x] = y === 1 + drip ? '#2f6a34' : '#4f9a3f';
+  }
+  return px;
+}
+
+export function buildMoss(): HTMLCanvasElement {
+  const c = makeCanvas(TS * VARIANTS, MOSS_H);
+  const ctx = c.getContext('2d');
+  if (!ctx) return c;
+  for (let v = 0; v < VARIANTS; v++) {
+    const px = mossPixels(v);
+    for (let i = 0; i < px.length; i++) {
+      const col = px[i];
+      if (!col) continue;
+      ctx.fillStyle = col;
+      ctx.fillRect(v * TS + (i % TS), Math.floor(i / TS), 1, 1);
+    }
+  }
+  return c;
 }
 
 /** Cave backdrop so tunnels read as depth, not as the sky. */
@@ -358,7 +485,8 @@ export function drawGallery(canvas: HTMLCanvasElement): void {
   const z = 4;
   let x = 8;
   for (let id = 1; id < TILES.length; id++) {
-    ctx.drawImage(atlas, 0, id * TS, TS, TS, x, 8, TS * z, TS * z);
+    if (!LOOK[id]) continue;
+    ctx.drawImage(atlas, atlasCol(0, MASKS - 1) * TS, id * TS, TS, TS, x, 8, TS * z, TS * z);
     x += TS * z + 6;
     if (x > canvas.width - TS * z) break;
   }
@@ -366,6 +494,35 @@ export function drawGallery(canvas: HTMLCanvasElement): void {
   for (const f of PLAYER_FRAMES) {
     drawRows(ctx, playerRows(f), x, 100, z, false, PLAYER_W);
     x += PLAYER_W * z + 10;
+  }
+  // Autotiled terrain sample: rust crust with lichen over metal, a cave, ores and a scaffold.
+  const MAP = [
+    '..........##.......',
+    '....RRRRRRRRRR.....',
+    '..RRRRRRRRRRRRRR...',
+    '.RRRMMMM...MMMMRR..',
+    '.RMMMIMM....MMCMMR.',
+    '.MMMMMMM...SMMMMMM.',
+    '..BBBBBBBBBBBBBBB..',
+  ];
+  const code: Record<string, number> = { R: T.RUST, M: T.METAL, I: T.IRON, C: T.COPPER, B: T.BEDROCK, S: T.SCAFFOLD, '#': T.PAD };
+  const mapGet = (mx: number, my: number): number => code[MAP[my]?.[mx] ?? '.'] ?? T.AIR;
+  const mz = 3;
+  const moss = buildMoss();
+  for (let my = 0; my < MAP.length; my++) {
+    for (let mx = 0; mx < MAP[my].length; mx++) {
+      const t = mapGet(mx, my);
+      if (t === T.AIR) continue;
+      const mask = edgeMask(mapGet, mx, my);
+      const v = (mx * 7 + my * 3) % VARIANTS;
+      const gx = 8 + mx * TS * mz;
+      const gy = 280 + my * TS * mz;
+      ctx.drawImage(atlas, atlasCol(v, mask) * TS, t * TS, TS, TS, gx, gy, TS * mz, TS * mz);
+      const above = mapGet(mx, my - 1);
+      if (mask & EDGE_N && growsMoss(t) && above === T.AIR && (my === 0 || !MAP.slice(0, my).some((r) => r[mx] && r[mx] !== '.'))) {
+        ctx.drawImage(moss, v * TS, 0, TS, MOSS_H, gx, gy, TS * mz, MOSS_H * mz);
+      }
+    }
   }
   // Enemies: every frame in a row underneath the player frames.
   let ex = 8 + (ENEMY_W / 2) * z;

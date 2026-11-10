@@ -22,9 +22,9 @@ function boot(): void {
     const gc = document.getElementById('game') as HTMLCanvasElement | null;
     if (gc) {
       gc.width = 1100;
-      gc.height = 460;
+      gc.height = 640;
       gc.style.width = '1100px';
-      gc.style.height = '460px';
+      gc.style.height = '640px';
       drawGallery(gc);
     }
     return;

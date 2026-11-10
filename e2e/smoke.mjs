@@ -284,7 +284,7 @@ try {
   await page.evaluate(() => { window.__terrabound.ui.shopOpen = false; });
   check('no console or page errors on mobile', merrors.length === 0, merrors.join(' | '));
   await mctx.close();
-  const gctx = await browser.newContext({ viewport: { width: 1100, height: 460 } });
+  const gctx = await browser.newContext({ viewport: { width: 1100, height: 640 } });
   const gpage = await gctx.newPage();
   const gerrors = [];
   gpage.on('pageerror', (e) => gerrors.push(e.message));

@@ -6,7 +6,8 @@ import { hash2 } from '../sim/rng';
 import { T } from '../sim/tiles';
 import { BODY_H } from '../sim/physics';
 import type { Fx } from './fx';
-import { ENEMY_SCALE, TILE_COLORS, TS, VARIANTS, buildAtlas, buildBackdrop, drawEnemySprite, drawPlayer, makeCanvas } from './sprites';
+import { EDGE_N, MASKS, edgeMask, growsMoss, isBlock } from './autotile';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildBackdrop, buildMoss, drawEnemySprite, drawPlayer, makeCanvas } from './sprites';
 import { TORCH_RADIUS } from '../sim/world';
 
 export interface Aim {
@@ -17,6 +18,7 @@ export interface Aim {
 export class Renderer {
   private atlas = buildAtlas();
   private backdrop = buildBackdrop();
+  private moss = buildMoss();
   private dark: HTMLCanvasElement | null = null;
   /** Device pixels. */
   w = 1;
@@ -96,6 +98,7 @@ export class Renderer {
     const x1 = Math.ceil(this.camX + w / 2 / ts) + 1;
     const y0 = Math.floor(this.camY - h / 2 / ts) - 1;
     const y1 = Math.ceil(this.camY + h / 2 / ts) + 1;
+    const get = (x: number, y: number): number => world.get(x, y);
     for (let ty = y0; ty <= y1; ty++) {
       for (let tx = x0; tx <= x1; tx++) {
         if (tx < 0 || tx >= world.w || ty < 0 || ty >= world.h) continue;
@@ -138,7 +141,13 @@ export class Renderer {
           continue;
         }
         const v = Math.floor(hash2(tx, ty, 7) * VARIANTS);
-        ctx.drawImage(this.atlas, v * TS, t * TS, TS, TS, dx, dy, ts, ts);
+        const mask = isBlock(t) ? edgeMask(get, tx, ty) : MASKS - 1;
+        // Rounded corners are transparent: show the cave wall behind them underground.
+        if (mask !== 0 && ty >= world.surface[tx]) ctx.drawImage(this.backdrop, 0, 0, TS, TS, dx, dy, ts, ts);
+        ctx.drawImage(this.atlas, atlasCol(v, mask) * TS, t * TS, TS, TS, dx, dy, ts, ts);
+        if (mask & EDGE_N && growsMoss(t) && ty <= world.surface[tx]) {
+          ctx.drawImage(this.moss, v * TS, 0, TS, MOSS_H, dx, dy, ts, MOSS_H * scale);
+        }
       }
     }
 
