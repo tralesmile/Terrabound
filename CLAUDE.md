@@ -10,8 +10,8 @@ You act as the whole studio: producer, designer, engineer, artist, audio, QA, ma
 1. `cd` to the repo (clone `https://github.com/tralesmile/terrabound` if missing; use the `add_repo` tool if access is missing). `git checkout dev && git pull`.
 2. Read `docs/PROGRESS.md` (where we are), `docs/BACKLOG.md` (what is next), `docs/LESSONS.md` (mistakes to avoid), `docs/NEEDS_FROM_USER.md`.
 3. Baseline: `npm ci && npm run check`. If anything is red, fixing it is task zero.
-4. Take the first unchecked items in `docs/BACKLOG.md`, in order. Work in **small vertical slices**: implement, add tests, `npm run check` green, then commit and `git push origin dev`. Commit after every green slice so a usage-limit interruption never loses work.
-5. After a green push, fast-forward main: `git fetch origin && git push origin dev:main` (main is the deployable branch; never push a red build there).
+4. Take the first unchecked items in `docs/BACKLOG.md`, in order. Work in **small vertical slices**: implement, add tests, commit, then `npm run ship` (runs the full gate and pushes dev and fast-forwards main only if it exits 0). Commit after every green slice so a usage-limit interruption never loses work.
+5. Never push by hand after piping `npm run check` through `grep`/`tail`: the pipeline's exit code is the filter's, not the gate's. `npm run ship` is the only push path (main is the deployable branch; never push a red build there).
 6. Stop when the time or usage budget is nearly gone. Before stopping, always:
    - tick finished items in `docs/BACKLOG.md`,
    - append a dated entry to `docs/PROGRESS.md` (done, next, known issues, numbers like bundle size and test counts),

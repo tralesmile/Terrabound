@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "node e2e/smoke.mjs",
-    "check": "npm run typecheck && npm run test && npm run build && npm run e2e"
+    "check": "npm run typecheck && npm run test && npm run build && npm run e2e",
+    "ship": "bash scripts/ship.sh"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

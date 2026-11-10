@@ -81,5 +81,6 @@ describe('Scrap layer balance (simulated player)', () => {
     process.stdout.write(`balance: affordable ${affordable}/${seeds}, deaths ${deaths}/${dives}, mean iron/seed ${(iron / seeds).toFixed(1)}, mean depth ${(depthSum / dives).toFixed(1)}\n`);
     expect(affordable).toBeGreaterThanOrEqual(Math.ceil(seeds * 0.5));
     expect(deaths / dives).toBeLessThan(0.25);
-  });
+    // Long simulation (~4-5 s alone, slower under the parallel gate); vitest's 5 s default made it flaky.
+  }, 30_000);
 });
