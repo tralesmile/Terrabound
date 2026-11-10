@@ -103,7 +103,7 @@ export function generateWorld(seed: number, w = WORLD_W, h = WORLD_H): World {
 
       // Ores replace solid rock only.
       if (t !== T.AIR) {
-        if (d > 4 && valueNoise(x / 2.5, y / 2.5, seed + 2) > 0.8) t = T.IRON;
+        if (d > 4 && valueNoise(x / 2.5, y / 2.5, seed + 2) > 0.76) t = T.IRON;
         else if (d > 22 && valueNoise(x / 2.5, y / 2.5, seed + 3) > 0.82) t = T.COPPER;
       }
 

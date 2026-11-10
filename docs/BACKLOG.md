@@ -28,7 +28,7 @@ Rule: ship small vertical slices. Each item needs tests. Keep the game playable 
 - [x] Crafting at the base Fabricator: recipes table (src/sim/recipes.ts), UI rows in the workshop; torch done
 - [x] More recipes: scaffold, ladder (plate deferred: metal already drops from tiles; revisit with smelter in P2)
 - [x] Scaffold and ladder placement and climbing physics (jump climbs, S/Down or stick-down descends, cling otherwise; keys 7/8 select)
-- [ ] Simulated-player balance test for the Scrap layer
+- [x] Simulated-player balance test for the Scrap layer (tests/balance.test.ts; first upgrade within 4 dives on >=50% of seeds for a dumb bot, deaths <25%)
 
 ## P2 Base and automation (M2)
 

@@ -14,3 +14,7 @@
 - **Auto-bank eats crafted items.** Crafting at the base put items in the pack, which the base banked straight back. Guard: `kit` flag on ItemDef (banking skips kit items) plus a unit test; any new craftable gear must set `kit: true`.
 - **Shop panel text can clip under buttons.** Pass a `maxW` to `text()` for any row with a right-side button.
 - **Adding items widens the hotbar and stash row.** Slot sizes are now computed from the item count, but adding more than ~10 placeables will need a scrolling bar. Guard: always view 06-mobile-play.png and 09-mobile-shop.png after adding an item.
+- **Sim bots need latches, not float thresholds.** A balance bot flipped between "walk" and "dig" at a 10.0-tile boundary because centring jitter crossed it every frame, silently resetting mining. Guard: one-way `leftPad` latch; when a bot test shows 0 progress, print per-frame state before touching game numbers.
+- **Check whether a number is a game problem or a bot problem before tuning.** Balance changes only after the bot was verified to dig correctly.
+- **`git stash` ignores untracked files**; do not rely on it to isolate a new test file.
+- **The repo moved to `tralesmile/Terrabound`** (git prints a redirect warning on push; pushes still work).
