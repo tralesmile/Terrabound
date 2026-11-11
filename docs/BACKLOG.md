@@ -78,10 +78,10 @@ World size and variety:
 CLAIMED by the interactive session 2026-11-11 (scheduled runs: skip these and start at "Living base and drones"): the whole "Bosses and goals" group.
 
 Bosses and goals
-- [ ] Boss framework (src/sim/bosses.ts): data-driven phases, telegraphed attacks (>= 0.4 s warning), arena lock, health bar UI, defeat rewards; deterministic, tested
-- [ ] Junk Colossus (Rust Wastes): summon item crafted from scrap; slam, scrap rain, charge
-- [ ] Vine Queen (Overgrown Ruins), Crystal Golem (Crystal Flats), Ash Wyrm (Ash Dunes, burrowing), Frost Titan (Frozen Spires)
-- [ ] Unique boss drops: weapons with effects (burn, chain lightning, freeze, lifesteal) as GEAR entries; boss trophies for the base
+- [x] Boss framework (src/sim/bosses.ts): data-driven phases, telegraphed attacks (>= 0.4 s warning), arena lock, health bar UI, defeat rewards; deterministic, tested
+- [x] Junk Colossus (Rust Wastes): summon item crafted from scrap; slam, scrap rain, charge
+- [x] Vine Queen (Overgrown Ruins), Crystal Golem (Crystal Flats), Ash Wyrm (Ash Dunes, burrowing), Frost Titan (Frozen Spires)
+- [x] Unique boss drops: trophy GEAR per boss (stat-based; status effects burn/chain/freeze/lifesteal still todo); trophies for the base still todo
 - [ ] Deeper layers every ~100 m (Circuit, Plasma, Core) with new ores, enemies, hazards; layer gates opened by bosses
 - [ ] Final boss: the Hollow AI at the core; ending sequence and credits; new game+ toggle
 

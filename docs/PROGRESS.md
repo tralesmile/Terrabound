@@ -275,3 +275,11 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 **Next:** P1.7 follow-ups, then P2/P3 in order.
 
 **Known issues:** vehicles are drawn from rectangles (art pass pending); on touch, reeling the hook needs holding the dig side.
+
+## 2026-11-11 (late) Interactive session: bosses
+
+**Done:** five biome bosses (src/sim/bosses.ts) with telegraphed attacks, phase 2, arenas, beacons at the fabricator, trophies (boss-only GEAR), save v10. 254 unit tests, e2e boss summon/defeat check, bundle 172 kB (59.8 kB gzip).
+
+**Next (claimed by the interactive session):** deeper layers with gates, final boss. Scheduled runs: start at "Living base and drones".
+
+**Known issues:** boss art is built from rectangles (needs a pixel-art pass); no status effects yet.
