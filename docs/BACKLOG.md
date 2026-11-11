@@ -95,7 +95,7 @@ Characters
 - [ ] Wandering merchant drone with rotating, fully visible stock (seeded per day; no paid randomness)
 
 World
-- [ ] Weather and events: dust storms (visibility), meteor showers (rare ore drops), eclipse night (stronger enemies, rare loot)
+- [ ] Weather and events: dust storms (visibility), meteor showers (rare ore drops), eclipse night (stronger enemies, rare loot) (CLAIMED by the interactive session 2026-11-11)
 - [ ] Pets / companion drones that follow, light the way and collect drops
 - [ ] Farming: crops on soil (3-4 kinds), watering, harvest; cooking pot recipes; food buffs with timers
 
