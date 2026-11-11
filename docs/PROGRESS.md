@@ -294,3 +294,13 @@ Also: weather and events (weather.ts): dust storms, meteor showers, eclipses. 26
 Also: pets (scout bot, glow moth, spark pup) in a new gear slot. 266 unit tests, bundle 186 kB (64.5 kB gzip).
 Also: share cards (SHARE on the map and victory screens). 267 unit tests, e2e green, bundle 189 kB (65.3 kB gzip).
 Interactive session claims are all finished; scheduled runs continue P1.8 from "Living base and drones" (skip items already ticked).
+
+## 2026-11-11 Scheduled run 12
+
+**Done:** baseline green (267 tests). Creative review: the surface skyline was flat rectangles; now two parallax layers (far haze at 0.3) and towers with setbacks, antennas, broken crowns and blinking window grids (`towerShape` in decor.ts, 4 tests; screenshot 02 reviewed). Magma pockets: new liquid `T.MAGMA` (id 40, 60 dps, glows, light 28) replaces water/acid in the Plasma and Core layers; liquid damage now comes from `TileDef.dps`; 3 tests and e2e screenshot 27b-magma.
+
+**Numbers:** 274 unit tests, e2e all green, bundle 190 kB (65.9 kB gzip).
+
+**Next:** near-foliage parallax layer, shaped ore veins, water+magma cooling into rock, then P1.8 "Living base and drones".
+
+**Known issues:** most magma pockets are 1-3 cells (the basin fill only floods floor cells); DAILY still replaces the world without a confirm.

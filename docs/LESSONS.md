@@ -51,3 +51,5 @@
 - **New surface features break fixed e2e spots.** Recall checks used `padX + 90`, which became a pond. Guard: e2e searches for a dry, open column instead of a fixed offset.
 - **A Playwright `mouse.click` or `keyboard.press` can fall between two sim frames** (the sim only sees held state). Guard: in e2e, press, wait ~60-80 ms, then release for anything the sim must see as a press.
 - **`npm run ship` is rejected when a parallel run pushed first.** Fix: `git fetch origin && git rebase origin/main` (dev and main are the same commit after every ship), then ship again.
+- **`npm run check` takes over 2 minutes.** The default Bash timeout (120 s) killed it on run 12. Guard: run the gate and ship with an explicit 600000 ms timeout and log to a file.
+- **New liquids need four touch points:** tile def (with `dps`), renderer liquid branch + light source, sprites TILE_COLORS, map colours. Grep `ACID_POOL` before adding one.
