@@ -355,3 +355,52 @@ export function mixHex(a: string, b: string, t: number): string {
   const c = (x: number, y: number): string => Math.round(x + (y - x) * k).toString(16).padStart(2, '0');
   return `#${c(ar, br)}${c(ag, bg)}${c(ab, bb)}`;
 }
+
+/** A skyline rectangle in tile units: x from the footprint's left edge, y measured up from the base line. */
+export interface SkyRect { x: number; y: number; w: number; h: number }
+/** A ruined tower silhouette: stacked blocks (setbacks, a broken crown, an antenna) and lit window cells. */
+export interface TowerShape { rects: SkyRect[]; windows: { x: number; y: number }[]; top: number; w: number }
+
+/** Skyline layers: 0 = near (existing), 1 = far haze. Far towers are shorter, narrower and packed tighter. */
+export const SKYLINE_LAYERS = [
+  { par: 0.55, spacing: 4, minH: 3, varH: 11, minW: 1.4, varW: 1.8, salt: 5 },
+  { par: 0.3, spacing: 3, minH: 2, varH: 6, minW: 1, varW: 1.4, salt: 41 },
+] as const;
+
+/** Deterministic tower outline for skyline slot `i` on `layer` (pure; same input, same shape). */
+export function towerShape(i: number, layer: number): TowerShape {
+  const L = SKYLINE_LAYERS[layer] ?? SKYLINE_LAYERS[0];
+  const s = L.salt;
+  const th = L.minH + Math.floor(hash2(i, 4, s) * L.varH);
+  const w = L.minW + hash2(i, 5, s) * L.varW;
+  const rects: SkyRect[] = [];
+  // Main body up to a setback, then a narrower upper block.
+  const cut = Math.max(1, Math.floor(th * (0.55 + hash2(i, 8, s) * 0.3)));
+  rects.push({ x: 0, y: 0, w, h: cut });
+  const inset = w * (0.12 + hash2(i, 9, s) * 0.18);
+  rects.push({ x: inset, y: cut, w: w - inset * 2, h: th - cut });
+  let top = th;
+  const crown = hash2(i, 10, s);
+  if (crown < 0.4) {
+    // Antenna mast with a cross bar.
+    const ah = 1 + hash2(i, 11, s) * 2;
+    rects.push({ x: w / 2 - 0.08, y: th, w: 0.16, h: ah });
+    rects.push({ x: w / 2 - 0.3, y: th + ah * 0.6, w: 0.6, h: 0.12 });
+    top = th + ah;
+  } else if (crown < 0.75) {
+    // Broken crown: one jagged stub on one side.
+    const left = hash2(i, 12, s) < 0.5;
+    const sw = (w - inset * 2) * 0.4;
+    rects.push({ x: left ? inset : w - inset - sw, y: th, w: sw, h: 0.6 + hash2(i, 13, s) * 0.8 });
+    top = th + 1.4;
+  }
+  // Windows: a sparse grid on the lower body, seeded so only some cells are lit.
+  const windows: { x: number; y: number }[] = [];
+  const cols = Math.max(1, Math.floor(w / 0.6));
+  for (let r = 0; r < cut - 0.5; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (hash2(i * 31 + c, r, s + 7) < 0.22) windows.push({ x: (c + 0.35) * (w / cols), y: r + 0.5 });
+    }
+  }
+  return { rects, windows, top, w };
+}

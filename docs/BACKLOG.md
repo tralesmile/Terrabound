@@ -45,7 +45,7 @@ Art (do first, biggest visible win):
 - [x] Back-wall layer (save v3; nothing spawns in front of built walls): separate `walls` array in World; caves show darker dug-out walls behind, so underground is never flat black. Player-placed walls move to this layer.
 - [x] Terraria-style tile light map (flood-fill light from sky, torches, lamp, glowing ores) replacing the radial gradient; smooth per-tile interpolation; cached and only recomputed near changes.
 - [x] Day/night cycle (src/sim/daynight.ts): 10-minute day, night sky palette, sun and moon, dimmer sky light, drone wisps hunt the surface at night beyond 30 columns of the pad.
-- [ ] Parallax backgrounds per biome: skyline silhouettes per biome done (towers, giant trees, spires, mountains, ash cones) and sky palette blends between biomes; still todo: 2 more depth layers (mid structures, near foliage).
+- [ ] Parallax backgrounds per biome: skyline silhouettes per biome done (towers, giant trees, spires, mountains, ash cones) and sky palette blends between biomes; far haze layer done (2026-11-11 run 12: second parallax layer, towers with setbacks, antennas, broken crowns and window grids); still todo: near foliage layer.
 
 World size and variety:
 - [x] Bigger world: 1400 x 420 tiles (chosen over 1600x600 to keep worldgen ~100 ms and tests fast) (wide surface to explore, deep layers). Chunked render cache (32x32 tile chunks pre-drawn to offscreen canvases, redraw only dirty chunks); keep 60 fps and memory budget; perf test in e2e. Save format unaffected (world regenerates from seed; only diffs near the base persist).

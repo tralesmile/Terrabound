@@ -11,7 +11,7 @@ import { ICON, drawIcon } from './icons';
 import { GEAR } from '../sim/gear';
 import { BOSSES } from '../sim/bosses';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, leafMask } from './autotile';
-import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, SNOW_H, blendSky, buildDecor, mixHex } from './decor';
+import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, towerShape } from './decor';
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
@@ -840,19 +840,29 @@ export class Renderer {
       const sy = hash2(i, 2, 9) * Math.max(1, horizon - ts * 6);
       if (sy < horizon - ts * 4) ctx.fillRect(sx, sy, this.scale, this.scale);
     }
-    // Parallax skyline; each silhouette takes the shape of the biome it stands over.
-    const par = 0.55;
+    // Parallax skyline in two depth layers: a pale far haze, then the near silhouettes.
+    this.drawSkyline(ctx, horizon, time, world, 1, mixHex(this.sky[3], this.sky[1], 0.45));
+    this.drawSkyline(ctx, horizon, time, world, 0, this.sky[3]);
+  }
+
+  /** One skyline layer; each silhouette takes the shape of the biome it stands over. */
+  private drawSkyline(ctx: CanvasRenderingContext2D, horizon: number, time: number, world: Game['world'], layer: number, color: string): void {
+    const ts = TS * this.scale;
+    const L = SKYLINE_LAYERS[layer];
+    const par = L.par;
+    const sp = L.spacing;
     const left = Math.floor(this.camX * par - this.w / 2 / ts) - 3;
     const right = Math.ceil(this.camX * par + this.w / 2 / ts) + 3;
     const base = horizon + ts * 2;
-    for (let i = Math.floor(left / 4); i <= Math.ceil(right / 4); i++) {
-      const wx = i * 4 + hash2(i, 3, 5) * 3;
+    const far = layer > 0;
+    for (let i = Math.floor(left / sp); i <= Math.ceil(right / sp); i++) {
+      const wx = i * sp + hash2(i, 3, L.salt) * (sp - 1);
       const col = Math.min(world.w - 1, Math.max(0, Math.round(this.camX + (wx - this.camX * par))));
       const bio = world.biome[col] ?? 0;
-      const th = 3 + Math.floor(hash2(i, 4, 5) * 11);
-      const tw = 1.4 + hash2(i, 5, 5) * 1.8;
+      const th = L.minH + Math.floor(hash2(i, 4, L.salt) * L.varH);
+      const tw = L.minW + hash2(i, 5, L.salt) * L.varW;
       const x = Math.round(this.w / 2 + (wx - this.camX * par) * ts);
-      ctx.fillStyle = this.sky[3];
+      ctx.fillStyle = color;
       if (bio === B.JUNGLE) {
         // Giant alien trees.
         ctx.fillRect(x + ts * 0.5, base - th * ts, Math.max(2, ts * 0.5), th * ts);
@@ -869,7 +879,9 @@ export class Renderer {
         if (bio === B.ASH) ctx.lineTo(x + half * 0.25, base - peak * ts);
         ctx.lineTo(x + half, base);
         ctx.fill();
-        if (bio === B.FROST) {
+        if (far) {
+          // Haze layer: shapes only.
+        } else if (bio === B.FROST) {
           ctx.fillStyle = 'rgba(230,246,255,0.55)';
           ctx.beginPath();
           ctx.moveTo(x - half * 0.25, base - peak * ts * 0.75);
@@ -884,11 +896,19 @@ export class Renderer {
           ctx.fillRect(x - this.scale, base - peak * ts * 0.7, this.scale * 2, this.scale * 2);
         }
       } else {
-        // Ruined towers with blinking windows.
-        ctx.fillRect(x, base - th * ts, Math.round(tw * ts), th * ts);
-        ctx.fillStyle = hash2(i, 6, 5) > 0.5 ? 'rgba(232,127,91,0.8)' : 'rgba(54,224,232,0.7)';
-        const win = Math.floor(hash2(i, 7, 5) * th);
-        if (Math.floor(time * 0.7 + i) % 5 !== 0) ctx.fillRect(x + ts * 0.4, base - (win + 1) * ts + ts * 0.3, this.scale * 2, this.scale * 2);
+        // Ruined towers: setbacks, broken crowns and antennas, with a few lit windows.
+        const shape = towerShape(i, layer);
+        for (const r of shape.rects) {
+          ctx.fillRect(Math.round(x + r.x * ts), Math.round(base - (r.y + r.h) * ts), Math.max(1, Math.round(r.w * ts)), Math.ceil(r.h * ts));
+        }
+        if (!far) {
+          const warm = hash2(i, 6, 5) > 0.5;
+          ctx.fillStyle = warm ? 'rgba(232,127,91,0.75)' : 'rgba(54,224,232,0.65)';
+          shape.windows.forEach((wn, n) => {
+            if (Math.floor(time * 0.5 + i + n * 3) % 7 === 0) return;
+            ctx.fillRect(Math.round(x + wn.x * ts), Math.round(base - wn.y * ts), this.scale * 2, this.scale * 2);
+          });
+        }
       }
     }
   }
