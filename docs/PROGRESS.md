@@ -199,3 +199,11 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 **Next:** drone rules / miner drone, ore-to-plate recipes.
 
 **Known issues:** summary is a toast (6 s), not a panel; hotbar "0" slot for a selected unowned block.
+
+## 2026-11-11 Scheduled run 5
+
+**Done:** baseline green. Fabricator upgrade path: upgrade `fab` (2 levels) gates machine recipes via `Recipe.fab` (Lv1 solar/battery, Lv2 miner/smelter), locked rows in the shop, tutorial hint updated. No save bump (upgrade levels are sanitised generically). Shop rows now shrink to fit so the panel stays on screen at 360 px (screenshot 09-mobile-shop.png reviewed). 4 new tests (196 total). Global vitest timeout 30 s after slow-VM flakes.
+
+**Next:** ore-to-plate recipes, miner drone v2, drone rules UI.
+
+**Known issues:** shop will need scrolling or tabs if it grows past ~20 rows; hotbar "0" slot for a selected unowned block.

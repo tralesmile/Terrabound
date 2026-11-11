@@ -58,7 +58,7 @@ export const UPGRADES: UpgradeDef[] = [
   {
     id: 'fab',
     name: 'Fabricator',
-    desc: 'Unlocks machine recipes (Lv1 solar, battery; Lv2 miner, smelter)',
+    desc: 'Unlocks machines',
     maxLevel: 2,
     cost: (l) => (l === 0 ? { iron_scrap: 6, rust: 10 } : { metal: 6, copper_wire: 4, iron_scrap: 8 }),
   },

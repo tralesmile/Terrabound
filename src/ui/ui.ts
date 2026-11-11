@@ -277,7 +277,8 @@ export class UI {
     ctx.fillStyle = 'rgba(8,6,16,0.82)';
     ctx.fillRect(0, 0, w, h);
     const pw = Math.min(w - u * 2, u * 40);
-    const rowH = u * 2.9;
+    const rows = UPGRADES.length + RECIPES.length;
+    const rowH = Math.min(u * 2.9, Math.max(u * 2.3, (h - u * 2 - u * 10) / rows));
     const ph = Math.min(h - u * 2, u * 2.4 + u * 2 + (UPGRADES.length + RECIPES.length) * rowH + u * 5.6);
     const px = (w - pw) / 2;
     const py = (h - ph) / 2;

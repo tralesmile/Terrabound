@@ -38,3 +38,4 @@
 - **Check that a backlog item has a purpose before building it.** "Storage chest" had no job because the stash is unlimited; I dropped it and wrote down why instead of shipping a dead feature. Guard: read DESIGN rules for the thing a feature would change before slicing it.
 - **Sim must stay clock-free even for offline progress.** `Game` never calls `Date.now`; the wall clock is passed into `applyOffline(now)`/`toSave(now)` from main.ts, and the stamp is consumed once so a reload cannot double-pay. Guard: tests for skew, cap, and double application.
 - **Worldgen-heavy tests flake at vitest's 5 s default on slow VMs.** Guard: global `testTimeout: 30000` in vite.config.ts (assertions untouched).
+- **A growing shop list silently clipped rows.** Guard: row height shrinks to fit; always view 09-mobile-shop.png after adding upgrades or recipes (next step: tabs/scroll past ~20 rows).
