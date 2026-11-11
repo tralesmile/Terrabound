@@ -8,12 +8,15 @@ import type { GearId } from './gear';
 import type { Inventory, ItemId } from './tiles';
 import type { World } from './world';
 
-export type BossId = 'colossus' | 'vine_queen' | 'golem' | 'wyrm' | 'titan';
+export type BossId = 'colossus' | 'vine_queen' | 'golem' | 'wyrm' | 'titan' | 'hollow_ai';
 export type AttackKind = 'slam' | 'rain' | 'charge' | 'volley' | 'summon';
 
 export interface BossDef {
   name: string;
+  /** Biome the beacon must be used in (-1 = anywhere in the required layer). */
   biome: number;
+  /** Minimum depth layer (layers.ts) to summon; the final boss lives in the Core. */
+  layer?: number;
   hp: number;
   /** Half width and height in tiles. */
   halfW: number;
@@ -40,9 +43,13 @@ export const BOSSES: Record<BossId, BossDef> = {
   vine_queen: { name: 'Vine Queen', biome: B.JUNGLE, hp: 520, halfW: 1.2, h: 3.0, speed: 2.8, flying: false, contact: 16, attacks: ['volley', 'summon', 'charge'], cooldown: 2.2, minion: 'vine', beacon: 'beacon_vine', reward: { crystal: 12, biomass: 30, seed: 6 }, gear: 'thorn_whip', color: '#2f6a34', accent: '#7fcf5a', eye: '#ff7ab8' },
   golem: { name: 'Crystal Golem', biome: B.CRYSTAL, hp: 640, halfW: 1.5, h: 3.6, speed: 1.8, flying: false, contact: 22, attacks: ['slam', 'volley', 'rain'], cooldown: 2.6, minion: 'mite', beacon: 'beacon_golem', reward: { crystal: 25, metal: 10 }, gear: 'prism_lance', color: '#4f3a8a', accent: '#d8b8ff', eye: '#8ff4ff' },
   wyrm: { name: 'Ash Wyrm', biome: B.ASH, hp: 700, halfW: 1.3, h: 1.8, speed: 4.2, flying: true, contact: 24, attacks: ['charge', 'volley', 'rain'], cooldown: 2.0, minion: 'ember', beacon: 'beacon_wyrm', reward: { crystal: 18, copper_wire: 20 }, gear: 'ember_cannon', color: '#3a1f1a', accent: '#ff8a3c', eye: '#ffd24a' },
+  hollow_ai: { name: 'The Hollow AI', biome: -1, layer: 3, hp: 2200, halfW: 1.8, h: 3.2, speed: 3.2, flying: true, contact: 30, attacks: ['volley', 'rain', 'summon', 'charge', 'volley'], cooldown: 1.8, minion: 'flyer', beacon: 'beacon_ai', reward: { core_shard: 20, crystal: 40, plasma: 20 }, gear: 'ai_crown', color: '#2a1a3a', accent: '#ff5aff', eye: '#ffffff' },
   titan: { name: 'Frost Titan', biome: B.FROST, hp: 820, halfW: 1.7, h: 4.0, speed: 1.6, flying: false, contact: 26, attacks: ['slam', 'rain', 'volley', 'summon'], cooldown: 2.5, minion: 'hulk', beacon: 'beacon_titan', reward: { crystal: 30, metal: 25 }, gear: 'frost_core', color: '#5a7390', accent: '#e6f6ff', eye: '#36e0e8' },
 };
 export const BOSS_IDS = Object.keys(BOSSES) as BossId[];
+/** The five biome bosses (the gates count these); the Hollow AI is the final boss. */
+export const BIOME_BOSSES = BOSS_IDS.filter((id) => BOSSES[id].layer === undefined);
+export const FINAL_BOSS: BossId = 'hollow_ai';
 
 /** Telegraph (warning) and active time per attack. */
 export const ATTACK_TIME: Record<AttackKind, { warn: number; act: number }> = {

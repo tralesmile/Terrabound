@@ -7,6 +7,7 @@ import { FOOD } from '../sim/fishing';
 import { GEAR, GEAR_IDS, GEAR_SLOTS, type GearId } from '../sim/gear';
 import { BOSSES, bossForBeacon } from '../sim/bosses';
 import { BIOMES, type BiomeId } from '../sim/biomes';
+import { LAYERS } from '../sim/layers';
 import { CODEX, RECALL_TIME } from '../sim/explore';
 import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type Inventory, type ItemId } from '../sim/tiles';
 import { UPGRADES } from '../sim/upgrades';
@@ -44,7 +45,8 @@ export type UiAction =
   | { k: 'craftgear'; id: GearId }
   | { k: 'equip'; id: GearId }
   | { k: 'mapzoom'; d: number }
-  | { k: 'mapcenter' };
+  | { k: 'mapcenter' }
+  | { k: 'victoryclose' };
 
 export type ShopTab = 'upgrades' | 'fab' | 'gear';
 
@@ -211,9 +213,33 @@ export class UI {
       this.drawInventory(ctx, game, w, h, u, time);
       return;
     }
+    if (this.victory) {
+      this.drawVictory(ctx, game, w, h, u, time);
+      return;
+    }
     this.drawHud(ctx, game, w, h, u, time);
     if (game.boss) this.drawBossBar(ctx, game, w, u);
     if (game.chestOpen) this.drawChest(ctx, game, w, h, u);
+  }
+
+  /** Shown once after beating the Hollow AI. */
+  victory = false;
+
+  private drawVictory(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, time: number): void {
+    ctx.fillStyle = 'rgba(4,2,10,0.9)';
+    ctx.fillRect(0, 0, w, h);
+    const glow = 0.6 + Math.sin(time * 2) * 0.4;
+    this.text(ctx, 'THE HOLLOW IS FREE', w / 2, h * 0.24, Math.round(u * 2), `rgba(255,90,255,${glow.toFixed(2)})`, 'center', w - u * 2);
+    const lines = [
+      'The Hollow AI is silent. The machine-planet breathes again.',
+      `Bosses beaten: ${game.biomeBossesBeaten()}/5 + the Hollow AI`,
+      `Deepest dive: ${game.stats.deepest}m   Deaths: ${game.stats.deaths}   Codex: ${game.codex.length}/${CODEX.length}`,
+      'Made by the Terrabound team. Thank you for playing!',
+      'Your world, base and gear stay: keep exploring, building and fishing.',
+    ];
+    lines.forEach((l, i) => this.text(ctx, l, w / 2, h * 0.36 + i * u * 1.8, Math.round(u * 0.9), i === 3 ? '#ffcf4a' : '#c9d0e4', 'center', w - u * 2));
+    const bw = Math.min(w - u * 2, u * 14);
+    this.button(ctx, (w - bw) / 2, h * 0.76, bw, u * 2.6, 'KEEP PLAYING', { k: 'victoryclose' }, u);
   }
 
   private drawBossBar(ctx: CanvasRenderingContext2D, game: Game, w: number, u: number): void {
@@ -453,7 +479,7 @@ export class UI {
     this.bar(ctx, x, y, bw, bh, game.battery / d.maxBattery, low ? '#ff9a3c' : '#36e0e8', `BAT ${Math.ceil(game.battery)}`, u);
     y += bh + u * 0.9;
     const carried = invTotal(game.carried);
-    this.text(ctx, `Depth ${Math.floor(game.depth)}m   Pack ${carried}/${d.packCap}`, x, y, Math.round(u * 0.95), carried >= d.packCap ? '#ff9a3c' : '#ffffff');
+    this.text(ctx, `Depth ${Math.floor(game.depth)}m ${game.depth > 2 ? `(${LAYERS[game.layer].name})` : ''}  Pack ${carried}/${d.packCap}`, x, y, Math.round(u * 0.95), carried >= d.packCap ? '#ff9a3c' : '#ffffff');
 
     if (game.isAtBase() && (game.power.solars > 0 || game.power.smelters > 0 || game.power.batteries > 0 || game.power.miners > 0 || game.power.drones > 0)) {
       const pw = game.power;

@@ -591,6 +591,58 @@ try {
   await page.waitForTimeout(300);
   check('defeating the boss grants its trophy', await page.evaluate(() => window.__terrabound.game.ownsGear('junk_hammer')));
 
+  // Deep layers: the Plasma gate (still sealed) seen from inside the Circuit layer.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const x = w.padX + 120;
+    const y = w.padY + 176;
+    for (let xx = x - 12; xx <= x + 12; xx++) for (let yy = y - 6; yy < y; yy++) w.set(xx, yy, 0);
+    for (let xx = x - 12; xx <= x + 12; xx++) w.set(xx, y, 33);
+    g.body.x = x + 0.5;
+    g.body.y = y;
+    g.body.vx = g.body.vy = 0;
+    g.enemies = [];
+  });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: path.join(out, '27-deep-layer.png') });
+  check('deep layers show their name in the HUD', await page.evaluate(() => window.__terrabound.game.layer === 1));
+  // Final boss: in the Core, summon and beat the Hollow AI; the victory screen appears and closes.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const x = w.padX + 120;
+    const y = w.padY + 300;
+    for (let xx = x - 30; xx <= x + 30; xx++) {
+      for (let yy = y - 10; yy < y; yy++) w.set(xx, yy, 0);
+      w.set(xx, y, 37);
+    }
+    g.body.x = x + 0.5;
+    g.body.y = y;
+    g.body.vx = g.body.vy = 0;
+    g.enemies = [];
+    g.hp = g.derived.maxHp;
+    g.carried = { beacon_ai: 1 };
+    g.useItem('beacon_ai');
+  });
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: path.join(out, '28-final-boss.png') });
+  await page.evaluate(() => window.__terrabound.game.damageBoss(1e6));
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: path.join(out, '29-victory.png') });
+  check('beating the Hollow AI shows the victory screen', await page.evaluate(() => window.__terrabound.ui.victory));
+  const keep = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'victoryclose'));
+  if (keep) await page.mouse.click(keep.x + keep.w / 2, keep.y + keep.h / 2);
+  await page.waitForTimeout(100);
+  check('KEEP PLAYING closes the victory screen', !(await page.evaluate(() => window.__terrabound.ui.victory)));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.body.x = g.world.padX + 0.5;
+    g.body.y = g.world.padY;
+    g.body.vx = g.body.vy = 0;
+  });
+  await page.waitForTimeout(300);
+
   // Map: zoom with the wheel and the +/- buttons.
   await page.keyboard.press('KeyM');
   await page.waitForTimeout(200);

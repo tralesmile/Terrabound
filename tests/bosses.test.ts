@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FIXED_DT, Game, NO_CONTROLS, type Controls } from '../src/sim/game';
-import { ATTACK_TIME, BOSSES, BOSS_IDS, makeBoss, phase, stepBoss } from '../src/sim/bosses';
+import { ATTACK_TIME, BIOME_BOSSES, BOSSES, FINAL_BOSS, makeBoss, phase, stepBoss } from '../src/sim/bosses';
+import { LAYERS, openGates } from '../src/sim/layers';
 import { SAVE_VERSION, defaultSave, parseSave, serializeSave } from '../src/sim/save';
 import { GEAR } from '../src/sim/gear';
 import { RECIPES } from '../src/sim/recipes';
@@ -31,9 +32,9 @@ function arena(g: Game, biome: number): { x: number; y: number } {
 
 describe('boss table', () => {
   it('five bosses, one per biome, each with a beacon recipe and a boss-only trophy', () => {
-    expect(BOSS_IDS.length).toBe(5);
-    expect(new Set(BOSS_IDS.map((b) => BOSSES[b].biome)).size).toBe(5);
-    for (const id of BOSS_IDS) {
+    expect(BIOME_BOSSES.length).toBe(5);
+    expect(new Set(BIOME_BOSSES.map((b) => BOSSES[b].biome)).size).toBe(5);
+    for (const id of [...BIOME_BOSSES, FINAL_BOSS]) {
       const d = BOSSES[id];
       expect(RECIPES.some((r) => r.out === d.beacon)).toBe(true);
       expect(GEAR[d.gear].bossOnly).toBe(true);
@@ -73,7 +74,7 @@ describe('boss fights', () => {
   });
 
   it('every boss attacks within a few seconds and can hurt the player', () => {
-    for (const id of BOSS_IDS) {
+    for (const id of BIOME_BOSSES) {
       const g = new Game(defaultSave());
       arena(g, BOSSES[id].biome);
       g.carried = { [BOSSES[id].beacon]: 1 };
@@ -141,5 +142,49 @@ describe('boss fights', () => {
     const g = new Game(defaultSave());
     g.stash = { metal: 999, crystal: 999 };
     expect(g.canCraftGear('junk_hammer')).toBe(false);
+  });
+});
+
+describe('layers, gates and the final boss', () => {
+  it('deeper layers are sealed until enough bosses are beaten, and have their own ore', () => {
+    const g = new Game(defaultSave());
+    const w = g.world;
+    const gy = w.padY + LAYERS[1].top;
+    expect(w.get(200, gy)).toBe(T.GATE);
+    expect(w.get(200, w.padY + LAYERS[2].top)).toBe(T.GATE);
+    let deepOre = 0;
+    for (let y = w.padY + LAYERS[2].top + 3; y < w.padY + LAYERS[3].top; y++) for (let x = 1; x < w.w - 1; x++) if (w.get(x, y) === T.PLASMA_ORE) deepOre++;
+    expect(deepOre).toBeGreaterThan(50);
+    // Beat the Colossus: the Circuit gate opens, the Plasma gate stays shut.
+    arena(g, BOSSES.colossus.biome);
+    g.carried = { beacon_colossus: 1 };
+    g.useItem('beacon_colossus');
+    g.damageBoss(1e6);
+    expect(w.get(200, gy)).not.toBe(T.GATE);
+    expect(w.get(200, w.padY + LAYERS[2].top)).toBe(T.GATE);
+    // Gates stay open after a reload (they are world edits, and reopen from the boss count).
+    const g2 = new Game(parseSave(serializeSave(g.toSave())));
+    expect(g2.world.get(200, gy)).not.toBe(T.GATE);
+    expect(openGates(g2.world, 0)).toBe(0);
+  });
+
+  it('the Hollow AI can only be called in the Core, and beating it is a victory', () => {
+    const g = new Game(defaultSave());
+    arena(g, BOSSES.colossus.biome);
+    g.carried = { beacon_ai: 1 };
+    expect(g.useItem('beacon_ai')).toBe(false);
+    const x = Math.floor(g.body.x);
+    const y = g.world.padY + LAYERS[3].top + 20;
+    for (let xx = x - 30; xx <= x + 30; xx++) {
+      for (let yy = y - 10; yy < y; yy++) g.world.set(xx, yy, T.AIR);
+      g.world.set(xx, y, T.CORE_ROCK);
+    }
+    g.body.y = y;
+    expect(g.useItem('beacon_ai')).toBe(true);
+    g.drainEvents();
+    g.damageBoss(1e6);
+    const ev = g.drainEvents();
+    expect(ev.some((e) => e.t === 'victory')).toBe(true);
+    expect(g.ownsGear('ai_crown')).toBe(true);
   });
 });

@@ -22,8 +22,9 @@ import { recipeById } from './recipes';
 import { chestLoot } from './loot';
 import { SOIL_TILES, growTime, stepSaplings } from './structures';
 import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
-import { ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
+import { BIOME_BOSSES, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
 import { BIOMES, type BiomeId } from './biomes';
+import { LAYERS, layerAt, openGates } from './layers';
 import { GEAR, gearStats, sanitizeGear, type GearId, type GearSlot, type GearStats } from './gear';
 import { FOOD, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE } from './fishing';
 import { daylight } from './daynight';
@@ -102,6 +103,8 @@ export type GameEvent =
   | { t: 'bossdown'; id: BossId; first: boolean }
   | { t: 'bossgone' }
   | { t: 'nosummon'; reason: string }
+  | { t: 'gateopen' }
+  | { t: 'victory'; first: boolean }
   | { t: 'grow' }
   | { t: 'dawn' }
   | { t: 'fell'; x: number; y: number; tiles: number }
@@ -287,6 +290,7 @@ export class Game {
     applyDiff(this.world, this.fog, this.save.world);
     stampBase(this.world, this.save.base);
     stampWalls(this.world, this.save.walls);
+    openGates(this.world, this.biomeBossesBeaten());
     this.respawn(false);
     this.time = this.save.away.time;
     this.power = { ...newPower(), charge: this.save.away.charge };
@@ -466,6 +470,7 @@ export class Game {
     this.save.world = null;
     stampBase(this.world, this.save.base);
     stampWalls(this.world, this.save.walls);
+    openGates(this.world, this.biomeBossesBeaten());
     this.respawn(true);
   }
 
@@ -904,7 +909,7 @@ export class Game {
       this.lowWarned = false;
       this.bank();
     } else if (this.depth > 1.5) {
-      this.battery = Math.max(0, this.battery - dt * this.gear.drainMul);
+      this.battery = Math.max(0, this.battery - dt * this.gear.drainMul * LAYERS[layerAt(this.depth)].heat);
       if (this.battery < d.maxBattery * 0.2 && !this.lowWarned) {
         this.lowWarned = true;
         this.emit({ t: 'lowbattery' });
@@ -1234,6 +1239,8 @@ export class Game {
       // Player-built back walls make a room safe: nothing spawns in front of them.
       if (this.world.wall(Math.floor(e.x), Math.floor(e.y - 0.05)) === W.PLATE) continue;
       if (!ENEMIES[kind].flying && !this.world.isSolid(Math.floor(e.x), Math.floor(e.y + 0.05))) continue;
+      // Deeper layers breed tougher enemies.
+      e.hp *= LAYERS[layerAt(e.y - this.world.padY)].enemyHp;
       this.nextEnemyId++;
       this.enemies.push(e);
       return e;
@@ -1382,7 +1389,9 @@ export class Game {
     if (this.boss) return this.noSummon('A boss is already here');
     if (invCount(this.carried, beacon) <= 0) return this.noSummon('You need the beacon');
     if (Math.abs(this.body.x - this.world.padX) < 40) return this.noSummon('Too close to the pad');
-    if (this.world.biome[col] !== d.biome) return this.noSummon(`Use it in the ${BIOMES[d.biome as BiomeId].name}`);
+    if (d.layer !== undefined) {
+      if (layerAt(this.depth) < d.layer) return this.noSummon(`Use it in the ${LAYERS[d.layer].name}`);
+    } else if (this.world.biome[col] !== d.biome) return this.noSummon(`Use it in the ${BIOMES[d.biome as BiomeId].name}`);
     invAdd(this.carried, beacon, -1);
     const x = this.body.x + this.facing * 10;
     this.boss = makeBoss(id, x, Math.max(3, this.body.y - 8));
@@ -1395,6 +1404,15 @@ export class Game {
   private noSummon(reason: string): boolean {
     this.emit({ t: 'nosummon', reason });
     return false;
+  }
+
+  biomeBossesBeaten(): number {
+    return BIOME_BOSSES.filter((id) => this.save.bosses.includes(id)).length;
+  }
+
+  /** Depth layer the player is in (layers.ts). */
+  get layer(): number {
+    return layerAt(this.depth);
   }
 
   bossDefeated(id: BossId): boolean {
@@ -1422,6 +1440,8 @@ export class Game {
       if (!this.ownsGear(d.gear)) this.save.gear.owned.push(d.gear);
     }
     this.emit({ t: 'bossdown', id: bs.id, first });
+    if (openGates(this.world, this.biomeBossesBeaten()) > 0) this.emit({ t: 'gateopen' });
+    if (bs.id === FINAL_BOSS) this.emit({ t: 'victory', first });
     this.boss = null;
     this.bossBolts = [];
     this.bossWarn = null;

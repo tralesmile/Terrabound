@@ -193,6 +193,9 @@ function boot(): void {
         game.setTool(a.t);
         ui.toast(TOOL_NAMES[a.t], '#36e0e8');
         break;
+      case 'victoryclose':
+        ui.victory = false;
+        break;
       case 'mapzoom':
         ui.mapView.zoomBy(a.d);
         break;
@@ -341,6 +344,12 @@ function boot(): void {
         if (e.first) ui.toast(`Trophy: ${GEAR[BOSSES[e.id].gear].name} (equip it in GEAR)`, '#9ff6a0', 5);
         fx.addShake(1);
         saveNow();
+        break;
+      case 'gateopen':
+        ui.toast('A layer gate has opened below!', '#36e0e8', 4);
+        break;
+      case 'victory':
+        ui.victory = true;
         break;
       case 'bossgone':
         ui.toast('The boss withdrew (you left the arena)', '#8a90a2');

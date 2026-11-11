@@ -66,7 +66,10 @@ export type GearId =
   | 'thorn_whip'
   | 'prism_lance'
   | 'ember_cannon'
-  | 'frost_core';
+  | 'frost_core'
+  | 'ai_crown'
+  | 'plasma_saber'
+  | 'core_plate';
 
 export const GEAR: Record<GearId, GearDef> = {
   energy_blade: { name: 'Energy blade', slot: 'melee', desc: 'Quick arc, 12 damage', cost: {}, mod: {}, color: '#36e0e8', accent: '#c8ffff' },
@@ -90,6 +93,9 @@ export const GEAR: Record<GearId, GearDef> = {
   prism_lance: { name: 'Prism lance', slot: 'ranged', desc: 'Golem trophy: piercing beam, 26 damage', cost: {}, mod: { ranged: 'rail', rangedDmg: 26, rangedCd: 0.4 }, bossOnly: true, color: '#d8b8ff', accent: '#8ff4ff' },
   ember_cannon: { name: 'Ember cannon', slot: 'ranged', desc: 'Wyrm trophy: heavy bombs, 34 damage', cost: {}, mod: { ranged: 'bomb', rangedDmg: 34, rangedCd: 0.7 }, bossOnly: true, color: '#ff8a3c', accent: '#ffd24a' },
   frost_core: { name: 'Frost core armor', slot: 'body', desc: 'Titan trophy: 35% armor, +40 health', cost: {}, mod: { armor: 0.35, maxHp: 40 }, bossOnly: true, color: '#e6f6ff', accent: '#36e0e8' },
+  ai_crown: { name: 'Crown of the Hollow', slot: 'head', desc: 'Final trophy: 20% armor, +4 light, +50% dig speed', cost: {}, mod: { armor: 0.2, light: 4, digMul: 1.5 }, bossOnly: true, color: '#ff5aff', accent: '#ffffff' },
+  plasma_saber: { name: 'Plasma saber', slot: 'melee', desc: 'Deep-layer blade: 40 damage, 3 tile reach', cost: { plasma: 8, circuit: 6, metal: 10 }, mod: { meleeDmg: 40, meleeRange: 3, meleeCd: 0.3 }, color: '#ff5a8a', accent: '#ffd0e0' },
+  core_plate: { name: 'Core plate', slot: 'body', desc: 'Deep-layer armor: 40% armor, +50 health', cost: { core_shard: 8, plasma: 6, metal: 20 }, mod: { armor: 0.4, maxHp: 50 }, color: '#5a2a7a', accent: '#ff5aff' },
   sky_jet: { name: 'Sky Jet', slot: 'vehicle', desc: 'Ride with V and fly anywhere: jump climbs, S dives (uses battery)', cost: { metal: 20, copper_wire: 12, crystal: 8 }, mod: {}, color: '#5aa6ff', accent: '#ffffff' },
 };
 

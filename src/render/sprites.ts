@@ -33,6 +33,13 @@ const LOOK: Record<number, Look> = {
   [T.SAND]: { base: '#6a5a8a', light: '#8272a6', dark: '#4e4268', speck: '#d8b8ff', speckCount: 4, detail: 'ripples' },
   [T.CRYSTAL]: { base: '#3a2a5e', light: '#8a5fd6', dark: '#261c40', detail: 'facets' },
   [T.RUIN]: { base: '#3d4152', light: '#525870', dark: '#2a2d3a', detail: 'bricks' },
+  [T.CIRCUIT]: { base: '#1f3a2a', light: '#2f5a3e', dark: '#142a1e', speck: '#c9a35a', speckCount: 3, detail: 'frame' },
+  [T.CIRCUIT_ORE]: { base: '#1f3a2a', light: '#ffe08a', dark: '#142a1e', speck: '#ffcf4a', speckCount: 6, glint: '#ffffff', detail: 'facets' },
+  [T.PLASMA_ROCK]: { base: '#3a1a22', light: '#5a2a34', dark: '#260e16', speck: '#ff5a8a', speckCount: 2, detail: 'cracks' },
+  [T.PLASMA_ORE]: { base: '#3a1a22', light: '#ff9ab8', dark: '#260e16', speck: '#ff5a8a', speckCount: 6, glint: '#ffffff', detail: 'facets' },
+  [T.CORE_ROCK]: { base: '#1e1028', light: '#2e1a3e', dark: '#12081a', speck: '#9a2aa8', speckCount: 2, detail: 'cracks' },
+  [T.CORE_ORE]: { base: '#1e1028', light: '#ff9aff', dark: '#12081a', speck: '#ff5aff', speckCount: 6, glint: '#ffffff', detail: 'facets' },
+  [T.GATE]: { base: '#0b2a3a', light: '#36e0e8', dark: '#061620', speck: '#c8ffff', speckCount: 4, detail: 'pad' },
   [T.WRECK]: { base: '#3a3f4a', light: '#6b7080', dark: '#22252c', speck: '#e8a33d', speckCount: 2, glint: '#36e0e8', detail: 'rivets' },
 };
 
@@ -208,6 +215,13 @@ export const TILE_COLORS: Record<number, string> = {
   [T.TERMINAL]: '#36e0e8',
   [T.WRECK]: '#e8a33d',
   [T.WATER]: '#2a82dc',
+  [T.CIRCUIT]: '#2f5a3e',
+  [T.CIRCUIT_ORE]: '#ffcf4a',
+  [T.PLASMA_ROCK]: '#5a2a34',
+  [T.PLASMA_ORE]: '#ff5a8a',
+  [T.CORE_ROCK]: '#2e1a3e',
+  [T.CORE_ORE]: '#ff5aff',
+  [T.GATE]: '#36e0e8',
   [T.ACID_POOL]: '#7fff4a',
 };
 

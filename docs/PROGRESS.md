@@ -283,3 +283,9 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 **Next (claimed by the interactive session):** deeper layers with gates, final boss. Scheduled runs: start at "Living base and drones".
 
 **Known issues:** boss art is built from rectangles (needs a pixel-art pass); no status effects yet.
+
+## 2026-11-11 (later) Interactive session: layers and final boss
+
+**Done:** depth layers with gates (src/sim/layers.ts, gates open as biome bosses fall, persisted as world edits), new rock/ore/items (circuit, plasma, core shard), deep gear (plasma saber, core plate), the Hollow AI final boss with a victory screen. 256 unit tests, e2e green (deep layer, final boss, victory), bundle 178 kB (61.6 kB gzip).
+
+**Next:** "Living base and drones" (P1.8), then the rest of P1.8 in order.

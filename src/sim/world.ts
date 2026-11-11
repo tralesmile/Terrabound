@@ -2,6 +2,7 @@ import { valueNoise, hash2 } from './rng';
 import { T, TILES, type Inventory } from './tiles';
 import { BIOMES, biomeLayout, type BiomeId } from './biomes';
 import { decorate, type Structure } from './structures';
+import { LAYERS, layerAt, placeGates } from './layers';
 
 export const WORLD_W = 1400;
 export const WORLD_H = 420;
@@ -192,7 +193,8 @@ export function generateWorld(seed: number, w = WORLD_W, h = WORLD_H): World {
     for (let y = s; y < h; y++) {
       const d = y - s;
       const i = y * w + x;
-      let t: number = d < 4 + Math.floor(valueNoise(x / 5, y / 5, seed + 11) * 4) ? def.crust : T.METAL;
+      const layer = LAYERS[layerAt(y - padRow)];
+      let t: number = d < 4 + Math.floor(valueNoise(x / 5, y / 5, seed + 11) * 4) ? def.crust : layer.rock;
       world.walls[i] = t === T.METAL ? W.CAVE_ROCK : W.CAVE_RUST;
 
       // Caves: smooth noise above a threshold, only below a safe crust. Bigger caverns deeper down.
@@ -205,7 +207,8 @@ export function generateWorld(seed: number, w = WORLD_W, h = WORLD_H): World {
 
       // Ores replace solid rock only.
       if (t !== T.AIR) {
-        if (d > 4 && valueNoise(x / 2.5, y / 2.5, seed + 2) > 0.76) t = T.IRON;
+        if (layer.ore !== T.IRON && valueNoise(x / 2.5, y / 2.5, seed + 9) > 0.8) t = layer.ore;
+        else if (d > 4 && valueNoise(x / 2.5, y / 2.5, seed + 2) > 0.76) t = T.IRON;
         else if (d > 22 && valueNoise(x / 2.5, y / 2.5, seed + 3) > 0.82) t = T.COPPER;
         else if (
           (def.crystalNearSurface && d > 2 && valueNoise(x / 3, y / 3, seed + 4) > 0.8) ||
@@ -229,6 +232,7 @@ export function generateWorld(seed: number, w = WORLD_W, h = WORLD_H): World {
     const t = world.get(ox, oy);
     if (t === T.RUST || t === T.METAL) world.set(ox, oy, T.IRON);
   }
+  placeGates(world);
   decorate(world);
   world.version = 0;
   world.changes.length = 0;

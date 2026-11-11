@@ -75,15 +75,15 @@ World size and variety:
 
 ## P1.8 Owner request 2026-11-11: "add all" (do these FIRST, top to bottom, before P2)
 
-CLAIMED by the interactive session 2026-11-11 (scheduled runs: skip these and start at "Living base and drones"): the whole "Bosses and goals" group.
+Bosses and goals: done by the interactive session 2026-11-11 except the follow-ups noted on the final-boss line. Scheduled runs: continue with "Living base and drones".
 
 Bosses and goals
 - [x] Boss framework (src/sim/bosses.ts): data-driven phases, telegraphed attacks (>= 0.4 s warning), arena lock, health bar UI, defeat rewards; deterministic, tested
 - [x] Junk Colossus (Rust Wastes): summon item crafted from scrap; slam, scrap rain, charge
 - [x] Vine Queen (Overgrown Ruins), Crystal Golem (Crystal Flats), Ash Wyrm (Ash Dunes, burrowing), Frost Titan (Frozen Spires)
 - [x] Unique boss drops: trophy GEAR per boss (stat-based; status effects burn/chain/freeze/lifesteal still todo); trophies for the base still todo
-- [ ] Deeper layers every ~100 m (Circuit, Plasma, Core) with new ores, enemies, hazards; layer gates opened by bosses
-- [ ] Final boss: the Hollow AI at the core; ending sequence and credits; new game+ toggle
+- [x] Deeper layers (src/sim/layers.ts): Circuit 90 m, Plasma 180 m, Core 270 m; own rock/ore, tougher enemies, heat drain; energy gates open at 1 / 3 / 5 bosses; plasma saber and core plate gear
+- [x] Final boss: the Hollow AI in the Core (Core key recipe); victory screen. Still todo: new game+ toggle, status effects on trophy weapons, base trophies, boss pixel-art pass
 
 Living base and drones
 - [ ] Programmable drones in the world: Miner (mine assigned vein), Hauler (bring loot to base chests), Guard (shoot enemies), Repair; 3 rules each, visual rule editor, deterministic, offline-capable

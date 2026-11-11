@@ -36,6 +36,9 @@ const ORE = (a: string, b: string, c: string): IconDef => ({
 
 export const ICONS: Record<string, IconDef> = {
   rust: ORE('#9a5a44', '#c77a5e', '#5e3426'),
+  circuit: ORE('#c9a35a', '#ffe08a', '#2f6a34'),
+  plasma: ORE('#c8325a', '#ff9ab8', '#5a1a2a'),
+  core_shard: ORE('#9a2aa8', '#ff9aff', '#2a0a3a'),
   iron_scrap: {
     pal: { a: '#d6c7b8', b: '#f4ece2', c: '#8f8274' },
     rows: [
@@ -474,7 +477,7 @@ export function iconDef(id: ItemId | Tool | string): IconDef {
     return { pal, rows: SHAPES[shape] };
   }
   if (id.startsWith('beacon_')) {
-    const col = { beacon_colossus: '#c77a5e', beacon_vine: '#7fcf5a', beacon_golem: '#d8b8ff', beacon_wyrm: '#ff8a3c', beacon_titan: '#e6f6ff' }[id] ?? '#ffcf4a';
+    const col = { beacon_colossus: '#c77a5e', beacon_vine: '#7fcf5a', beacon_golem: '#d8b8ff', beacon_wyrm: '#ff8a3c', beacon_titan: '#e6f6ff', beacon_ai: '#ff5aff' }[id] ?? '#ffcf4a';
     return { pal: { a: '#5d6a80', b: col }, rows: SHAPES.beacon };
   }
   if (id === 'hook') return { pal: { a: '#e6f6ff', b: '#9aa3b8' }, rows: SHAPES.hook };

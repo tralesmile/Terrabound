@@ -42,6 +42,8 @@ function solidAt(world: World, x: number, y: number): boolean {
 /** Set a tile only inside the world and away from bedrock borders. */
 function put(world: World, x: number, y: number, t: number): void {
   if (x <= 0 || x >= world.w - 1 || y < 1 || y >= world.h - 2) return;
+  // Layer gates stay sealed whatever is built around them.
+  if (world.get(x, y) === T.GATE) return;
   world.set(x, y, t);
 }
 

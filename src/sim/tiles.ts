@@ -15,6 +15,10 @@ export type ItemId =
   | 'beacon_golem'
   | 'beacon_wyrm'
   | 'beacon_titan'
+  | 'beacon_ai'
+  | 'circuit'
+  | 'plasma'
+  | 'core_shard'
   | 'torch'
   | 'ladder'
   | 'scaffold'
@@ -42,6 +46,10 @@ export const ITEM_IDS: ItemId[] = [
   'beacon_golem',
   'beacon_wyrm',
   'beacon_titan',
+  'beacon_ai',
+  'circuit',
+  'plasma',
+  'core_shard',
   'torch',
   'ladder',
   'scaffold',
@@ -91,6 +99,13 @@ export const T = {
   MINER: 30,
   DRONE: 31,
   SAPLING: 32,
+  CIRCUIT: 33,
+  CIRCUIT_ORE: 34,
+  PLASMA_ROCK: 35,
+  PLASMA_ORE: 36,
+  CORE_ROCK: 37,
+  CORE_ORE: 38,
+  GATE: 39,
 } as const;
 
 export interface TileDef {
@@ -149,6 +164,13 @@ export const TILES: TileDef[] = [
   { name: 'Miner rig', hardness: 0.6, solid: false, drop: 'miner', minable: true },
   { name: 'Drone bay', hardness: 0.6, solid: false, drop: 'drone', minable: true },
   { name: 'Sapling', hardness: 0.05, solid: false, drop: 'seed', minable: true },
+  { name: 'Circuit rock', hardness: 1.2, solid: true, drop: 'metal' },
+  { name: 'Gold circuit', hardness: 1.5, solid: true, drop: 'circuit', glow: true },
+  { name: 'Plasma rock', hardness: 1.5, solid: true, drop: 'metal' },
+  { name: 'Plasma cell', hardness: 1.8, solid: true, drop: 'plasma', glow: true },
+  { name: 'Core rock', hardness: 1.9, solid: true, drop: 'metal' },
+  { name: 'Core shard', hardness: 2.2, solid: true, drop: 'core_shard', glow: true },
+  { name: 'Energy gate', hardness: Infinity, solid: true, drop: null },
 ];
 
 export interface ItemDef {
@@ -177,6 +199,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   beacon_golem: { name: 'Prism beacon', color: '#d8b8ff', places: null },
   beacon_wyrm: { name: 'Ember beacon', color: '#ff8a3c', places: null },
   beacon_titan: { name: 'Frost beacon', color: '#e6f6ff', places: null },
+  beacon_ai: { name: 'Core key', color: '#ff5aff', places: null },
+  circuit: { name: 'Gold circuit', color: '#ffcf4a', places: null },
+  plasma: { name: 'Plasma cell', color: '#ff5a8a', places: null },
+  core_shard: { name: 'Core shard', color: '#ff5aff', places: null },
   torch: { name: 'Torch', color: '#ffb03a', places: T.TORCH, kit: true },
   ladder: { name: 'Ladder', color: '#c9a35a', places: T.LADDER, kit: true },
   scaffold: { name: 'Scaffold', color: '#7d8da6', places: T.SCAFFOLD, kit: true },
