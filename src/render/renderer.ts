@@ -136,6 +136,7 @@ export class Renderer {
     this.prefetchChunk(world, cx0, cy0, cx1, cy1);
     this.machinesOn = game.power.working;
     this.minersOn = game.power.miners > 0 && game.power.ratio > 0;
+    this.dronesOn = game.power.drones > 0 && game.power.ratio > 0;
     this.machinesSun = game.power.supply > 0;
     this.batteryFill = game.power.cap > 0 ? game.power.charge / game.power.cap : 0;
     this.drawDynamic(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
@@ -319,7 +320,7 @@ export class Renderer {
       ctx.fillRect(dx, dy + Math.max(2, ts * 0.22), ts, Math.max(1, ts * 0.08));
       return;
     }
-    if (t === T.SOLAR || t === T.SMELTER || t === T.BATTERY || t === T.MINER) {
+    if (t === T.SOLAR || t === T.SMELTER || t === T.BATTERY || t === T.MINER || t === T.DRONE) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
       this.drawMachine(ctx, t, dx, dy, ts);
       return;
@@ -434,6 +435,17 @@ export class Renderer {
       ctx.fillRect(dx + 5 * u, dy + 5 * u, 6 * u, 9 * u);
       return;
     }
+    if (t === T.DRONE) {
+      ctx.fillStyle = '#3d4458';
+      ctx.fillRect(dx + 1 * u, dy + 13 * u, 14 * u, 3 * u);
+      ctx.fillStyle = '#566078';
+      ctx.fillRect(dx + 1 * u, dy + 13 * u, 14 * u, 1 * u);
+      ctx.fillStyle = '#2b3447';
+      ctx.fillRect(dx + 4 * u, dy + 9 * u, 8 * u, 4 * u);
+      ctx.fillStyle = '#8ad8ff';
+      ctx.fillRect(dx + 6 * u, dy + 10 * u, 4 * u, 2 * u);
+      return;
+    }
     ctx.fillStyle = '#3d4458';
     ctx.fillRect(dx + 1 * u, dy + 3 * u, 14 * u, 13 * u);
     ctx.fillStyle = '#566078';
@@ -446,6 +458,7 @@ export class Renderer {
 
   private machinesOn = false;
   private minersOn = false;
+  private dronesOn = false;
   private machinesSun = false;
   private batteryFill = 0;
 
@@ -471,6 +484,10 @@ export class Renderer {
           const bob = Math.abs(Math.sin(time * 8 + tx)) * ts * 0.12;
           ctx.fillStyle = '#c9d4e8';
           ctx.fillRect(this.sx(tx, shakeX) + ts * 0.4, this.sy(ty, shakeY) + ts * 0.62 + bob, ts * 0.2, ts * 0.2);
+        } else if (t === T.DRONE && this.dronesOn) {
+          const a = time * 2.2 + tx;
+          ctx.fillStyle = '#8ad8ff';
+          ctx.fillRect(this.sx(tx, shakeX) + ts * (0.45 + 0.35 * Math.cos(a)), this.sy(ty, shakeY) + ts * (0.2 + 0.12 * Math.sin(a * 2)), ts * 0.14, ts * 0.1);
         } else if (t === T.SOLAR && this.machinesSun) {
           ctx.fillStyle = 'rgba(159,216,255,0.35)';
           const gx = this.sx(tx, shakeX) + ts * (0.1 + 0.8 * ((time * 0.4 + tx * 0.37) % 1));

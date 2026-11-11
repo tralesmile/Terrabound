@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { OFFLINE_CAP, awaySeconds, simulateOffline } from '../src/sim/offline';
 import { Game } from '../src/sim/game';
 import { defaultSave, parseSave, serializeSave } from '../src/sim/save';
-import { T } from '../src/sim/tiles';
+import { T, type Inventory } from '../src/sim/tiles';
 
 const fresh = { progressSmelt: 0, progressMine: 0, mineCount: 0, charge: 0, time: 0 };
 const rig = { solars: 4, smelters: 1, batteries: 1, miners: 1 };
@@ -62,5 +62,15 @@ describe('automationHint', () => {
     expect(automationHint({ solars: 0, miners: 0 }, { metal: 2, crystal: 1 }, 0, false)).toMatch(/Solar/);
     expect(automationHint({ solars: 1, miners: 0 }, { metal: 3, copper_wire: 2 }, 0, true)).toMatch(/Miner/);
     expect(automationHint({ solars: 1, miners: 1 }, {}, 1, false)).toBeNull();
+  });
+});
+
+describe('offline drone bays', () => {
+  it('haul wire and crystal while away and report them', () => {
+    const stash: Inventory = {};
+    const r = simulateOffline(stash, { solars: 2, smelters: 0, batteries: 1, miners: 0, drones: 1 }, { progressSmelt: 0, progressMine: 0, mineCount: 0, charge: 0, time: 0 }, 3600);
+    expect(r.wire).toBeGreaterThan(0);
+    expect(r.crystal).toBeGreaterThan(0);
+    expect(stash.copper_wire).toBe(r.wire);
   });
 });

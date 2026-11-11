@@ -42,3 +42,5 @@
 - **Shop panel is at capacity (18 rows at 360 px).** Guard: add tabs or scrolling before the next recipe/upgrade; view 09-mobile-shop.png each time.
 - **Fresh clones may be detached with no local `dev`.** Guard: `git checkout -B dev origin/dev` before working (ship.sh requires branch dev).
 - **Shop tabs added; limit is now ~12 rows per tab.** Add scrolling before exceeding it; view 09b-mobile-shop-fab.png.
+- **Fabricator tab is now full (12 rows at 360 px).** Guard: add scrolling before the next recipe; view 09b-mobile-shop-fab.png.
+- **Adding a field to `scanMachines` breaks `toEqual` fixtures.** Optional offline fields (`drones?`) keep old callers compiling; update exact-equality tests deliberately.

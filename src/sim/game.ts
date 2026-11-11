@@ -21,7 +21,7 @@ import { recipeById } from './recipes';
 import { chestLoot } from './loot';
 import { daylight } from './daynight';
 import { awaySeconds, simulateOffline, OFFLINE_MIN, type OfflineResult } from './offline';
-import { automationHint, stepGrid, newPower, scanMachines, stepSmelting, stepMining, SMELT_RUST, type PowerState } from './power';
+import { automationHint, stepGrid, newPower, scanMachines, stepSmelting, stepMining, stepDrones, SMELT_RUST, type PowerState } from './power';
 import { LIQUID_HZ, flowLiquids, isLiquid } from './liquids';
 import { isNight } from './daynight';
 import { applyDiff, captureDiff } from './persist';
@@ -162,7 +162,10 @@ export class Game {
   /** Base power grid snapshot (solar vs smelters), refreshed twice a second. */
   power: PowerState = newPower();
   private smeltProgress = 0;
-  private machineCounts = { solars: 0, smelters: 0, batteries: 0, miners: 0 };
+  private machineCounts = { solars: 0, smelters: 0, batteries: 0, miners: 0, drones: 0 };
+  /** Drone bay carry-over; not saved (at most one load is lost on reload). */
+  private droneProgress = 0;
+  private droneCount = 0;
   private mineProgress = 0;
   private mineCount = 0;
   private machineAcc = 0;
@@ -219,14 +222,16 @@ export class Game {
     if (secs < OFFLINE_MIN) return null;
     this.machineCounts = scanMachines(this.world);
     const m = this.machineCounts;
-    if (m.smelters + m.miners === 0 && m.batteries === 0) return null;
-    const r = simulateOffline(this.stash, m, { progressSmelt: this.smeltProgress, progressMine: this.mineProgress, mineCount: this.mineCount, charge: this.power.charge, time: this.time }, secs);
+    if (m.smelters + m.miners + m.drones === 0 && m.batteries === 0) return null;
+    const r = simulateOffline(this.stash, m, { progressSmelt: this.smeltProgress, progressMine: this.mineProgress, mineCount: this.mineCount, droneProgress: this.droneProgress, droneCount: this.droneCount, charge: this.power.charge, time: this.time }, secs);
     this.smeltProgress = r.progressSmelt;
     this.mineProgress = r.progressMine;
     this.mineCount = r.mineCount;
+    this.droneProgress = r.droneProgress;
+    this.droneCount = r.droneCount;
     this.time = r.time;
     this.power = { ...this.power, charge: r.charge };
-    return r.metal + r.scrap + r.rust > 0 ? r : null;
+    return r.metal + r.scrap + r.rust + r.wire + r.crystal > 0 ? r : null;
   }
 
   get derived(): Derived {
@@ -497,10 +502,13 @@ export class Game {
     }
     const m = this.machineCounts;
     const want = (this.stash.rust ?? 0) >= SMELT_RUST || this.smeltProgress > 0;
-    this.power = stepGrid(m.solars, m.smelters, m.batteries, daylight(this.time), want, this.power.charge, dt, m.miners);
+    this.power = stepGrid(m.solars, m.smelters, m.batteries, daylight(this.time), want, this.power.charge, dt, m.miners, m.drones);
     const mined = stepMining(this.stash, this.power, this.mineProgress, this.mineCount, dt);
     this.mineProgress = mined.progress;
     this.mineCount = mined.count;
+    const flown = stepDrones(this.stash, this.power, this.droneProgress, this.droneCount, dt);
+    this.droneProgress = flown.progress;
+    this.droneCount = flown.count;
     if (!this.power.working) return;
     const r = stepSmelting(this.stash, this.power, this.smeltProgress, dt);
     this.smeltProgress = r.progress;

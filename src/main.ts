@@ -47,7 +47,7 @@ function boot(): void {
   if (away) {
     const h = Math.floor(away.seconds / 3600);
     const m = Math.floor((away.seconds % 3600) / 60);
-    const parts = [`${away.rust} rust`, `${away.scrap} scrap`, `${away.metal} metal`].filter((x) => !x.startsWith('0 '));
+    const parts = [`${away.rust} rust`, `${away.scrap} scrap`, `${away.metal} metal`, `${away.wire} wire`, `${away.crystal} crystal`].filter((x) => !x.startsWith('0 '));
     ui.toast(`While you were away (${h > 0 ? h + ' h ' : ''}${m} min): ${parts.join(', ')}`, '#7dffb0', 6);
   }
   const fx = new Fx();

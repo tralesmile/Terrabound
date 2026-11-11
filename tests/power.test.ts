@@ -3,7 +3,7 @@ import type { Inventory } from '../src/sim/tiles';
 import { Game, NO_CONTROLS } from '../src/sim/game';
 import { T, ITEMS, TILES, isMinable } from '../src/sim/tiles';
 import { RECIPES } from '../src/sim/recipes';
-import { BATTERY_CAP, SMELT_RUST, SMELT_TIME, gridState, stepGrid, newPower, scanMachines, stepSmelting, stepMining, MINE_TIME, MINER_DRAW } from '../src/sim/power';
+import { BATTERY_CAP, SMELT_RUST, SMELT_TIME, gridState, stepGrid, newPower, scanMachines, stepSmelting, stepMining, MINE_TIME, MINER_DRAW, stepDrones, DRONE_TIME, DRONE_DRAW } from '../src/sim/power';
 import { captureBase, sanitizeBase, stampBase } from '../src/sim/base';
 
 describe('base power and smelter', () => {
@@ -47,7 +47,7 @@ describe('base power and smelter', () => {
     const g = new Game();
     g.world.set(g.world.padX + 1, g.world.padY - 1, T.SOLAR);
     g.world.set(g.world.padX + 2, g.world.padY - 1, T.SMELTER);
-    expect(scanMachines(g.world)).toEqual({ solars: 1, smelters: 1, batteries: 0, miners: 0 });
+    expect(scanMachines(g.world)).toEqual({ solars: 1, smelters: 1, batteries: 0, miners: 0, drones: 0 });
     g.stash.rust = 8;
     g.stash.metal = 0;
     let smelts = 0;
@@ -167,5 +167,42 @@ describe('miner rig', () => {
     for (let i = 0; i < 30 * (MINE_TIME * 3) ; i++) g.step(1 / 30, NO_CONTROLS);
     expect((g.stash.rust ?? 0) + (g.stash.iron_scrap ?? 0)).toBeGreaterThan(before);
     expect(captureBase(g.world)).toContain(T.MINER);
+  });
+});
+
+describe('drone bay', () => {
+  it('has content wired: item, tile, recipe (Lv 2), persisted in the base', () => {
+    expect(ITEMS.drone.kit).toBe(true);
+    expect(RECIPES.find((r) => r.out === 'drone')?.fab).toBe(2);
+    expect(isMinable(T.DRONE)).toBe(true);
+    expect(TILES[T.DRONE].drop).toBe('drone');
+    expect(sanitizeBase([1, 1, T.DRONE])).toEqual([1, 1, T.DRONE]);
+  });
+
+  it('draws grid power and hauls copper wire with a crystal every 5th load', () => {
+    expect(gridState(1, 0, 1, false, 0, 1).demand).toBe(DRONE_DRAW);
+    const stash: Inventory = {};
+    const p = gridState(2, 0, 1, false, 0, 1);
+    let prog = 0;
+    let count = 0;
+    for (let i = 0; i < DRONE_TIME * 10 * 10 + 3; i++) {
+      const r = stepDrones(stash, p, prog, count, 0.1);
+      prog = r.progress;
+      count = r.count;
+    }
+    expect(count).toBe(10);
+    expect(stash.copper_wire).toBe(8);
+    expect(stash.crystal).toBe(2);
+    expect(stepDrones({}, gridState(0, 0, 0, false, 0, 1), 0, 0, 100).made).toBe(0);
+  });
+
+  it('a built solar + drone bay in the game produces loads and survives a base capture', () => {
+    const g = new Game();
+    g.world.set(g.world.padX + 1, g.world.padY - 1, T.SOLAR);
+    g.world.set(g.world.padX + 2, g.world.padY - 1, T.DRONE);
+    const before = g.stash.copper_wire ?? 0;
+    for (let i = 0; i < 30 * (DRONE_TIME * 3); i++) g.step(1 / 30, NO_CONTROLS);
+    expect(g.stash.copper_wire ?? 0).toBeGreaterThan(before);
+    expect(captureBase(g.world)).toContain(T.DRONE);
   });
 });

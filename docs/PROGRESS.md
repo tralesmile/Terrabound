@@ -223,3 +223,11 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 **Next:** miner drone v2, drone rules UI; fabricator tab holds ~12 rows before it needs scrolling.
 
 **Known issues:** hotbar "0" slot for a selected unowned block.
+
+## 2026-11-11 Scheduled run 8
+
+**Done:** baseline green (`dev` created from main; origin/dev existed but main was ahead). Drone bay v1: tile/item/recipe (Fabricator Lv2: 4 metal, 3 wire, 1 crystal), `stepDrones` in power.ts shared by live play and offline (summary toast now lists wire and crystal), persisted in the base strip (no save bump; carry-over progress is not saved). 4 new tests (201 total). Bundle 114 kB (41.2 kB gzip). Screenshot 09b reviewed: 12 fabricator rows still fit at 360 px (tab is full).
+
+**Next:** drone rules UI needs real drones (flying to assigned ore); fabricator tab needs scrolling before another recipe; equipment slots (P3).
+
+**Known issues:** fabricator tab at its 12-row limit; hotbar "0" slot for a selected unowned block.

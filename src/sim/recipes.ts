@@ -23,6 +23,7 @@ export const RECIPES: Recipe[] = [
   { id: 'solar', name: 'Solar cell x1', out: 'solar', qty: 1, cost: { metal: 2, crystal: 1 }, fab: 1 },
   { id: 'battery', name: 'Battery x1', out: 'battery', qty: 1, cost: { metal: 3, copper_wire: 1 }, fab: 1 },
   { id: 'miner', name: 'Miner rig x1', out: 'miner', qty: 1, cost: { metal: 3, copper_wire: 2 }, fab: 2 },
+  { id: 'drone', name: 'Drone bay x1', out: 'drone', qty: 1, cost: { metal: 4, copper_wire: 3, crystal: 1 }, fab: 2 },
   { id: 'smelter', name: 'Smelter x1', out: 'smelter', qty: 1, cost: { metal: 4, copper_wire: 2 }, fab: 2 },
 ];
 

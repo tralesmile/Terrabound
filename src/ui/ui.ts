@@ -193,7 +193,7 @@ export class UI {
     const carried = invTotal(game.carried);
     this.text(ctx, `Depth ${Math.floor(game.depth)}m   Pack ${carried}/${d.packCap}`, x, y, Math.round(u * 0.95), carried >= d.packCap ? '#ff9a3c' : '#ffffff');
 
-    if (game.isAtBase() && (game.power.solars > 0 || game.power.smelters > 0 || game.power.batteries > 0 || game.power.miners > 0)) {
+    if (game.isAtBase() && (game.power.solars > 0 || game.power.smelters > 0 || game.power.batteries > 0 || game.power.miners > 0 || game.power.drones > 0)) {
       const pw = game.power;
       const bat = pw.cap > 0 ? `  Batt ${Math.round((pw.charge / pw.cap) * 100)}%` : '';
       this.text(ctx, `Power ${pw.supply.toFixed(0)}/${pw.demand.toFixed(0)}${bat}`, x, y + u * 1.3, Math.round(u * 0.85), pw.working || pw.supply > 0 ? '#7dff9a' : '#ff9a3c');

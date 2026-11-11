@@ -76,7 +76,7 @@ World size and variety:
 - [x] Fabricator upgrade path (upgrade `fab` Lv1 unlocks solar+battery, Lv2 miner+smelter; `Recipe.fab`; no save bump)
 - [x] Machines: ore-to-plate recipe (Metal plate x2 from 3 iron scrap + 2 rust, Fabricator Lv1)
 - [x] Workshop tabs (UPGRADES / FABRICATOR) so the shop scales; fits 11 recipe rows at 360 px
-- [ ] Drone v2: miner drone that flies to assigned ore tiles in a base mine shaft (builds on the miner rig)
+- [x] Drone bay v1 (powered base machine, 3 power, 1 load per 12 s: copper wire, every 5th a crystal; first crystal source without diving; offline-aware; a circling drone is drawn). Todo: world-flying drones on assigned ore tiles
 - [ ] Drone rules UI (3 rules per drone, deterministic evaluation)
 - [x] Offline production (cap 8 h, clock-skew safe, save v6 `away` stamp, src/sim/offline.ts) and a "while you were away" toast
 - [x] First automation moment tutorial beat (`automationHint`, green line at the base)
