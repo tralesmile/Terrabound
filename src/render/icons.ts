@@ -4,6 +4,7 @@
  */
 import type { ItemId } from '../sim/tiles';
 import type { Tool } from '../sim/game';
+import { GEAR, type GearId } from '../sim/gear';
 
 export const ICON = 12;
 
@@ -446,10 +447,33 @@ export const ICONS: Record<string, IconDef> = {
   },
 };
 
+/** Shapes for gear, recoloured per item from GEAR colours (a = main, b = accent). */
+const SHAPES: Record<string, string[]> = {
+  helm: ['            ', '   oooooo   ', '  oaaaaaao  ', ' oaaaaaaaao ', ' oaabbbbbao ', ' oaabwbbbao ', ' oaabbbbbao ', ' oaaaaaaaao ', '  oaaaaaao  ', '   oooooo   ', '            ', '            '],
+  vest: ['            ', ' ooo    ooo ', ' oaaoooooaao', ' oaaaaaaaaao', '  oabbbbao  ', '  oaaaaaao  ', '  oabbbbao  ', '  oaaaaaao  ', '  oaaaaaao  ', '  oooooooo  ', '            ', '            '],
+  boot: ['            ', '            ', '   oooo     ', '   oaao     ', '   oaao     ', '   oaao     ', '   oaaooooo ', '   oaaaaaaao', '   obbbbbbbo', '   oooooooo ', '            ', '            '],
+  pack: ['            ', '   oooooo   ', '  oaaaaaao  ', '  oabbbbao  ', '  oaaaaaao  ', '  oabbbbao  ', '  oaaaaaao  ', '  oooooooo  ', '   ob  bo   ', '   ob  bo   ', '    b  b    ', '            '],
+  wings: ['            ', 'o          o', 'oao      oao', 'oaao    oaao', 'oaaaooooaaao', 'oabaaaaaabao', ' oabaaaabao ', '  oaaooaao  ', '   oo  oo   ', '            ', '            ', '            '],
+  bike: ['            ', '            ', '        oo  ', '  ooooooobo ', ' oaaaaaaaaao', 'oaaaaaaaaaao', ' oooooooooo ', ' obo    obo ', '  b      b  ', '            ', '            ', '            '],
+  jet: ['            ', '     oo     ', '    oaao    ', '   oaaaao   ', 'ooooabbaoooo', 'oaaaaaaaaaao', 'ooooaaaaoooo', '    oaao    ', '   oaooao   ', '   oo  oo   ', '            ', '            '],
+  hook: ['            ', '   oooo     ', '  obbbbo    ', ' obo  obo   ', ' obo   oo   ', ' obo        ', '  obo   oo  ', '   obooobo  ', '    obbbo   ', '     ooo  a ', '         a  ', '        a   '],
+};
+const SLOT_SHAPE: Record<string, string> = { head: 'helm', body: 'vest', feet: 'boot', vehicle: 'bike' };
+
 const FALLBACK: IconDef = { pal: { a: '#9aa3b8' }, rows: ['', '  oooooooo', '  oaaaaaao', '  oaaaaaao', '  oaaaaaao', '  oaaaaaao', '  oaaaaaao', '  oooooooo'] };
 
 export function iconDef(id: ItemId | Tool | string): IconDef {
-  return ICONS[id] ?? FALLBACK;
+  if (ICONS[id]) return ICONS[id];
+  const g = GEAR[id as GearId];
+  if (g) {
+    const pal = { a: g.color, b: g.accent, c: '#5d6a80', d: '#2b3a4a', h: '#e8a33d', r: '#ff5a5a' };
+    const base = g.slot === 'melee' ? ICONS.blade : g.slot === 'ranged' ? ICONS.pistol : null;
+    if (base) return { pal: { ...base.pal, a: g.color, b: g.accent }, rows: base.rows };
+    const shape = id === 'jetpack' ? 'pack' : id === 'glider' ? 'wings' : id === 'sky_jet' ? 'jet' : SLOT_SHAPE[g.slot] ?? 'pack';
+    return { pal, rows: SHAPES[shape] };
+  }
+  if (id === 'hook') return { pal: { a: '#e6f6ff', b: '#9aa3b8' }, rows: SHAPES.hook };
+  return FALLBACK;
 }
 
 /** Draw an icon with its top-left at (x, y), each art pixel s screen px. */

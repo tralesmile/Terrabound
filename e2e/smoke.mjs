@@ -481,6 +481,99 @@ try {
   });
   await page.waitForTimeout(600);
   await page.screenshot({ path: path.join(out, '20-sky-island.png') });
+  // Workshop GEAR tab: build the Sky Jet with real clicks, then ride it with V and fly.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.stash = { metal: 200, iron_scrap: 200, copper_wire: 200, crystal: 200, biomass: 200 };
+    g.body.x = g.world.padX + 0.5;
+    g.body.y = g.world.padY;
+    g.body.vx = g.body.vy = 0;
+    g.enemies = [];
+  });
+  await page.waitForTimeout(300);
+  await page.keyboard.press('KeyB');
+  await page.waitForTimeout(200);
+  const gearTab = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'tab' && r.a.t === 'gear'));
+  if (gearTab) await page.mouse.click(gearTab.x + gearTab.w / 2, gearTab.y + gearTab.h / 2);
+  await page.waitForTimeout(150);
+  await page.evaluate(() => { window.__terrabound.ui.shopScroll = 99; });
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: path.join(out, '21-gear-tab.png') });
+  const jetBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'craftgear' && r.a.id === 'sky_jet'));
+  if (jetBtn) await page.mouse.click(jetBtn.x + jetBtn.w / 2, jetBtn.y + jetBtn.h / 2);
+  await page.waitForTimeout(100);
+  check('the GEAR tab builds a Sky Jet', await page.evaluate(() => window.__terrabound.game.ownsGear('sky_jet')), JSON.stringify(jetBtn));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(100);
+  await page.keyboard.press('KeyV');
+  const jetY0 = await page.evaluate(() => window.__terrabound.game.body.y);
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(1200);
+  await page.keyboard.up('KeyW');
+  const flight = await page.evaluate(() => ({ riding: window.__terrabound.game.riding, y: window.__terrabound.game.body.y }));
+  await page.screenshot({ path: path.join(out, '22-sky-jet.png') });
+  check('V rides the Sky Jet and W flies up', flight.riding && flight.y < jetY0 - 5, JSON.stringify({ jetY0, ...flight }));
+  await page.keyboard.press('KeyV');
+  // Grappling hook: tool 5, click a ceiling, swing.
+  const hookAt = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    let x = w.padX + 70;
+    while (!(w.isSolid(x, w.surface[x]) && w.get(x, w.surface[x] - 1) === 0)) x++;
+    const y = w.surface[x];
+    // A ceiling 6 rows up (on screen: the view shows ~7 tiles above the player).
+    for (let xx = x - 10; xx <= x + 10; xx++) {
+      for (let yy = y - 6; yy < y; yy++) w.set(xx, yy, 0);
+      w.set(xx, y - 6, 2);
+      w.set(xx, y, 1);
+    }
+    g.body.x = x + 0.5;
+    g.body.y = y;
+    g.body.vx = g.body.vy = 0;
+    g.enemies = [];
+    return { x: x + 3, y: y - 6 };
+  });
+  await page.keyboard.press('Digit5');
+  await page.waitForTimeout(300);
+  await page.waitForFunction(() => Math.abs(window.__terrabound.renderer.camX - window.__terrabound.game.body.x) < 0.3, null, { timeout: 3000 }).catch(() => {});
+  const hookPx = await tileToCss(page, hookAt.x, hookAt.y);
+  // Press long enough for a sim frame to see it (a bare click can fall between frames).
+  await page.mouse.move(hookPx.x, hookPx.y);
+  await page.mouse.down();
+  await page.waitForTimeout(60);
+  await page.mouse.up();
+  await page.waitForTimeout(100);
+  await page.keyboard.down('KeyD');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: path.join(out, '23-grapple.png') });
+  await page.keyboard.up('KeyD');
+  check('the grappling hook attaches to a ceiling', await page.evaluate(() => !!window.__terrabound.game.hook));
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(80);
+  await page.keyboard.up('KeyW');
+  await page.waitForTimeout(100);
+  check('jump lets go of the rope', await page.evaluate(() => !window.__terrabound.game.hook));
+  // Map: zoom with the wheel and the +/- buttons.
+  await page.keyboard.press('KeyM');
+  await page.waitForTimeout(200);
+  const z0 = await page.evaluate(() => window.__terrabound.ui.mapView.zoom);
+  await page.mouse.move(640, 400);
+  await page.mouse.wheel(0, -100);
+  await page.waitForTimeout(150);
+  const z1 = await page.evaluate(() => window.__terrabound.ui.mapView.zoom);
+  await page.screenshot({ path: path.join(out, '24-map-zoom.png') });
+  const minus = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'mapzoom' && r.a.d === -1));
+  if (minus) await page.mouse.click(minus.x + minus.w / 2, minus.y + minus.h / 2);
+  await page.mouse.click(minus.x + minus.w / 2, minus.y + minus.h / 2);
+  const z2 = await page.evaluate(() => window.__terrabound.ui.mapView.zoom);
+  check('the map zooms in with the wheel and out with the - button', z1 === z0 + 1 && z2 === z0 - 1, JSON.stringify({ z0, z1, z2 }));
+  await page.mouse.move(640, 400);
+  await page.mouse.down();
+  await page.mouse.move(500, 360, { steps: 4 });
+  await page.mouse.up();
+  check('dragging pans the map', await page.evaluate(() => window.__terrabound.ui.mapView.panX !== 0));
+  await page.screenshot({ path: path.join(out, '25-map-far.png') });
+  await page.keyboard.press('KeyM');
   await page.screenshot({ path: path.join(out, '12-chest-loot.png') });
 
   // Map: M opens it (pauses the dive), M closes it. Then beam home from the surface with R.

@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { ICON, ICONS } from '../src/render/icons';
+import { ICON, iconDef } from '../src/render/icons';
+import { GEAR_IDS } from '../src/sim/gear';
 import { ITEM_IDS } from '../src/sim/tiles';
 import { TOOLS } from '../src/sim/game';
 
 describe('item and tool icons', () => {
-  it('every item and tool has a hand-made icon that fits 12x12 and uses only known colours', () => {
-    for (const id of [...ITEM_IDS, ...TOOLS]) {
-      const d = ICONS[id];
-      expect(d, id).toBeDefined();
+  it('every item, tool and gear piece has an icon that fits 12x12 and uses only known colours', () => {
+    const fallback = iconDef('__none__');
+    for (const id of [...ITEM_IDS, ...TOOLS, ...GEAR_IDS]) {
+      const d = iconDef(id);
+      expect(d, id).not.toBe(fallback);
       expect(d.rows.length, id).toBeLessThanOrEqual(ICON);
       for (const row of d.rows) {
         expect(row.length, `${id}: "${row}"`).toBeLessThanOrEqual(ICON);

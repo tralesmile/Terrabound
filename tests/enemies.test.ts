@@ -121,6 +121,8 @@ describe('enemies', () => {
     g.toggleTool();
     expect(g.tool).toBe('rod');
     g.toggleTool();
+    expect(g.tool).toBe('hook');
+    g.toggleTool();
     expect(g.tool).toBe('drill');
   });
 

@@ -8,6 +8,7 @@ import { BODY_H } from '../sim/physics';
 import type { Fx } from './fx';
 import type { PlayerGear } from './sprites';
 import { ICON, drawIcon } from './icons';
+import { GEAR } from '../sim/gear';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, leafMask } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, SNOW_H, blendSky, buildDecor, mixHex } from './decor';
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
@@ -259,7 +260,71 @@ export class Renderer {
       ctx.arc(px, py - 12 * scale, 2 * ts * 0.9, a0 - 0.5, a0 + 0.1);
       ctx.stroke();
     }
+    // Back gear and vehicles behind / under the player.
+    const veh = game.vehicle;
+    const eq = (slot: 'head' | 'body' | 'feet' | 'back'): [string, string] | undefined => {
+      const id = game.equipped(slot);
+      return id ? [GEAR[id].color, GEAR[id].accent] : undefined;
+    };
+    const back = game.equipped('back');
+    if (back === 'glider' && game.gliding) {
+      ctx.fillStyle = GEAR.glider.color;
+      ctx.beginPath();
+      ctx.moveTo(px - 18 * scale, py - 14 * scale);
+      ctx.lineTo(px, py - 20 * scale);
+      ctx.lineTo(px + 18 * scale, py - 14 * scale);
+      ctx.lineTo(px, py - 17 * scale);
+      ctx.fill();
+    }
+    if (back === 'jetpack') {
+      ctx.fillStyle = GEAR.jetpack.color;
+      ctx.fillRect(px - game.facing * 7 * scale - 2 * scale, py - 15 * scale, 4 * scale, 7 * scale);
+      if (game.jetting && !veh) {
+        ctx.fillStyle = Math.floor(time * 30) % 2 ? '#ffcf4a' : '#ff7a3c';
+        ctx.fillRect(px - game.facing * 7 * scale - 1.5 * scale, py - 8 * scale, 3 * scale, (3 + (Math.floor(time * 40) % 3)) * scale);
+      }
+    }
+    if (veh === 'hoverbike') {
+      ctx.fillStyle = 'rgba(54,224,232,0.35)';
+      ctx.fillRect(px - 10 * scale, py + scale, 20 * scale, 2 * scale);
+      ctx.fillStyle = '#14181f';
+      ctx.fillRect(px - 11 * scale, py - 4 * scale, 22 * scale, 5 * scale);
+      ctx.fillStyle = GEAR.hoverbike.color;
+      ctx.fillRect(px - 10 * scale, py - 3 * scale, 20 * scale, 3 * scale);
+      ctx.fillStyle = GEAR.hoverbike.accent;
+      ctx.fillRect(px + game.facing * 7 * scale - scale, py - 3 * scale, 2 * scale, scale);
+    } else if (veh === 'sky_jet') {
+      ctx.fillStyle = '#14181f';
+      ctx.fillRect(px - 16 * scale, py - 9 * scale, 32 * scale, 6 * scale);
+      ctx.fillStyle = GEAR.sky_jet.color;
+      ctx.fillRect(px - 15 * scale, py - 8 * scale, 30 * scale, 4 * scale);
+      ctx.fillStyle = GEAR.sky_jet.accent;
+      ctx.fillRect(px - 4 * scale, py - 12 * scale, 8 * scale, 3 * scale);
+      ctx.fillRect(px + game.facing * 13 * scale - scale, py - 7 * scale, 2 * scale, 2 * scale);
+      // Nose cone, tail fin and swept wing so it reads as a small plane.
+      const f = game.facing;
+      ctx.fillStyle = GEAR.sky_jet.color;
+      ctx.fillRect(px + f * 15 * scale - (f < 0 ? 3 * scale : 0), py - 7 * scale, 3 * scale, 2 * scale);
+      ctx.fillStyle = '#14181f';
+      ctx.fillRect(px - f * 15 * scale - (f > 0 ? 2 * scale : 0), py - 15 * scale, 2 * scale, 7 * scale);
+      ctx.fillStyle = '#3a70c0';
+      ctx.fillRect(px - 6 * scale, py - 4 * scale, 12 * scale, 2 * scale);
+      ctx.fillStyle = game.jetting ? '#ffcf4a' : '#ff7a3c';
+      ctx.fillRect(px - f * 18 * scale - (f > 0 ? 3 * scale : 0), py - 7 * scale, (3 + (game.jetting ? Math.floor(time * 40) % 3 : 0)) * scale, 2 * scale);
+    }
+    // Grappling rope.
+    if (game.hook) {
+      ctx.strokeStyle = '#e6f6ff';
+      ctx.lineWidth = Math.max(1, scale * 0.7);
+      ctx.beginPath();
+      ctx.moveTo(px, py - 12 * scale);
+      ctx.lineTo(this.sx(game.hook.ax, shakeX), this.sy(game.hook.ay, shakeY));
+      ctx.stroke();
+      ctx.fillStyle = '#9aa3b8';
+      ctx.fillRect(this.sx(game.hook.ax, shakeX) - scale * 1.5, this.sy(game.hook.ay, shakeY) - scale * 1.5, scale * 3, scale * 3);
+    }
     drawPlayer(ctx, px, py, scale, {
+      wear: { head: eq('head'), body: eq('body'), feet: eq('feet') },
       facing: game.facing,
       walking: Math.abs(b.vx) > 1,
       t: time,

@@ -552,6 +552,8 @@ export interface PlayerPose {
   gear?: PlayerGear;
   /** Tool shown in the hand. */
   held?: string;
+  /** Crafted armor colours (main, accent) that override the upgrade-tier look. */
+  wear?: { head?: [string, string]; body?: [string, string]; feet?: [string, string] };
 }
 
 export interface PlayerGear {
@@ -603,7 +605,12 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, 
   const oy = y - PLAYER_H * s;
   const flip = pose.facing < 0;
   if (pose.swing) rows = rows.map((r, i) => (i >= 9 && i <= 11 ? r.padEnd(PLAYER_W - 2) + 'gg' : r));
-  drawRows(ctx, rows, ox, oy, s, flip, PLAYER_W, pose.hurt ? '#ffffff' : undefined, gearRemap(pose.gear, pose.tier ?? 0));
+  const remap = gearRemap(pose.gear, pose.tier ?? 0);
+  const wr = pose.wear;
+  if (wr?.head) [remap.h, remap.H] = wr.head;
+  if (wr?.body) [remap.s, remap.S] = wr.body;
+  if (wr?.feet) [remap.l, remap.L] = wr.feet;
+  drawRows(ctx, rows, ox, oy, s, flip, PLAYER_W, pose.hurt ? '#ffffff' : undefined, remap);
   // Held tool at the front hand (art col ~11, row ~10), drawn at 3/4 scale.
   if (pose.held && !pose.hurt && !pose.climbing) {
     const hs = s * 0.75;

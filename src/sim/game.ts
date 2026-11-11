@@ -22,6 +22,7 @@ import { recipeById } from './recipes';
 import { chestLoot } from './loot';
 import { SOIL_TILES, growTime, stepSaplings } from './structures';
 import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
+import { GEAR, gearStats, sanitizeGear, type GearId, type GearSlot, type GearStats } from './gear';
 import { FOOD, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE } from './fishing';
 import { daylight } from './daynight';
 import { awaySeconds, simulateOffline, OFFLINE_MIN, type OfflineResult } from './offline';
@@ -60,6 +61,8 @@ export interface Controls {
   down?: boolean;
   /** Tile under the pointer, or null. */
   aim: { tx: number; ty: number } | null;
+  /** Dash (needs dash boots). */
+  dash?: boolean;
 }
 
 export const NO_CONTROLS: Controls = { moveX: 0, jump: false, dig: false, place: false, aim: null };
@@ -83,6 +86,13 @@ export type GameEvent =
   | { t: 'catch'; item: ItemId; n: number }
   | { t: 'reel' }
   | { t: 'nosoil' }
+  | { t: 'craftgear'; id: GearId }
+  | { t: 'mount' }
+  | { t: 'dismount' }
+  | { t: 'hook'; x: number; y: number }
+  | { t: 'unhook' }
+  | { t: 'dash' }
+  | { t: 'boom'; x: number; y: number }
   | { t: 'grow' }
   | { t: 'dawn' }
   | { t: 'fell'; x: number; y: number; tiles: number }
@@ -105,8 +115,8 @@ export type GameEvent =
   | { t: 'splash'; x: number; y: number; kind: 'acid' | 'debris' }
   | { t: 'gas' };
 
-export type Tool = 'drill' | 'blade' | 'pistol' | 'rod';
-export const TOOLS: readonly Tool[] = ['drill', 'blade', 'pistol', 'rod'];
+export type Tool = 'drill' | 'blade' | 'pistol' | 'rod' | 'hook';
+export const TOOLS: readonly Tool[] = ['drill', 'blade', 'pistol', 'rod', 'hook'];
 export const PISTOL_DMG = 8;
 export const PISTOL_CD = 0.35;
 export const PISTOL_SPEED = 22;
@@ -120,7 +130,28 @@ export interface Shot {
   vx: number;
   vy: number;
   life: number;
+  /** Damage per hit (defaults to the pistol's). */
+  dmg?: number;
+  /** Rail bolts pass through enemies (each hit once). */
+  pierce?: boolean;
+  /** Bombs fall and explode. */
+  bomb?: boolean;
+  hit?: number[];
 }
+
+/** Grappling hook: anchored rope with a maximum length (pendulum constraint). */
+export interface Hook {
+  ax: number;
+  ay: number;
+  len: number;
+}
+export const HOOK_RANGE = 14;
+export const HOOK_REEL = 9;
+export const BOMB_RADIUS = 2.2;
+export const JET_THRUST = 95;
+export const JET_MAX = 9;
+export const JET_DRAIN = 6;
+export const GLIDE_FALL = 2.5;
 export const BLADE_DMG = 12;
 export const BLADE_RANGE = 2.1;
 export const BLADE_CD = 0.32;
@@ -167,6 +198,19 @@ export class Game {
   recallT = 0;
   private discoverCd = 0;
   private wasNight = false;
+  private gearCache: GearStats | null = null;
+  /** On the equipped vehicle. */
+  riding = false;
+  /** Grappling hook rope, when attached. */
+  hook: Hook | null = null;
+  private airJumpsLeft = 0;
+  private dashT = 0;
+  private dashCd = 0;
+  private prevDash = false;
+  /** Jetpack flame on this frame (render). */
+  jetting = false;
+  /** Gliding this frame (render). */
+  gliding = false;
   /** Items lying in the world. */
   drops: Drop[] = [];
   /** Chest whose window is open (closes when out of reach). */
@@ -204,6 +248,7 @@ export class Game {
   constructor(save: SaveData = defaultSave()) {
     this.save = structuredClone(save);
     if (!Array.isArray(this.save.codex)) this.save.codex = [];
+    this.save.gear = sanitizeGear(this.save.gear);
     this.stash = { ...save.stash };
     this.upgrades = { ...save.upgrades };
     // Crash/refresh safety: loot carried at last save is banked, never lost.
@@ -255,7 +300,62 @@ export class Game {
   }
 
   get derived(): Derived {
-    return derive(this.upgrades);
+    const d = derive(this.upgrades);
+    const g = this.gear;
+    return { ...d, maxHp: d.maxHp + g.maxHp, digPower: d.digPower * g.digMul, lampRadius: d.lampRadius + g.light };
+  }
+
+  /** Combined stats of the equipped gear (cached until the loadout changes). */
+  get gear(): GearStats {
+    if (!this.gearCache) this.gearCache = gearStats(this.save.gear.equip);
+    return this.gearCache;
+  }
+
+  ownsGear(id: GearId): boolean {
+    return this.save.gear.owned.includes(id);
+  }
+
+  equipped(slot: GearSlot): GearId | undefined {
+    return this.save.gear.equip[slot];
+  }
+
+  canCraftGear(id: GearId): boolean {
+    return !this.ownsGear(id) && this.isAtBase() && canAfford(this.stash, GEAR[id].cost);
+  }
+
+  /** Build gear at the workshop from stashed materials; it is equipped right away. */
+  craftGear(id: GearId): boolean {
+    if (!this.canCraftGear(id)) return false;
+    pay(this.stash, GEAR[id].cost);
+    this.save.gear.owned.push(id);
+    this.equipGear(id);
+    this.emit({ t: 'craftgear', id });
+    return true;
+  }
+
+  /** Equip owned gear in its slot (equipping the worn item again takes it off, except starter weapons). */
+  equipGear(id: GearId): boolean {
+    if (!this.ownsGear(id)) return false;
+    const slot = GEAR[id].slot;
+    if (this.save.gear.equip[slot] === id && slot !== 'melee' && slot !== 'ranged') delete this.save.gear.equip[slot];
+    else this.save.gear.equip[slot] = id;
+    if (slot === 'vehicle' && !this.save.gear.equip.vehicle) this.riding = false;
+    this.gearCache = null;
+    this.hp = Math.min(this.hp, this.derived.maxHp);
+    return true;
+  }
+
+  /** Mount or leave the equipped vehicle (V). */
+  toggleRide(): boolean {
+    if (!this.save.gear.equip.vehicle) return false;
+    this.riding = !this.riding;
+    this.hook = null;
+    this.emit({ t: this.riding ? 'mount' : 'dismount' });
+    return true;
+  }
+
+  get vehicle(): GearId | null {
+    return this.riding ? (this.save.gear.equip.vehicle ?? null) : null;
   }
 
   get depth(): number {
@@ -512,6 +612,7 @@ export class Game {
 
   private hurt(amount: number): void {
     this.cancelRecall();
+    amount *= 1 - this.gear.armor;
     this.hp -= amount;
     this.emit({ t: 'hurt', amount });
   }
@@ -559,22 +660,54 @@ export class Game {
     const b = this.body;
     this.stepExplore(dt, c);
 
-    // Horizontal control with quick acceleration.
+    // Horizontal control with quick acceleration (weaker on a rope so swings keep their momentum).
     const mx = Math.max(-1, Math.min(1, c.moveX));
-    b.vx += (mx * d.speed - b.vx) * Math.min(1, 20 * dt);
+    const veh = this.vehicle;
+    const g = this.gear;
+    const speed = d.speed * (veh === 'hoverbike' ? 1.9 : veh === 'sky_jet' ? 2.2 : 1);
+    if (this.hook) b.vx += mx * 22 * dt;
+    else if (this.dashT <= 0) b.vx += (mx * speed - b.vx) * Math.min(1, 20 * dt);
     if (Math.abs(mx) > 0.1) this.facing = mx > 0 ? 1 : -1;
 
-    // Jump with coyote time, input buffer and variable height.
+    // Dash (dash boots): a short burst, also in the air.
+    this.dashCd = Math.max(0, this.dashCd - dt);
+    this.dashT = Math.max(0, this.dashT - dt);
+    if (g.dash && c.dash && !this.prevDash && this.dashCd === 0 && !this.riding) {
+      this.dashT = 0.16;
+      this.dashCd = 0.8;
+      b.vx = this.facing * 24;
+      b.vy = Math.min(b.vy, 0);
+      this.hook = null;
+      if (!this.isAtBase()) this.battery = Math.max(0, this.battery - 1.5);
+      this.emit({ t: 'dash' });
+    }
+    this.prevDash = !!c.dash;
+
+    // Jump with coyote time, input buffer and variable height; air jumps from spring boots.
     const grounded = probeGround(this.world, b, c.down);
+    if (grounded) this.airJumpsLeft = g.airJumps;
     this.coyote = grounded ? 0.1 : this.coyote - dt;
-    this.jumpBuf = c.jump && !this.prevJump ? 0.12 : this.jumpBuf - dt;
-    if (this.jumpBuf > 0 && this.coyote > 0) {
-      b.vy = -JUMP_V;
+    const jumpPress = c.jump && !this.prevJump;
+    this.jumpBuf = jumpPress ? 0.12 : this.jumpBuf - dt;
+    const jumpV = JUMP_V * (veh === 'hoverbike' ? 1.25 : 1);
+    if (this.hook && jumpPress) {
+      // Let go of the rope with a little hop, keeping the swing's speed.
+      this.hook = null;
+      b.vy = Math.min(b.vy, -JUMP_V * 0.6);
+      this.jumpBuf = 0;
+      this.emit({ t: 'unhook' });
+    } else if (this.jumpBuf > 0 && this.coyote > 0) {
+      b.vy = -jumpV;
       this.coyote = 0;
       this.jumpBuf = 0;
       this.emit({ t: 'jump' });
+    } else if (jumpPress && this.airJumpsLeft > 0 && !this.riding && !this.inLiquid) {
+      this.airJumpsLeft--;
+      b.vy = -JUMP_V * 0.9;
+      this.jumpBuf = 0;
+      this.emit({ t: 'jump' });
     }
-    if (!c.jump && b.vy < -6) b.vy = -6;
+    if (!c.jump && b.vy < -6 && !this.hook && veh !== 'sky_jet') b.vy = -6;
     this.prevJump = c.jump;
 
     const swimT = this.world.get(Math.floor(b.x), Math.floor(b.y - BODY_H / 2));
@@ -582,7 +715,17 @@ export class Game {
     this.inLiquid = isLiquid(swimT) ? swimT : 0;
     // Breaking the surface while stroking up: leap out, so pools can be left onto a ledge.
     if (wasLiquid && !this.inLiquid && c.jump && b.vy < 0) b.vy = -LEAP_V;
-    if (this.inLiquid) {
+    this.jetting = false;
+    this.gliding = false;
+    if (veh === 'sky_jet') {
+      // Flying: jump climbs, down dives, otherwise a gentle sink. Battery powers it away from the pad.
+      const target = c.jump ? -10 : c.down ? 12 : 1.5;
+      b.vy += (target - b.vy) * Math.min(1, 6 * dt);
+      this.jetting = c.jump;
+      this.wasGround = true;
+      if (!this.isAtBase()) this.battery = Math.max(0, this.battery - JET_DRAIN * 0.8 * dt);
+      if (this.battery === 0 && !this.isAtBase()) this.riding = false;
+    } else if (this.inLiquid) {
       // Swimming: slow sink, jump strokes upward, no fall damage, drag on both axes.
       b.vx *= 1 - Math.min(1, 6 * dt);
       b.vy = c.jump ? Math.max(-SWIM_UP, b.vy - GRAVITY * 1.2 * dt) : Math.min(SINK, b.vy + GRAVITY * 0.25 * dt);
@@ -595,21 +738,37 @@ export class Game {
           this.hurt(ACID_DPS / 4);
         }
       }
-    } else if (onLadder(this.world, b)) {
+    } else if (!this.hook && onLadder(this.world, b)) {
       // Climbing: no gravity; jump climbs, down descends, otherwise cling.
       b.vy = c.jump ? -CLIMB_UP : c.down ? CLIMB_DOWN : 0;
       b.vx *= 0.6;
       this.coyote = 0.1;
+    } else if (this.dashT > 0) {
+      b.vy = 0;
     } else {
       b.vy = Math.min(MAX_FALL, b.vy + GRAVITY * dt);
+      // Jetpack: hold jump in the air once the jump has peaked (or with no jumps left).
+      if (g.jetpack && c.jump && !grounded && !this.hook && b.vy > -4 && this.battery > 0) {
+        b.vy = Math.max(-JET_MAX, b.vy - JET_THRUST * dt);
+        this.jetting = true;
+        this.wasGround = true;
+        if (!this.isAtBase()) this.battery = Math.max(0, this.battery - JET_DRAIN * dt);
+      } else if (g.glider && c.jump && !grounded && !this.hook && b.vy > 0) {
+        // Glide: slow fall, carry forward.
+        b.vy = Math.min(b.vy, GLIDE_FALL);
+        b.vx += (this.facing * speed * 1.4 - b.vx) * Math.min(1, 3 * dt);
+        this.gliding = true;
+        this.wasGround = true;
+      }
     }
     b.onGround = false;
     moveX(this.world, b, b.vx * dt);
     const impact = b.vy;
     moveY(this.world, b, b.vy * dt, c.down);
+    if (this.hook) this.stepRope(dt, c);
     if (b.onGround && !this.wasGround) {
       this.emit({ t: 'land', speed: impact });
-      if (impact > FALL_SAFE) this.hurt((impact - FALL_SAFE) * 6);
+      if (impact > FALL_SAFE && veh !== 'hoverbike') this.hurt((impact - FALL_SAFE) * 6);
     }
     this.wasGround = b.onGround;
 
@@ -636,6 +795,7 @@ export class Game {
     const dig = c.dig && !onChest;
     this.prevDig = c.dig;
     if (pressed && !onChest && this.tool === 'rod') this.pressRod(c.aim);
+    if (pressed && !onChest && this.tool === 'hook' && !this.hook) this.pressHook(c.aim);
     this.stepFishing(dt);
     if (c.dig && onChest) {
       // handled above
@@ -725,7 +885,7 @@ export class Game {
       this.lowWarned = false;
       this.bank();
     } else if (this.depth > 1.5) {
-      this.battery = Math.max(0, this.battery - dt);
+      this.battery = Math.max(0, this.battery - dt * this.gear.drainMul);
       if (this.battery < d.maxBattery * 0.2 && !this.lowWarned) {
         this.lowWarned = true;
         this.emit({ t: 'lowbattery' });
@@ -737,15 +897,94 @@ export class Game {
 
   private blade(): void {
     if (this.bladeCd > 0) return;
-    this.bladeCd = BLADE_CD;
+    const g = this.gear;
+    this.bladeCd = g.meleeCd;
     this.swing = 0.18;
     const b = this.body;
     this.emit({ t: 'swing', dir: this.facing });
     for (const e of this.enemies) {
       const dx = (e.x - b.x) * this.facing;
-      if (dx < -0.4 || dx > BLADE_RANGE || Math.abs(e.y - b.y) > 1.8) continue;
-      this.damageEnemy(e, BLADE_DMG, this.facing);
+      if (dx < -0.4 || dx > g.meleeRange || Math.abs(e.y - b.y) > 1.8) continue;
+      this.damageEnemy(e, g.meleeDmg, this.facing);
     }
+  }
+
+  /** Bomb blast: damages enemies in the radius and breaks minable solid tiles (their drops land as pickups). */
+  explode(x: number, y: number, dmg: number): void {
+    const r = BOMB_RADIUS;
+    for (const e of this.enemies) if (Math.hypot(e.x - x, e.y - 0.4 - y) <= r + 0.5) this.damageEnemy(e, dmg, Math.sign(e.x - x) || 1);
+    for (let ty = Math.floor(y - r); ty <= Math.ceil(y + r); ty++) {
+      for (let tx = Math.floor(x - r); tx <= Math.ceil(x + r); tx++) {
+        if (Math.hypot(tx + 0.5 - x, ty + 0.5 - y) > r) continue;
+        const t = this.world.get(tx, ty);
+        const def = TILES[t];
+        if (!def.solid || !isMinable(t) || t === T.PAD || t === T.CHEST) continue;
+        if (this.isAtBase() && Math.abs(tx - this.world.padX) <= 8) continue;
+        this.world.set(tx, ty, T.AIR);
+        this.emit({ t: 'break', x: tx, y: ty, tile: t });
+        if (def.drop) addDrop(this.drops, makeDrop(def.drop, 1, tx + 0.5, ty + 0.5, 0, -2));
+      }
+    }
+    this.emit({ t: 'boom', x, y });
+  }
+
+  /** Rope: keep the body within the rope length of the anchor (pendulum); holding dig reels in. */
+  private stepRope(dt: number, c: Controls): void {
+    const h = this.hook;
+    if (!h) return;
+    const b = this.body;
+    if (!this.world.isSolid(Math.floor(h.ax), Math.floor(h.ay))) {
+      this.hook = null;
+      this.emit({ t: 'unhook' });
+      return;
+    }
+    if (c.dig && this.tool === 'hook') h.len = Math.max(1.5, h.len - HOOK_REEL * dt);
+    else if (c.down) h.len = Math.min(HOOK_RANGE, h.len + HOOK_REEL * dt);
+    const cx = b.x;
+    const cy = b.y - BODY_H / 2;
+    const dx = cx - h.ax;
+    const dy = cy - h.ay;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= h.len || dist < 1e-6) return;
+    const nx = dx / dist;
+    const ny = dy / dist;
+    // Pull back onto the circle through collision, then drop the outward part of the velocity.
+    moveX(this.world, b, -nx * (dist - h.len));
+    moveY(this.world, b, -ny * (dist - h.len), false);
+    const vr = b.vx * nx + b.vy * ny;
+    if (vr > 0) {
+      b.vx -= vr * nx;
+      b.vy -= vr * ny;
+    }
+    this.wasGround = true;
+  }
+
+  /** Hook press: attach to the first solid tile along the aim (up to HOOK_RANGE), or let go. */
+  pressHook(aim: Controls['aim']): boolean {
+    if (this.hook) {
+      this.hook = null;
+      this.emit({ t: 'unhook' });
+      return false;
+    }
+    if (!aim || this.riding) return false;
+    const b = this.body;
+    const ox = b.x;
+    const oy = b.y - BODY_H / 2;
+    const dx = aim.tx + 0.5 - ox;
+    const dy = aim.ty + 0.5 - oy;
+    const len = Math.hypot(dx, dy);
+    if (len < 0.5) return false;
+    for (let d = 0.5; d <= HOOK_RANGE; d += 0.25) {
+      const x = ox + (dx / len) * d;
+      const y = oy + (dy / len) * d;
+      if (this.world.isSolid(Math.floor(x), Math.floor(y))) {
+        this.hook = { ax: x, ay: y, len: Math.max(1.5, d) };
+        this.airJumpsLeft = this.gear.airJumps;
+        this.emit({ t: 'hook', x, y });
+        return true;
+      }
+    }
+    return false;
   }
 
   damageEnemy(e: Enemy, dmg: number, dir: number): void {
@@ -775,9 +1014,22 @@ export class Game {
       dy = 0;
       len = 1;
     }
-    if (!this.isAtBase()) this.battery = Math.max(0, this.battery - PISTOL_COST);
-    this.pistolCd = PISTOL_CD;
-    this.shots.push({ x: ox, y: oy, vx: (dx / len) * PISTOL_SPEED, vy: (dy / len) * PISTOL_SPEED, life: PISTOL_LIFE });
+    const g = this.gear;
+    if (!this.isAtBase()) this.battery = Math.max(0, this.battery - PISTOL_COST * (g.ranged === 'pulse' ? 1 : 1.5));
+    this.pistolCd = g.rangedCd;
+    const ux = dx / len;
+    const uy = dy / len;
+    if (g.ranged === 'scatter') {
+      for (const a of [-0.18, 0, 0.18]) {
+        const c = Math.cos(a);
+        const sn = Math.sin(a);
+        this.shots.push({ x: ox, y: oy, vx: (ux * c - uy * sn) * PISTOL_SPEED, vy: (ux * sn + uy * c) * PISTOL_SPEED, life: PISTOL_LIFE * 0.7, dmg: g.rangedDmg });
+      }
+    } else if (g.ranged === 'rail') {
+      this.shots.push({ x: ox, y: oy, vx: ux * PISTOL_SPEED * 1.7, vy: uy * PISTOL_SPEED * 1.7, life: PISTOL_LIFE, dmg: g.rangedDmg, pierce: true, hit: [] });
+    } else if (g.ranged === 'bomb') {
+      this.shots.push({ x: ox, y: oy, vx: ux * 13, vy: uy * 13 - 4, life: 3, dmg: g.rangedDmg, bomb: true });
+    } else this.shots.push({ x: ox, y: oy, vx: ux * PISTOL_SPEED, vy: uy * PISTOL_SPEED, life: PISTOL_LIFE, dmg: g.rangedDmg });
     this.emit({ t: 'shoot', x: ox, y: oy });
   }
 
@@ -790,23 +1042,40 @@ export class Game {
       const dist = Math.hypot(s.vx, s.vy) * dt;
       const n = Math.max(1, Math.ceil(dist / 0.2));
       let alive = s.life > 0;
+      if (s.bomb) s.vy = Math.min(25, s.vy + GRAVITY * 0.6 * dt);
       for (let i = 0; i < n && alive; i++) {
         s.x += (s.vx * dt) / n;
         s.y += (s.vy * dt) / n;
         if (this.world.isSolid(Math.floor(s.x), Math.floor(s.y))) {
-          this.emit({ t: 'shothit', x: s.x, y: s.y });
+          if (s.bomb) this.explode(s.x, s.y, s.dmg ?? 20);
+          else this.emit({ t: 'shothit', x: s.x, y: s.y });
           alive = false;
           break;
         }
         for (const e of this.enemies) {
           if (e.hp > 0 && enemyOverlapsBox(e, s.x, s.y + 0.1, 0.1, 0.2)) {
-            this.damageEnemy(e, PISTOL_DMG, Math.sign(s.vx) || 1);
+            if (s.bomb) {
+              this.explode(s.x, s.y, s.dmg ?? 20);
+              alive = false;
+              break;
+            }
+            if (s.pierce) {
+              if (s.hit?.includes(e.id)) continue;
+              s.hit?.push(e.id);
+              this.damageEnemy(e, s.dmg ?? PISTOL_DMG, Math.sign(s.vx) || 1);
+              this.emit({ t: 'shothit', x: s.x, y: s.y });
+              continue;
+            }
+            this.damageEnemy(e, s.dmg ?? PISTOL_DMG, Math.sign(s.vx) || 1);
             this.emit({ t: 'shothit', x: s.x, y: s.y });
             alive = false;
             break;
           }
         }
       }
+      if (!alive || s.life > 0) {
+        // fallthrough
+      } else if (s.bomb) this.explode(s.x, s.y, s.dmg ?? 20);
       if (alive) keep.push(s);
     }
     this.shots = keep;
@@ -1152,6 +1421,7 @@ export class Game {
       stats: { ...this.save.stats },
       settings: { ...this.save.settings },
       codex: [...this.save.codex],
+      gear: { owned: [...this.save.gear.owned], equip: { ...this.save.gear.equip } },
       world: captureDiff(this.world, this.fog),
     };
   }

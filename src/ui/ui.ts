@@ -1,9 +1,10 @@
 import type { Game, Tool } from '../sim/game';
-import { MapView } from './map';
+import { MAP_ZOOMS, MapView } from './map';
 import { ICON, drawIcon } from '../render/icons';
 import { drawPlayer } from '../render/sprites';
 import { playerGear } from '../render/renderer';
 import { FOOD } from '../sim/fishing';
+import { GEAR, GEAR_IDS, GEAR_SLOTS, type GearId } from '../sim/gear';
 import { CODEX, RECALL_TIME } from '../sim/explore';
 import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type Inventory, type ItemId } from '../sim/tiles';
 import { UPGRADES } from '../sim/upgrades';
@@ -35,9 +36,15 @@ export type UiAction =
   | { k: 'drop'; id: ItemId }
   | { k: 'take'; id: ItemId | 'all' }
   | { k: 'put'; id: ItemId }
-  | { k: 'breakchest' };
+  | { k: 'breakchest' }
+  | { k: 'ride' }
+  | { k: 'dash' }
+  | { k: 'craftgear'; id: GearId }
+  | { k: 'equip'; id: GearId }
+  | { k: 'mapzoom'; d: number }
+  | { k: 'mapcenter' };
 
-export type ShopTab = 'upgrades' | 'fab';
+export type ShopTab = 'upgrades' | 'fab' | 'gear';
 
 /** Most shop rows drawn at once; longer lists scroll so the panel always fits a 360 px phone. */
 export const SHOP_VISIBLE = 9;
@@ -66,6 +73,7 @@ const TOOL_SLOTS: { tool: Tool; label: string; key: string }[] = [
   { tool: 'blade', label: 'Blade', key: '2' },
   { tool: 'pistol', label: 'Pistol', key: '3' },
   { tool: 'rod', label: 'Fishing rod', key: '4' },
+  { tool: 'hook', label: 'Grappling hook', key: '5' },
 ];
 
 const FONT = 'ui-monospace, Menlo, Consolas, "Courier New", monospace';
@@ -94,21 +102,25 @@ export class UI {
   invSel: ItemId | null = null;
   /** Seconds left to confirm abandoning the world (NEW WORLD needs two taps). */
   newWorldArmed = 0;
-  private mapView = new MapView();
+  readonly mapView = new MapView();
+  /** Where the map was last drawn (drag-to-pan hit area). */
+  mapRect = { x: 0, y: 0, w: 0, h: 0 };
   screen: 'title' | 'play' = 'title';
   shopOpen = false;
   /** Workshop tab: upgrades or Fabricator recipes (keeps the panel on screen however many rows exist). */
   shopTab: ShopTab = 'upgrades';
+  /** Rows that fit on screen (set each frame by drawShop). */
+  shopVisible = SHOP_VISIBLE;
   /** First visible row of the current shop tab. */
   shopScroll = 0;
 
   /** Row count of the current shop tab. */
   shopRows(): number {
-    return this.shopTab === 'upgrades' ? UPGRADES.length : RECIPES.length;
+    return this.shopTab === 'upgrades' ? UPGRADES.length : this.shopTab === 'gear' ? GEAR_IDS.length : RECIPES.length;
   }
 
   scrollShop(d: number): void {
-    this.shopScroll = clampScroll(this.shopScroll + d, this.shopRows());
+    this.shopScroll = clampScroll(this.shopScroll + d, this.shopRows(), this.shopVisible);
   }
 
   setShopTab(t: ShopTab): void {
@@ -202,7 +214,7 @@ export class UI {
   }
 
   /** One item cell: dark slot, pixel icon, count in the corner, highlight when selected. */
-  private cell(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, id: ItemId | Tool, count: number | null, sel: boolean, a: UiAction | null, dim = false): void {
+  private cell(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, id: ItemId | Tool | GearId, count: number | null, sel: boolean, a: UiAction | null, dim = false): void {
     ctx.fillStyle = sel ? 'rgba(54,224,232,0.18)' : 'rgba(10,12,20,0.75)';
     ctx.fillRect(x, y, size, size);
     ctx.strokeStyle = sel ? '#36e0e8' : '#3a4052';
@@ -270,7 +282,11 @@ export class UI {
     ctx.beginPath();
     ctx.ellipse(fx, fy, 9 * scale, 2 * scale, 0, 0, Math.PI * 2);
     ctx.fill();
-    drawPlayer(ctx, fx, fy, scale, { facing: 1, walking: false, t: time, airborne: false, tier: game.upgrades.armor ?? 0, gear: playerGear(game), held: game.tool });
+    const wearOf = (slot: 'head' | 'body' | 'feet'): [string, string] | undefined => {
+      const id = game.equipped(slot);
+      return id ? [GEAR[id].color, GEAR[id].accent] : undefined;
+    };
+    drawPlayer(ctx, fx, fy, scale, { facing: 1, walking: false, t: time, airborne: false, tier: game.upgrades.armor ?? 0, gear: playerGear(game), held: game.tool, wear: { head: wearOf('head'), body: wearOf('body'), feet: wearOf('feet') } });
     const up = game.upgrades;
     const gearLines: [string, number][] = [
       ['Helmet lamp', up.lamp ?? 0],
@@ -304,6 +320,17 @@ export class UI {
     if (ids.length === 0) this.text(ctx, 'Empty. Dig, chop, fish and open chests.', rx, ry + u * 1.4, Math.round(u * 0.8), '#5a6078', 'left', rw);
     const gh = this.grid(ctx, rx, ry, rw, ids, game.carried, cs, this.invSel, (id) => ({ k: 'invsel', id }));
     ry += Math.max(gh, u * 2) + u * 0.6;
+    // Gear: everything crafted, tap to equip; worn items highlighted.
+    const owned = GEAR_IDS.filter((id) => game.ownsGear(id));
+    this.text(ctx, 'GEAR  (build more in the workshop GEAR tab)', rx, ry + u * 0.2, Math.round(u * 0.72), '#8a90a2', 'left', rw);
+    ry += u * 0.6;
+    const gs = cs * 0.8;
+    const gcols = Math.max(1, Math.floor((rw + 4) / (gs + 4)));
+    owned.forEach((id, i) => this.cell(ctx, rx + (i % gcols) * (gs + 4), ry + Math.floor(i / gcols) * (gs + 4), gs, id, null, game.equipped(GEAR[id].slot) === id, { k: 'equip', id }));
+    ry += Math.ceil(owned.length / gcols) * (gs + 4) + u * 0.6;
+    const worn = GEAR_SLOTS.map((sl) => game.equipped(sl)).filter((x): x is GearId => !!x).map((x) => GEAR[x].name);
+    this.text(ctx, `Wearing: ${worn.join(', ')}`, rx, ry, Math.round(u * 0.66), '#9ff6a0', 'left', rw);
+    ry += u * 1.1;
     // Selected item: name, what it does, actions.
     const sel = this.invSel && (game.carried[this.invSel] ?? 0) > 0 ? this.invSel : null;
     if (sel) {
@@ -361,6 +388,15 @@ export class UI {
     this.text(ctx, `Codex ${found}/${CODEX.length}`, u * 5, u * 1.4, Math.round(u * 0.9), '#ffcf4a', 'left', w - u * 12);
     const bw = u * 6;
     this.button(ctx, w - bw - u, u * 0.4, bw, u * 2.2, 'CLOSE', { k: 'map' }, u * 0.9);
+    // Zoom and centre controls (wheel zooms, drag pans).
+    const zb = u * 2.6;
+    let zx = w - bw - u * 2 - zb * 2 - zb * 1.6 - u * 0.8;
+    this.button(ctx, zx, u * 0.4, zb, u * 2.2, '-', { k: 'mapzoom', d: -1 }, u, { enabled: this.mapView.zoom > 0 });
+    zx += zb + u * 0.4;
+    this.button(ctx, zx, u * 0.4, zb, u * 2.2, '+', { k: 'mapzoom', d: 1 }, u, { enabled: this.mapView.zoom < MAP_ZOOMS.length - 1 });
+    zx += zb + u * 0.4;
+    this.button(ctx, zx, u * 0.4, zb * 1.6, u * 2.2, 'YOU', { k: 'mapcenter' }, u * 0.8);
+    this.mapRect = { x: u, y: u * 3.2, w: w - u * 2, h: h - u * 6.4 };
     this.mapView.draw(ctx, game, u, u * 3.2, w - u * 2, h - u * 6.4, u, time);
     const hint = game.canRecall() ? (this.touch ? 'Surface: tap HOME to beam to the pad' : 'Surface: hold still and press R to beam to the pad') : 'Reach the surface to beam home';
     this.text(ctx, hint, w / 2, h - u * 1.6, Math.round(u * 0.8), '#8a90a2', 'center', w - u * 2);
@@ -423,6 +459,12 @@ export class UI {
       by += bhgt + u * 0.5;
     }
     if (this.touch) this.button(ctx, bx, by, bwid, bhgt, this.placeMode ? 'MODE BUILD' : 'MODE DIG', { k: 'mode' }, u * 0.8, { color: this.placeMode ? '#7a5a1f' : '#1f6f78' });
+    if (this.touch) by += bhgt + u * 0.5;
+    if (game.equipped('vehicle')) {
+      this.button(ctx, bx, by, bwid, bhgt, game.riding ? 'GET OFF' : 'RIDE', { k: 'ride' }, u * 0.85, { color: game.riding ? '#7a5a1f' : '#1f6f78' });
+      by += bhgt + u * 0.5;
+    }
+    if (this.touch && game.gear.dash) this.button(ctx, bx, by, bwid, bhgt, 'DASH', { k: 'dash' }, u * 0.9);
 
     // Hotbar: tools first, then placeable blocks.
     const gap = u * 0.4;
@@ -481,6 +523,8 @@ export class UI {
     const rows = SHOP_VISIBLE;
     const rowH = Math.min(u * 2.9, Math.max(u * 2.3, (h - u * 2 - u * 10) / rows));
     const ph = Math.min(h - u * 2, u * 2.4 + u * 2 + rows * rowH + u * 2.4 + u * 5.6 + u * 2.8);
+    // Rows that fit between the tabs and the footer buttons on this screen (short screens scroll more).
+    this.shopVisible = Math.max(3, Math.min(SHOP_VISIBLE, Math.floor((ph - u * 6.6 - u * 7.6) / rowH)));
     const px = (w - pw) / 2;
     const py = (h - ph) / 2;
     ctx.fillStyle = '#12121c';
@@ -508,21 +552,22 @@ export class UI {
 
     // Rows.
     const total = this.shopRows();
-    this.shopScroll = clampScroll(this.shopScroll, total);
-    const scrolls = total > SHOP_VISIBLE;
+    const vis = this.shopVisible;
+    this.shopScroll = clampScroll(this.shopScroll, total, vis);
+    const scrolls = total > vis;
     const arrow = scrolls ? u * 2.4 : 0;
-    const tw = (pw - u * 2.4 - arrow * 2 - (scrolls ? u * 0.8 : 0)) / 2;
+    const tw = (pw - u * 2.8 - arrow * 2 - (scrolls ? u * 0.8 : 0)) / 3;
     const ty = py + u * 4.3;
-    for (const [i, t] of (['upgrades', 'fab'] as const).entries()) {
-      this.button(ctx, px + u + i * (tw + u * 0.4), ty, tw, u * 1.9, t === 'upgrades' ? 'UPGRADES' : 'FABRICATOR', { k: 'tab', t }, u * 0.9, { color: this.shopTab === t ? '#1f6f78' : '#23262f' });
+    for (const [i, t] of (['upgrades', 'fab', 'gear'] as const).entries()) {
+      this.button(ctx, px + u + i * (tw + u * 0.4), ty, tw, u * 1.9, t === 'upgrades' ? 'UPGRADES' : t === 'fab' ? 'FABRICATE' : 'GEAR', { k: 'tab', t }, u * 0.8, { color: this.shopTab === t ? '#1f6f78' : '#23262f' });
     }
     if (scrolls) {
       const ax = px + pw - u - arrow * 2 - u * 0.2;
       this.button(ctx, ax, ty, arrow, u * 1.9, '^', { k: 'scroll', d: -1 }, u * 0.9, { enabled: this.shopScroll > 0 });
-      this.button(ctx, ax + arrow + u * 0.2, ty, arrow, u * 1.9, 'v', { k: 'scroll', d: 1 }, u * 0.9, { enabled: this.shopScroll < total - SHOP_VISIBLE });
+      this.button(ctx, ax + arrow + u * 0.2, ty, arrow, u * 1.9, 'v', { k: 'scroll', d: 1 }, u * 0.9, { enabled: this.shopScroll < total - vis });
     }
     let ry = py + u * 6.6;
-    for (const up of this.shopTab === 'upgrades' ? UPGRADES.slice(this.shopScroll, this.shopScroll + SHOP_VISIBLE) : []) {
+    for (const up of this.shopTab === 'upgrades' ? UPGRADES.slice(this.shopScroll, this.shopScroll + vis) : []) {
       const lv = game.upgrades[up.id] ?? 0;
       const maxed = lv >= up.maxLevel;
       const cost = maxed ? null : up.cost(lv);
@@ -535,7 +580,7 @@ export class UI {
       this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, maxed ? 'MAX' : 'BUY', { k: 'buy', id: up.id }, u * 0.9, { enabled: afford && !maxed });
       ry += rowH;
     }
-    for (const r of this.shopTab === 'fab' ? RECIPES.slice(this.shopScroll, this.shopScroll + SHOP_VISIBLE) : []) {
+    for (const r of this.shopTab === 'fab' ? RECIPES.slice(this.shopScroll, this.shopScroll + vis) : []) {
       const locked = (game.upgrades.fab ?? 0) < (r.fab ?? 0);
       const afford = !locked && ITEM_IDS.every((id) => (game.stash[id] ?? 0) >= (r.cost[id] ?? 0));
       ctx.fillStyle = 'rgba(255,255,255,0.05)';
@@ -544,6 +589,23 @@ export class UI {
       this.text(ctx, locked ? `Needs Fabricator Lv ${r.fab}` : `Cost: ${costText(r.cost)}`, px + u, ry + rowH * 0.68, Math.round(u * 0.72), afford ? '#9ff6a0' : '#ff8a8a');
       const bw = u * 5.5;
       this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, 'MAKE', { k: 'craft', id: r.id }, u * 0.9, { enabled: afford });
+      ry += rowH;
+    }
+    for (const id of this.shopTab === 'gear' ? GEAR_IDS.slice(this.shopScroll, this.shopScroll + vis) : []) {
+      const gd = GEAR[id];
+      const owned = game.ownsGear(id);
+      const worn = game.equipped(gd.slot) === id;
+      const afford = !owned && ITEM_IDS.every((k) => (game.stash[k] ?? 0) >= (gd.cost[k] ?? 0));
+      ctx.fillStyle = worn ? 'rgba(54,224,232,0.12)' : 'rgba(255,255,255,0.05)';
+      ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
+      const isz = rowH - u * 0.8;
+      this.cell(ctx, px + u * 0.8, ry + u * 0.25, isz, id, null, worn, null);
+      const tx2 = px + u * 1.4 + isz;
+      this.text(ctx, `${gd.name}  [${gd.slot}]`, tx2, ry + rowH * 0.3, Math.round(u * 0.9), '#fff', 'left', pw - isz - u * 9);
+      this.text(ctx, owned ? gd.desc : `${gd.desc}  Cost: ${costText(gd.cost)}`, tx2, ry + rowH * 0.68, Math.round(u * 0.66), owned ? '#9aa3b8' : afford ? '#9ff6a0' : '#ff8a8a', 'left', pw - isz - u * 9);
+      const bw = u * 5.5;
+      if (owned) this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, worn ? 'WORN' : 'EQUIP', { k: 'equip', id }, u * 0.85, { color: worn ? '#2a6a3a' : '#1f6f78' });
+      else this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, 'BUILD', { k: 'craftgear', id }, u * 0.85, { enabled: afford });
       ry += rowH;
     }
 

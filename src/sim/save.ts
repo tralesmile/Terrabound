@@ -2,9 +2,10 @@ import { ITEM_IDS, type Inventory } from './tiles';
 import { legacyWalls, sanitizeBase, sanitizeWalls, type BaseTiles } from './base';
 import { UPGRADES, type Levels } from './upgrades';
 import { CODEX_IDS } from './explore';
+import { defaultGear, sanitizeGear, type GearSave } from './gear';
 import { sanitizeDiff, type WorldDiff } from './persist';
 
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -31,6 +32,8 @@ export interface SaveData {
   away: { savedAt: number; time: number; charge: number };
   /** v7: world seed chosen from a shared code (null = derived from seedBase and runs). */
   worldSeed: number | null;
+  /** v9: crafted gear (owned forever) and what is equipped per slot. */
+  gear: GearSave;
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -49,6 +52,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     world: null,
     away: { savedAt: 0, time: 0, charge: 0 },
     worldSeed: null,
+    gear: defaultGear(),
   };
 }
 
@@ -115,6 +119,8 @@ export function parseSave(raw: string | null | undefined): SaveData {
     away: sanitizeAway(r.away),
     // v6 -> v7: no shared seed; the world derives from seedBase and runs as before.
     worldSeed: typeof r.worldSeed === 'number' && Number.isFinite(r.worldSeed) ? Math.floor(num(r.worldSeed, 0, 4294967295, 0)) : null,
+    // v8 -> v9: only the starter blade and pistol.
+    gear: sanitizeGear(r.gear),
   };
 }
 

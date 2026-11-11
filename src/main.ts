@@ -10,9 +10,10 @@ import { FIXED_DT, Game, NO_CONTROLS, TOOLS, type GameEvent, type Tool } from '.
 import { parseSave, serializeSave } from './sim/save';
 import { ITEMS, type ItemId } from './sim/tiles';
 import { codexEntry } from './sim/explore';
+import { GEAR } from './sim/gear';
 import { UI, type UiAction } from './ui/ui';
 
-const TOOL_NAMES: Record<Tool, string> = { drill: 'Mining drill', blade: 'Energy blade', pistol: 'Pulse pistol', rod: 'Fishing rod: click water to cast' };
+const TOOL_NAMES: Record<Tool, string> = { drill: 'Mining drill', blade: 'Energy blade', pistol: 'Pulse pistol', rod: 'Fishing rod: click water to cast', hook: 'Grappling hook: click a ceiling, swing, jump to let go' };
 
 function fatal(err: unknown): void {
   console.error('Terrabound fatal error', err);
@@ -69,8 +70,25 @@ function boot(): void {
     renderer.resize(w, h);
   };
   resize();
+  // Map: drag to pan.
+  let mapDrag: { x: number; y: number } | null = null;
+  canvas.addEventListener('pointerdown', (e) => {
+    const r = ui.mapRect;
+    if (ui.mapOpen && e.offsetX >= r.x && e.offsetX <= r.x + r.w && e.offsetY >= r.y && e.offsetY <= r.y + r.h) mapDrag = { x: e.clientX, y: e.clientY };
+  });
+  window.addEventListener('pointermove', (e) => {
+    if (!mapDrag || !ui.mapOpen) return;
+    ui.mapView.dragBy(e.clientX - mapDrag.x, e.clientY - mapDrag.y);
+    mapDrag = { x: e.clientX, y: e.clientY };
+  });
+  window.addEventListener('pointerup', () => {
+    mapDrag = null;
+  });
   canvas.addEventListener('wheel', (e) => {
-    if (ui.shopOpen) {
+    if (ui.mapOpen) {
+      ui.mapView.zoomBy(e.deltaY > 0 ? -1 : 1);
+      e.preventDefault();
+    } else if (ui.shopOpen) {
       ui.scrollShop(e.deltaY > 0 ? 1 : -1);
       e.preventDefault();
     } else if (ui.screen === 'play' && !ui.mapOpen && !ui.invOpen) {
@@ -173,6 +191,25 @@ function boot(): void {
       case 'settool':
         game.setTool(a.t);
         ui.toast(TOOL_NAMES[a.t], '#36e0e8');
+        break;
+      case 'mapzoom':
+        ui.mapView.zoomBy(a.d);
+        break;
+      case 'mapcenter':
+        ui.mapView.center();
+        break;
+      case 'ride':
+        if (!game.toggleRide()) ui.toast('Craft a vehicle in the workshop GEAR tab first', '#ff9a3c');
+        break;
+      case 'dash':
+        input.dashTap = true;
+        break;
+      case 'craftgear':
+        if (game.craftGear(a.id)) saveNow();
+        break;
+      case 'equip':
+        game.equipGear(a.id);
+        saveNow();
         break;
       case 'inv':
         if (ui.screen === 'play' && !ui.shopOpen) {
@@ -285,6 +322,18 @@ function boot(): void {
         break;
       case 'nosoil':
         ui.toast('Seeds need soil underneath', '#ff9a3c');
+        break;
+      case 'craftgear':
+        ui.toast(`Built: ${GEAR[e.id].name}`, '#ffcf4a');
+        fx.burst(game.body.x, game.body.y - 1, '#ffcf4a', 24, 6);
+        break;
+      case 'mount':
+        ui.toast('Riding (V to get off)', '#36e0e8', 1.4);
+        break;
+      case 'boom':
+        fx.burst(e.x, e.y, '#ff9a3c', 30, 9);
+        fx.burst(e.x, e.y, '#ffcf4a', 14, 5);
+        fx.addShake(0.6);
         break;
       case 'grow':
         ui.toast('A sapling grew into a tree', '#7fcf5a');
