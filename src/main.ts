@@ -108,6 +108,9 @@ function boot(): void {
       case 'buy':
         if (game.buyUpgrade(a.id)) saveNow();
         break;
+      case 'tab':
+        ui.shopTab = a.t;
+        break;
       case 'craft':
         if (game.craft(a.id)) saveNow();
         break;

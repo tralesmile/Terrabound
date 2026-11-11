@@ -215,3 +215,11 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 **Next:** shop tabs/scroll (needed before adding more rows), miner drone v2, drone rules UI.
 
 **Known issues:** shop is at its row limit; hotbar "0" slot for a selected unowned block.
+
+## 2026-11-11 Scheduled run 7
+
+**Done:** baseline green (dev branch was missing locally; `git checkout -B dev origin/dev`). Workshop tabs (UPGRADES / FABRICATOR, `ui.shopTab`, `tab` action) fix the shop row-limit; screenshots 09 and 09b reviewed at 360 px (11 recipe rows, 7 upgrade rows). e2e check for tab switching. 197 unit tests.
+
+**Next:** miner drone v2, drone rules UI; fabricator tab holds ~12 rows before it needs scrolling.
+
+**Known issues:** hotbar "0" slot for a selected unowned block.

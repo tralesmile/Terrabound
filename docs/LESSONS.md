@@ -40,3 +40,5 @@
 - **Worldgen-heavy tests flake at vitest's 5 s default on slow VMs.** Guard: global `testTimeout: 30000` in vite.config.ts (assertions untouched).
 - **A growing shop list silently clipped rows.** Guard: row height shrinks to fit; always view 09-mobile-shop.png after adding upgrades or recipes (next step: tabs/scroll past ~20 rows).
 - **Shop panel is at capacity (18 rows at 360 px).** Guard: add tabs or scrolling before the next recipe/upgrade; view 09-mobile-shop.png each time.
+- **Fresh clones may be detached with no local `dev`.** Guard: `git checkout -B dev origin/dev` before working (ship.sh requires branch dev).
+- **Shop tabs added; limit is now ~12 rows per tab.** Add scrolling before exceeding it; view 09b-mobile-shop-fab.png.

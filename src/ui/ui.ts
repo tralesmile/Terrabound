@@ -13,12 +13,15 @@ export type UiAction =
   | { k: 'mute' }
   | { k: 'buy'; id: string }
   | { k: 'craft'; id: string }
+  | { k: 'tab'; t: ShopTab }
   | { k: 'dive' }
   | { k: 'sel'; i: number }
   | { k: 'tool' }
   | { k: 'settool'; t: Tool }
   | { k: 'map' }
   | { k: 'recall' };
+
+export type ShopTab = 'upgrades' | 'fab';
 
 interface Rect {
   x: number;
@@ -66,6 +69,8 @@ export class UI {
   private mapView = new MapView();
   screen: 'title' | 'play' = 'title';
   shopOpen = false;
+  /** Workshop tab: upgrades or Fabricator recipes (keeps the panel on screen however many rows exist). */
+  shopTab: ShopTab = 'upgrades';
   placeMode = false;
   touch = false;
   toasts: Toast[] = [];
@@ -277,9 +282,9 @@ export class UI {
     ctx.fillStyle = 'rgba(8,6,16,0.82)';
     ctx.fillRect(0, 0, w, h);
     const pw = Math.min(w - u * 2, u * 40);
-    const rows = UPGRADES.length + RECIPES.length;
+    const rows = Math.max(UPGRADES.length, RECIPES.length);
     const rowH = Math.min(u * 2.9, Math.max(u * 2.3, (h - u * 2 - u * 10) / rows));
-    const ph = Math.min(h - u * 2, u * 2.4 + u * 2 + (UPGRADES.length + RECIPES.length) * rowH + u * 5.6);
+    const ph = Math.min(h - u * 2, u * 2.4 + u * 2 + rows * rowH + u * 2.4 + u * 5.6);
     const px = (w - pw) / 2;
     const py = (h - ph) / 2;
     ctx.fillStyle = '#12121c';
@@ -306,8 +311,13 @@ export class UI {
     if (owned.length === 0) this.text(ctx, 'Stash empty: dive and bank loot', px + u, sy, Math.round(u * 0.9), '#8a93a8');
 
     // Rows.
-    let ry = py + u * 4.6;
-    for (const up of UPGRADES) {
+    const tw = (pw - u * 2.4) / 2;
+    const ty = py + u * 4.3;
+    for (const [i, t] of (['upgrades', 'fab'] as const).entries()) {
+      this.button(ctx, px + u + i * (tw + u * 0.4), ty, tw, u * 1.9, t === 'upgrades' ? 'UPGRADES' : 'FABRICATOR', { k: 'tab', t }, u * 0.9, { color: this.shopTab === t ? '#1f6f78' : '#23262f' });
+    }
+    let ry = py + u * 6.6;
+    for (const up of this.shopTab === 'upgrades' ? UPGRADES : []) {
       const lv = game.upgrades[up.id] ?? 0;
       const maxed = lv >= up.maxLevel;
       const cost = maxed ? null : up.cost(lv);
@@ -320,7 +330,7 @@ export class UI {
       this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, maxed ? 'MAX' : 'BUY', { k: 'buy', id: up.id }, u * 0.9, { enabled: afford && !maxed });
       ry += rowH;
     }
-    for (const r of RECIPES) {
+    for (const r of this.shopTab === 'fab' ? RECIPES : []) {
       const locked = (game.upgrades.fab ?? 0) < (r.fab ?? 0);
       const afford = !locked && ITEM_IDS.every((id) => (game.stash[id] ?? 0) >= (r.cost[id] ?? 0));
       ctx.fillStyle = 'rgba(255,255,255,0.05)';
