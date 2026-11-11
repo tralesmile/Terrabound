@@ -8,7 +8,7 @@ export const BASE_ROWS = 10;
 export type BaseTiles = number[];
 
 /** T.WALL is legacy (v2 saves stored back walls as tiles); v3 keeps them in the wall layer. */
-const KEEP = new Set<number>([T.RUST, T.METAL, T.TORCH, T.LADDER, T.SCAFFOLD, T.PLATFORM, T.DOOR]);
+const KEEP = new Set<number>([T.RUST, T.METAL, T.TORCH, T.LADDER, T.SCAFFOLD, T.PLATFORM, T.DOOR, T.SOLAR, T.SMELTER]);
 const KEEP_WALLS = new Set<number>([W.PLATE]);
 export const BASE_MAX_TILES = (BASE_HALF * 2 + 1) * BASE_ROWS;
 

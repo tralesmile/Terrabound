@@ -12,7 +12,9 @@ export type ItemId =
   | 'scaffold'
   | 'platform'
   | 'door'
-  | 'wall';
+  | 'wall'
+  | 'solar'
+  | 'smelter';
 export const ITEM_IDS: ItemId[] = [
   'rust',
   'metal',
@@ -26,6 +28,8 @@ export const ITEM_IDS: ItemId[] = [
   'platform',
   'door',
   'wall',
+  'solar',
+  'smelter',
 ];
 
 export const T = {
@@ -57,6 +61,8 @@ export const T = {
   WRECK: 24,
   WATER: 25,
   ACID_POOL: 26,
+  SOLAR: 27,
+  SMELTER: 28,
 } as const;
 
 export interface TileDef {
@@ -107,6 +113,8 @@ export const TILES: TileDef[] = [
   { name: 'Drone wreck', hardness: 0.8, solid: true, drop: 'copper_wire' },
   { name: 'Coolant water', hardness: Infinity, solid: false, drop: null, liquid: true },
   { name: 'Acid pool', hardness: Infinity, solid: false, drop: null, liquid: true, glow: true },
+  { name: 'Solar cell', hardness: 0.4, solid: false, drop: 'solar', minable: true },
+  { name: 'Smelter', hardness: 0.6, solid: false, drop: 'smelter', minable: true },
 ];
 
 export interface ItemDef {
@@ -134,9 +142,11 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   door: { name: 'Door', color: '#6fa8c9', places: T.DOOR, kit: true },
   // 3 = W.PLATE (world.ts); kept numeric to avoid an import cycle.
   wall: { name: 'Back wall', color: '#5a6478', places: null, placesWall: 3, kit: true },
+  solar: { name: 'Solar cell', color: '#4aa8ff', places: T.SOLAR, kit: true },
+  smelter: { name: 'Smelter', color: '#ff8a3a', places: T.SMELTER, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'solar', 'smelter'];
 
 /** Placeables worth showing in the hotbar: owned ones plus the selected one, in PLACEABLE order. */
 export function visiblePlaceables(inv: Inventory, selected: ItemId): ItemId[] {

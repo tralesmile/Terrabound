@@ -98,6 +98,9 @@ export class Sfx {
       case 'craft':
         [330, 440, 587].forEach((f, i) => this.tone(f, 0.1, 'square', 0.08, undefined, i * 0.05));
         break;
+      case 'smelt':
+        if (this.ok('smelt', 400)) this.tone(196, 0.12, 'triangle', 0.07, 392);
+        break;
       case 'discover':
         [523, 784, 1047, 1319].forEach((f, i) => this.tone(f, 0.18, 'triangle', 0.12, undefined, i * 0.09));
         break;

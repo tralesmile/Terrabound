@@ -19,6 +19,8 @@ import {
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
 import { recipeById } from './recipes';
 import { chestLoot } from './loot';
+import { daylight } from './daynight';
+import { gridState, newPower, scanMachines, stepSmelting, SMELT_RUST, type PowerState } from './power';
 import { LIQUID_HZ, flowLiquids, isLiquid } from './liquids';
 import { isNight } from './daynight';
 import { applyDiff, captureDiff } from './persist';
@@ -80,6 +82,7 @@ export type GameEvent =
   | { t: 'lowbattery' }
   | { t: 'upgrade'; id: string }
   | { t: 'craft'; id: string }
+  | { t: 'smelt'; made: number }
   | { t: 'newdive' }
   | { t: 'swing'; dir: number }
   | { t: 'enemyhit'; x: number; y: number; dmg: number }
@@ -155,6 +158,10 @@ export class Game {
   /** Liquid tile the player's body centre is in (0 = none). */
   inLiquid = 0;
   private acidTick = 0;
+  /** Base power grid snapshot (solar vs smelters), refreshed twice a second. */
+  power: PowerState = newPower();
+  private smeltProgress = 0;
+  private machineAcc = 0;
   private liquidAcc = 0;
   private liquidTick = 0;
   private save: SaveData;
@@ -455,6 +462,20 @@ export class Game {
     return dx * dx + dy * dy <= REACH * REACH;
   }
 
+  /** Solar cells power smelters in the base; smelters turn stash rust into metal. Runs wherever the player is. */
+  private stepMachines(dt: number): void {
+    this.machineAcc += dt;
+    if (this.machineAcc >= 0.5) {
+      this.machineAcc = 0;
+      const m = scanMachines(this.world);
+      this.power = gridState(m.solars, m.smelters, daylight(this.time), (this.stash.rust ?? 0) >= SMELT_RUST || this.smeltProgress > 0);
+    }
+    if (!this.power.working) return;
+    const r = stepSmelting(this.stash, this.power, this.smeltProgress, dt);
+    this.smeltProgress = r.progress;
+    if (r.made > 0) this.emit({ t: 'smelt', made: r.made });
+  }
+
   step(dt: number, c: Controls): void {
     if (!(dt > 0) || dt > 0.25) dt = Math.min(Math.max(dt || 0, 0), 0.25); // clamp tab-switch spikes
     if (dt === 0) return;
@@ -523,6 +544,7 @@ export class Game {
     this.wasGround = b.onGround;
 
     this.runDeepest = Math.max(this.runDeepest, this.depth);
+    this.stepMachines(dt);
     this.liquidAcc += dt;
     if (this.liquidAcc >= 1 / LIQUID_HZ) {
       this.liquidAcc = 0;

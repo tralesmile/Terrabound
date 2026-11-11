@@ -17,6 +17,8 @@ export const RECIPES: Recipe[] = [
   { id: 'platform', name: 'Platform x4', out: 'platform', qty: 4, cost: { rust: 3 } },
   { id: 'door', name: 'Door x1', out: 'door', qty: 1, cost: { rust: 2, iron_scrap: 1 } },
   { id: 'wall', name: 'Back wall x6', out: 'wall', qty: 6, cost: { rust: 3 } },
+  { id: 'solar', name: 'Solar cell x1', out: 'solar', qty: 1, cost: { metal: 2, crystal: 1 } },
+  { id: 'smelter', name: 'Smelter x1', out: 'smelter', qty: 1, cost: { metal: 4, copper_wire: 2 } },
 ];
 
 export function recipeById(id: string): Recipe | undefined {
