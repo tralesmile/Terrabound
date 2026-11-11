@@ -81,6 +81,23 @@ export class Fx {
     this.dust(x, y, ground, 3 + Math.round(p * 7), 1.5 + p * 4);
   }
 
+  /** Rising pale puffs (steam, smoke) that float up and fade. */
+  smoke(x: number, y: number, color: string, n: number): void {
+    for (let i = 0; i < n && this.particles.length < MAX_PARTICLES; i++) {
+      this.particles.push({
+        x: x + (Math.random() - 0.5) * 0.8,
+        y,
+        vx: (Math.random() - 0.5) * 1,
+        vy: -1 - Math.random() * 1.5,
+        life: 0.7 + Math.random() * 0.6,
+        max: 1.3,
+        color,
+        size: 3,
+        g: -1.5,
+      });
+    }
+  }
+
   /** Low, sideways dust puffs at the feet in the ground's colour. */
   dust(x: number, y: number, color: string, n: number, speed: number, dir = 0): void {
     for (let i = 0; i < n && this.particles.length < MAX_PARTICLES; i++) {

@@ -39,6 +39,7 @@ const LOOK: Record<number, Look> = {
   [T.PLASMA_ORE]: { base: '#3a1a22', light: '#ff9ab8', dark: '#260e16', speck: '#ff5a8a', speckCount: 6, glint: '#ffffff', detail: 'facets' },
   [T.CORE_ROCK]: { base: '#1e1028', light: '#2e1a3e', dark: '#12081a', speck: '#9a2aa8', speckCount: 2, detail: 'cracks' },
   [T.CORE_ORE]: { base: '#1e1028', light: '#ff9aff', dark: '#12081a', speck: '#ff5aff', speckCount: 6, glint: '#ffffff', detail: 'facets' },
+  [T.BASALT]: { base: '#24232b', light: '#3a3842', dark: '#141319', speck: '#ff6028', speckCount: 1, detail: 'cracks' },
   [T.GATE]: { base: '#0b2a3a', light: '#36e0e8', dark: '#061620', speck: '#c8ffff', speckCount: 4, detail: 'pad' },
   [T.WRECK]: { base: '#3a3f4a', light: '#6b7080', dark: '#22252c', speck: '#e8a33d', speckCount: 2, glint: '#36e0e8', detail: 'rivets' },
 };
@@ -224,6 +225,7 @@ export const TILE_COLORS: Record<number, string> = {
   [T.GATE]: '#36e0e8',
   [T.ACID_POOL]: '#7fff4a',
   [T.MAGMA]: '#ff6028',
+  [T.BASALT]: '#3a3842',
 };
 
 export function makeCanvas(w: number, h: number): HTMLCanvasElement {

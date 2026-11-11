@@ -637,6 +637,30 @@ try {
   await page.waitForTimeout(500);
   await page.screenshot({ path: path.join(out, '27b-magma.png') });
   check('the Plasma layer has magma pockets', magma !== null, JSON.stringify(magma));
+  // Water poured onto magma cools it into basalt (id 41) with a steam puff. Built beside the
+  // player in a small rock basin so the check does not depend on the pocket above surviving.
+  const basin = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    g.hp = g.derived.maxHp;
+    const mx = Math.floor(g.body.x) + 3;
+    const my = Math.floor(g.body.y) - 1;
+    for (let yy = my - 3; yy <= my; yy++) for (let xx = mx - 1; xx <= mx + 1; xx++) w.set(xx, yy, 0);
+    for (let xx = mx - 2; xx <= mx + 2; xx++) w.set(xx, my + 1, 35);
+    w.set(mx - 2, my, 35);
+    w.set(mx + 2, my, 35);
+    w.set(mx - 1, my, 40);
+    w.set(mx, my, 40);
+    w.set(mx + 1, my, 40);
+    w.set(mx, my - 1, 25);
+    return { x: mx, y: my };
+  });
+  const cooled = await page
+    .waitForFunction(([x, y]) => window.__terrabound.game.world.get(x, y) === 41, [basin.x, basin.y], { timeout: 3000 })
+    .then(() => true, () => false);
+  await page.waitForTimeout(120);
+  await page.screenshot({ path: path.join(out, '27c-basalt.png') });
+  check('water cools magma into basalt', cooled, JSON.stringify(basin));
   // Final boss: in the Core, summon and beat the Hollow AI; the victory screen appears and closes.
   await page.evaluate(() => {
     const g = window.__terrabound.game;

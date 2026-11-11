@@ -301,6 +301,10 @@ function boot(): void {
         fx.addShake(0.5);
         fx.burst(game.body.x, game.body.y - 1, '#ff5a5a', 8, 5);
         break;
+      case 'steam':
+        fx.burst(e.x + 0.5, e.y + 0.5, '#ff8a3c', 4, 2);
+        fx.smoke(e.x + 0.5, e.y + 0.5, '#d8dde8', 6);
+        break;
       case 'splash':
         fx.burst(e.x, e.y, e.kind === 'acid' ? '#8aff4a' : '#9aa3b8', 6, 3);
         break;

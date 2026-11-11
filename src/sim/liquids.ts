@@ -22,6 +22,37 @@ export function isLiquid(t: number): boolean {
   return TILES[t]?.liquid === true;
 }
 
+/**
+ * Water meeting magma: the magma cell cools into basalt and the touching water flashes to steam
+ * (becomes air). Returns the cooled cells so the game can hiss and puff. Deterministic scan order.
+ */
+export function coolMagma(world: World, cx: number, cy: number, rx = FLOW_RX, ry = FLOW_RY): { x: number; y: number }[] {
+  const x0 = Math.max(1, Math.floor(cx - rx));
+  const x1 = Math.min(world.w - 2, Math.floor(cx + rx));
+  const y0 = Math.max(1, Math.floor(cy - ry));
+  const y1 = Math.min(world.h - 2, Math.floor(cy + ry));
+  const out: { x: number; y: number }[] = [];
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      if (world.get(x, y) !== T.MAGMA) continue;
+      let hit = false;
+      for (const [dx, dy] of NEIGHBOURS) {
+        if (world.get(x + dx, y + dy) === T.WATER) {
+          world.set(x + dx, y + dy, T.AIR);
+          hit = true;
+        }
+      }
+      if (hit) {
+        world.set(x, y, T.BASALT);
+        out.push({ x, y });
+      }
+    }
+  }
+  return out;
+}
+
+const NEIGHBOURS: [number, number][] = [[0, -1], [-1, 0], [1, 0], [0, 1]];
+
 /** One flow tick in the window around (cx, cy). Returns the number of cells moved. */
 export function flowLiquids(world: World, cx: number, cy: number, tick: number, rx = FLOW_RX, ry = FLOW_RY): number {
   const x0 = Math.max(1, Math.floor(cx - rx));

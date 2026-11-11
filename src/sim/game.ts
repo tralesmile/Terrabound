@@ -31,7 +31,7 @@ import { FOOD, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_
 import { daylight } from './daynight';
 import { awaySeconds, simulateOffline, OFFLINE_MIN, type OfflineResult } from './offline';
 import { automationHint, stepGrid, newPower, scanMachines, stepSmelting, stepMining, stepDrones, SMELT_RUST, type PowerState } from './power';
-import { LIQUID_HZ, flowLiquids, isLiquid } from './liquids';
+import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight } from './daynight';
 import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
@@ -130,6 +130,7 @@ export type GameEvent =
   | { t: 'shothit'; x: number; y: number }
   | { t: 'drip'; x: number; y: number }
   | { t: 'splash'; x: number; y: number; kind: 'acid' | 'debris' }
+  | { t: 'steam'; x: number; y: number }
   | { t: 'gas' };
 
 export type Tool = 'drill' | 'blade' | 'pistol' | 'rod' | 'hook';
@@ -896,6 +897,8 @@ export class Game {
     this.liquidAcc += dt;
     if (this.liquidAcc >= 1 / LIQUID_HZ) {
       this.liquidAcc = 0;
+      // Cool first, so water that touches magma at the start of a tick reacts before it flows on.
+      for (const c of coolMagma(this.world, b.x, b.y)) this.emit({ t: 'steam', x: c.x, y: c.y });
       flowLiquids(this.world, b.x, b.y, this.liquidTick++);
     }
 

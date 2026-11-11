@@ -235,6 +235,10 @@ export class Sfx {
       case 'splash':
         if (this.ok('splash', 80)) this.noise(0.06, 0.1);
         break;
+      case 'steam':
+        // A short hiss.
+        if (this.ok('steam', 120)) this.noise(0.25, 0.08);
+        break;
       case 'gas':
         if (this.ok('gas', 300)) this.tone(110, 0.15, 'triangle', 0.08, 90);
         break;

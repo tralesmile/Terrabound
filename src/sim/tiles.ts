@@ -107,6 +107,8 @@ export const T = {
   CORE_ORE: 38,
   GATE: 39,
   MAGMA: 40,
+  /** Magma cooled by water: very hard, drops metal. */
+  BASALT: 41,
 } as const;
 
 export interface TileDef {
@@ -175,6 +177,7 @@ export const TILES: TileDef[] = [
   { name: 'Core shard', hardness: 2.2, solid: true, drop: 'core_shard', glow: true },
   { name: 'Energy gate', hardness: Infinity, solid: true, drop: null },
   { name: 'Plasma magma', hardness: Infinity, solid: false, drop: null, liquid: true, glow: true, dps: 60 },
+  { name: 'Cooled basalt', hardness: 2.4, solid: true, drop: 'metal' },
 ];
 
 export interface ItemDef {
