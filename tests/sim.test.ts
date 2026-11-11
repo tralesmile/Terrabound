@@ -69,7 +69,7 @@ describe('worldgen', () => {
       expect(w.get(w.padX, w.padY)).toBe(T.PAD);
       for (let dy = 1; dy <= 3; dy++) expect(w.get(w.padX, w.padY - dy)).toBe(T.AIR);
     }
-  }, 30000);
+  });
 
   it('handles out of range reads without throwing', () => {
     const w = generateWorld(1);
