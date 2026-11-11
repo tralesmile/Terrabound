@@ -75,6 +75,8 @@ World size and variety:
 
 ## P1.8 Owner request 2026-11-11: "add all" (do these FIRST, top to bottom, before P2)
 
+CLAIMED by the interactive session 2026-11-11 (scheduled runs: skip these and start at "Living base and drones"): the whole "Bosses and goals" group.
+
 Bosses and goals
 - [ ] Boss framework (src/sim/bosses.ts): data-driven phases, telegraphed attacks (>= 0.4 s warning), arena lock, health bar UI, defeat rewards; deterministic, tested
 - [ ] Junk Colossus (Rust Wastes): summon item crafted from scrap; slam, scrap rain, charge
