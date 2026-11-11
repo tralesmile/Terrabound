@@ -42,7 +42,9 @@ The owner wants every run to make the game better and more fun, not only to tick
 2. Brainstorm improvements across everything: character (look, animation, gear visuals), vehicles, weapons and abilities, gameplay feel (movement, digging, combat juice), biomes, trees and plants, blocks and textures, structures and loot, enemies and bosses, map, UI and menus, sound and music, performance, mobile controls, retention and fun.
 3. Write the best 3-5 ideas to `docs/IDEAS.md` (dated, one line each, with why it is more fun). Keep the file short: merge or drop old ideas that were done or are weak.
 4. Pick at least one small, high-impact polish improvement from the list and ship it in this run (with tests or a screenshot check), in addition to the next backlog item. Promote any big idea into `docs/BACKLOG.md` in the right place.
-5. Never break the hard rules below (tests, budgets, ethics) for an idea.
+5. Look for better ways, not only new things: compare against the best games of the genre (Terraria, Starbound, Core Keeper, Dome Keeper, Noita; a quick web search for what players love or complain about is fine) and ask, for each of graphics, gameplay feel, controls, progression, performance and UI, "what is the weakest part right now and how do I fix it?". Note the answer in IDEAS.md.
+6. Every run ships at least one improvement a player can see or feel (graphics, animation, feel, clarity, speed), with a screenshot check.
+7. Never break the hard rules below (tests, budgets, ethics) for an idea.
 
 ## Self-improvement loop
 
