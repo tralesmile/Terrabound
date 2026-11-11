@@ -231,3 +231,11 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 **Next:** drone rules UI needs real drones (flying to assigned ore); fabricator tab needs scrolling before another recipe; equipment slots (P3).
 
 **Known issues:** fabricator tab at its 12-row limit; hotbar "0" slot for a selected unowned block.
+
+## 2026-11-11 Scheduled run 9
+
+**Done:** baseline green. Shop scrolling (9 visible rows, ^/v buttons, mouse wheel, `clampScroll`) removes the row-limit blocker; screenshots 09 and 09b reviewed at 360 px. Seed sharing: `src/sim/seedcode.ts` (7 base-32 chars + odd-weight check char, rejects any single typo), `Game.seedCode`, `newDive(code)`, save v7 `worldSeed` (v6 migration tested), workshop COPY / PLAY A CODE buttons (web prompt for entry). 8 new tests (209 total).
+
+**Next:** drone rules UI / world-flying drones, equipment slots (P3), Daily Dive (needs a mode that does not clobber the persistent world), run summary card.
+
+**Known issues:** PLAY A CODE uses window.prompt (no in-canvas text entry; fine on web, check Capacitor); hotbar "0" slot for a selected unowned block.

@@ -15,6 +15,8 @@ export type UiAction =
   | { k: 'craft'; id: string }
   | { k: 'tab'; t: ShopTab }
   | { k: 'scroll'; d: number }
+  | { k: 'copyseed' }
+  | { k: 'enterseed' }
   | { k: 'dive' }
   | { k: 'sel'; i: number }
   | { k: 'tool' }
@@ -309,7 +311,7 @@ export class UI {
     const pw = Math.min(w - u * 2, u * 40);
     const rows = SHOP_VISIBLE;
     const rowH = Math.min(u * 2.9, Math.max(u * 2.3, (h - u * 2 - u * 10) / rows));
-    const ph = Math.min(h - u * 2, u * 2.4 + u * 2 + rows * rowH + u * 2.4 + u * 5.6);
+    const ph = Math.min(h - u * 2, u * 2.4 + u * 2 + rows * rowH + u * 2.4 + u * 5.6 + u * 2.8);
     const px = (w - pw) / 2;
     const py = (h - ph) / 2;
     ctx.fillStyle = '#12121c';
@@ -378,6 +380,8 @@ export class UI {
 
     const fy = py + ph - u * 4.4;
     const bw = (pw - u * 3) / 2;
+    this.button(ctx, px + u, fy - u * 2.8, bw, u * 2.2, `COPY ${game.seedCode}`, { k: 'copyseed' }, u * 0.8);
+    this.button(ctx, px + u * 2 + bw, fy - u * 2.8, bw, u * 2.2, 'PLAY A CODE', { k: 'enterseed' }, u * 0.8);
     this.button(ctx, px + u, fy, bw, u * 2.4, this.newWorldArmed > 0 ? 'CONFIRM?' : 'NEW WORLD', { k: 'dive' }, u, { color: this.newWorldArmed > 0 ? '#a33a2a' : '#7a5a1f', pulse: this.newWorldArmed > 0 });
     this.button(ctx, px + u * 2 + bw, fy, bw, u * 2.4, 'CLOSE', { k: 'close' }, u);
     this.text(ctx, `Best depth ${game.stats.deepest}m   Dives ${game.runs}   Deaths ${game.stats.deaths}`, px + pw / 2, py + ph - u * 0.9, Math.round(u * 0.65), '#8a90a2', 'center', pw - u);

@@ -117,6 +117,23 @@ function boot(): void {
       case 'tab':
         ui.setShopTab(a.t);
         break;
+      case 'copyseed':
+        void navigator.clipboard?.writeText(game.seedCode).then(
+          () => ui.toast('World code copied', '#9ff6a0'),
+          () => ui.toast(`World code: ${game.seedCode}`, '#ffcf4a', 6),
+        );
+        if (!navigator.clipboard) ui.toast(`World code: ${game.seedCode}`, '#ffcf4a', 6);
+        break;
+      case 'enterseed': {
+        const code = typeof window.prompt === 'function' ? window.prompt('Paste a world code (e.g. 7K2M-9QXA)') : null;
+        if (code) {
+          if (game.newDive(code)) {
+            ui.shopOpen = false;
+            saveNow();
+          } else ui.toast(game.isAtBase() ? 'That code is not valid' : 'Return to the pad first', '#ff8a8a');
+        }
+        break;
+      }
       case 'scroll':
         ui.scrollShop(a.d);
         break;

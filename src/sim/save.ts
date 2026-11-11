@@ -4,7 +4,7 @@ import { UPGRADES, type Levels } from './upgrades';
 import { CODEX_IDS } from './explore';
 import { sanitizeDiff, type WorldDiff } from './persist';
 
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -29,6 +29,8 @@ export interface SaveData {
   world: WorldDiff | null;
   /** v6: when the game was last saved (ms epoch, 0 = unknown), the day clock and battery charge then; drives offline production. */
   away: { savedAt: number; time: number; charge: number };
+  /** v7: world seed chosen from a shared code (null = derived from seedBase and runs). */
+  worldSeed: number | null;
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -46,6 +48,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     codex: [],
     world: null,
     away: { savedAt: 0, time: 0, charge: 0 },
+    worldSeed: null,
   };
 }
 
@@ -110,6 +113,8 @@ export function parseSave(raw: string | null | undefined): SaveData {
     world: sanitizeDiff(r.world),
     // v5 -> v6: no away stamp (savedAt 0), so nothing is simulated offline.
     away: sanitizeAway(r.away),
+    // v6 -> v7: no shared seed; the world derives from seedBase and runs as before.
+    worldSeed: typeof r.worldSeed === 'number' && Number.isFinite(r.worldSeed) ? Math.floor(num(r.worldSeed, 0, 4294967295, 0)) : null,
   };
 }
 

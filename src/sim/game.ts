@@ -1,3 +1,4 @@
+import { decodeSeed, encodeSeed } from './seedcode';
 import { mixSeed, mulberry32 } from './rng';
 import { ENEMIES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
 import { type Body, moveX, moveY, onLadder, probeGround, unstick, BODY_H, HALF_W } from './physics';
@@ -259,7 +260,12 @@ export class Game {
   }
 
   private diveSeed(): number {
-    return mixSeed(this.save.seedBase, this.save.runs);
+    return this.save.worldSeed ?? mixSeed(this.save.seedBase, this.save.runs);
+  }
+
+  /** Shareable code for the current world (see seedcode.ts). */
+  get seedCode(): string {
+    return encodeSeed(this.diveSeed());
   }
 
   isAtBase(): boolean {
@@ -311,10 +317,11 @@ export class Game {
     this.wasGround = true;
   }
 
-  private newWorld(): void {
+  private newWorld(worldSeed: number | null = null): void {
     this.save.base = captureBase(this.world);
     this.save.walls = captureWalls(this.world);
     this.save.runs += 1;
+    this.save.worldSeed = worldSeed;
     this.world = generateWorld(this.diveSeed());
     this.save.world = null;
     stampBase(this.world, this.save.base);
@@ -341,10 +348,12 @@ export class Game {
   }
 
   /** Abandon this world for a freshly generated one (from the workshop). Loot is banked first. */
-  newDive(): boolean {
+  newDive(code?: string): boolean {
     if (!this.isAtBase()) return false;
+    const seed = code === undefined ? null : decodeSeed(code);
+    if (code !== undefined && seed === null) return false;
     this.bank();
-    this.newWorld();
+    this.newWorld(seed);
     this.emit({ t: 'newdive' });
     return true;
   }
