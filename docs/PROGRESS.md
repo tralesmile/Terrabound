@@ -257,3 +257,11 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 **Next:** P1.6 follow-ups (way up to islands, equipment items, crops), then P2/P3 as ordered.
 
 **Known issues:** hotbar shows a dimmed "0" slot for a selected block you no longer own; the fishing screenshot sometimes shows no line because the capture runs before the cast lands; island access needs building ladders/scaffolds.
+
+## 2026-11-11 Scheduled run 11
+
+**Done:** baseline green (234 unit tests, e2e all pass; `git checkout -B dev origin/dev` needed again). Hotbar no longer prints a "0" count on a selected block you do not own (slot stays dimmed). Short run: no larger slice started.
+
+**Next:** run summary + share card, pause menu, DAILY confirm tap, drone rules UI, equipment slots (P3).
+
+**Known issues:** DAILY replaces the persistent world without a confirm; fishing screenshot sometimes shows no line.

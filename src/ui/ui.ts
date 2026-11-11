@@ -440,7 +440,7 @@ export class UI {
     shown.forEach((id) => {
       const i = PLACEABLE.indexOf(id);
       const n = invCount(game.carried, id);
-      this.cell(ctx, sx, sy, slot, id, n, game.selected === id, { k: 'sel', i }, n <= 0);
+      this.cell(ctx, sx, sy, slot, id, n > 0 ? n : null, game.selected === id, { k: 'sel', i }, n <= 0);
       if (game.selected === id) {
         ctx.strokeStyle = '#ffcf4a';
         ctx.lineWidth = 3;
