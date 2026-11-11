@@ -389,6 +389,14 @@ export class Game {
     this.save.settings.muted = m;
   }
 
+  get musicOn(): boolean {
+    return this.save.settings.music !== false;
+  }
+
+  setMusic(on: boolean): void {
+    this.save.settings.music = on;
+  }
+
   get stats(): SaveData['stats'] {
     return this.save.stats;
   }

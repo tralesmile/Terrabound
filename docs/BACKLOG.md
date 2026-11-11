@@ -105,7 +105,7 @@ Together
 - [ ] Co-op research spike then implementation (2-4 players, WebRTC peer-to-peer, host-authoritative sim); keep behind a feature flag until stable
 
 Polish
-- [ ] Procedural music per biome and depth (WebAudio, no assets), with volume setting (CLAIMED by the interactive session 2026-11-11)
+- [x] Procedural music per biome, depth, night and boss fights (src/platform/composer.ts); SOUND button cycles all on / music off / all off (save v11). Volume sliders move to the settings screen item.
 - [ ] Settings screen: master/music/sfx volume, screen shake, key remap, colour-blind palette, text size, left-handed touch layout
 - [ ] Guided first 2 minutes (FTUE), achievements (30+), codex screen with lore logs and enemy entries
 - [ ] Mobile polish: on-screen hotbar sized for thumbs, hook hold-to-reel button, safe-area insets; real-device check listed in NEEDS_FROM_USER

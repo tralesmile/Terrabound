@@ -6,7 +6,7 @@ import { defaultGear, sanitizeGear, type GearSave } from './gear';
 import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 11;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -20,7 +20,8 @@ export interface SaveData {
   carried: Inventory;
   upgrades: Levels;
   stats: { deepest: number; deaths: number; playTime: number; banked: number };
-  settings: { muted: boolean };
+  /** v11 adds music (background music on/off, default on). */
+  settings: { muted: boolean; music: boolean };
   /** v2: persistent base tiles above the landing pad (see base.ts). */
   base: BaseTiles;
   /** v3: player-built back walls in the base strip (wall-layer ids). */
@@ -48,7 +49,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     carried: {},
     upgrades: {},
     stats: { deepest: 0, deaths: 0, playTime: 0, banked: 0 },
-    settings: { muted: false },
+    settings: { muted: false, music: true },
     base: [],
     walls: [],
     codex: [],
@@ -110,7 +111,8 @@ export function parseSave(raw: string | null | undefined): SaveData {
       playTime: num(st.playTime, 0, 1e10, 0),
       banked: Math.floor(num(st.banked, 0, MAX_COUNT, 0)),
     },
-    settings: { muted: se.muted === true },
+    // v10 -> v11: music defaults to on.
+    settings: { muted: se.muted === true, music: se.music !== false },
     // v1 saves have no base field: sanitizeBase(undefined) yields an empty base (migration v1 -> v2).
     base: sanitizeBase(r.base),
     // v2 -> v3: back walls moved from base tiles to their own layer.

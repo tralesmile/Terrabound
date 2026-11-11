@@ -11,6 +11,7 @@ import { parseSave, serializeSave } from './sim/save';
 import { ITEMS, type ItemId } from './sim/tiles';
 import { codexEntry } from './sim/explore';
 import { GEAR } from './sim/gear';
+import { isNight } from './sim/daynight';
 import { BOSSES } from './sim/bosses';
 import { UI, type UiAction } from './ui/ui';
 
@@ -56,6 +57,7 @@ function boot(): void {
   const fx = new Fx();
   const sfx = new Sfx();
   sfx.muted = game.muted;
+  sfx.musicOn = game.musicOn;
   const renderer = new Renderer(ctx);
   ui.touch = window.matchMedia?.('(pointer: coarse)').matches === true || 'ontouchstart' in window;
   const input = new Input(canvas, ui, renderer, () => dpr);
@@ -134,8 +136,16 @@ function boot(): void {
         ui.toast(ui.placeMode ? 'Build mode' : 'Dig mode', '#ffcf4a');
         break;
       case 'mute':
-        game.setMuted(!game.muted);
+        // SOUND button cycles: everything on -> music off -> all off -> everything on.
+        if (!game.muted && game.musicOn) game.setMusic(false);
+        else if (!game.muted) game.setMuted(true);
+        else {
+          game.setMuted(false);
+          game.setMusic(true);
+        }
         sfx.muted = game.muted;
+        sfx.musicOn = game.musicOn;
+        ui.toast(game.muted ? 'Sound off' : game.musicOn ? 'Sound and music on' : 'Music off', '#c9d0e4', 1.2);
         saveNow();
         break;
       case 'buy':
@@ -437,6 +447,10 @@ function boot(): void {
       fx.update(dt);
       ui.update(dt);
       renderer.follow(game, dt);
+      if (ui.screen === 'play') {
+        const col = Math.max(0, Math.min(game.world.w - 1, Math.floor(game.body.x)));
+        sfx.updateMusic({ biome: game.world.biome[col] ?? 0, layer: game.depth > 8 ? game.layer : 0, night: isNight(game.time), boss: !!game.boss });
+      }
       renderer.draw(game, fx, input.mouse.has && ui.screen === 'play' && !ui.touch ? renderer.screenToTile(input.mouse.x * dpr, input.mouse.y * dpr) : null, clock);
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

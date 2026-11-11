@@ -492,7 +492,7 @@ export class UI {
     const bhgt = u * 2.4;
     let by = u;
     const bx = w - bwid - u;
-    this.button(ctx, bx, by, bwid, bhgt, game.muted ? 'SOUND OFF' : 'SOUND ON', { k: 'mute' }, u * 0.8);
+    this.button(ctx, bx, by, bwid, bhgt, game.muted ? 'SOUND OFF' : game.musicOn ? 'SOUND ON' : 'MUSIC OFF', { k: 'mute' }, u * 0.8);
     by += bhgt + u * 0.5;
     this.button(ctx, bx, by, bwid, bhgt, 'MAP', { k: 'map' }, u * 0.9);
     by += bhgt + u * 0.5;

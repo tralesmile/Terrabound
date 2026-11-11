@@ -643,6 +643,15 @@ try {
   });
   await page.waitForTimeout(300);
 
+  // Sound: N cycles everything on -> music off -> all off -> on (music keeps scheduling without errors).
+  const soundStates = [];
+  for (let i = 0; i < 3; i++) {
+    await page.keyboard.press('KeyN');
+    await page.waitForTimeout(80);
+    soundStates.push(await page.evaluate(() => `${window.__terrabound.game.muted ? 'M' : '-'}${window.__terrabound.game.musicOn ? 'm' : '-'}`));
+  }
+  check('N cycles music off, all off, all on', soundStates.join(',') === '--,M-,-m', soundStates.join(','));
+
   // Map: zoom with the wheel and the +/- buttons.
   await page.keyboard.press('KeyM');
   await page.waitForTimeout(200);

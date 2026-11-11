@@ -1,4 +1,5 @@
 import type { GameEvent } from '../sim/game';
+import { BEATS_PER_BAR, composeBar, tempo, type Mood } from './composer';
 
 /** Synthesised sound effects: no audio files to ship, license or load. Starts only after a user gesture (browser autoplay policy). */
 export class Sfx {
@@ -55,6 +56,70 @@ export class Sfx {
     s.connect(g).connect(this.master);
     s.start(t0);
     s.stop(t0 + dur + 0.02);
+  }
+
+  /** Background music on its own gain so it can be switched off separately. */
+  musicOn = true;
+  private musicGain: GainNode | null = null;
+  private nextBarAt = 0;
+  private bar = 0;
+  private moodKey = '';
+
+  /** Call every frame: schedules the next bar a little ahead of time (no timers, no audio files). */
+  updateMusic(m: Mood): void {
+    if (!this.ctx || !this.master) return;
+    if (!this.musicGain) {
+      this.musicGain = this.ctx.createGain();
+      this.musicGain.gain.value = 0;
+      this.musicGain.connect(this.master);
+    }
+    const on = this.musicOn && !this.muted;
+    const now = this.ctx.currentTime;
+    this.musicGain.gain.setTargetAtTime(on ? 0.8 : 0, now, 0.4);
+    if (!on) {
+      this.nextBarAt = 0;
+      return;
+    }
+    const key = `${m.biome}|${m.layer}|${m.night}|${m.boss}`;
+    if (key !== this.moodKey) {
+      // Mood change: start fresh on the next bar boundary.
+      this.moodKey = key;
+      this.bar = 0;
+    }
+    if (this.nextBarAt < now) this.nextBarAt = now + 0.1;
+    if (this.nextBarAt - now > 0.6) return;
+    const spb = 60 / tempo(m);
+    const g = this.musicGain;
+    for (const n of composeBar(m, this.bar)) {
+      const t0 = this.nextBarAt + n.beat * spb;
+      const dur = n.len * spb;
+      if (n.voice === 'drum' && n.freq > 1000) {
+        if (!this.noiseBuf) continue;
+        const src = this.ctx.createBufferSource();
+        const ng = this.ctx.createGain();
+        src.buffer = this.noiseBuf;
+        ng.gain.setValueAtTime(n.vol, t0);
+        ng.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        src.connect(ng).connect(g);
+        src.start(t0);
+        src.stop(t0 + dur + 0.02);
+        continue;
+      }
+      const o = this.ctx.createOscillator();
+      const ng = this.ctx.createGain();
+      o.type = n.voice === 'pad' ? 'triangle' : n.voice === 'bass' ? 'sine' : n.voice === 'drum' ? 'sine' : 'square';
+      o.frequency.setValueAtTime(n.freq, t0);
+      if (n.voice === 'drum') o.frequency.exponentialRampToValueAtTime(35, t0 + dur);
+      const attack = n.voice === 'pad' ? Math.min(0.6, dur / 3) : 0.01;
+      ng.gain.setValueAtTime(0.0001, t0);
+      ng.gain.linearRampToValueAtTime(n.vol, t0 + attack);
+      ng.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(ng).connect(g);
+      o.start(t0);
+      o.stop(t0 + dur + 0.05);
+    }
+    this.nextBarAt += BEATS_PER_BAR * spb;
+    this.bar++;
   }
 
   /** Rate limit so a burst of events cannot stack hundreds of nodes. */
