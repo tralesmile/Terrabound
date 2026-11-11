@@ -271,7 +271,7 @@ try {
     g.stash.iron_scrap = 10;
   });
   await page.keyboard.press('KeyB');
-  await page.evaluate(() => { window.__terrabound.ui.shopTab = 'fab'; });
+  await page.evaluate(() => { window.__terrabound.ui.setShopTab('fab'); });
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(out, '08-shop-crafting.png') });
   await page.keyboard.press('Escape');
@@ -564,7 +564,7 @@ try {
   });
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(out, '09-mobile-shop.png') });
-  await page.evaluate(() => { window.__terrabound.ui.shopTab = 'fab'; });
+  await page.evaluate(() => { window.__terrabound.ui.setShopTab('fab'); });
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(out, '09b-mobile-shop-fab.png') });
   await page.evaluate(() => { window.__terrabound.act({ k: 'tab', t: 'upgrades' }); });

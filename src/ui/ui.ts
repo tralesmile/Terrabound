@@ -14,6 +14,7 @@ export type UiAction =
   | { k: 'buy'; id: string }
   | { k: 'craft'; id: string }
   | { k: 'tab'; t: ShopTab }
+  | { k: 'scroll'; d: number }
   | { k: 'dive' }
   | { k: 'sel'; i: number }
   | { k: 'tool' }
@@ -22,6 +23,14 @@ export type UiAction =
   | { k: 'recall' };
 
 export type ShopTab = 'upgrades' | 'fab';
+
+/** Most shop rows drawn at once; longer lists scroll so the panel always fits a 360 px phone. */
+export const SHOP_VISIBLE = 9;
+
+/** Clamp a scroll offset so a window of `visible` rows stays inside `total` rows. */
+export function clampScroll(offset: number, total: number, visible = SHOP_VISIBLE): number {
+  return Math.max(0, Math.min(Math.floor(offset) || 0, Math.max(0, total - visible)));
+}
 
 interface Rect {
   x: number;
@@ -71,6 +80,22 @@ export class UI {
   shopOpen = false;
   /** Workshop tab: upgrades or Fabricator recipes (keeps the panel on screen however many rows exist). */
   shopTab: ShopTab = 'upgrades';
+  /** First visible row of the current shop tab. */
+  shopScroll = 0;
+
+  /** Row count of the current shop tab. */
+  shopRows(): number {
+    return this.shopTab === 'upgrades' ? UPGRADES.length : RECIPES.length;
+  }
+
+  scrollShop(d: number): void {
+    this.shopScroll = clampScroll(this.shopScroll + d, this.shopRows());
+  }
+
+  setShopTab(t: ShopTab): void {
+    this.shopTab = t;
+    this.shopScroll = 0;
+  }
   placeMode = false;
   touch = false;
   toasts: Toast[] = [];
@@ -282,7 +307,7 @@ export class UI {
     ctx.fillStyle = 'rgba(8,6,16,0.82)';
     ctx.fillRect(0, 0, w, h);
     const pw = Math.min(w - u * 2, u * 40);
-    const rows = Math.max(UPGRADES.length, RECIPES.length);
+    const rows = SHOP_VISIBLE;
     const rowH = Math.min(u * 2.9, Math.max(u * 2.3, (h - u * 2 - u * 10) / rows));
     const ph = Math.min(h - u * 2, u * 2.4 + u * 2 + rows * rowH + u * 2.4 + u * 5.6);
     const px = (w - pw) / 2;
@@ -311,13 +336,22 @@ export class UI {
     if (owned.length === 0) this.text(ctx, 'Stash empty: dive and bank loot', px + u, sy, Math.round(u * 0.9), '#8a93a8');
 
     // Rows.
-    const tw = (pw - u * 2.4) / 2;
+    const total = this.shopRows();
+    this.shopScroll = clampScroll(this.shopScroll, total);
+    const scrolls = total > SHOP_VISIBLE;
+    const arrow = scrolls ? u * 2.4 : 0;
+    const tw = (pw - u * 2.4 - arrow * 2 - (scrolls ? u * 0.8 : 0)) / 2;
     const ty = py + u * 4.3;
     for (const [i, t] of (['upgrades', 'fab'] as const).entries()) {
       this.button(ctx, px + u + i * (tw + u * 0.4), ty, tw, u * 1.9, t === 'upgrades' ? 'UPGRADES' : 'FABRICATOR', { k: 'tab', t }, u * 0.9, { color: this.shopTab === t ? '#1f6f78' : '#23262f' });
     }
+    if (scrolls) {
+      const ax = px + pw - u - arrow * 2 - u * 0.2;
+      this.button(ctx, ax, ty, arrow, u * 1.9, '^', { k: 'scroll', d: -1 }, u * 0.9, { enabled: this.shopScroll > 0 });
+      this.button(ctx, ax + arrow + u * 0.2, ty, arrow, u * 1.9, 'v', { k: 'scroll', d: 1 }, u * 0.9, { enabled: this.shopScroll < total - SHOP_VISIBLE });
+    }
     let ry = py + u * 6.6;
-    for (const up of this.shopTab === 'upgrades' ? UPGRADES : []) {
+    for (const up of this.shopTab === 'upgrades' ? UPGRADES.slice(this.shopScroll, this.shopScroll + SHOP_VISIBLE) : []) {
       const lv = game.upgrades[up.id] ?? 0;
       const maxed = lv >= up.maxLevel;
       const cost = maxed ? null : up.cost(lv);
@@ -330,7 +364,7 @@ export class UI {
       this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, maxed ? 'MAX' : 'BUY', { k: 'buy', id: up.id }, u * 0.9, { enabled: afford && !maxed });
       ry += rowH;
     }
-    for (const r of this.shopTab === 'fab' ? RECIPES : []) {
+    for (const r of this.shopTab === 'fab' ? RECIPES.slice(this.shopScroll, this.shopScroll + SHOP_VISIBLE) : []) {
       const locked = (game.upgrades.fab ?? 0) < (r.fab ?? 0);
       const afford = !locked && ITEM_IDS.every((id) => (game.stash[id] ?? 0) >= (r.cost[id] ?? 0));
       ctx.fillStyle = 'rgba(255,255,255,0.05)';

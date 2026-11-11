@@ -68,6 +68,12 @@ function boot(): void {
     renderer.resize(w, h);
   };
   resize();
+  canvas.addEventListener('wheel', (e) => {
+    if (ui.shopOpen) {
+      ui.scrollShop(e.deltaY > 0 ? 1 : -1);
+      e.preventDefault();
+    }
+  }, { passive: false });
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', resize);
   if (typeof ResizeObserver !== 'undefined') new ResizeObserver(resize).observe(canvas);
@@ -109,7 +115,10 @@ function boot(): void {
         if (game.buyUpgrade(a.id)) saveNow();
         break;
       case 'tab':
-        ui.shopTab = a.t;
+        ui.setShopTab(a.t);
+        break;
+      case 'scroll':
+        ui.scrollShop(a.d);
         break;
       case 'craft':
         if (game.craft(a.id)) saveNow();
