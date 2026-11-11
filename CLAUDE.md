@@ -34,6 +34,16 @@ You act as the whole studio: producer, designer, engineer, artist, audio, QA, ma
 - TypeScript strict, no `any` without a comment. Keep functions small and data-driven (content tables in `src/sim/tiles.ts` and friends).
 - Commit messages: short imperative summary, then a body if useful, and end with the attribution trailer your session's system reminder specifies (the `Co-Authored-By` and session lines).
 
+## Creative review (every run, before building)
+
+The owner wants every run to make the game better and more fun, not only to tick backlog items. Spend about 10 minutes (no more) on this, then build:
+
+1. Play-test with your eyes: run `npm run build && npm run e2e`, then look at the e2e screenshots (gameplay, biomes, sky islands, bosses, vehicles, inventory, map, mobile). Judge them like a player and an art director.
+2. Brainstorm improvements across everything: character (look, animation, gear visuals), vehicles, weapons and abilities, gameplay feel (movement, digging, combat juice), biomes, trees and plants, blocks and textures, structures and loot, enemies and bosses, map, UI and menus, sound and music, performance, mobile controls, retention and fun.
+3. Write the best 3-5 ideas to `docs/IDEAS.md` (dated, one line each, with why it is more fun). Keep the file short: merge or drop old ideas that were done or are weak.
+4. Pick at least one small, high-impact polish improvement from the list and ship it in this run (with tests or a screenshot check), in addition to the next backlog item. Promote any big idea into `docs/BACKLOG.md` in the right place.
+5. Never break the hard rules below (tests, budgets, ethics) for an idea.
+
 ## Self-improvement loop
 
 Before starting, skim `docs/LESSONS.md`. If you hit a failure that a past lesson predicted, add a test or script that makes it impossible, not just another note.
