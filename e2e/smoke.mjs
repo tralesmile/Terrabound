@@ -684,6 +684,24 @@ try {
     g.meteors = [];
   });
 
+  // Pet: build a spark pup at the pad and see it follow.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.body.x = g.world.padX + 0.5;
+    g.body.y = g.world.padY;
+    g.stash = { iron_scrap: 50, copper_wire: 50, crystal: 50 };
+    g.craftGear('spark_pup');
+  });
+  await page.keyboard.down('KeyD');
+  await page.waitForTimeout(500);
+  await page.keyboard.up('KeyD');
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: path.join(out, '31-pet.png') });
+  check('a crafted pet follows the player', await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    return g.equipped('pet') === 'spark_pup' && Math.hypot(g.pet.x - g.body.x, g.pet.y - g.body.y) < 5;
+  }));
+
   // Map: zoom with the wheel and the +/- buttons.
   await page.keyboard.press('KeyM');
   await page.waitForTimeout(200);

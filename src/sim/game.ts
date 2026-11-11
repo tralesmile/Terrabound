@@ -107,6 +107,7 @@ export type GameEvent =
   | { t: 'gateopen' }
   | { t: 'weather'; kind: WeatherKind }
   | { t: 'meteor'; x: number; y: number }
+  | { t: 'zap'; x: number; y: number; tx: number; ty: number }
   | { t: 'victory'; first: boolean }
   | { t: 'grow' }
   | { t: 'dawn' }
@@ -214,6 +215,8 @@ export class Game {
   private discoverCd = 0;
   private wasNight = false;
   private gearCache: GearStats | null = null;
+  /** The pet's position (render) and zap cooldown. */
+  pet = { x: 0, y: 0, cd: 0 };
   /** Current weather or world event (weather.ts). */
   weather: WeatherKind = 'clear';
   /** Falling meteors during a shower. */
@@ -605,6 +608,33 @@ export class Game {
     this.emit({ t: 'recallcancel' });
   }
 
+  /** Pet follows a little behind and above the player; a spark pup zaps enemies close to it. */
+  private stepPet(dt: number): void {
+    const id = this.save.gear.equip.pet;
+    if (!id) return;
+    const b = this.body;
+    const tx = b.x - this.facing * 1.4;
+    const ty = b.y - BODY_H - 0.6 + Math.sin(this.time * 3) * 0.3;
+    const p = this.pet;
+    p.x += (tx - p.x) * Math.min(1, 5 * dt);
+    p.y += (ty - p.y) * Math.min(1, 5 * dt);
+    if (Math.hypot(p.x - b.x, p.y - b.y) > 12) {
+      p.x = tx;
+      p.y = ty;
+    }
+    const zap = this.gear.petZap;
+    if (zap <= 0) return;
+    p.cd = Math.max(0, p.cd - dt);
+    if (p.cd > 0) return;
+    for (const e of this.enemies) {
+      if (e.hp <= 0 || Math.hypot(e.x - p.x, e.y - 0.4 - p.y) > 4) continue;
+      this.damageEnemy(e, zap, Math.sign(e.x - p.x) || 1);
+      this.emit({ t: 'zap', x: p.x, y: p.y, tx: e.x, ty: e.y - 0.4 });
+      p.cd = 1;
+      return;
+    }
+  }
+
   /** Weather changes, and meteors that fall near the player during a shower. */
   private stepWeather(dt: number): void {
     const w = weatherAt(this.world.seed, this.time);
@@ -650,6 +680,7 @@ export class Game {
 
   private stepExplore(dt: number, c: Controls): void {
     this.stepWeather(dt);
+    this.stepPet(dt);
     const b = this.body;
     const night = isNight(this.time);
     if (night !== this.wasNight) {
@@ -857,7 +888,7 @@ export class Game {
 
     this.runDeepest = Math.max(this.runDeepest, this.depth);
     this.stepMachines(dt);
-    for (const p of stepDrops(this.world, this.drops, dt, b.x, b.y, (item) => (invTotal(this.carried) < this.derived.packCap ? this.derived.packCap - invTotal(this.carried) : 0) * (ITEMS[item] ? 1 : 0), (item, n) => invAdd(this.carried, item, n)))
+    for (const p of stepDrops(this.world, this.drops, dt, b.x, b.y, (item) => (invTotal(this.carried) < this.derived.packCap ? this.derived.packCap - invTotal(this.carried) : 0) * (ITEMS[item] ? 1 : 0), (item, n) => invAdd(this.carried, item, n), this.gear.magnet))
       this.emit({ t: 'pickup', item: p.item, x: b.x, y: b.y - 1 });
     if (this.world.saplings.size > 0 && stepSaplings(this.world, dt) > 0) this.emit({ t: 'grow' });
     this.liquidAcc += dt;

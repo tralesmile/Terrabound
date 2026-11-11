@@ -272,6 +272,44 @@ export class Renderer {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(this.sx(bb.x, shakeX) - scale, this.sy(bb.y, shakeY) - scale, scale * 2, scale * 2);
     }
+    // Pet companion.
+    const petId = game.equipped('pet');
+    if (petId) {
+      const pxp = this.sx(game.pet.x, shakeX);
+      const pyp = this.sy(game.pet.y, shakeY);
+      const u = scale;
+      const pd = GEAR[petId];
+      if (petId === 'glow_moth') {
+        const flap = Math.sin(time * 18) > 0 ? 3 : 1;
+        ctx.fillStyle = 'rgba(200,255,216,0.25)';
+        ctx.beginPath();
+        ctx.arc(pxp, pyp, u * 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = pd.color;
+        ctx.fillRect(pxp - u * (2 + flap), pyp - u * 2, u * flap, u * 3);
+        ctx.fillRect(pxp + u * 2, pyp - u * 2, u * flap, u * 3);
+        ctx.fillStyle = pd.accent;
+        ctx.fillRect(pxp - u * 2, pyp - u * 2, u * 4, u * 3);
+      } else {
+        ctx.fillStyle = '#14181f';
+        ctx.fillRect(pxp - u * 4, pyp - u * 3, u * 8, u * 6);
+        ctx.fillStyle = pd.color;
+        ctx.fillRect(pxp - u * 3, pyp - u * 2, u * 6, u * 4);
+        ctx.fillStyle = pd.accent;
+        ctx.fillRect(pxp + game.facing * u * 1 - u, pyp - u, u * 2, u * 1.5);
+        if (petId === 'scout_bot') {
+          ctx.fillStyle = '#c9d0e4';
+          const r = Math.floor(time * 20) % 2 ? 5 : 3;
+          ctx.fillRect(pxp - u * r, pyp - u * 4.5, u * r * 2, u);
+        } else {
+          // Spark pup: ears and a tail.
+          ctx.fillStyle = pd.color;
+          ctx.fillRect(pxp - u * 3, pyp - u * 4, u * 2, u * 2);
+          ctx.fillRect(pxp + u, pyp - u * 4, u * 2, u * 2);
+          ctx.fillRect(pxp - game.facing * u * 4.5, pyp - u * 2 + (Math.floor(time * 6) % 2) * u, u * 1.5, u);
+        }
+      }
+    }
     // Back gear and vehicles behind / under the player.
     const veh = game.vehicle;
     const eq = (slot: 'head' | 'body' | 'feet' | 'back'): [string, string] | undefined => {

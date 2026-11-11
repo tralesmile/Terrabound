@@ -460,9 +460,10 @@ const SHAPES: Record<string, string[]> = {
   bike: ['            ', '            ', '        oo  ', '  ooooooobo ', ' oaaaaaaaaao', 'oaaaaaaaaaao', ' oooooooooo ', ' obo    obo ', '  b      b  ', '            ', '            ', '            '],
   jet: ['            ', '     oo     ', '    oaao    ', '   oaaaao   ', 'ooooabbaoooo', 'oaaaaaaaaaao', 'ooooaaaaoooo', '    oaao    ', '   oaooao   ', '   oo  oo   ', '            ', '            '],
   beacon: ['     bb     ', '    bwwb    ', '     bb     ', '    oooo    ', '   oaaaao   ', '   oabbao   ', '   oaaaao   ', '   oabbao   ', '  oaaaaaao  ', '  oaaaaaao  ', ' oooooooooo ', '            '],
+  pet: ['            ', '  o      o  ', ' oao    oao ', ' oaaooooaao ', ' oaaaaaaaao ', ' oabwaabwao ', ' oaaaaaaaao ', '  oaabbaao  ', '   oaaaao   ', '   oo  oo   ', '            ', '            '],
   hook: ['            ', '   oooo     ', '  obbbbo    ', ' obo  obo   ', ' obo   oo   ', ' obo        ', '  obo   oo  ', '   obooobo  ', '    obbbo   ', '     ooo  a ', '         a  ', '        a   '],
 };
-const SLOT_SHAPE: Record<string, string> = { head: 'helm', body: 'vest', feet: 'boot', vehicle: 'bike' };
+const SLOT_SHAPE: Record<string, string> = { head: 'helm', body: 'vest', feet: 'boot', vehicle: 'bike', pet: 'pet' };
 
 const FALLBACK: IconDef = { pal: { a: '#9aa3b8' }, rows: ['', '  oooooooo', '  oaaaaaao', '  oaaaaaao', '  oaaaaaao', '  oaaaaaao', '  oaaaaaao', '  oooooooo'] };
 

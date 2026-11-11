@@ -4,8 +4,8 @@
  */
 import type { Inventory } from './tiles';
 
-export type GearSlot = 'melee' | 'ranged' | 'head' | 'body' | 'feet' | 'back' | 'vehicle';
-export const GEAR_SLOTS: GearSlot[] = ['melee', 'ranged', 'head', 'body', 'feet', 'back', 'vehicle'];
+export type GearSlot = 'melee' | 'ranged' | 'head' | 'body' | 'feet' | 'back' | 'vehicle' | 'pet';
+export const GEAR_SLOTS: GearSlot[] = ['melee', 'ranged', 'head', 'body', 'feet', 'back', 'vehicle', 'pet'];
 
 export type RangedKind = 'pulse' | 'rail' | 'scatter' | 'bomb';
 
@@ -22,6 +22,10 @@ export interface GearStats {
   dash: boolean;
   jetpack: boolean;
   glider: boolean;
+  /** Pickup magnet radius in tiles. */
+  magnet: number;
+  /** Pet that zaps nearby enemies (damage per zap, 0 = none). */
+  petZap: number;
   meleeDmg: number;
   meleeRange: number;
   meleeCd: number;
@@ -69,7 +73,10 @@ export type GearId =
   | 'frost_core'
   | 'ai_crown'
   | 'plasma_saber'
-  | 'core_plate';
+  | 'core_plate'
+  | 'scout_bot'
+  | 'glow_moth'
+  | 'spark_pup';
 
 export const GEAR: Record<GearId, GearDef> = {
   energy_blade: { name: 'Energy blade', slot: 'melee', desc: 'Quick arc, 12 damage', cost: {}, mod: {}, color: '#36e0e8', accent: '#c8ffff' },
@@ -96,6 +103,9 @@ export const GEAR: Record<GearId, GearDef> = {
   ai_crown: { name: 'Crown of the Hollow', slot: 'head', desc: 'Final trophy: 20% armor, +4 light, +50% dig speed', cost: {}, mod: { armor: 0.2, light: 4, digMul: 1.5 }, bossOnly: true, color: '#ff5aff', accent: '#ffffff' },
   plasma_saber: { name: 'Plasma saber', slot: 'melee', desc: 'Deep-layer blade: 40 damage, 3 tile reach', cost: { plasma: 8, circuit: 6, metal: 10 }, mod: { meleeDmg: 40, meleeRange: 3, meleeCd: 0.3 }, color: '#ff5a8a', accent: '#ffd0e0' },
   core_plate: { name: 'Core plate', slot: 'body', desc: 'Deep-layer armor: 40% armor, +50 health', cost: { core_shard: 8, plasma: 6, metal: 20 }, mod: { armor: 0.4, maxHp: 50 }, color: '#5a2a7a', accent: '#ff5aff' },
+  scout_bot: { name: 'Scout bot', slot: 'pet', desc: 'Pet: pulls in loot from 7 tiles, +1 light', cost: { metal: 6, copper_wire: 6, crystal: 2 }, mod: { magnet: 7, light: 1 }, color: '#9aa3b8', accent: '#36e0e8' },
+  glow_moth: { name: 'Glow moth', slot: 'pet', desc: 'Pet: lights the way (+4 light)', cost: { biomass: 12, crystal: 3 }, mod: { light: 4 }, color: '#c8ffd8', accent: '#7dffb0' },
+  spark_pup: { name: 'Spark pup', slot: 'pet', desc: 'Pet: zaps enemies near you (6 damage)', cost: { iron_scrap: 10, copper_wire: 8, crystal: 3 }, mod: { petZap: 6 }, color: '#ffcf4a', accent: '#ff9a3c' },
   sky_jet: { name: 'Sky Jet', slot: 'vehicle', desc: 'Ride with V and fly anywhere: jump climbs, S dives (uses battery)', cost: { metal: 20, copper_wire: 12, crystal: 8 }, mod: {}, color: '#5aa6ff', accent: '#ffffff' },
 };
 
@@ -115,6 +125,8 @@ export const BASE_STATS: GearStats = {
   dash: false,
   jetpack: false,
   glider: false,
+  magnet: 3,
+  petZap: 0,
   meleeDmg: 12,
   meleeRange: 2.1,
   meleeCd: 0.28,
@@ -139,6 +151,8 @@ export function gearStats(equip: Loadout): GearStats {
     if (m.dash) s.dash = true;
     if (m.jetpack) s.jetpack = true;
     if (m.glider) s.glider = true;
+    if (m.magnet) s.magnet = Math.max(s.magnet, m.magnet);
+    if (m.petZap) s.petZap += m.petZap;
     if (m.meleeDmg !== undefined) s.meleeDmg = m.meleeDmg;
     if (m.meleeRange !== undefined) s.meleeRange = m.meleeRange;
     if (m.meleeCd !== undefined) s.meleeCd = m.meleeCd;

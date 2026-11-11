@@ -244,3 +244,40 @@ describe('vehicles', () => {
     expect(new Game(defaultSave()).toggleRide()).toBe(false);
   });
 });
+
+describe('pets', () => {
+  it('a pet follows the player; the scout bot widens the loot magnet; the glow moth adds light', () => {
+    const g = rich();
+    g.craftGear('scout_bot');
+    expect(g.equipped('pet')).toBe('scout_bot');
+    const { x, y } = sky(g);
+    run(g, 1.5);
+    expect(Math.hypot(g.pet.x - g.body.x, g.pet.y - g.body.y)).toBeLessThan(4);
+    g.carried = {};
+    g.drops = [];
+    g.drops.push({ item: 'crystal', n: 2, x: x + 6.5, y: y - 0.01, vx: 0, vy: 0, age: 0, noPick: 0 });
+    run(g, 2);
+    expect(g.carried.crystal).toBe(2);
+    const light = g.derived.lampRadius;
+    // Building happens at the pad.
+    g.body.x = g.world.padX + 0.5;
+    g.body.y = g.world.padY;
+    expect(g.craftGear('glow_moth')).toBe(true);
+    expect(g.derived.lampRadius).toBeGreaterThan(light);
+  });
+
+  it('the spark pup zaps enemies near it', () => {
+    const g = rich();
+    g.craftGear('spark_pup');
+    const { x, y } = sky(g);
+    run(g, 1);
+    const e = makeEnemy(77, 'hulk', g.pet.x + 1, y);
+    e.vx = 0;
+    g.enemies = [e];
+    const hp = e.hp;
+    g.iframes = 99;
+    run(g, 0.3);
+    expect(e.hp).toBeLessThan(hp);
+    void x;
+  });
+});

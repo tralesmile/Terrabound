@@ -360,6 +360,9 @@ function boot(): void {
         if (e.kind !== 'clear') ui.toast(`${WEATHER[e.kind].name}: ${WEATHER[e.kind].desc}`, e.kind === 'eclipse' ? '#ff5aff' : e.kind === 'meteors' ? '#ffcf4a' : '#c9a35a', 4);
         else ui.toast('The sky clears', '#c9d0e4', 2);
         break;
+      case 'zap':
+        fx.burst(e.tx, e.ty, '#ffcf4a', 6, 3);
+        break;
       case 'meteor':
         fx.burst(e.x, e.y, '#ffcf4a', 20, 7);
         fx.addShake(0.4);

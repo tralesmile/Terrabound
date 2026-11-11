@@ -52,6 +52,7 @@ export function stepDrops(
   py: number,
   room: (item: ItemId) => number,
   take: (item: ItemId, n: number) => void,
+  magnet = MAGNET_R,
 ): { item: ItemId; n: number }[] {
   const got: { item: ItemId; n: number }[] = [];
   for (let i = list.length - 1; i >= 0; i--) {
@@ -66,7 +67,7 @@ export function stepDrops(
     const dy = py - 0.8 - d.y;
     const dist = Math.hypot(dx, dy);
     const canTake = d.noPick <= 0 && room(d.item) > 0;
-    if (canTake && dist < MAGNET_R) {
+    if (canTake && dist < magnet) {
       // Drift toward the player, faster when close.
       const k = 14 / Math.max(0.4, dist);
       d.vx += (dx * k - d.vx) * Math.min(1, 8 * dt);
