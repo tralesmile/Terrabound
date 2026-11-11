@@ -3,9 +3,10 @@ import { legacyWalls, sanitizeBase, sanitizeWalls, type BaseTiles } from './base
 import { UPGRADES, type Levels } from './upgrades';
 import { CODEX_IDS } from './explore';
 import { defaultGear, sanitizeGear, type GearSave } from './gear';
+import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -34,6 +35,8 @@ export interface SaveData {
   worldSeed: number | null;
   /** v9: crafted gear (owned forever) and what is equipped per slot. */
   gear: GearSave;
+  /** v10: bosses defeated (first win grants their trophy gear). */
+  bosses: BossId[];
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -53,6 +56,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     away: { savedAt: 0, time: 0, charge: 0 },
     worldSeed: null,
     gear: defaultGear(),
+    bosses: [],
   };
 }
 
@@ -121,6 +125,8 @@ export function parseSave(raw: string | null | undefined): SaveData {
     worldSeed: typeof r.worldSeed === 'number' && Number.isFinite(r.worldSeed) ? Math.floor(num(r.worldSeed, 0, 4294967295, 0)) : null,
     // v8 -> v9: only the starter blade and pistol.
     gear: sanitizeGear(r.gear),
+    // v9 -> v10: no bosses beaten yet.
+    bosses: Array.isArray(r.bosses) ? BOSS_IDS.filter((id) => (r.bosses as unknown[]).includes(id)) : [],
   };
 }
 

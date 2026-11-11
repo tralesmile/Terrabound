@@ -14,6 +14,11 @@ export interface Recipe {
 export const RECIPES: Recipe[] = [
   { id: 'torch', name: 'Torch x2', out: 'torch', qty: 2, cost: { rust: 2, iron_scrap: 1 } },
   { id: 'biotorch', name: 'Bio torch x3', out: 'torch', qty: 3, cost: { biomass: 3 } },
+  { id: 'beacon_colossus', name: 'Scrap beacon (Junk Colossus)', out: 'beacon_colossus', qty: 1, cost: { iron_scrap: 12, copper_wire: 6, metal: 6 } },
+  { id: 'beacon_vine', name: 'Vine beacon (Vine Queen)', out: 'beacon_vine', qty: 1, cost: { biomass: 20, crystal: 4, copper_wire: 6 } },
+  { id: 'beacon_golem', name: 'Prism beacon (Crystal Golem)', out: 'beacon_golem', qty: 1, cost: { crystal: 14, metal: 8 } },
+  { id: 'beacon_wyrm', name: 'Ember beacon (Ash Wyrm)', out: 'beacon_wyrm', qty: 1, cost: { crystal: 12, copper_wire: 14, metal: 10 } },
+  { id: 'beacon_titan', name: 'Frost beacon (Frost Titan)', out: 'beacon_titan', qty: 1, cost: { crystal: 20, metal: 16, copper_wire: 10 } },
   { id: 'ladder', name: 'Ladder x4', out: 'ladder', qty: 4, cost: { rust: 3, iron_scrap: 1 } },
   { id: 'scaffold', name: 'Scaffold x6', out: 'scaffold', qty: 6, cost: { rust: 4 } },
   { id: 'platform', name: 'Platform x4', out: 'platform', qty: 4, cost: { rust: 3 } },

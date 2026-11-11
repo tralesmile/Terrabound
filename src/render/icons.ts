@@ -456,6 +456,7 @@ const SHAPES: Record<string, string[]> = {
   wings: ['            ', 'o          o', 'oao      oao', 'oaao    oaao', 'oaaaooooaaao', 'oabaaaaaabao', ' oabaaaabao ', '  oaaooaao  ', '   oo  oo   ', '            ', '            ', '            '],
   bike: ['            ', '            ', '        oo  ', '  ooooooobo ', ' oaaaaaaaaao', 'oaaaaaaaaaao', ' oooooooooo ', ' obo    obo ', '  b      b  ', '            ', '            ', '            '],
   jet: ['            ', '     oo     ', '    oaao    ', '   oaaaao   ', 'ooooabbaoooo', 'oaaaaaaaaaao', 'ooooaaaaoooo', '    oaao    ', '   oaooao   ', '   oo  oo   ', '            ', '            '],
+  beacon: ['     bb     ', '    bwwb    ', '     bb     ', '    oooo    ', '   oaaaao   ', '   oabbao   ', '   oaaaao   ', '   oabbao   ', '  oaaaaaao  ', '  oaaaaaao  ', ' oooooooooo ', '            '],
   hook: ['            ', '   oooo     ', '  obbbbo    ', ' obo  obo   ', ' obo   oo   ', ' obo        ', '  obo   oo  ', '   obooobo  ', '    obbbo   ', '     ooo  a ', '         a  ', '        a   '],
 };
 const SLOT_SHAPE: Record<string, string> = { head: 'helm', body: 'vest', feet: 'boot', vehicle: 'bike' };
@@ -471,6 +472,10 @@ export function iconDef(id: ItemId | Tool | string): IconDef {
     if (base) return { pal: { ...base.pal, a: g.color, b: g.accent }, rows: base.rows };
     const shape = id === 'jetpack' ? 'pack' : id === 'glider' ? 'wings' : id === 'sky_jet' ? 'jet' : SLOT_SHAPE[g.slot] ?? 'pack';
     return { pal, rows: SHAPES[shape] };
+  }
+  if (id.startsWith('beacon_')) {
+    const col = { beacon_colossus: '#c77a5e', beacon_vine: '#7fcf5a', beacon_golem: '#d8b8ff', beacon_wyrm: '#ff8a3c', beacon_titan: '#e6f6ff' }[id] ?? '#ffcf4a';
+    return { pal: { a: '#5d6a80', b: col }, rows: SHAPES.beacon };
   }
   if (id === 'hook') return { pal: { a: '#e6f6ff', b: '#9aa3b8' }, rows: SHAPES.hook };
   return FALLBACK;

@@ -11,6 +11,7 @@ import { parseSave, serializeSave } from './sim/save';
 import { ITEMS, type ItemId } from './sim/tiles';
 import { codexEntry } from './sim/explore';
 import { GEAR } from './sim/gear';
+import { BOSSES } from './sim/bosses';
 import { UI, type UiAction } from './ui/ui';
 
 const TOOL_NAMES: Record<Tool, string> = { drill: 'Mining drill', blade: 'Energy blade', pistol: 'Pulse pistol', rod: 'Fishing rod: click water to cast', hook: 'Grappling hook: click a ceiling, swing, jump to let go' };
@@ -322,6 +323,30 @@ function boot(): void {
         break;
       case 'nosoil':
         ui.toast('Seeds need soil underneath', '#ff9a3c');
+        break;
+      case 'bossspawn':
+        ui.toast(`${BOSSES[e.id].name} approaches!`, '#ff5a5a', 3);
+        fx.addShake(0.8);
+        ui.invOpen = false;
+        break;
+      case 'bossslam':
+        fx.burst(e.x, e.y, '#c9a35a', 30, 8);
+        fx.addShake(0.7);
+        break;
+      case 'bosshit':
+        fx.text(e.x, e.y, `${Math.round(e.dmg)}`, '#ffd24a');
+        break;
+      case 'bossdown':
+        ui.toast(`${BOSSES[e.id].name} defeated!`, '#ffcf4a', 4);
+        if (e.first) ui.toast(`Trophy: ${GEAR[BOSSES[e.id].gear].name} (equip it in GEAR)`, '#9ff6a0', 5);
+        fx.addShake(1);
+        saveNow();
+        break;
+      case 'bossgone':
+        ui.toast('The boss withdrew (you left the arena)', '#8a90a2');
+        break;
+      case 'nosummon':
+        ui.toast(e.reason, '#ff9a3c');
         break;
       case 'craftgear':
         ui.toast(`Built: ${GEAR[e.id].name}`, '#ffcf4a');

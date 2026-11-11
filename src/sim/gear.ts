@@ -37,6 +37,8 @@ export interface GearDef {
   cost: Inventory;
   /** Stat changes applied on top of the base stats. */
   mod: Partial<GearStats>;
+  /** Only won from a boss (never crafted). */
+  bossOnly?: boolean;
   /** Hand-tuned colours for the character (helmet, suit, boots, back item, vehicle body). */
   color: string;
   accent: string;
@@ -59,7 +61,12 @@ export type GearId =
   | 'jetpack'
   | 'glider'
   | 'hoverbike'
-  | 'sky_jet';
+  | 'sky_jet'
+  | 'junk_hammer'
+  | 'thorn_whip'
+  | 'prism_lance'
+  | 'ember_cannon'
+  | 'frost_core';
 
 export const GEAR: Record<GearId, GearDef> = {
   energy_blade: { name: 'Energy blade', slot: 'melee', desc: 'Quick arc, 12 damage', cost: {}, mod: {}, color: '#36e0e8', accent: '#c8ffff' },
@@ -78,6 +85,11 @@ export const GEAR: Record<GearId, GearDef> = {
   jetpack: { name: 'Jetpack', slot: 'back', desc: 'Hold jump in the air to fly (uses battery)', cost: { metal: 10, copper_wire: 8, crystal: 3 }, mod: { jetpack: true }, color: '#5d6a80', accent: '#ff9a3c' },
   glider: { name: 'Glider wings', slot: 'back', desc: 'Hold jump while falling to glide', cost: { biomass: 10, copper_wire: 4 }, mod: { glider: true }, color: '#c9a35a', accent: '#f0d08a' },
   hoverbike: { name: 'Hoverbike', slot: 'vehicle', desc: 'Ride with V: twice as fast, higher jumps, no fall damage', cost: { metal: 14, copper_wire: 8, crystal: 4 }, mod: {}, color: '#e8a33d', accent: '#36e0e8' },
+  junk_hammer: { name: 'Junk hammer', slot: 'melee', desc: 'Colossus trophy: 34 damage, huge knockback', cost: {}, mod: { meleeDmg: 34, meleeRange: 2.8, meleeCd: 0.5 }, bossOnly: true, color: '#c77a5e', accent: '#ff5a2a' },
+  thorn_whip: { name: 'Thorn whip', slot: 'melee', desc: 'Vine Queen trophy: 4.5 tile reach, 20 damage', cost: {}, mod: { meleeDmg: 20, meleeRange: 4.5, meleeCd: 0.32 }, bossOnly: true, color: '#7fcf5a', accent: '#ff7ab8' },
+  prism_lance: { name: 'Prism lance', slot: 'ranged', desc: 'Golem trophy: piercing beam, 26 damage', cost: {}, mod: { ranged: 'rail', rangedDmg: 26, rangedCd: 0.4 }, bossOnly: true, color: '#d8b8ff', accent: '#8ff4ff' },
+  ember_cannon: { name: 'Ember cannon', slot: 'ranged', desc: 'Wyrm trophy: heavy bombs, 34 damage', cost: {}, mod: { ranged: 'bomb', rangedDmg: 34, rangedCd: 0.7 }, bossOnly: true, color: '#ff8a3c', accent: '#ffd24a' },
+  frost_core: { name: 'Frost core armor', slot: 'body', desc: 'Titan trophy: 35% armor, +40 health', cost: {}, mod: { armor: 0.35, maxHp: 40 }, bossOnly: true, color: '#e6f6ff', accent: '#36e0e8' },
   sky_jet: { name: 'Sky Jet', slot: 'vehicle', desc: 'Ride with V and fly anywhere: jump climbs, S dives (uses battery)', cost: { metal: 20, copper_wire: 12, crystal: 8 }, mod: {}, color: '#5aa6ff', accent: '#ffffff' },
 };
 

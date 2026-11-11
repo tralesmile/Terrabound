@@ -553,6 +553,44 @@ try {
   await page.keyboard.up('KeyW');
   await page.waitForTimeout(100);
   check('jump lets go of the rope', await page.evaluate(() => !window.__terrabound.game.hook));
+  // Boss: summon the Junk Colossus from the inventory in the Rust Wastes, see it and its health bar.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    let x = w.padX - 60;
+    while (!(w.isSolid(x, w.surface[x]) && w.get(x, w.surface[x] - 1) === 0)) x--;
+    const y = w.surface[x];
+    for (let xx = x - 30; xx <= x + 30; xx++) {
+      for (let yy = y - 12; yy < y; yy++) w.set(xx, yy, 0);
+      w.set(xx, y, 1);
+    }
+    g.body.x = x + 0.5;
+    g.body.y = y;
+    g.body.vx = g.body.vy = 0;
+    g.enemies = [];
+    g.hp = g.derived.maxHp;
+    g.facing = 1;
+    g.carried = { beacon_colossus: 1 };
+  });
+  await page.waitForTimeout(300);
+  await page.keyboard.press('KeyI');
+  await page.waitForTimeout(150);
+  const beaconCell = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'invsel' && r.a.id === 'beacon_colossus'));
+  if (beaconCell) await page.mouse.click(beaconCell.x + beaconCell.w / 2, beaconCell.y + beaconCell.h / 2);
+  await page.waitForTimeout(100);
+  const summonBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'use' && r.a.id === 'beacon_colossus'));
+  if (summonBtn) await page.mouse.click(summonBtn.x + summonBtn.w / 2, summonBtn.y + summonBtn.h / 2);
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: path.join(out, '26-boss.png') });
+  const bossState = await page.evaluate(() => ({ boss: window.__terrabound.game.boss?.id ?? null, inv: window.__terrabound.ui.invOpen }));
+  check('SUMMON in the inventory calls the Junk Colossus', bossState.boss === 'colossus' && !bossState.inv, JSON.stringify(bossState));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.damageBoss(9999);
+  });
+  await page.waitForTimeout(300);
+  check('defeating the boss grants its trophy', await page.evaluate(() => window.__terrabound.game.ownsGear('junk_hammer')));
+
   // Map: zoom with the wheel and the +/- buttons.
   await page.keyboard.press('KeyM');
   await page.waitForTimeout(200);

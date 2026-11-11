@@ -9,6 +9,7 @@ import type { Fx } from './fx';
 import type { PlayerGear } from './sprites';
 import { ICON, drawIcon } from './icons';
 import { GEAR } from '../sim/gear';
+import { BOSSES } from '../sim/bosses';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, leafMask } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, SNOW_H, blendSky, buildDecor, mixHex } from './decor';
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
@@ -259,6 +260,16 @@ export class Renderer {
       const a0 = game.facing > 0 ? -1.2 + k * 2.2 : Math.PI + 1.2 - k * 2.2;
       ctx.arc(px, py - 12 * scale, 2 * ts * 0.9, a0 - 0.5, a0 + 0.1);
       ctx.stroke();
+    }
+    // Boss: big procedural body, attack telegraph and its bolts.
+    if (game.boss) this.drawBoss(ctx, game, shakeX, shakeY, time);
+    for (const bb of game.bossBolts) {
+      ctx.fillStyle = BOSSES[game.boss?.id ?? 'colossus'].eye;
+      ctx.beginPath();
+      ctx.arc(this.sx(bb.x, shakeX), this.sy(bb.y, shakeY), scale * 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(this.sx(bb.x, shakeX) - scale, this.sy(bb.y, shakeY) - scale, scale * 2, scale * 2);
     }
     // Back gear and vehicles behind / under the player.
     const veh = game.vehicle;
@@ -809,6 +820,80 @@ export class Renderer {
         ctx.fillStyle = hash2(i, 6, 5) > 0.5 ? 'rgba(232,127,91,0.8)' : 'rgba(54,224,232,0.7)';
         const win = Math.floor(hash2(i, 7, 5) * th);
         if (Math.floor(time * 0.7 + i) % 5 !== 0) ctx.fillRect(x + ts * 0.4, base - (win + 1) * ts + ts * 0.3, this.scale * 2, this.scale * 2);
+      }
+    }
+  }
+
+  private drawBoss(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
+    const bs = game.boss;
+    if (!bs) return;
+    const d = BOSSES[bs.id];
+    const ts = TS * this.scale;
+    const u = this.scale;
+    const cx = this.sx(bs.x, shakeX);
+    const by = this.sy(bs.y, shakeY);
+    const w = d.halfW * 2 * ts;
+    const h = d.h * ts;
+    const warn = bs.attack && bs.at < 0;
+    const flash = bs.iframes > 0 || (warn && Math.floor(time * 12) % 2 === 0);
+    const body = flash ? '#ffffff' : d.color;
+    const f = bs.facing;
+    if (d.flying) {
+      // Wyrm: segmented body trailing behind the head on a sine.
+      for (let i = 6; i >= 0; i--) {
+        const sx2 = cx - f * i * ts * 0.7;
+        const sy2 = by - h / 2 + Math.sin(bs.age * 5 - i * 0.8) * ts * 0.5;
+        const r = (h / 2) * (1 - i * 0.08);
+        ctx.fillStyle = '#14181f';
+        ctx.beginPath();
+        ctx.arc(sx2, sy2, r + u, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = i === 0 ? body : i % 2 ? d.accent : body;
+        ctx.beginPath();
+        ctx.arc(sx2, sy2, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = d.eye;
+      ctx.fillRect(cx + f * h * 0.2 - u * 2, by - h * 0.65, u * 4, u * 3);
+    } else {
+      const lift = bs.attack === 'slam' && bs.at < 0 ? -bs.at * ts * 0.6 : 0;
+      const top = by - h - lift;
+      // Legs.
+      const step = Math.sin(bs.age * 6) * u * 3;
+      ctx.fillStyle = '#14181f';
+      ctx.fillRect(cx - w * 0.4 - u, by - h * 0.3 - u + step - lift, w * 0.25 + 2 * u, h * 0.3 + u);
+      ctx.fillRect(cx + w * 0.15 - u, by - h * 0.3 - u - step - lift, w * 0.25 + 2 * u, h * 0.3 + u);
+      ctx.fillStyle = d.accent;
+      ctx.fillRect(cx - w * 0.4, by - h * 0.3 + step - lift, w * 0.25, h * 0.3);
+      ctx.fillRect(cx + w * 0.15, by - h * 0.3 - step - lift, w * 0.25, h * 0.3);
+      // Torso with plates.
+      ctx.fillStyle = '#14181f';
+      ctx.fillRect(cx - w / 2 - u, top - u, w + 2 * u, h * 0.72 + 2 * u);
+      ctx.fillStyle = body;
+      ctx.fillRect(cx - w / 2, top, w, h * 0.72);
+      ctx.fillStyle = d.accent;
+      for (let i = 0; i < 3; i++) ctx.fillRect(cx - w / 2 + u * 2, top + h * (0.18 + i * 0.17), w - u * 4, u * 2);
+      // Arms swing on charge.
+      const arm = bs.attack === 'charge' && bs.at >= 0 ? f * ts * 0.6 : 0;
+      ctx.fillStyle = '#14181f';
+      ctx.fillRect(cx + f * (w / 2) - (f < 0 ? ts * 0.6 : 0) + arm, top + h * 0.15, ts * 0.6, h * 0.45);
+      ctx.fillStyle = body;
+      ctx.fillRect(cx + f * (w / 2) - (f < 0 ? ts * 0.6 : 0) + arm + u, top + h * 0.15 + u, ts * 0.6 - 2 * u, h * 0.45 - 2 * u);
+      // Eyes.
+      ctx.fillStyle = d.eye;
+      ctx.fillRect(cx + f * w * 0.15 - u * 3, top + h * 0.08, u * 6, u * 3);
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.fillRect(cx + f * w * 0.15 - u, top + h * 0.08 + u, u * 2, u);
+    }
+    if (warn) {
+      ctx.fillStyle = '#ffcf4a';
+      ctx.font = `bold ${Math.round(u * 10)}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText('!', cx, by - h - ts * 0.6);
+      if (bs.attack === 'slam') {
+        ctx.strokeStyle = 'rgba(255,90,90,0.6)';
+        ctx.lineWidth = u * 2;
+        ctx.strokeRect(cx - 6 * ts, by - u, 12 * ts, u * 2);
       }
     }
   }

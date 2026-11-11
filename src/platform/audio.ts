@@ -115,6 +115,19 @@ export class Sfx {
       case 'lore':
         [880, 1175, 988, 1319].forEach((f, i) => this.tone(f, 0.06, 'square', 0.05, undefined, i * 0.07));
         break;
+      case 'bossspawn':
+        [110, 82, 55].forEach((f, i) => this.tone(f, 0.6, 'sawtooth', 0.16, undefined, i * 0.3));
+        break;
+      case 'bosswarn':
+        this.tone(660, 0.12, 'square', 0.08, 990);
+        break;
+      case 'bossslam':
+        this.noise(0.4, 0.5);
+        this.tone(60, 0.4, 'triangle', 0.2, 30);
+        break;
+      case 'bossdown':
+        [262, 330, 392, 523, 659, 784].forEach((f, i) => this.tone(f, 0.2, 'triangle', 0.12, undefined, i * 0.1));
+        break;
       case 'nightfall':
         [330, 262, 196].forEach((f, i) => this.tone(f, 0.4, 'sine', 0.1, undefined, i * 0.25));
         break;

@@ -34,7 +34,7 @@ describe('gear table', () => {
     for (const id of GEAR_IDS) {
       const d = GEAR[id];
       expect(d.desc.length).toBeGreaterThan(5);
-      if (!STARTER_GEAR.includes(id)) expect(Object.keys(d.cost).length).toBeGreaterThan(0);
+      if (!STARTER_GEAR.includes(id) && !d.bossOnly) expect(Object.keys(d.cost).length).toBeGreaterThan(0);
     }
     expect(GEAR_IDS.length).toBeGreaterThanOrEqual(15);
   });

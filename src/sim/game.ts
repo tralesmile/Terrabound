@@ -22,6 +22,8 @@ import { recipeById } from './recipes';
 import { chestLoot } from './loot';
 import { SOIL_TILES, growTime, stepSaplings } from './structures';
 import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
+import { ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
+import { BIOMES, type BiomeId } from './biomes';
 import { GEAR, gearStats, sanitizeGear, type GearId, type GearSlot, type GearStats } from './gear';
 import { FOOD, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE } from './fishing';
 import { daylight } from './daynight';
@@ -93,6 +95,13 @@ export type GameEvent =
   | { t: 'unhook' }
   | { t: 'dash' }
   | { t: 'boom'; x: number; y: number }
+  | { t: 'bossspawn'; id: BossId }
+  | { t: 'bosswarn'; kind: AttackKind }
+  | { t: 'bossslam'; x: number; y: number }
+  | { t: 'bosshit'; x: number; y: number; dmg: number }
+  | { t: 'bossdown'; id: BossId; first: boolean }
+  | { t: 'bossgone' }
+  | { t: 'nosummon'; reason: string }
   | { t: 'grow' }
   | { t: 'dawn' }
   | { t: 'fell'; x: number; y: number; tiles: number }
@@ -199,6 +208,11 @@ export class Game {
   private discoverCd = 0;
   private wasNight = false;
   private gearCache: GearStats | null = null;
+  /** Active boss fight (one at a time). */
+  boss: Boss | null = null;
+  bossBolts: BossBolt[] = [];
+  /** Telegraph currently shown (render): attack name and seconds of warning left. */
+  bossWarn: { kind: AttackKind; t: number } | null = null;
   /** On the equipped vehicle. */
   riding = false;
   /** Grappling hook rope, when attached. */
@@ -249,6 +263,7 @@ export class Game {
     this.save = structuredClone(save);
     if (!Array.isArray(this.save.codex)) this.save.codex = [];
     this.save.gear = sanitizeGear(this.save.gear);
+    if (!Array.isArray(this.save.bosses)) this.save.bosses = [];
     this.stash = { ...save.stash };
     this.upgrades = { ...save.upgrades };
     // Crash/refresh safety: loot carried at last save is banked, never lost.
@@ -320,7 +335,7 @@ export class Game {
   }
 
   canCraftGear(id: GearId): boolean {
-    return !this.ownsGear(id) && this.isAtBase() && canAfford(this.stash, GEAR[id].cost);
+    return !GEAR[id].bossOnly && !this.ownsGear(id) && this.isAtBase() && canAfford(this.stash, GEAR[id].cost);
   }
 
   /** Build gear at the workshop from stashed materials; it is equipped right away. */
@@ -415,6 +430,9 @@ export class Game {
     this.recallT = 0;
     this.shots = [];
     this.drops = [];
+    this.boss = null;
+    this.bossBolts = [];
+    this.bossWarn = null;
     this.chestOpen = null;
     this.fishing = null;
     this.fallers = [];
@@ -876,6 +894,7 @@ export class Game {
 
     this.stepEnemies(dt);
     this.stepShots(dt);
+    this.stepBossFight(dt);
     this.stepHazards(dt);
 
     // Base services, battery and survival.
@@ -907,12 +926,19 @@ export class Game {
       if (dx < -0.4 || dx > g.meleeRange || Math.abs(e.y - b.y) > 1.8) continue;
       this.damageEnemy(e, g.meleeDmg, this.facing);
     }
+    const bs = this.boss;
+    if (bs) {
+      const bd = BOSSES[bs.id];
+      const dx = (bs.x - b.x) * this.facing;
+      if (dx > -bd.halfW && dx < g.meleeRange + bd.halfW && b.y > bs.y - bd.h - 1 && b.y - BODY_H < bs.y + 0.5) this.damageBoss(g.meleeDmg);
+    }
   }
 
   /** Bomb blast: damages enemies in the radius and breaks minable solid tiles (their drops land as pickups). */
   explode(x: number, y: number, dmg: number): void {
     const r = BOMB_RADIUS;
     for (const e of this.enemies) if (Math.hypot(e.x - x, e.y - 0.4 - y) <= r + 0.5) this.damageEnemy(e, dmg, Math.sign(e.x - x) || 1);
+    if (this.boss && Math.abs(this.boss.x - x) < BOSSES[this.boss.id].halfW + r && y > this.boss.y - BOSSES[this.boss.id].h - r && y < this.boss.y + r) this.damageBoss(dmg);
     for (let ty = Math.floor(y - r); ty <= Math.ceil(y + r); ty++) {
       for (let tx = Math.floor(x - r); tx <= Math.ceil(x + r); tx++) {
         if (Math.hypot(tx + 0.5 - x, ty + 0.5 - y) > r) continue;
@@ -1051,6 +1077,18 @@ export class Game {
           else this.emit({ t: 'shothit', x: s.x, y: s.y });
           alive = false;
           break;
+        }
+        if (this.boss && bossHits(this.boss, s.x, s.y, 0.1, 0.1)) {
+          if (s.bomb) this.explode(s.x, s.y, s.dmg ?? 20);
+          else if (!s.pierce || !s.hit?.includes(-1)) {
+            this.damageBoss(s.dmg ?? PISTOL_DMG);
+            s.hit?.push(-1);
+            this.emit({ t: 'shothit', x: s.x, y: s.y });
+          }
+          if (!s.pierce || s.bomb) {
+            alive = false;
+            break;
+          }
         }
         for (const e of this.enemies) {
           if (e.hp > 0 && enemyOverlapsBox(e, s.x, s.y + 0.1, 0.1, 0.2)) {
@@ -1336,8 +1374,120 @@ export class Game {
     }
   }
 
+  /** Use a beacon in the boss's own biome, away from the pad: the boss lands nearby and the arena locks. */
+  summonBoss(id: BossId): boolean {
+    const d = BOSSES[id];
+    const col = Math.min(this.world.w - 1, Math.max(0, Math.floor(this.body.x)));
+    const beacon = d.beacon;
+    if (this.boss) return this.noSummon('A boss is already here');
+    if (invCount(this.carried, beacon) <= 0) return this.noSummon('You need the beacon');
+    if (Math.abs(this.body.x - this.world.padX) < 40) return this.noSummon('Too close to the pad');
+    if (this.world.biome[col] !== d.biome) return this.noSummon(`Use it in the ${BIOMES[d.biome as BiomeId].name}`);
+    invAdd(this.carried, beacon, -1);
+    const x = this.body.x + this.facing * 10;
+    this.boss = makeBoss(id, x, Math.max(3, this.body.y - 8));
+    this.boss.ax0 = Math.min(this.body.x, x) - ARENA_HALF;
+    this.boss.ax1 = Math.max(this.body.x, x) + ARENA_HALF;
+    this.emit({ t: 'bossspawn', id });
+    return true;
+  }
+
+  private noSummon(reason: string): boolean {
+    this.emit({ t: 'nosummon', reason });
+    return false;
+  }
+
+  bossDefeated(id: BossId): boolean {
+    return this.save.bosses.includes(id);
+  }
+
+  damageBoss(dmg: number): void {
+    const bs = this.boss;
+    if (!bs || bs.iframes > 0 || bs.hp <= 0) return;
+    bs.hp -= dmg;
+    bs.iframes = 0.12;
+    this.hitStop = HITSTOP;
+    this.emit({ t: 'bosshit', x: bs.x, y: bs.y - BOSSES[bs.id].h / 2, dmg });
+    if (bs.hp <= 0) this.defeatBoss();
+  }
+
+  private defeatBoss(): void {
+    const bs = this.boss;
+    if (!bs) return;
+    const d = BOSSES[bs.id];
+    const first = !this.save.bosses.includes(bs.id);
+    for (const k of Object.keys(d.reward) as ItemId[]) addDrop(this.drops, makeDrop(k, d.reward[k] ?? 0, bs.x + (hash2(k.length, 1, bs.age) - 0.5) * 2, bs.y - 1, (hash2(k.length, 2, 3) - 0.5) * 6, -8));
+    if (first) {
+      this.save.bosses.push(bs.id);
+      if (!this.ownsGear(d.gear)) this.save.gear.owned.push(d.gear);
+    }
+    this.emit({ t: 'bossdown', id: bs.id, first });
+    this.boss = null;
+    this.bossBolts = [];
+    this.bossWarn = null;
+  }
+
+  /** Boss AI, its attacks against the player, and leaving the arena (the boss withdraws). */
+  private stepBossFight(dt: number): void {
+    const bs = this.boss;
+    const b = this.body;
+    if (!bs) return;
+    if (b.x < bs.ax0 - 20 || b.x > bs.ax1 + 20 || this.isAtBase()) {
+      this.boss = null;
+      this.bossBolts = [];
+      this.bossWarn = null;
+      this.emit({ t: 'bossgone' });
+      return;
+    }
+    const d = BOSSES[bs.id];
+    const out = stepBoss(bs, this.world, dt, b.x, b.y, this.rng);
+    if (out.warn) {
+      this.bossWarn = { kind: out.warn, t: ATTACK_TIME[out.warn].warn };
+      this.emit({ t: 'bosswarn', kind: out.warn });
+    }
+    if (this.bossWarn) {
+      this.bossWarn.t -= dt;
+      if (this.bossWarn.t <= 0) this.bossWarn = null;
+    }
+    this.bossBolts.push(...out.bolts);
+    for (const x of out.rain) this.fallers.push({ kind: 'debris', x, y: b.y - 12, vy: 0, warn: 0.7 });
+    for (let i = 0; i < out.minions && this.enemies.length < MAX_ENEMIES + 3; i++) this.enemies.push(makeEnemy(this.nextEnemyId++, d.minion, bs.x + (i - 1) * 2, bs.y - 1));
+    if (out.slam) {
+      this.emit({ t: 'bossslam', x: bs.x, y: bs.y });
+      if (b.onGround && Math.abs(b.x - bs.x) < SLAM_RADIUS && this.iframes === 0) {
+        this.hurt(SLAM_DMG);
+        this.iframes = 0.6;
+        b.vy = -10;
+        b.vx = Math.sign(b.x - bs.x) * 12;
+      }
+    }
+    if (this.iframes === 0 && bossHits(bs, b.x, b.y - BODY_H / 2, HALF_W, BODY_H / 2)) {
+      this.hurt(d.contact);
+      this.iframes = 0.8;
+      b.vx = Math.sign(b.x - bs.x) * 14;
+      b.vy = -8;
+    }
+    // Boss bolts.
+    const keep: BossBolt[] = [];
+    for (const s of this.bossBolts) {
+      s.life -= dt;
+      s.x += s.vx * dt;
+      s.y += s.vy * dt;
+      if (s.life <= 0 || this.world.isSolid(Math.floor(s.x), Math.floor(s.y))) continue;
+      if (this.iframes === 0 && Math.abs(s.x - b.x) < HALF_W + 0.2 && s.y > b.y - BODY_H && s.y < b.y) {
+        this.hurt(BOLT_DMG);
+        this.iframes = 0.5;
+        continue;
+      }
+      keep.push(s);
+    }
+    this.bossBolts = keep;
+  }
+
   /** Eat food from the pack. */
   useItem(id: ItemId): boolean {
+    const bossId = bossForBeacon(id);
+    if (bossId) return this.summonBoss(bossId);
     const food = FOOD[id];
     if (!food || invCount(this.carried, id) <= 0) return false;
     invAdd(this.carried, id, -1);
@@ -1422,6 +1572,7 @@ export class Game {
       settings: { ...this.save.settings },
       codex: [...this.save.codex],
       gear: { owned: [...this.save.gear.owned], equip: { ...this.save.gear.equip } },
+      bosses: [...this.save.bosses],
       world: captureDiff(this.world, this.fog),
     };
   }

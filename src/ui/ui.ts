@@ -5,6 +5,8 @@ import { drawPlayer } from '../render/sprites';
 import { playerGear } from '../render/renderer';
 import { FOOD } from '../sim/fishing';
 import { GEAR, GEAR_IDS, GEAR_SLOTS, type GearId } from '../sim/gear';
+import { BOSSES, bossForBeacon } from '../sim/bosses';
+import { BIOMES, type BiomeId } from '../sim/biomes';
 import { CODEX, RECALL_TIME } from '../sim/explore';
 import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type Inventory, type ItemId } from '../sim/tiles';
 import { UPGRADES } from '../sim/upgrades';
@@ -210,7 +212,24 @@ export class UI {
       return;
     }
     this.drawHud(ctx, game, w, h, u, time);
+    if (game.boss) this.drawBossBar(ctx, game, w, u);
     if (game.chestOpen) this.drawChest(ctx, game, w, h, u);
+  }
+
+  private drawBossBar(ctx: CanvasRenderingContext2D, game: Game, w: number, u: number): void {
+    const bs = game.boss;
+    if (!bs) return;
+    const d = BOSSES[bs.id];
+    const bw = Math.min(w - u * 14, u * 26);
+    const x = (w - bw) / 2;
+    const y = u * 4.2;
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(x - 2, y - 2, bw + 4, u * 1.2 + 4);
+    ctx.fillStyle = '#5a1a1a';
+    ctx.fillRect(x, y, bw, u * 1.2);
+    ctx.fillStyle = bs.hp <= d.hp / 2 ? '#ff5a2a' : '#ff9a3c';
+    ctx.fillRect(x, y, bw * Math.max(0, bs.hp / d.hp), u * 1.2);
+    this.text(ctx, `${d.name}${bs.hp <= d.hp / 2 ? '  (enraged)' : ''}`, w / 2, y - u * 0.9, Math.round(u * 0.95), '#ffd8a8', 'center', bw);
   }
 
   /** One item cell: dark slot, pixel icon, count in the corner, highlight when selected. */
@@ -336,7 +355,8 @@ export class UI {
     if (sel) {
       const def = ITEMS[sel];
       const food = FOOD[sel];
-      const what = food ? `Eat: +${food.hp} HP${food.battery ? `, +${food.battery} battery` : ''}` : def.places !== null || def.placesWall !== undefined ? 'Build with it (right click / BUILD mode)' : 'Material: spend it at the workshop';
+      const bossFor = bossForBeacon(sel);
+      const what = bossFor ? `Summons the ${BOSSES[bossFor].name}. Use it in the ${BIOMES[BOSSES[bossFor].biome as BiomeId].name}, away from the pad.` : food ? `Eat: +${food.hp} HP${food.battery ? `, +${food.battery} battery` : ''}` : def.places !== null || def.placesWall !== undefined ? 'Build with it (right click / BUILD mode)' : 'Material: spend it at the workshop';
       this.text(ctx, def.name, rx, ry + u * 0.4, Math.round(u * 0.95), '#fff', 'left', rw);
       this.text(ctx, what, rx, ry + u * 1.6, Math.round(u * 0.72), '#9aa3b8', 'left', rw);
       ry += u * 2.4;
@@ -344,6 +364,11 @@ export class UI {
       let bx2 = rx;
       if (food) {
         this.button(ctx, bx2, ry, bw2, u * 2.2, 'EAT', { k: 'use', id: sel }, u * 0.85, { color: '#1f7a3a' });
+        bx2 += bw2 + u * 0.5;
+      }
+      const boss = bossForBeacon(sel);
+      if (boss) {
+        this.button(ctx, bx2, ry, bw2, u * 2.2, 'SUMMON', { k: 'use', id: sel }, u * 0.85, { color: '#8a2a1a' });
         bx2 += bw2 + u * 0.5;
       }
       if (PLACEABLE.includes(sel)) {
@@ -595,16 +620,17 @@ export class UI {
       const gd = GEAR[id];
       const owned = game.ownsGear(id);
       const worn = game.equipped(gd.slot) === id;
-      const afford = !owned && ITEM_IDS.every((k) => (game.stash[k] ?? 0) >= (gd.cost[k] ?? 0));
+      const afford = !owned && !gd.bossOnly && ITEM_IDS.every((k) => (game.stash[k] ?? 0) >= (gd.cost[k] ?? 0));
       ctx.fillStyle = worn ? 'rgba(54,224,232,0.12)' : 'rgba(255,255,255,0.05)';
       ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
       const isz = rowH - u * 0.8;
       this.cell(ctx, px + u * 0.8, ry + u * 0.25, isz, id, null, worn, null);
       const tx2 = px + u * 1.4 + isz;
       this.text(ctx, `${gd.name}  [${gd.slot}]`, tx2, ry + rowH * 0.3, Math.round(u * 0.9), '#fff', 'left', pw - isz - u * 9);
-      this.text(ctx, owned ? gd.desc : `${gd.desc}  Cost: ${costText(gd.cost)}`, tx2, ry + rowH * 0.68, Math.round(u * 0.66), owned ? '#9aa3b8' : afford ? '#9ff6a0' : '#ff8a8a', 'left', pw - isz - u * 9);
+      this.text(ctx, owned || gd.bossOnly ? gd.desc : `${gd.desc}  Cost: ${costText(gd.cost)}`, tx2, ry + rowH * 0.68, Math.round(u * 0.66), owned ? '#9aa3b8' : afford ? '#9ff6a0' : '#ff8a8a', 'left', pw - isz - u * 9);
       const bw = u * 5.5;
       if (owned) this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, worn ? 'WORN' : 'EQUIP', { k: 'equip', id }, u * 0.85, { color: worn ? '#2a6a3a' : '#1f6f78' });
+      else if (gd.bossOnly) this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, 'BOSS', { k: 'craftgear', id }, u * 0.85, { enabled: false });
       else this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, 'BUILD', { k: 'craftgear', id }, u * 0.85, { enabled: afford });
       ry += rowH;
     }
