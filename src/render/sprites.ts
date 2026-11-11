@@ -569,6 +569,8 @@ export interface PlayerPose {
   held?: string;
   /** Crafted armor colours (main, accent) that override the upgrade-tier look. */
   wear?: { head?: [string, string]; body?: [string, string]; feet?: [string, string] };
+  /** Landing squash scale about the feet (1, 1 = none). */
+  squash?: { sx: number; sy: number };
 }
 
 export interface PlayerGear {
@@ -614,6 +616,16 @@ export function poseFrame(pose: PlayerPose): { frame: PlayerFrame; bob: number }
 
 /** Draws the Salvager; (x, y) is the bottom-centre in screen px, s is px per art unit. */
 export function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: PlayerPose): void {
+  const sq = pose.squash;
+  if (sq && (sq.sx !== 1 || sq.sy !== 1)) {
+    // Scale about the feet so the boots stay planted.
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(sq.sx, sq.sy);
+    drawPlayer(ctx, 0, 0, s, { ...pose, squash: undefined });
+    ctx.restore();
+    return;
+  }
   const { frame, bob } = poseFrame(pose);
   let rows = playerRows(frame, bob);
   const ox = x - (PLAYER_W / 2) * s;

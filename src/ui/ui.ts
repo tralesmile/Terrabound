@@ -86,6 +86,17 @@ const FONT = 'ui-monospace, Menlo, Consolas, "Courier New", monospace';
 /** Short cost labels; any item without one falls back to its lower-cased display name. */
 const SHORT: Partial<Record<ItemId, string>> = { rust: 'rust', metal: 'metal', iron_scrap: 'iron', copper_wire: 'copper' };
 
+/**
+ * Where toasts go: centred under the HUD bars when the gap left of the right-hand
+ * button column is wide enough, otherwise below the button column at full width
+ * (phones), so a toast never draws over a button.
+ */
+export function toastLayout(w: number, u: number, buttonsX: number, buttonsBottom: number, top: number): { y: number; maxW: number } {
+  const free = 2 * (buttonsX - u * 0.5 - w / 2);
+  if (free >= u * 24) return { y: top, maxW: free };
+  return { y: Math.max(top, buttonsBottom + u * 1.2), maxW: w - u * 2 };
+}
+
 export function costText(cost: Inventory): string {
   const parts: string[] = [];
   for (const id of ITEM_IDS) {
@@ -520,7 +531,10 @@ export class UI {
       this.button(ctx, bx, by, bwid, bhgt, game.riding ? 'GET OFF' : 'RIDE', { k: 'ride' }, u * 0.85, { color: game.riding ? '#7a5a1f' : '#1f6f78' });
       by += bhgt + u * 0.5;
     }
-    if (this.touch && game.gear.dash) this.button(ctx, bx, by, bwid, bhgt, 'DASH', { k: 'dash' }, u * 0.9);
+    if (this.touch && game.gear.dash) {
+      this.button(ctx, bx, by, bwid, bhgt, 'DASH', { k: 'dash' }, u * 0.9);
+      by += bhgt + u * 0.5;
+    }
 
     // Hotbar: tools first, then placeable blocks.
     const gap = u * 0.4;
@@ -554,10 +568,11 @@ export class UI {
     this.text(ctx, game.tool === 'rod' && game.fishing ? (game.fishing.bite > 0 ? 'BITE! Click now!' : 'Waiting for a bite...') : heldName, w / 2, sy - u * 0.5, Math.round(u * 0.85), game.fishing && game.fishing.bite > 0 ? '#ffcf4a' : '#c9d0e4', 'center');
 
     // Toasts.
-    let ty = y + u * 2.2;
+    const tl = toastLayout(w, u, bx, by, y + u * 2.2);
+    let ty = tl.y;
     for (const t of this.toasts) {
       ctx.globalAlpha = Math.min(1, t.life / 0.6);
-      this.text(ctx, t.text, w / 2, ty, Math.round(u * 1.1), t.color, 'center', w - u * 2);
+      this.text(ctx, t.text, w / 2, ty, Math.round(u * 1.1), t.color, 'center', tl.maxW);
       ctx.globalAlpha = 1;
       ty += u * 1.5;
     }

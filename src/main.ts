@@ -275,6 +275,8 @@ function boot(): void {
   input.onAction = act;
   input.onAnyInput = () => sfx.unlock();
 
+  /** Colour of the tile under the player's feet, for dust puffs. */
+  const groundColor = (): string => TILE_COLORS[game.world.get(Math.floor(game.body.x), Math.floor(game.body.y + 0.05))] ?? '#9aa3b8';
   const handle = (e: GameEvent): void => {
     sfx.handle(e);
     switch (e.t) {
@@ -303,7 +305,7 @@ function boot(): void {
         fx.burst(e.x, e.y, e.kind === 'acid' ? '#8aff4a' : '#9aa3b8', 6, 3);
         break;
       case 'land':
-        if (e.speed > 9) fx.burst(game.body.x, game.body.y, '#9aa3b8', 5, 3);
+        fx.land(game.body.x, game.body.y, e.speed, groundColor());
         break;
       case 'bank':
         ui.toast(`Banked ${e.total} items`, '#9ff6a0');
@@ -467,6 +469,10 @@ function boot(): void {
         if (ui.shopOpen && !game.isAtBase()) ui.shopOpen = false;
       }
       for (const e of game.drainEvents()) handle(e);
+      if (ui.screen === 'play' && !ui.mapOpen) {
+        const b = game.body;
+        fx.footsteps(dt, b.onGround && Math.abs(b.vx) > 2 && !game.riding && !game.inLiquid, b.x, b.y, game.facing, groundColor());
+      }
       fx.update(dt);
       ui.update(dt);
       renderer.follow(game, dt);

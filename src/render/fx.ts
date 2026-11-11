@@ -40,6 +40,25 @@ export interface FloatText {
 }
 
 const MAX_PARTICLES = 400;
+/** Seconds a landing squash lasts. */
+export const SQUASH_TIME = 0.22;
+/** Seconds between footstep puffs while running. */
+export const STEP_EVERY = 0.28;
+
+/**
+ * Landing squash as (scaleX, scaleY) for the player sprite: wide and short right after
+ * impact, easing back to (1, 1). `left` is the time remaining, `power` 0..1.
+ */
+export function squashScale(left: number, power: number): { sx: number; sy: number } {
+  if (left <= 0 || power <= 0) return { sx: 1, sy: 1 };
+  const k = Math.min(1, left / SQUASH_TIME) ** 2 * Math.min(1, power) * 0.22;
+  return { sx: 1 + k, sy: 1 - k };
+}
+
+/** Squash strength from a landing speed in tiles/s (soft hops barely squash). */
+export function landPower(speed: number): number {
+  return Math.max(0, Math.min(1, (speed - 4) / 14));
+}
 const MAX_TEXTS = 24;
 const MAX_RINGS = 16;
 
@@ -48,6 +67,50 @@ export class Fx {
   texts: FloatText[] = [];
   rings: Ring[] = [];
   shake = 0;
+  /** Landing squash timer and strength (read by the renderer). */
+  squashLeft = 0;
+  squashPower = 0;
+  private stepAcc = 0;
+
+  /** Landing: squash the sprite and kick dust out to both sides of the feet. */
+  land(x: number, y: number, speed: number, ground: string): void {
+    const p = landPower(speed);
+    if (p <= 0) return;
+    this.squashLeft = SQUASH_TIME;
+    this.squashPower = p;
+    this.dust(x, y, ground, 3 + Math.round(p * 7), 1.5 + p * 4);
+  }
+
+  /** Low, sideways dust puffs at the feet in the ground's colour. */
+  dust(x: number, y: number, color: string, n: number, speed: number, dir = 0): void {
+    for (let i = 0; i < n && this.particles.length < MAX_PARTICLES; i++) {
+      const side = dir !== 0 ? dir : i % 2 === 0 ? -1 : 1;
+      this.particles.push({
+        x: x + side * (0.15 + Math.random() * 0.25),
+        y: y - 0.05,
+        vx: side * speed * (0.4 + Math.random() * 0.6),
+        vy: -0.6 - Math.random() * 1.2,
+        life: 0.3 + Math.random() * 0.3,
+        max: 0.6,
+        color,
+        size: 2 + (Math.random() < 0.3 ? 1 : 0),
+        g: 3,
+      });
+    }
+  }
+
+  /** Footstep puffs while running on the ground: one small puff behind the feet every STEP_EVERY s. */
+  footsteps(dt: number, running: boolean, x: number, y: number, facing: number, ground: string): void {
+    if (!running) {
+      this.stepAcc = 0;
+      return;
+    }
+    this.stepAcc += dt;
+    if (this.stepAcc >= STEP_EVERY) {
+      this.stepAcc -= STEP_EVERY;
+      this.dust(x - facing * 0.2, y, ground, 2, 1.2, -facing);
+    }
+  }
 
   /**
    * Death burst: every sprite chunk flies outward from the sprite centre in its own colour,
@@ -138,5 +201,6 @@ export class Fx {
     for (const r of this.rings) r.life -= dt;
     this.rings = this.rings.filter((r) => r.life > 0);
     this.shake = Math.max(0, this.shake - dt * 2.5);
+    this.squashLeft = Math.max(0, this.squashLeft - dt);
   }
 }

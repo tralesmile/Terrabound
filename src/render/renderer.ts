@@ -5,7 +5,7 @@ import { ENEMIES } from '../sim/enemies';
 import { hash2 } from '../sim/rng';
 import { T } from '../sim/tiles';
 import { BODY_H } from '../sim/physics';
-import type { Fx } from './fx';
+import { squashScale, type Fx } from './fx';
 import type { PlayerGear } from './sprites';
 import { ICON, drawIcon } from './icons';
 import { GEAR } from '../sim/gear';
@@ -386,6 +386,7 @@ export class Renderer {
       tier: game.upgrades.armor ?? 0,
       gear: playerGear(game),
       held: game.tool,
+      squash: squashScale(fx.squashLeft, fx.squashPower),
     });
 
     // Items on the ground: bobbing icons with a soft glow so they read as pickups.

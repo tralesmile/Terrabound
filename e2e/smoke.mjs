@@ -84,7 +84,9 @@ try {
   const x0 = await page.evaluate(() => window.__terrabound.game.body.x);
   await page.keyboard.down('KeyD');
   await page.waitForTimeout(1100);
+  const stepDust = await page.evaluate(() => window.__terrabound.fx.particles.length);
   await page.keyboard.up('KeyD');
+  check('running kicks up footstep dust', stepDust > 0, `particles ${stepDust}`);
   const x1 = await page.evaluate(() => window.__terrabound.game.body.x);
   check('walking moves the player', x1 > x0 + 3, `x ${x0.toFixed(1)} -> ${x1.toFixed(1)}`);
 
@@ -95,7 +97,12 @@ try {
   const yUp = await page.evaluate(() => window.__terrabound.game.body.y);
   await page.keyboard.up('KeyW');
   check('jumping lifts the player', yUp < y0 - 0.5, `y ${y0.toFixed(2)} -> ${yUp.toFixed(2)}`);
-  await page.waitForTimeout(900);
+  const squashed = await page
+    .waitForFunction(() => window.__terrabound.fx.squashLeft > 0, null, { polling: 'raf', timeout: 1500 })
+    .then(() => true, () => false);
+  if (squashed) await page.screenshot({ path: path.join(out, "02a-landing.png") });
+  check('landing squashes the sprite', squashed);
+  await page.waitForTimeout(600);
 
   // Dig the tile under the feet with the real mouse.
   const target = await page.evaluate(() => {
