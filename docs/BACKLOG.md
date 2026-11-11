@@ -77,7 +77,7 @@ World size and variety:
 - [ ] Drone v2: miner drone that flies to assigned ore tiles in a base mine shaft (builds on the miner rig)
 - [ ] Drone rules UI (3 rules per drone, deterministic evaluation)
 - [x] Offline production (cap 8 h, clock-skew safe, save v6 `away` stamp, src/sim/offline.ts) and a "while you were away" toast
-- [ ] First automation moment tutorial beat
+- [x] First automation moment tutorial beat (`automationHint`, green line at the base)
 
 ## P3 Gear and layers (M3)
 

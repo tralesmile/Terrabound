@@ -54,3 +54,13 @@ describe('save v6', () => {
     expect(g3.applyOffline(1_000_000 + 7200_000)).toBeNull(); // stamp consumed
   });
 });
+
+import { automationHint } from '../src/sim/power';
+describe('automationHint', () => {
+  it('walks through the first automation steps and then goes quiet', () => {
+    expect(automationHint({ solars: 0, miners: 0 }, {}, 0, false)).toBeNull();
+    expect(automationHint({ solars: 0, miners: 0 }, { metal: 2, crystal: 1 }, 0, false)).toMatch(/Solar/);
+    expect(automationHint({ solars: 1, miners: 0 }, { metal: 3, copper_wire: 2 }, 0, true)).toMatch(/Miner/);
+    expect(automationHint({ solars: 1, miners: 1 }, {}, 1, false)).toBeNull();
+  });
+});

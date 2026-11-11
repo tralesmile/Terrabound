@@ -194,6 +194,8 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 
 **Done:** baseline green. Offline production: `src/sim/offline.ts` (`awaySeconds` clamps skew/future stamps to 0 and caps at 8 h; `simulateOffline` reuses live `stepGrid/stepMining/stepSmelting` in 15 s steps). Save v6 adds `away {savedAt,time,charge}` (v5 migration tested), so the day clock and battery charge now persist too (fixes "battery charge resets on reload"). `Game.applyOffline(now)` consumes the stamp once; main.ts shows a "While you were away" toast. 5 new unit tests (191 total).
 
-**Next:** first-automation tutorial beat, then drone rules / miner drone, ore-to-plate recipes.
+**Also:** first-automation tutorial hint (`automationHint` in power.ts, shown at base after 40 s of play; guides solar then miner). 1 more unit test (192 total).
+
+**Next:** drone rules / miner drone, ore-to-plate recipes.
 
 **Known issues:** summary is a toast (6 s), not a panel; hotbar "0" slot for a selected unowned block.

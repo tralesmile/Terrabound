@@ -21,7 +21,7 @@ import { recipeById } from './recipes';
 import { chestLoot } from './loot';
 import { daylight } from './daynight';
 import { awaySeconds, simulateOffline, OFFLINE_MIN, type OfflineResult } from './offline';
-import { stepGrid, newPower, scanMachines, stepSmelting, stepMining, SMELT_RUST, type PowerState } from './power';
+import { automationHint, stepGrid, newPower, scanMachines, stepSmelting, stepMining, SMELT_RUST, type PowerState } from './power';
 import { LIQUID_HZ, flowLiquids, isLiquid } from './liquids';
 import { isNight } from './daynight';
 import { applyDiff, captureDiff } from './persist';
@@ -952,6 +952,12 @@ export class Game {
       codex: [...this.save.codex],
       world: captureDiff(this.world, this.fog),
     };
+  }
+
+  /** Tutorial line for the first automation, shown at the base only. */
+  hintAutomation(touch: boolean): string | null {
+    if (!this.isAtBase()) return null;
+    return automationHint(this.machineCounts, this.stash, this.power.ratio, touch);
   }
 
   /** Cheapest affordable upgrade hint for UI badges. */
