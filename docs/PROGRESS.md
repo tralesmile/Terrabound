@@ -207,3 +207,11 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 **Next:** ore-to-plate recipes, miner drone v2, drone rules UI.
 
 **Known issues:** shop will need scrolling or tabs if it grows past ~20 rows; hotbar "0" slot for a selected unowned block.
+
+## 2026-11-11 Scheduled run 6
+
+**Done:** baseline green. Ore-to-plate: Fabricator recipe `plate` (3 iron scrap + 2 rust -> 2 metal, Lv1) gives a non-machine path to metal. 1 new test (197 total). Bundle 112 kB (40.7 kB gzip). Screenshot 09-mobile-shop.png reviewed: 18 rows still fit at 360 px but are nearly full.
+
+**Next:** shop tabs/scroll (needed before adding more rows), miner drone v2, drone rules UI.
+
+**Known issues:** shop is at its row limit; hotbar "0" slot for a selected unowned block.

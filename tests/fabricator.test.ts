@@ -22,6 +22,19 @@ describe('fabricator upgrade path', () => {
     for (const id of ['solar', 'battery', 'miner', 'smelter']) expect(RECIPES.find((r) => r.id === id)?.fab).toBeGreaterThan(0);
     expect(RECIPES.find((r) => r.id === 'torch')?.fab ?? 0).toBe(0);
   });
+  it('presses iron scrap and rust into metal plate once the fabricator is Lv1', () => {
+    const g = new Game();
+    g.stash = { iron_scrap: 12, rust: 12 };
+    expect(g.craft('plate')).toBe(false);
+    expect(g.buyUpgrade('fab')).toBe(true);
+    const scrap = g.stash.iron_scrap ?? 0;
+    const rust = g.stash.rust ?? 0;
+    const metal = g.carried.metal ?? 0;
+    expect(g.craft('plate')).toBe(true);
+    expect(g.stash.iron_scrap).toBe(scrap - 3);
+    expect(g.stash.rust).toBe(rust - 2);
+    expect(g.carried.metal).toBe(metal + 2);
+  });
   it('persists the fabricator level and old saves load at level 0', () => {
     const s = defaultSave();
     s.upgrades = { fab: 2 };

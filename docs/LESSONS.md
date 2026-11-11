@@ -39,3 +39,4 @@
 - **Sim must stay clock-free even for offline progress.** `Game` never calls `Date.now`; the wall clock is passed into `applyOffline(now)`/`toSave(now)` from main.ts, and the stamp is consumed once so a reload cannot double-pay. Guard: tests for skew, cap, and double application.
 - **Worldgen-heavy tests flake at vitest's 5 s default on slow VMs.** Guard: global `testTimeout: 30000` in vite.config.ts (assertions untouched).
 - **A growing shop list silently clipped rows.** Guard: row height shrinks to fit; always view 09-mobile-shop.png after adding upgrades or recipes (next step: tabs/scroll past ~20 rows).
+- **Shop panel is at capacity (18 rows at 360 px).** Guard: add tabs or scrolling before the next recipe/upgrade; view 09-mobile-shop.png each time.

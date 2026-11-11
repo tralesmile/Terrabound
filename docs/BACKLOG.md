@@ -74,7 +74,7 @@ World size and variety:
 - [x] Storage chest dropped on purpose: the stash is already unlimited and safe, so a chest adds nothing. Conveyor dropped for the same reason (one shared stash).
 - [x] Miner rig v1 (powered base machine, 2 power, 1 rust per 5 s, every 4th unit iron scrap; `stepMining` in src/sim/power.ts)
 - [x] Fabricator upgrade path (upgrade `fab` Lv1 unlocks solar+battery, Lv2 miner+smelter; `Recipe.fab`; no save bump)
-- [ ] Machines: ore-to-plate recipes
+- [x] Machines: ore-to-plate recipe (Metal plate x2 from 3 iron scrap + 2 rust, Fabricator Lv1)
 - [ ] Drone v2: miner drone that flies to assigned ore tiles in a base mine shaft (builds on the miner rig)
 - [ ] Drone rules UI (3 rules per drone, deterministic evaluation)
 - [x] Offline production (cap 8 h, clock-skew safe, save v6 `away` stamp, src/sim/offline.ts) and a "while you were away" toast
