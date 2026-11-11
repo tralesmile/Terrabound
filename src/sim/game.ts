@@ -20,7 +20,7 @@ import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgr
 import { recipeById } from './recipes';
 import { chestLoot } from './loot';
 import { daylight } from './daynight';
-import { stepGrid, newPower, scanMachines, stepSmelting, SMELT_RUST, type PowerState } from './power';
+import { stepGrid, newPower, scanMachines, stepSmelting, stepMining, SMELT_RUST, type PowerState } from './power';
 import { LIQUID_HZ, flowLiquids, isLiquid } from './liquids';
 import { isNight } from './daynight';
 import { applyDiff, captureDiff } from './persist';
@@ -161,7 +161,9 @@ export class Game {
   /** Base power grid snapshot (solar vs smelters), refreshed twice a second. */
   power: PowerState = newPower();
   private smeltProgress = 0;
-  private machineCounts = { solars: 0, smelters: 0, batteries: 0 };
+  private machineCounts = { solars: 0, smelters: 0, batteries: 0, miners: 0 };
+  private mineProgress = 0;
+  private mineCount = 0;
   private machineAcc = 0;
   private liquidAcc = 0;
   private liquidTick = 0;
@@ -472,7 +474,10 @@ export class Game {
     }
     const m = this.machineCounts;
     const want = (this.stash.rust ?? 0) >= SMELT_RUST || this.smeltProgress > 0;
-    this.power = stepGrid(m.solars, m.smelters, m.batteries, daylight(this.time), want, this.power.charge, dt);
+    this.power = stepGrid(m.solars, m.smelters, m.batteries, daylight(this.time), want, this.power.charge, dt, m.miners);
+    const mined = stepMining(this.stash, this.power, this.mineProgress, this.mineCount, dt);
+    this.mineProgress = mined.progress;
+    this.mineCount = mined.count;
     if (!this.power.working) return;
     const r = stepSmelting(this.stash, this.power, this.smeltProgress, dt);
     this.smeltProgress = r.progress;

@@ -135,6 +135,7 @@ export class Renderer {
     }
     this.prefetchChunk(world, cx0, cy0, cx1, cy1);
     this.machinesOn = game.power.working;
+    this.minersOn = game.power.miners > 0 && game.power.ratio > 0;
     this.machinesSun = game.power.supply > 0;
     this.batteryFill = game.power.cap > 0 ? game.power.charge / game.power.cap : 0;
     this.drawDynamic(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
@@ -318,7 +319,7 @@ export class Renderer {
       ctx.fillRect(dx, dy + Math.max(2, ts * 0.22), ts, Math.max(1, ts * 0.08));
       return;
     }
-    if (t === T.SOLAR || t === T.SMELTER || t === T.BATTERY) {
+    if (t === T.SOLAR || t === T.SMELTER || t === T.BATTERY || t === T.MINER) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
       this.drawMachine(ctx, t, dx, dy, ts);
       return;
@@ -413,6 +414,17 @@ export class Renderer {
       ctx.fillRect(dx + 2 * u, dy + 4 * u, 3.5 * u, 1 * u);
       return;
     }
+    if (t === T.MINER) {
+      ctx.fillStyle = '#3d4458';
+      ctx.fillRect(dx + 2 * u, dy + 2 * u, 12 * u, 6 * u);
+      ctx.fillStyle = '#ffd23a';
+      ctx.fillRect(dx + 2 * u, dy + 2 * u, 12 * u, 1.5 * u);
+      ctx.fillStyle = '#566078';
+      ctx.fillRect(dx + 7 * u, dy + 8 * u, 2 * u, 6 * u);
+      ctx.fillStyle = '#c9d4e8';
+      ctx.fillRect(dx + 6 * u, dy + 14 * u, 4 * u, 2 * u);
+      return;
+    }
     if (t === T.BATTERY) {
       ctx.fillStyle = '#2b3447';
       ctx.fillRect(dx + 3 * u, dy + 3 * u, 10 * u, 13 * u);
@@ -433,6 +445,7 @@ export class Renderer {
   }
 
   private machinesOn = false;
+  private minersOn = false;
   private machinesSun = false;
   private batteryFill = 0;
 
@@ -454,6 +467,10 @@ export class Renderer {
           const f = 0.6 + 0.4 * Math.sin(time * 9 + tx);
           ctx.fillStyle = `rgba(255,${120 + 80 * f | 0},40,${0.7 + 0.3 * f})`;
           ctx.fillRect(this.sx(tx, shakeX) + ts * 0.3, this.sy(ty, shakeY) + ts * 0.55, ts * 0.4, ts * 0.3);
+        } else if (t === T.MINER && this.minersOn) {
+          const bob = Math.abs(Math.sin(time * 8 + tx)) * ts * 0.12;
+          ctx.fillStyle = '#c9d4e8';
+          ctx.fillRect(this.sx(tx, shakeX) + ts * 0.4, this.sy(ty, shakeY) + ts * 0.62 + bob, ts * 0.2, ts * 0.2);
         } else if (t === T.SOLAR && this.machinesSun) {
           ctx.fillStyle = 'rgba(159,216,255,0.35)';
           const gx = this.sx(tx, shakeX) + ts * (0.1 + 0.8 * ((time * 0.4 + tx * 0.37) % 1));

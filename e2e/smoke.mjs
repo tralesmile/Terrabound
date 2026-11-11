@@ -466,6 +466,8 @@ try {
     w.set(w.padX + 3, w.padY - 1, 28);
     w.set(w.padX + 4, w.padY - 1, 27);
     w.set(w.padX + 5, w.padY - 1, 29);
+    w.set(w.padX + 6, w.padY - 1, 30);
+    g.stash.iron_scrap = 0;
     g.stash.rust = 8;
     g.stash.metal = 0;
     g.enemies = [];
@@ -476,12 +478,12 @@ try {
   await page.screenshot({ path: path.join(out, '18-machines.png') });
   const mach = await page.evaluate(() => {
     const g = window.__terrabound.game;
-    return { working: g.power.working, solars: g.power.solars, rust: g.stash.rust, batteries: g.power.batteries };
+    return { working: g.power.working, solars: g.power.solars, rust: g.stash.rust, batteries: g.power.batteries, miners: g.power.miners };
   });
-  check('smelter works from solar power and eats stash rust', mach.working && mach.solars === 2 && mach.batteries === 1 && mach.rust <= 8, JSON.stringify(mach));
+  check('smelter works from solar power and eats stash rust', mach.working && mach.solars === 2 && mach.batteries === 1 && mach.miners === 1 && mach.rust <= 8, JSON.stringify(mach));
   await page.evaluate(() => {
     const w = window.__terrabound.game.world;
-    for (const dx of [2, 3, 4, 5]) w.set(w.padX + dx, w.padY - 1, 0);
+    for (const dx of [2, 3, 4, 5, 6]) w.set(w.padX + dx, w.padY - 1, 0);
   });
 
   // Chunk cache: a tile changed in the sim must change on screen next frame.

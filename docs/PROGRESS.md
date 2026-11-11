@@ -179,3 +179,13 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 **Next:** storage chest, miner drone v1, offline production (battery charge could be simulated offline too), first-automation tutorial beat.
 
 **Known issues:** battery charge resets on reload (not saved); hotbar "0" slot for a selected unowned block.
+
+## 2026-11-11 Scheduled run 3
+
+**Done:** baseline green. Miner rig (tile 30, item `miner`, recipe 3 metal + 2 copper wire): powered base machine on the shared grid (draw 2), makes 1 rust per 5 powered seconds, every 4th unit iron scrap (deterministic counter). Persisted via the base tile list (no save bump). Renders with a bobbing drill head; HUD power line counts it. 4 new unit tests, e2e machine check extended (screenshot 18-machines.png reviewed). Decided storage chest and conveyor are redundant with the unlimited stash and dropped them from the backlog.
+
+**Numbers:** 186 unit tests, bundle 109 kB (39.5 kB gzip).
+
+**Next:** offline production (smelters, miners, battery charge for up to 8 h, clock-skew safe) with a "while you were away" summary, then the first-automation tutorial beat, then drone rules.
+
+**Known issues:** battery charge still resets on reload; hotbar "0" slot for a selected unowned block.

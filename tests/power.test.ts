@@ -3,7 +3,7 @@ import type { Inventory } from '../src/sim/tiles';
 import { Game, NO_CONTROLS } from '../src/sim/game';
 import { T, ITEMS, TILES, isMinable } from '../src/sim/tiles';
 import { RECIPES } from '../src/sim/recipes';
-import { BATTERY_CAP, SMELT_RUST, SMELT_TIME, gridState, stepGrid, newPower, scanMachines, stepSmelting } from '../src/sim/power';
+import { BATTERY_CAP, SMELT_RUST, SMELT_TIME, gridState, stepGrid, newPower, scanMachines, stepSmelting, stepMining, MINE_TIME, MINER_DRAW } from '../src/sim/power';
 import { captureBase, sanitizeBase, stampBase } from '../src/sim/base';
 
 describe('base power and smelter', () => {
@@ -47,7 +47,7 @@ describe('base power and smelter', () => {
     const g = new Game();
     g.world.set(g.world.padX + 1, g.world.padY - 1, T.SOLAR);
     g.world.set(g.world.padX + 2, g.world.padY - 1, T.SMELTER);
-    expect(scanMachines(g.world)).toEqual({ solars: 1, smelters: 1, batteries: 0 });
+    expect(scanMachines(g.world)).toEqual({ solars: 1, smelters: 1, batteries: 0, miners: 0 });
     g.stash.rust = 8;
     g.stash.metal = 0;
     let smelts = 0;
@@ -123,5 +123,49 @@ describe('battery', () => {
       for (const e of g.drainEvents()) if (e.t === 'smelt') made += e.made;
     }
     expect(made).toBe(2);
+  });
+});
+
+describe('miner rig', () => {
+  it('has content wired: item, tile, recipe, persisted in the base', () => {
+    expect(ITEMS.miner.kit).toBe(true);
+    expect(RECIPES.some((r) => r.out === 'miner')).toBe(true);
+    expect(isMinable(T.MINER)).toBe(true);
+    expect(TILES[T.MINER].drop).toBe('miner');
+    expect(sanitizeBase([1, 1, T.MINER])).toEqual([1, 1, T.MINER]);
+  });
+
+  it('draws power from the shared grid and slows everything when underpowered', () => {
+    expect(gridState(1, 0, 1, false, 1).demand).toBe(MINER_DRAW);
+    expect(gridState(1, 0, 1, false, 1).ratio).toBe(1);
+    expect(gridState(0, 0, 1, false, 1).ratio).toBe(0);
+    expect(gridState(1, 0, 1, false, 4).ratio).toBeCloseTo(4 / (4 * MINER_DRAW));
+  });
+
+  it('mines rust at the expected rate with an iron scrap every 4th unit, and does nothing unpowered', () => {
+    const stash: Inventory = {};
+    const p = gridState(1, 0, 1, false, 1);
+    let prog = 0;
+    let count = 0;
+    for (let i = 0; i < MINE_TIME * 8 * 10 + 3; i++) {
+      const r = stepMining(stash, p, prog, count, 0.1);
+      prog = r.progress;
+      count = r.count;
+    }
+    expect(count).toBe(8);
+    expect(stash.rust).toBe(6);
+    expect(stash.iron_scrap).toBe(2);
+    const dead = stepMining({}, gridState(0, 0, 0, false, 1), 0, 0, 100);
+    expect(dead.made).toBe(0);
+  });
+
+  it('a built solar + miner in the game fills the stash and survives a base capture', () => {
+    const g = new Game();
+    g.world.set(g.world.padX + 1, g.world.padY - 1, T.SOLAR);
+    g.world.set(g.world.padX + 2, g.world.padY - 1, T.MINER);
+    const before = g.stash.rust ?? 0;
+    for (let i = 0; i < 30 * (MINE_TIME * 3) ; i++) g.step(1 / 30, NO_CONTROLS);
+    expect((g.stash.rust ?? 0) + (g.stash.iron_scrap ?? 0)).toBeGreaterThan(before);
+    expect(captureBase(g.world)).toContain(T.MINER);
   });
 });

@@ -35,3 +35,4 @@
 - **Cellular liquid rules can settle into staircases or stranded puddles.** Guard: tests assert volume conservation, flat-within-1 settling and draining into a dug hole; the row scan only moves to strictly lower spots so settled pools never jitter.
 - **A screenshot caught "Cost: 3 undefined"** after adding items. Guard: a test renders a cost label for every item id.
 - **Test loops must cover the simulated time they assert on.** My smelter test ran 6.5 s of a 6 s/unit process and expected 2 units; derive the loop length from the constants (`SMELT_TIME * n`).
+- **Check that a backlog item has a purpose before building it.** "Storage chest" had no job because the stash is unlimited; I dropped it and wrote down why instead of shipping a dead feature. Guard: read DESIGN rules for the thing a feature would change before slicing it.
