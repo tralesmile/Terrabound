@@ -73,6 +73,45 @@ World size and variety:
 - [x] Floating sky islands with a rich chest; surface ponds (codex now 14 entries)
 - [ ] Follow-ups: gear/armor as real equippable items (P3 equipment slots), crops and farming, ice fishing in Frozen Spires, a way up to islands (jump pads / grapple), an inventory hotbar the player can arrange, touch long-press for item actions
 
+## P1.8 Owner request 2026-11-11: "add all" (do these FIRST, top to bottom, before P2)
+
+Bosses and goals
+- [ ] Boss framework (src/sim/bosses.ts): data-driven phases, telegraphed attacks (>= 0.4 s warning), arena lock, health bar UI, defeat rewards; deterministic, tested
+- [ ] Junk Colossus (Rust Wastes): summon item crafted from scrap; slam, scrap rain, charge
+- [ ] Vine Queen (Overgrown Ruins), Crystal Golem (Crystal Flats), Ash Wyrm (Ash Dunes, burrowing), Frost Titan (Frozen Spires)
+- [ ] Unique boss drops: weapons with effects (burn, chain lightning, freeze, lifesteal) as GEAR entries; boss trophies for the base
+- [ ] Deeper layers every ~100 m (Circuit, Plasma, Core) with new ores, enemies, hazards; layer gates opened by bosses
+- [ ] Final boss: the Hollow AI at the core; ending sequence and credits; new game+ toggle
+
+Living base and drones
+- [ ] Programmable drones in the world: Miner (mine assigned vein), Hauler (bring loot to base chests), Guard (shoot enemies), Repair; 3 rules each, visual rule editor, deterministic, offline-capable
+- [ ] Night base raids (opt-out in settings): waves scale with base value; turrets (craftable), traps, reinforced walls
+- [ ] Furniture and decoration set (tables, lamps, screens, plants, banners, beds); house "room" detection
+
+Characters
+- [ ] Robot NPCs who move in when a valid room exists: Trader (sells/buys at fixed visible prices), Gunsmith (weapon mods), Scientist (research tree), Medic (heals, cures); dialogue lines; happiness by biome
+- [ ] Wandering merchant drone with rotating, fully visible stock (seeded per day; no paid randomness)
+
+World
+- [ ] Weather and events: dust storms (visibility), meteor showers (rare ore drops), eclipse night (stronger enemies, rare loot)
+- [ ] Pets / companion drones that follow, light the way and collect drops
+- [ ] Farming: crops on soil (3-4 kinds), watering, harvest; cooking pot recipes; food buffs with timers
+
+Together
+- [ ] Daily world leaderboard (local first, then free-tier backend behind the Leaderboard interface): deepest, most loot, fastest boss
+- [ ] Share card: one-tap image of the run or base (canvas to PNG, Web Share API, download fallback)
+- [ ] Co-op research spike then implementation (2-4 players, WebRTC peer-to-peer, host-authoritative sim); keep behind a feature flag until stable
+
+Polish
+- [ ] Procedural music per biome and depth (WebAudio, no assets), with volume setting
+- [ ] Settings screen: master/music/sfx volume, screen shake, key remap, colour-blind palette, text size, left-handed touch layout
+- [ ] Guided first 2 minutes (FTUE), achievements (30+), codex screen with lore logs and enemy entries
+- [ ] Mobile polish: on-screen hotbar sized for thumbs, hook hold-to-reel button, safe-area insets; real-device check listed in NEEDS_FROM_USER
+
+Money (ethical, no paywalls)
+- [ ] Cosmetic suits and vehicle skins (visible prices), supporter pack, opt-in rewarded ads (double drone output, revive with half loot) behind AdProvider; consent first
+- [ ] Store releases: itch.io and web portals, then Steam page and Android/iOS (accounts in NEEDS_FROM_USER)
+
 ## P1.7 Owner requests 2026-11-11 evening (done in an interactive session)
 
 - [x] Craftable gear (src/sim/gear.ts, save v9) in the workshop GEAR tab: 2 melee, 3 ranged, 4 armor, 2 boots, 2 back items, 2 vehicles; equip from the workshop or inventory
