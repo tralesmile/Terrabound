@@ -26,6 +26,7 @@ export function cellColor(game: Game, cx: number, cy: number): string {
   if (t === T.CHEST) return '#ffcf4a';
   if (t === T.WATER) return '#2a82dc';
   if (t === T.ACID_POOL) return '#7fff4a';
+  if (t === T.MAGMA) return '#ff6028';
   if (!TILES[t].solid) {
     if (y < w.surface[Math.min(w.w - 1, Math.max(0, x))]) return SKY[w.biome[Math.min(w.w - 1, Math.max(0, x))]]?.[1] ?? '#2a1f4d';
     return '#241e2e';
@@ -101,6 +102,7 @@ export class MapView {
           this.chests.push({ x, y });
         } else if (t === T.WATER) c = [42, 130, 220];
         else if (t === T.ACID_POOL) c = [127, 255, 74];
+        else if (t === T.MAGMA) c = [255, 96, 40];
         else if (!TILES[t].solid && t !== T.LEAVES && t !== T.TRUNK) {
           if (y < w.surface[x]) {
             const b = w.biome[x];

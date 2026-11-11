@@ -47,6 +47,7 @@ export const FALL_SAFE = 19;
 export const SWIM_UP = 7;
 export const SINK = 3;
 export const LEAP_V = 14;
+/** Acid damage per second; the value lives on the tile (TILES[T.ACID_POOL].dps). */
 export const ACID_DPS = 24;
 export const CLIMB_UP = 5;
 export const CLIMB_DOWN = 7;
@@ -845,11 +846,12 @@ export class Game {
       b.vy = c.jump ? Math.max(-SWIM_UP, b.vy - GRAVITY * 1.2 * dt) : Math.min(SINK, b.vy + GRAVITY * 0.25 * dt);
       this.coyote = 0.05;
       this.wasGround = true;
-      if (this.inLiquid === T.ACID_POOL) {
+      const dps = TILES[this.inLiquid]?.dps ?? 0;
+      if (dps > 0) {
         this.acidTick -= dt;
         if (this.acidTick <= 0) {
           this.acidTick = 0.25;
-          this.hurt(ACID_DPS / 4);
+          this.hurt(dps / 4);
         }
       }
     } else if (!this.hook && onLadder(this.world, b)) {

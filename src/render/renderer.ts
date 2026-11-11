@@ -524,15 +524,26 @@ export class Renderer {
       this.drawMachine(ctx, t, dx, dy, ts);
       return;
     }
-    if (t === T.WATER || t === T.ACID_POOL) {
+    if (t === T.WATER || t === T.ACID_POOL || t === T.MAGMA) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
       const acid = t === T.ACID_POOL;
-      ctx.fillStyle = acid ? 'rgba(120,255,80,0.55)' : 'rgba(40,130,220,0.6)';
+      const magma = t === T.MAGMA;
+      ctx.fillStyle = magma ? '#ff5a1f' : acid ? 'rgba(120,255,80,0.55)' : 'rgba(40,130,220,0.6)';
       ctx.fillRect(dx, dy, ts, ts);
+      if (magma && hash2(tx, ty, 5) < 0.3) {
+        // Dark crust flecks so a magma pool reads as molten rock, not orange water.
+        ctx.fillStyle = 'rgba(90,20,10,0.55)';
+        ctx.fillRect(dx + ts * hash2(tx, ty, 6) * 0.7, dy + ts * hash2(tx, ty, 7) * 0.7, ts / 4, ts / 8);
+      }
+      if (magma) {
+        // Hot core: a brighter band through the middle of each cell.
+        ctx.fillStyle = 'rgba(255,190,70,0.45)';
+        ctx.fillRect(dx, dy + ts * 0.3, ts, ts * 0.35);
+      }
       const above = world.get(tx, ty - 1);
-      if (above !== T.WATER && above !== T.ACID_POOL) {
+      if (above !== T.WATER && above !== T.ACID_POOL && above !== T.MAGMA) {
         // Surface: bright line and a little sparkle.
-        ctx.fillStyle = acid ? '#c8ff8a' : '#9fd8ff';
+        ctx.fillStyle = magma ? '#ffd27a' : acid ? '#c8ff8a' : '#9fd8ff';
         ctx.fillRect(dx, dy, ts, Math.max(1, ts / 8));
         if ((tx * 7) % 5 === 0) ctx.fillRect(dx + ts / 4, dy + ts / 4, ts / 8, ts / 16);
       }
@@ -1041,6 +1052,7 @@ export class Renderer {
           if (tt === T.TERMINAL) sources.push({ x: xx, y: yy, level: 22 });
           else if ((tt === T.GATE || tt === T.CIRCUIT_ORE || tt === T.PLASMA_ORE || tt === T.CORE_ORE) && !world.isSolid(xx, yy - 1)) sources.push({ x: xx, y: yy, level: tt === T.GATE ? 16 : 12 });
           else if (tt === T.ACID_POOL && world.get(xx, yy - 1) !== T.ACID_POOL) sources.push({ x: xx, y: yy, level: 14 });
+          else if (tt === T.MAGMA && world.get(xx, yy - 1) !== T.MAGMA) sources.push({ x: xx, y: yy, level: 28 });
           else if (tt === T.CRYSTAL && !world.isSolid(xx, yy - 1) || tt === T.CRYSTAL && !world.isSolid(xx, yy + 1)) sources.push({ x: xx, y: yy, level: 18 });
           else if (tt === T.PLANT && yy > world.surface[xx] + 1) sources.push({ x: xx, y: yy, level: 14 });
         }

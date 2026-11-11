@@ -52,7 +52,7 @@ World size and variety:
 - [x] Surface biomes left/right of the pad (data table in `src/sim/biomes.ts`): Rust Wastes (start), Overgrown Ruins (alien jungle), Crystal Flats, Ash Dunes, Frozen Spires. Each: tiles, colours, background, ores, enemies, music mood.
 - [x] Trees and plants (canopy, pine, spire, wire, dead shapes; felling yields biomass; bio torch recipe): alien trees of 3-4 shapes per biome (choppable for `biomass`, new item used in recipes), grass, bushes, flowers, mushrooms, vines in caves; decorative but harvestable.
 - [x] Surface structures (ruins, radio towers, crashed ships with chests; see src/sim/structures.ts): ruined buildings, crashed ships, radio towers, abandoned outposts with loot chests (seeded loot tables, no paid randomness). At least 1 structure every ~60 tiles.
-- [ ] Underground cave biomes: glowing mushroom patches, crystal-lined caverns and deep big caverns done; still todo: lava/plasma pockets, flooded tunnels (need liquids), shaped ore veins.
+- [ ] Underground cave biomes: glowing mushroom patches, crystal-lined caverns, deep big caverns, flooded tunnels and acid pools, magma pockets in the Plasma/Core layers (2026-11-11 run 12: T.MAGMA, 60 dps, glows) done; still todo: shaped ore veins, water+magma cooling into rock.
 - [x] Underground points of interest: sealed vaults, crystal geodes, data shrines (12 lore logs) and drone wrecks.
 - [x] Biome-specific enemies: vine stalker, shard mite (hops), ember wisp, frost hulk. (Music mood per biome moves to P5 music.)
 - [x] Persistent world until death: edits + explored map in save v5 (src/sim/persist.ts), two-tap NEW WORLD.

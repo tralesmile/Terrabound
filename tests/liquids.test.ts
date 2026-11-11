@@ -4,6 +4,7 @@ import { FIXED_DT, Game, NO_CONTROLS, SINK, type Controls } from '../src/sim/gam
 import { defaultSave } from '../src/sim/save';
 import { T } from '../src/sim/tiles';
 import { World, generateWorld } from '../src/sim/world';
+import { LAYERS } from '../src/sim/layers';
 
 /** Empty test box: bedrock frame, air inside. */
 function box(w = 30, h = 20): World {
@@ -71,6 +72,23 @@ describe('liquid flow', () => {
     expect(water).toBeGreaterThan(300);
     expect(acid).toBeGreaterThan(30);
   });
+
+  it('worldgen pools magma only in the Plasma and Core layers', () => {
+    let magma = 0;
+    for (const seed of [1, 2]) {
+      const w = generateWorld(seed);
+      for (let y = 0; y < w.h; y++) {
+        for (let x = 0; x < w.w; x++) {
+          if (w.get(x, y) !== T.MAGMA) continue;
+          magma++;
+          expect(y - w.padY).toBeGreaterThanOrEqual(LAYERS[2].top);
+        }
+      }
+      // No water or acid down there: the hot layers trade them for magma.
+      for (let y = w.padY + LAYERS[2].top; y < w.h; y++) for (let x = 0; x < w.w; x++) expect(w.get(x, y) === T.WATER || w.get(x, y) === T.ACID_POOL).toBe(false);
+    }
+    expect(magma).toBeGreaterThan(50);
+  });
 });
 
 describe('swimming', () => {
@@ -116,6 +134,30 @@ describe('swimming', () => {
     run(g, 1);
     expect(g.inLiquid).toBe(T.ACID_POOL);
     expect(g.hp).toBeLessThan(hp - 10);
+  });
+
+  it('magma burns faster than acid', () => {
+    const loss = (t: number): number => {
+      const g = new Game(defaultSave());
+      pool(g, t);
+      const hp = g.hp;
+      run(g, 0.5);
+      expect(g.inLiquid).toBe(t);
+      return hp - g.hp;
+    };
+    const acid = loss(T.ACID_POOL);
+    const magma = loss(T.MAGMA);
+    expect(acid).toBeGreaterThan(0);
+    expect(magma).toBeGreaterThan(acid * 2);
+  });
+
+  it('magma flows like any liquid and conserves volume', () => {
+    const w = box();
+    for (let y = 2; y < 6; y++) for (let x = 5; x < 8; x++) w.set(x, y, T.MAGMA);
+    const vol = count(w, T.MAGMA);
+    for (let tick = 0; tick < 200; tick++) flowLiquids(w, 15, 10, tick);
+    expect(count(w, T.MAGMA)).toBe(vol);
+    for (let x = 1; x < 29; x++) for (let y = 1; y < 17; y++) if (w.get(x, y) === T.MAGMA) expect(w.get(x, y + 1)).not.toBe(T.AIR);
   });
 
   it('blocks can be placed into liquid to plug it', () => {

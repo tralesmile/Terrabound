@@ -607,6 +607,29 @@ try {
   await page.waitForTimeout(500);
   await page.screenshot({ path: path.join(out, '27-deep-layer.png') });
   check('deep layers show their name in the HUD', await page.evaluate(() => window.__terrabound.game.layer === 1));
+  // Magma pockets in the Plasma layer: stand on a ledge beside a molten pool.
+  const magma = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    for (let y = w.padY + 185; y < w.h - 6; y++) {
+      for (let x = 20; x < w.w - 20; x++) {
+        if (w.get(x, y) !== 40 || w.get(x, y - 1) !== 0) continue;
+        for (let xx = x - 6; xx <= x - 2; xx++) {
+          for (let yy = y - 5; yy < y; yy++) w.set(xx, yy, 0);
+          w.set(xx, y, 35);
+        }
+        g.body.x = x - 3.5;
+        g.body.y = y;
+        g.body.vx = g.body.vy = 0;
+        g.enemies = [];
+        return { x, y };
+      }
+    }
+    return null;
+  });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: path.join(out, '27b-magma.png') });
+  check('the Plasma layer has magma pockets', magma !== null, JSON.stringify(magma));
   // Final boss: in the Core, summon and beat the Hollow AI; the victory screen appears and closes.
   await page.evaluate(() => {
     const g = window.__terrabound.game;

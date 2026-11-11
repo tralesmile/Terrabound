@@ -6,6 +6,7 @@ import { hash2, valueNoise } from './rng';
 import { BIOMES, type BiomeId, type TreeShape } from './biomes';
 import { T, TILES } from './tiles';
 import { W, type World } from './world';
+import { layerAt } from './layers';
 
 /** Nothing is built this close to the pad (columns). */
 export const PAD_CLEAR = 22;
@@ -264,9 +265,11 @@ function underground(world: World, out: Structure[]): void {
     for (let x = 2; x < world.w - 2; x++) {
       if (world.get(x, y) !== T.AIR || !solidAt(world, x, y + 1)) continue;
       const deep = y > padY + 110;
-      const wet = valueNoise(x / 30, y / 30, seed + (deep ? 6 : 5));
+      const hot = layerAt(y - padY) >= 2;
+      const wet = valueNoise(x / 30, y / 30, seed + (hot ? 8 : deep ? 6 : 5));
       if (wet < 0.7) continue;
-      const liquid = deep && wet > 0.78 ? T.ACID_POOL : T.WATER;
+      // Plasma and Core layers pool magma instead of water: glowing, deadly, and a reason to bring blocks.
+      const liquid = hot ? T.MAGMA : deep && wet > 0.78 ? T.ACID_POOL : T.WATER;
       // Fill this floor cell and up to two above while walls hold it on both sides.
       for (let k = 0; k < 3; k++) {
         const yy = y - k;

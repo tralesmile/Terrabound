@@ -106,6 +106,7 @@ export const T = {
   CORE_ROCK: 37,
   CORE_ORE: 38,
   GATE: 39,
+  MAGMA: 40,
 } as const;
 
 export interface TileDef {
@@ -128,6 +129,8 @@ export interface TileDef {
   soil?: boolean;
   /** Flows (liquids.ts); swimmable; blocks placing only until displaced. */
   liquid?: boolean;
+  /** Damage per second while swimming in it (acid, magma). */
+  dps?: number;
 }
 
 export const TILES: TileDef[] = [
@@ -157,7 +160,7 @@ export const TILES: TileDef[] = [
   { name: 'Data terminal', hardness: 0.6, solid: false, drop: null, minable: true, glow: true },
   { name: 'Drone wreck', hardness: 0.8, solid: true, drop: 'copper_wire' },
   { name: 'Coolant water', hardness: Infinity, solid: false, drop: null, liquid: true },
-  { name: 'Acid pool', hardness: Infinity, solid: false, drop: null, liquid: true, glow: true },
+  { name: 'Acid pool', hardness: Infinity, solid: false, drop: null, liquid: true, glow: true, dps: 24 },
   { name: 'Solar cell', hardness: 0.4, solid: false, drop: 'solar', minable: true },
   { name: 'Smelter', hardness: 0.6, solid: false, drop: 'smelter', minable: true },
   { name: 'Battery', hardness: 0.5, solid: false, drop: 'battery', minable: true },
@@ -171,6 +174,7 @@ export const TILES: TileDef[] = [
   { name: 'Core rock', hardness: 1.9, solid: true, drop: 'metal' },
   { name: 'Core shard', hardness: 2.2, solid: true, drop: 'core_shard', glow: true },
   { name: 'Energy gate', hardness: Infinity, solid: true, drop: null },
+  { name: 'Plasma magma', hardness: Infinity, solid: false, drop: null, liquid: true, glow: true, dps: 60 },
 ];
 
 export interface ItemDef {
