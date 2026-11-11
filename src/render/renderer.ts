@@ -136,6 +136,7 @@ export class Renderer {
     this.prefetchChunk(world, cx0, cy0, cx1, cy1);
     this.machinesOn = game.power.working;
     this.machinesSun = game.power.supply > 0;
+    this.batteryFill = game.power.cap > 0 ? game.power.charge / game.power.cap : 0;
     this.drawDynamic(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
 
     // Aim highlight and crack overlay.
@@ -317,7 +318,7 @@ export class Renderer {
       ctx.fillRect(dx, dy + Math.max(2, ts * 0.22), ts, Math.max(1, ts * 0.08));
       return;
     }
-    if (t === T.SOLAR || t === T.SMELTER) {
+    if (t === T.SOLAR || t === T.SMELTER || t === T.BATTERY) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
       this.drawMachine(ctx, t, dx, dy, ts);
       return;
@@ -412,6 +413,15 @@ export class Renderer {
       ctx.fillRect(dx + 2 * u, dy + 4 * u, 3.5 * u, 1 * u);
       return;
     }
+    if (t === T.BATTERY) {
+      ctx.fillStyle = '#2b3447';
+      ctx.fillRect(dx + 3 * u, dy + 3 * u, 10 * u, 13 * u);
+      ctx.fillStyle = '#566078';
+      ctx.fillRect(dx + 6 * u, dy + 1 * u, 4 * u, 2 * u);
+      ctx.fillStyle = '#14171f';
+      ctx.fillRect(dx + 5 * u, dy + 5 * u, 6 * u, 9 * u);
+      return;
+    }
     ctx.fillStyle = '#3d4458';
     ctx.fillRect(dx + 1 * u, dy + 3 * u, 14 * u, 13 * u);
     ctx.fillStyle = '#566078';
@@ -424,6 +434,7 @@ export class Renderer {
 
   private machinesOn = false;
   private machinesSun = false;
+  private batteryFill = 0;
 
   /** Per-frame tile art: torch flames and bobbing chests over the cached chunks. */
   private drawDynamic(ctx: CanvasRenderingContext2D, world: Game['world'], x0: number, y0: number, x1: number, y1: number, shakeX: number, shakeY: number, time: number): void {
@@ -432,7 +443,14 @@ export class Renderer {
       for (let tx = Math.max(0, x0); tx <= Math.min(world.w - 1, x1); tx++) {
         const t = world.tiles[ty * world.w + tx];
         if (t === T.TORCH) this.drawTorch(ctx, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time + tx);
-        else if (t === T.SMELTER && this.machinesOn) {
+        else if (t === T.BATTERY) {
+          const n = Math.round(this.batteryFill * 4);
+          const bx = this.sx(tx, shakeX);
+          const by = this.sy(ty, shakeY);
+          const u = ts / 16;
+          ctx.fillStyle = '#7dff9a';
+          for (let i = 0; i < n; i++) ctx.fillRect(bx + 6 * u, by + (12 - i * 2) * u, 4 * u, 1.4 * u);
+        } else if (t === T.SMELTER && this.machinesOn) {
           const f = 0.6 + 0.4 * Math.sin(time * 9 + tx);
           ctx.fillStyle = `rgba(255,${120 + 80 * f | 0},40,${0.7 + 0.3 * f})`;
           ctx.fillRect(this.sx(tx, shakeX) + ts * 0.3, this.sy(ty, shakeY) + ts * 0.55, ts * 0.4, ts * 0.3);

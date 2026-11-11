@@ -171,3 +171,11 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 **Next:** battery + wire so smelters run at night, HUD power readout, storage chest, miner drone v1, offline production.
 
 **Known issues:** machines only run while the game is stepping (no offline production yet); at night with no battery they stop. Hotbar shows "0" with no icon label for a selected unowned block.
+
+## 2026-11-11 Scheduled run 2
+
+**Done:** power v2: battery tile (`stepGrid` in `src/sim/power.ts`, charge is in-memory only so no save bump, battery placed in the base persists through the existing tile list), recipe 3 metal + 1 copper wire, per-frame grid stepping with 0.5 s machine scans, fill bars drawn dynamically, HUD "Power supply/demand Batt %" line at base. 5 new unit tests (182 total), e2e machine check now includes a battery; screenshot 18-machines.png reviewed.
+
+**Next:** storage chest, miner drone v1, offline production (battery charge could be simulated offline too), first-automation tutorial beat.
+
+**Known issues:** battery charge resets on reload (not saved); hotbar "0" slot for a selected unowned block.

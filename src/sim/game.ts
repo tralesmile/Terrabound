@@ -20,7 +20,7 @@ import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgr
 import { recipeById } from './recipes';
 import { chestLoot } from './loot';
 import { daylight } from './daynight';
-import { gridState, newPower, scanMachines, stepSmelting, SMELT_RUST, type PowerState } from './power';
+import { stepGrid, newPower, scanMachines, stepSmelting, SMELT_RUST, type PowerState } from './power';
 import { LIQUID_HZ, flowLiquids, isLiquid } from './liquids';
 import { isNight } from './daynight';
 import { applyDiff, captureDiff } from './persist';
@@ -161,6 +161,7 @@ export class Game {
   /** Base power grid snapshot (solar vs smelters), refreshed twice a second. */
   power: PowerState = newPower();
   private smeltProgress = 0;
+  private machineCounts = { solars: 0, smelters: 0, batteries: 0 };
   private machineAcc = 0;
   private liquidAcc = 0;
   private liquidTick = 0;
@@ -467,9 +468,11 @@ export class Game {
     this.machineAcc += dt;
     if (this.machineAcc >= 0.5) {
       this.machineAcc = 0;
-      const m = scanMachines(this.world);
-      this.power = gridState(m.solars, m.smelters, daylight(this.time), (this.stash.rust ?? 0) >= SMELT_RUST || this.smeltProgress > 0);
+      this.machineCounts = scanMachines(this.world);
     }
+    const m = this.machineCounts;
+    const want = (this.stash.rust ?? 0) >= SMELT_RUST || this.smeltProgress > 0;
+    this.power = stepGrid(m.solars, m.smelters, m.batteries, daylight(this.time), want, this.power.charge, dt);
     if (!this.power.working) return;
     const r = stepSmelting(this.stash, this.power, this.smeltProgress, dt);
     this.smeltProgress = r.progress;

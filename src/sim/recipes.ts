@@ -18,6 +18,7 @@ export const RECIPES: Recipe[] = [
   { id: 'door', name: 'Door x1', out: 'door', qty: 1, cost: { rust: 2, iron_scrap: 1 } },
   { id: 'wall', name: 'Back wall x6', out: 'wall', qty: 6, cost: { rust: 3 } },
   { id: 'solar', name: 'Solar cell x1', out: 'solar', qty: 1, cost: { metal: 2, crystal: 1 } },
+  { id: 'battery', name: 'Battery x1', out: 'battery', qty: 1, cost: { metal: 3, copper_wire: 1 } },
   { id: 'smelter', name: 'Smelter x1', out: 'smelter', qty: 1, cost: { metal: 4, copper_wire: 2 } },
 ];
 

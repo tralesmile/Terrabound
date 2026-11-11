@@ -3,7 +3,7 @@ import type { Inventory } from '../src/sim/tiles';
 import { Game, NO_CONTROLS } from '../src/sim/game';
 import { T, ITEMS, TILES, isMinable } from '../src/sim/tiles';
 import { RECIPES } from '../src/sim/recipes';
-import { SMELT_RUST, SMELT_TIME, gridState, newPower, scanMachines, stepSmelting } from '../src/sim/power';
+import { BATTERY_CAP, SMELT_RUST, SMELT_TIME, gridState, stepGrid, newPower, scanMachines, stepSmelting } from '../src/sim/power';
 import { captureBase, sanitizeBase, stampBase } from '../src/sim/base';
 
 describe('base power and smelter', () => {
@@ -47,7 +47,7 @@ describe('base power and smelter', () => {
     const g = new Game();
     g.world.set(g.world.padX + 1, g.world.padY - 1, T.SOLAR);
     g.world.set(g.world.padX + 2, g.world.padY - 1, T.SMELTER);
-    expect(scanMachines(g.world)).toEqual({ solars: 1, smelters: 1 });
+    expect(scanMachines(g.world)).toEqual({ solars: 1, smelters: 1, batteries: 0 });
     g.stash.rust = 8;
     g.stash.metal = 0;
     let smelts = 0;
@@ -69,5 +69,59 @@ describe('base power and smelter', () => {
     stampBase(g2.world, base);
     expect(g2.world.get(g2.world.padX, g2.world.padY - 2)).toBe(T.SMELTER);
     expect(newPower().working).toBe(false);
+  });
+});
+
+describe('battery', () => {
+  it('has content wired and persists in the base', () => {
+    expect(ITEMS.battery.kit).toBe(true);
+    expect(RECIPES.some((r) => r.out === 'battery')).toBe(true);
+    expect(TILES[T.BATTERY].drop).toBe('battery');
+    expect(isMinable(T.BATTERY)).toBe(true);
+    expect(sanitizeBase([1, 1, T.BATTERY])).toEqual([1, 1, T.BATTERY]);
+  });
+
+  it('charges from surplus solar, never above capacity', () => {
+    let st = stepGrid(2, 0, 1, 1, false, 0, 1);
+    expect(st.charge).toBe(8);
+    for (let i = 0; i < 100; i++) st = stepGrid(2, 0, 1, 1, false, st.charge, 1);
+    expect(st.charge).toBe(BATTERY_CAP);
+    expect(st.cap).toBe(BATTERY_CAP);
+  });
+
+  it('powers the smelter at night until empty, then stops', () => {
+    let st = stepGrid(1, 1, 1, 0, true, 10, 1);
+    expect(st.working).toBe(true);
+    expect(st.ratio).toBe(1);
+    expect(st.charge).toBeCloseTo(7);
+    for (let i = 0; i < 5; i++) st = stepGrid(1, 1, 1, 0, true, st.charge, 1);
+    expect(st.charge).toBe(0);
+    expect(st.working).toBe(false);
+  });
+
+  it('partial battery power gives a partial ratio; removing batteries clamps charge', () => {
+    const st = stepGrid(0, 1, 1, 1, true, 1.5, 1);
+    expect(st.ratio).toBeCloseTo(0.5);
+    expect(stepGrid(0, 0, 0, 1, false, 50, 1).charge).toBe(0);
+  });
+
+  it('in the game a battery lets the smelter run through the night', () => {
+    const g = new Game();
+    const x = g.world.padX;
+    const y = g.world.padY - 1;
+    g.world.set(x + 1, y, T.SOLAR);
+    g.world.set(x + 2, y, T.SMELTER);
+    g.world.set(x + 3, y, T.BATTERY);
+    g.stash.rust = 0;
+    for (let i = 0; i < 60 * 30; i++) g.step(1 / 60, NO_CONTROLS);
+    expect(g.power.charge).toBeGreaterThan(0);
+    g.stash.rust = 8;
+    g.stash.metal = 0;
+    let made = 0;
+    for (let i = 0; i < 60 * 20; i++) {
+      g.step(1 / 60, NO_CONTROLS);
+      for (const e of g.drainEvents()) if (e.t === 'smelt') made += e.made;
+    }
+    expect(made).toBe(2);
   });
 });
