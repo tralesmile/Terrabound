@@ -8,6 +8,7 @@ import { GEAR, GEAR_IDS, GEAR_SLOTS, type GearId } from '../sim/gear';
 import { BOSSES, bossForBeacon } from '../sim/bosses';
 import { BIOMES, type BiomeId } from '../sim/biomes';
 import { LAYERS } from '../sim/layers';
+import { WEATHER } from '../sim/weather';
 import { CODEX, RECALL_TIME } from '../sim/explore';
 import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type Inventory, type ItemId } from '../sim/tiles';
 import { UPGRADES } from '../sim/upgrades';
@@ -219,6 +220,7 @@ export class UI {
     }
     this.drawHud(ctx, game, w, h, u, time);
     if (game.boss) this.drawBossBar(ctx, game, w, u);
+    else if (game.weather !== 'clear') this.text(ctx, WEATHER[game.weather].name.toUpperCase(), w / 2, u * 4.6, Math.round(u * 0.8), game.weather === 'eclipse' ? '#ff5aff' : '#ffcf4a', 'center');
     if (game.chestOpen) this.drawChest(ctx, game, w, h, u);
   }
 

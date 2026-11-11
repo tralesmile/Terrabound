@@ -290,3 +290,4 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 
 **Next:** "Living base and drones" (P1.8), then the rest of P1.8 in order.
 Also: procedural music (composer.ts + Sfx.updateMusic, mood from biome/layer/night/boss), save v11 music setting. 259 unit tests, bundle 181 kB (62.7 kB gzip).
+Also: weather and events (weather.ts): dust storms, meteor showers, eclipses. 264 unit tests, bundle 184 kB (63.8 kB gzip).

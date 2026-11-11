@@ -25,6 +25,7 @@ import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
 import { BIOME_BOSSES, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
 import { BIOMES, type BiomeId } from './biomes';
 import { LAYERS, layerAt, openGates } from './layers';
+import { METEOR_RATE, weatherAt, weatherEnemy, type WeatherKind } from './weather';
 import { GEAR, gearStats, sanitizeGear, type GearId, type GearSlot, type GearStats } from './gear';
 import { FOOD, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE } from './fishing';
 import { daylight } from './daynight';
@@ -104,6 +105,8 @@ export type GameEvent =
   | { t: 'bossgone' }
   | { t: 'nosummon'; reason: string }
   | { t: 'gateopen' }
+  | { t: 'weather'; kind: WeatherKind }
+  | { t: 'meteor'; x: number; y: number }
   | { t: 'victory'; first: boolean }
   | { t: 'grow' }
   | { t: 'dawn' }
@@ -211,6 +214,11 @@ export class Game {
   private discoverCd = 0;
   private wasNight = false;
   private gearCache: GearStats | null = null;
+  /** Current weather or world event (weather.ts). */
+  weather: WeatherKind = 'clear';
+  /** Falling meteors during a shower. */
+  meteors: { x: number; y: number; vx: number; vy: number }[] = [];
+  private meteorAcc = 0;
   /** Active boss fight (one at a time). */
   boss: Boss | null = null;
   bossBolts: BossBolt[] = [];
@@ -597,7 +605,51 @@ export class Game {
     this.emit({ t: 'recallcancel' });
   }
 
+  /** Weather changes, and meteors that fall near the player during a shower. */
+  private stepWeather(dt: number): void {
+    const w = weatherAt(this.world.seed, this.time);
+    if (w !== this.weather) {
+      this.weather = w;
+      this.emit({ t: 'weather', kind: w });
+    }
+    const b = this.body;
+    if (w === 'meteors' && this.depth < 25) {
+      this.meteorAcc += dt * METEOR_RATE;
+      while (this.meteorAcc >= 1) {
+        this.meteorAcc -= 1;
+        this.meteors.push({ x: b.x + (this.rng() - 0.5) * 50, y: 2, vx: (this.rng() - 0.5) * 8, vy: 18 });
+      }
+    }
+    const keep: typeof this.meteors = [];
+    for (const m of this.meteors) {
+      const n = 4;
+      let hit = false;
+      for (let i = 0; i < n && !hit; i++) {
+        m.x += (m.vx * dt) / n;
+        m.y += (m.vy * dt) / n;
+        if (m.y >= this.world.h - 3 || this.world.isSolid(Math.floor(m.x), Math.floor(m.y))) hit = true;
+        else if (this.iframes === 0 && Math.abs(m.x - b.x) < 0.7 && m.y > b.y - BODY_H && m.y < b.y) {
+          this.hurt(15);
+          this.iframes = 0.6;
+          hit = true;
+        }
+      }
+      if (!hit) {
+        keep.push(m);
+        continue;
+      }
+      // Impact: a small crater and star-metal on the ground (never at the pad).
+      if (Math.abs(m.x - this.world.padX) > 12) this.explode(m.x, m.y, 10, 1.4);
+      const rich = hash2(Math.floor(m.x), Math.floor(m.y), this.world.seed) < 0.25;
+      addDrop(this.drops, makeDrop('crystal', 2, m.x, m.y - 1, 0, -6));
+      if (rich) addDrop(this.drops, makeDrop('plasma', 1, m.x, m.y - 1, 1, -7));
+      this.emit({ t: 'meteor', x: m.x, y: m.y });
+    }
+    this.meteors = keep;
+  }
+
   private stepExplore(dt: number, c: Controls): void {
+    this.stepWeather(dt);
     const b = this.body;
     const night = isNight(this.time);
     if (night !== this.wasNight) {
@@ -948,8 +1000,8 @@ export class Game {
   }
 
   /** Bomb blast: damages enemies in the radius and breaks minable solid tiles (their drops land as pickups). */
-  explode(x: number, y: number, dmg: number): void {
-    const r = BOMB_RADIUS;
+  explode(x: number, y: number, dmg: number, radius = BOMB_RADIUS): void {
+    const r = radius;
     for (const e of this.enemies) if (Math.hypot(e.x - x, e.y - 0.4 - y) <= r + 0.5) this.damageEnemy(e, dmg, Math.sign(e.x - x) || 1);
     if (this.boss && Math.abs(this.boss.x - x) < BOSSES[this.boss.id].halfW + r && y > this.boss.y - BOSSES[this.boss.id].h - r && y < this.boss.y + r) this.damageBoss(dmg);
     for (let ty = Math.floor(y - r); ty <= Math.ceil(y + r); ty++) {
@@ -1210,6 +1262,8 @@ export class Game {
       if (e.hp <= 0) {
         this.emit({ t: 'enemykill', x: e.x, y: e.y - 0.5, kind: e.kind });
         addDrop(this.drops, makeDrop(ENEMIES[e.kind].drop ?? 'iron_scrap', 1, e.x, e.y - 0.4, (hash2(e.id, 3, 77) - 0.5) * 4, -6));
+        // Eclipse kills sometimes drop a crystal too.
+        if (hash2(e.id, 5, 91) < weatherEnemy(this.weather).bonus) addDrop(this.drops, makeDrop('crystal', 1, e.x, e.y - 0.6, 1, -7));
       }
     }
     this.enemies = alive;
@@ -1228,7 +1282,8 @@ export class Game {
   trySpawn(): Enemy | null {
     if (this.enemies.length >= MAX_ENEMIES) return null;
     // At night, drone wisps also hunt on the surface (never near the pad).
-    const nightSurface = this.depth < 8 && isNight(this.time) && Math.abs(this.body.x - this.world.padX) > NIGHT_SAFE;
+    const dark = isNight(this.time) || this.weather === 'eclipse';
+    const nightSurface = this.depth < 8 && dark && Math.abs(this.body.x - this.world.padX) > NIGHT_SAFE;
     if (this.depth < 8 && !nightSurface) return null;
     const col = Math.min(this.world.w - 1, Math.max(0, Math.floor(this.body.x)));
     const kinds = spawnableKinds(this.depth, this.world.biome[col], nightSurface);
@@ -1248,7 +1303,7 @@ export class Game {
       if (this.world.wall(Math.floor(e.x), Math.floor(e.y - 0.05)) === W.PLATE) continue;
       if (!ENEMIES[kind].flying && !this.world.isSolid(Math.floor(e.x), Math.floor(e.y + 0.05))) continue;
       // Deeper layers breed tougher enemies.
-      e.hp *= LAYERS[layerAt(e.y - this.world.padY)].enemyHp;
+      e.hp *= LAYERS[layerAt(e.y - this.world.padY)].enemyHp * weatherEnemy(this.weather).hp;
       this.nextEnemyId++;
       this.enemies.push(e);
       return e;

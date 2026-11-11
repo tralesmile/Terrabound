@@ -652,6 +652,38 @@ try {
   }
   check('N cycles music off, all off, all on', soundStates.join(',') === '--,M-,-m', soundStates.join(','));
 
+  // Weather: a dust storm and a meteor shower render without errors.
+  for (const kind of ['dust', 'meteors']) {
+    const t = await page.evaluate((k) => {
+      const g = window.__terrabound.game;
+      for (let tt = 600; tt < 600 * 300; tt += 5) {
+        g.time = tt;
+        g.step(1 / 60, { moveX: 0, jump: false, dig: false, place: false, aim: null });
+        if (g.weather === k) return tt;
+      }
+      return -1;
+    }, kind);
+    await page.evaluate(() => {
+      const g = window.__terrabound.game;
+      let x = g.world.padX + 70;
+      while (!(g.world.isSolid(x, g.world.surface[x]) && g.world.get(x, g.world.surface[x] - 1) === 0)) x++;
+      g.body.x = x + 0.5;
+      g.body.y = g.world.surface[x];
+      g.body.vx = g.body.vy = 0;
+      g.enemies = [];
+      g.hp = g.derived.maxHp;
+      g.iframes = 5;
+    });
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: path.join(out, `30-weather-${kind}.png`) });
+    check(`the ${kind} event happens and renders`, t > 0 && (await page.evaluate(() => window.__terrabound.game.weather)) === kind, String(t));
+  }
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.time = 30;
+    g.meteors = [];
+  });
+
   // Map: zoom with the wheel and the +/- buttons.
   await page.keyboard.press('KeyM');
   await page.waitForTimeout(200);

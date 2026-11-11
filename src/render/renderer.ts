@@ -13,6 +13,7 @@ import { BOSSES } from '../sim/bosses';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, leafMask } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, SNOW_H, blendSky, buildDecor, mixHex } from './decor';
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
+import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
 import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, drawEnemySprite, drawPlayer, makeCanvas } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
@@ -116,7 +117,7 @@ export class Renderer {
     if (skyBottom > 0) {
       const horizon = this.sy(world.padY, shakeY);
       const g = ctx.createLinearGradient(0, Math.min(0, horizon - ts * 22), 0, horizon);
-      const dl = daylight(game.time);
+      const dl = daylight(game.time) * weatherLight(game.weather);
       this.day = dl;
       const base = this.skyAt(world);
       this.sky = [0, 1, 2, 3].map((k) => mixHex(base[k], NIGHT_SKY[k], 1 - dl)) as [string, string, string, string];
@@ -390,6 +391,36 @@ export class Renderer {
         ctx.font = `bold ${Math.round(scale * 8)}px monospace`;
         ctx.textAlign = 'center';
         ctx.fillText('!', bx2, by2 - scale * 6);
+      }
+    }
+
+    // Meteors: bright head with a long fading trail.
+    for (const m of game.meteors) {
+      const mx = this.sx(m.x, shakeX);
+      const my = this.sy(m.y, shakeY);
+      const g = ctx.createLinearGradient(mx, my, mx - m.vx * scale * 3, my - m.vy * scale * 3);
+      g.addColorStop(0, 'rgba(255,240,180,0.95)');
+      g.addColorStop(1, 'rgba(255,120,60,0)');
+      ctx.strokeStyle = g;
+      ctx.lineWidth = scale * 3;
+      ctx.beginPath();
+      ctx.moveTo(mx, my);
+      ctx.lineTo(mx - m.vx * scale * 3, my - m.vy * scale * 3);
+      ctx.stroke();
+      ctx.fillStyle = '#fff6d0';
+      ctx.fillRect(mx - scale * 2, my - scale * 2, scale * 4, scale * 4);
+    }
+
+    // Dust storm haze on the surface (fades out underground).
+    if (game.weather === 'dust' && game.depth < 20) {
+      const k = Math.max(0, 1 - game.depth / 20);
+      ctx.fillStyle = `rgba(150,110,70,${(0.45 * k).toFixed(3)})`;
+      ctx.fillRect(0, 0, this.w, this.h);
+      ctx.fillStyle = `rgba(220,180,130,${(0.35 * k).toFixed(3)})`;
+      for (let i = 0; i < 60; i++) {
+        const sx = (hash2(i, 1, 4) * this.w + time * (220 + i * 3)) % this.w;
+        const sy = hash2(i, 2, 4) * this.h;
+        ctx.fillRect(sx, sy, scale * 6, scale);
       }
     }
 
@@ -940,7 +971,7 @@ export class Renderer {
     const pty = Math.floor(b.y - BODY_H / 2);
     const lampR = game.derived.lampRadius;
     // Night dims the open sky (but keeps it readable); steps of 4 levels so the cache is not rebuilt every frame.
-    const skyLevel = Math.round((SKY_LEVEL * (0.45 + 0.55 * daylight(game.time))) / 4) * 4;
+    const skyLevel = Math.round((SKY_LEVEL * (0.45 + 0.55 * daylight(game.time) * weatherLight(game.weather))) / 4) * 4;
     const key = `${x0},${y0},${lw},${lh},${ptx},${pty},${lampR},${world.version},${world.torches.size},${skyLevel}`;
     if (key !== this.lightKey || !this.light) {
       this.lightKey = key;

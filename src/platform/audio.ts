@@ -180,6 +180,13 @@ export class Sfx {
       case 'lore':
         [880, 1175, 988, 1319].forEach((f, i) => this.tone(f, 0.06, 'square', 0.05, undefined, i * 0.07));
         break;
+      case 'meteor':
+        this.noise(0.3, 0.3);
+        this.tone(90, 0.3, 'triangle', 0.14, 40);
+        break;
+      case 'weather':
+        if (e.kind !== 'clear') [440, 554, 659].forEach((f, i) => this.tone(f, 0.25, 'sine', 0.06, undefined, i * 0.15));
+        break;
       case 'bossspawn':
         [110, 82, 55].forEach((f, i) => this.tone(f, 0.6, 'sawtooth', 0.16, undefined, i * 0.3));
         break;

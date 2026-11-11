@@ -12,6 +12,7 @@ import { ITEMS, type ItemId } from './sim/tiles';
 import { codexEntry } from './sim/explore';
 import { GEAR } from './sim/gear';
 import { isNight } from './sim/daynight';
+import { WEATHER } from './sim/weather';
 import { BOSSES } from './sim/bosses';
 import { UI, type UiAction } from './ui/ui';
 
@@ -354,6 +355,14 @@ function boot(): void {
         if (e.first) ui.toast(`Trophy: ${GEAR[BOSSES[e.id].gear].name} (equip it in GEAR)`, '#9ff6a0', 5);
         fx.addShake(1);
         saveNow();
+        break;
+      case 'weather':
+        if (e.kind !== 'clear') ui.toast(`${WEATHER[e.kind].name}: ${WEATHER[e.kind].desc}`, e.kind === 'eclipse' ? '#ff5aff' : e.kind === 'meteors' ? '#ffcf4a' : '#c9a35a', 4);
+        else ui.toast('The sky clears', '#c9d0e4', 2);
+        break;
+      case 'meteor':
+        fx.burst(e.x, e.y, '#ffcf4a', 20, 7);
+        fx.addShake(0.4);
         break;
       case 'gateopen':
         ui.toast('A layer gate has opened below!', '#36e0e8', 4);
