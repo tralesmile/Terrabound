@@ -6,6 +6,8 @@ import { hash2 } from '../sim/rng';
 import { T } from '../sim/tiles';
 import { BODY_H } from '../sim/physics';
 import type { Fx } from './fx';
+import type { PlayerGear } from './sprites';
+import { ICON, drawIcon } from './icons';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, leafMask } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, SNOW_H, blendSky, buildDecor, mixHex } from './decor';
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
@@ -18,6 +20,12 @@ export const CHUNK = 32;
 /** Cache size before far chunks are evicted. */
 export const MAX_CHUNKS = 48;
 const chunkKey = (cx: number, cy: number): number => cy * 4096 + cx;
+
+/** Gear levels shown on the character (shared by the world view and the inventory preview). */
+export function playerGear(game: Game): PlayerGear {
+  const u = game.upgrades;
+  return { lamp: u.lamp ?? 0, pick: u.pick ?? 0, pack: u.pack ?? 0, battery: u.battery ?? 0, boots: u.boots ?? 0 };
+}
 
 export interface Aim {
   tx: number;
@@ -261,7 +269,53 @@ export class Renderer {
       hurt: game.iframes > 0 && Math.floor(time * 20) % 2 === 0,
       swing: game.swing > 0,
       tier: game.upgrades.armor ?? 0,
+      gear: playerGear(game),
+      held: game.tool,
     });
+
+    // Items on the ground: bobbing icons with a soft glow so they read as pickups.
+    for (const d of game.drops) {
+      const isz = ICON * scale * 0.7;
+      const bob = Math.sin(time * 4 + d.x * 3) * scale * 1.2;
+      const dx = this.sx(d.x, shakeX) - isz / 2;
+      const dy = this.sy(d.y, shakeY) - isz - scale * 2 + bob;
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.beginPath();
+      ctx.arc(dx + isz / 2, dy + isz / 2, isz * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+      drawIcon(ctx, d.item, dx, dy, scale * 0.7);
+      if (d.n > 1) {
+        ctx.font = `bold ${Math.round(scale * 5)}px monospace`;
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'left';
+        ctx.fillText(`${d.n}`, dx + isz * 0.8, dy + isz);
+      }
+    }
+    // Fishing line and bobber.
+    if (game.fishing) {
+      const f = game.fishing;
+      const hx = px + game.facing * 9 * scale;
+      const hy = py - 15 * scale;
+      const bx2 = this.sx(f.x + 0.5, shakeX);
+      const dip = f.bite > 0 ? scale * 3 + Math.sin(time * 30) * scale : Math.sin(time * 3) * scale * 0.8;
+      const by2 = this.sy(f.y, shakeY) + dip;
+      ctx.strokeStyle = 'rgba(230,246,255,0.8)';
+      ctx.lineWidth = Math.max(1, scale * 0.5);
+      ctx.beginPath();
+      ctx.moveTo(hx, hy);
+      ctx.quadraticCurveTo((hx + bx2) / 2, Math.max(hy, by2) + ts * 0.8, bx2, by2);
+      ctx.stroke();
+      ctx.fillStyle = '#ff5a5a';
+      ctx.fillRect(bx2 - scale * 1.5, by2 - scale * 3, scale * 3, scale * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(bx2 - scale * 1.5, by2 - scale, scale * 3, scale * 1.5);
+      if (f.bite > 0) {
+        ctx.fillStyle = '#ffcf4a';
+        ctx.font = `bold ${Math.round(scale * 8)}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText('!', bx2, by2 - scale * 6);
+      }
+    }
 
     // Particles and floating text.
     for (const p of fx.particles) {
@@ -337,6 +391,20 @@ export class Renderer {
         ctx.fillRect(dx, dy, ts, Math.max(1, ts / 8));
         if ((tx * 7) % 5 === 0) ctx.fillRect(dx + ts / 4, dy + ts / 4, ts / 8, ts / 16);
       }
+      return;
+    }
+    if (t === T.SAPLING) {
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      const u = ts / 16;
+      const leaf = ['#9fd36a', '#5fe0e0', '#d8b8ff', '#c9a35a', '#7fa8b8'][world.biome[tx] ?? 0] ?? '#9fd36a';
+      ctx.fillStyle = '#6b4a2e';
+      ctx.fillRect(dx + 7 * u, dy + 7 * u, 2 * u, 9 * u);
+      ctx.fillStyle = leaf;
+      ctx.fillRect(dx + 3 * u, dy + 6 * u, 4 * u, 3 * u);
+      ctx.fillRect(dx + 9 * u, dy + 4 * u, 4 * u, 3 * u);
+      ctx.fillRect(dx + 6 * u, dy + 2 * u, 4 * u, 4 * u);
+      ctx.fillStyle = '#14181f';
+      ctx.fillRect(dx + 5 * u, dy + 15 * u, 6 * u, u);
       return;
     }
     if (t === T.TERMINAL) {

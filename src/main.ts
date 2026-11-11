@@ -6,13 +6,13 @@ import { loadRaw, saveRaw } from './platform/storage';
 import { Fx } from './render/fx';
 import { Renderer } from './render/renderer';
 import { ENEMY_ART_UNIT, ENEMY_LOOKS, ENEMY_W, TILE_COLORS, drawGallery, enemyFrame, spriteDebris } from './render/sprites';
-import { FIXED_DT, Game, NO_CONTROLS, type GameEvent, type Tool } from './sim/game';
+import { FIXED_DT, Game, NO_CONTROLS, TOOLS, type GameEvent, type Tool } from './sim/game';
 import { parseSave, serializeSave } from './sim/save';
 import { ITEMS, type ItemId } from './sim/tiles';
 import { codexEntry } from './sim/explore';
 import { UI, type UiAction } from './ui/ui';
 
-const TOOL_NAMES: Record<Tool, string> = { drill: 'Mining drill', blade: 'Energy blade', pistol: 'Pulse pistol' };
+const TOOL_NAMES: Record<Tool, string> = { drill: 'Mining drill', blade: 'Energy blade', pistol: 'Pulse pistol', rod: 'Fishing rod: click water to cast' };
 
 function fatal(err: unknown): void {
   console.error('Terrabound fatal error', err);
@@ -73,6 +73,11 @@ function boot(): void {
     if (ui.shopOpen) {
       ui.scrollShop(e.deltaY > 0 ? 1 : -1);
       e.preventDefault();
+    } else if (ui.screen === 'play' && !ui.mapOpen && !ui.invOpen) {
+      // Mouse wheel cycles tools, like a hotbar.
+      const i = TOOLS.indexOf(game.tool);
+      act({ k: 'settool', t: TOOLS[(i + (e.deltaY > 0 ? 1 : TOOLS.length - 1)) % TOOLS.length] });
+      e.preventDefault();
     }
   }, { passive: false });
   window.addEventListener('resize', resize);
@@ -95,6 +100,8 @@ function boot(): void {
       case 'close':
         ui.shopOpen = false;
         ui.mapOpen = false;
+        ui.invOpen = false;
+        if (game.chestOpen) game.interact();
         break;
       case 'map':
         if (ui.screen === 'play' && !ui.shopOpen) ui.mapOpen = !ui.mapOpen;
@@ -167,6 +174,36 @@ function boot(): void {
         game.setTool(a.t);
         ui.toast(TOOL_NAMES[a.t], '#36e0e8');
         break;
+      case 'inv':
+        if (ui.screen === 'play' && !ui.shopOpen) {
+          ui.invOpen = !ui.invOpen;
+          ui.mapOpen = false;
+        }
+        break;
+      case 'interact':
+        if (ui.screen === 'play' && !ui.invOpen && !game.interact() && !game.chestOpen) ui.toast('No chest within reach', '#8a90a2');
+        break;
+      case 'invsel':
+        ui.invSel = a.id;
+        break;
+      case 'use':
+        if (!game.useItem(a.id)) ui.toast('Cannot use that', '#ff9a3c');
+        break;
+      case 'drop':
+        if (game.dropItem(a.id) > 0) ui.toast(`Dropped ${ITEMS[a.id].name}`, '#c9d0e4');
+        ui.invSel = null;
+        break;
+      case 'take':
+        game.takeFromChest(a.id);
+        saveNow();
+        break;
+      case 'put':
+        game.putInChest(a.id);
+        saveNow();
+        break;
+      case 'breakchest':
+        if (game.breakChest()) ui.toast('Chest picked up (contents dropped)', '#ffcf4a');
+        break;
       case 'sel':
         game.selectPlaceable(a.i);
         break;
@@ -227,9 +264,30 @@ function boot(): void {
         ui.toast('New world - good luck', '#ffcf4a');
         break;
       case 'chest':
-        fx.burst(e.x + 0.5, e.y + 0.5, '#ffcf4a', 18, 6);
-        fx.addShake(0.3);
-        ui.toast(e.items > 0 ? `Chest: +${e.items} items` : 'Chest: pack full!', '#ffcf4a');
+        fx.burst(e.x + 0.5, e.y + 0.5, '#ffcf4a', 12, 4);
+        break;
+      case 'eat':
+        ui.toast(`Ate ${ITEMS[e.item].name}`, '#9ff6a0');
+        fx.burst(game.body.x, game.body.y - 1.2, '#9ff6a0', 10, 3);
+        break;
+      case 'cast':
+        fx.burst(e.x + 0.5, e.y, '#9fd8ff', 8, 3);
+        break;
+      case 'bite':
+        ui.toast('Bite! Click now!', '#ffcf4a', 1);
+        fx.addShake(0.15);
+        break;
+      case 'catch':
+        ui.toast(`Caught: ${e.n > 1 ? `${e.n} ` : ''}${ITEMS[e.item].name}!`, '#9fd8ff');
+        break;
+      case 'reel':
+        ui.toast('Reeled in. Wait for the bite, then click.', '#8a90a2', 1.6);
+        break;
+      case 'nosoil':
+        ui.toast('Seeds need soil underneath', '#ff9a3c');
+        break;
+      case 'grow':
+        ui.toast('A sapling grew into a tree', '#7fcf5a');
         break;
       case 'fell':
         fx.addShake(0.35);
@@ -285,7 +343,7 @@ function boot(): void {
         let steps = 0;
         while (acc >= FIXED_DT && steps < 6) {
           // The map pauses the dive (single player, no reason to punish looking).
-          if (!ui.mapOpen) game.step(FIXED_DT, ui.shopOpen ? NO_CONTROLS : input.read());
+          if (!ui.mapOpen) game.step(FIXED_DT, ui.shopOpen || ui.invOpen ? NO_CONTROLS : input.read());
           acc -= FIXED_DT;
           steps++;
         }

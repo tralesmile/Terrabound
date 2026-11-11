@@ -4,7 +4,7 @@ import { UPGRADES, type Levels } from './upgrades';
 import { CODEX_IDS } from './explore';
 import { sanitizeDiff, type WorldDiff } from './persist';
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;

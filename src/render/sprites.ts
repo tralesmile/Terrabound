@@ -1,6 +1,7 @@
 import { hash2 } from '../sim/rng';
 import { T, TILES } from '../sim/tiles';
 import type { EnemyKind } from '../sim/enemies';
+import { drawIcon } from './icons';
 import { EDGE_N, MASKS, edgeMask, edgePixel, growsMoss } from './autotile';
 
 /** Tile size in logical pixels. All art is generated in code: zero asset files, zero asset cost, tiny bundle. */
@@ -547,6 +548,40 @@ export interface PlayerPose {
   hurt?: boolean;
   swing?: boolean;
   tier?: number;
+  /** Visible gear: upgrade levels change helmet, visor, backpack, battery light and boots. */
+  gear?: PlayerGear;
+  /** Tool shown in the hand. */
+  held?: string;
+}
+
+export interface PlayerGear {
+  lamp: number;
+  pick: number;
+  pack: number;
+  battery: number;
+  boots: number;
+}
+
+const HELMETS: [string, string][] = [['#d9dde8', '#8e98b0'], ['#e6ebf2', '#9aa8bc'], ['#ffe08a', '#c9a35a'], ['#ffffff', '#c08cff']];
+const VISORS: [string, string][] = [['#1fb8c0', '#c6fbff'], ['#2fd07a', '#c8ffd8'], ['#ff9a3c', '#ffe0b0'], ['#b06bff', '#f0d8ff']];
+const PACKS = ['#3a4356', '#4a5a6e', '#5a4a2e', '#4a2e5a'];
+const LIGHTS = ['#36e0e8', '#7dffb0', '#ffcf4a', '#ff7ab8'];
+const BOOTS: [string, string][] = [['#2b2f3a', '#4a5266'], ['#3a2a1e', '#6b4a2e'], ['#1f4a8a', '#5aa6ff'], ['#5a2a1a', '#ff8a3c']];
+
+/** Gear tier 0-3 from an upgrade level (every 2 levels is a visible step). */
+export function gearTier(level: number): number {
+  return Math.max(0, Math.min(3, Math.floor((level + 1) / 2)));
+}
+
+/** Colour remap for the player's sprite from gear and armor tier. */
+export function gearRemap(gear: PlayerGear | undefined, tier: number): Record<string, string> {
+  const [c1, c2] = SUIT_TIERS[Math.min(SUIT_TIERS.length - 1, tier)];
+  const m: Record<string, string> = { s: c1, S: c2 };
+  if (!gear) return m;
+  const [h, H] = HELMETS[gearTier(gear.lamp)];
+  const [v, V] = VISORS[gearTier(gear.pick)];
+  const [l, L] = BOOTS[gearTier(gear.boots)];
+  return { ...m, h, H, v, V, p: PACKS[gearTier(gear.pack)], b: LIGHTS[gearTier(gear.battery)], l, L };
 }
 
 export function poseFrame(pose: PlayerPose): { frame: PlayerFrame; bob: number } {
@@ -564,12 +599,22 @@ export function poseFrame(pose: PlayerPose): { frame: PlayerFrame; bob: number }
 export function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, pose: PlayerPose): void {
   const { frame, bob } = poseFrame(pose);
   let rows = playerRows(frame, bob);
-  const [c1, c2] = SUIT_TIERS[Math.min(SUIT_TIERS.length - 1, pose.tier ?? 0)];
   const ox = x - (PLAYER_W / 2) * s;
   const oy = y - PLAYER_H * s;
   const flip = pose.facing < 0;
   if (pose.swing) rows = rows.map((r, i) => (i >= 9 && i <= 11 ? r.padEnd(PLAYER_W - 2) + 'gg' : r));
-  drawRows(ctx, rows, ox, oy, s, flip, PLAYER_W, pose.hurt ? '#ffffff' : undefined, { s: c1, S: c2 });
+  drawRows(ctx, rows, ox, oy, s, flip, PLAYER_W, pose.hurt ? '#ffffff' : undefined, gearRemap(pose.gear, pose.tier ?? 0));
+  // Held tool at the front hand (art col ~11, row ~10), drawn at 3/4 scale.
+  if (pose.held && !pose.hurt && !pose.climbing) {
+    const hs = s * 0.75;
+    const hx = flip ? ox + (PLAYER_W - 12) * s - 12 * hs + 3 * s : ox + 11 * s - 2 * s;
+    const hy = oy + (8 + (bobOf(pose) ? 1 : 0)) * s;
+    drawIcon(ctx, pose.held, hx, hy, hs, flip);
+  }
+}
+
+function bobOf(pose: PlayerPose): number {
+  return poseFrame(pose).bob;
 }
 
 /** Per-kind look: base sprite, palette swap and size relative to the base sprite. */

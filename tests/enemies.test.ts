@@ -91,6 +91,8 @@ describe('enemies', () => {
     e.hp = 1;
     run(g, 0.5, { dig: true });
     expect(g.enemies.find((x) => x.id === 99)).toBeUndefined();
+    // The scrap drops on the ground next to the player and drifts into the pack.
+    run(g, 1.5);
     expect(g.carried.iron_scrap ?? 0).toBe(before + 1);
   });
 
@@ -116,6 +118,8 @@ describe('enemies', () => {
     expect(g.world.get(tx, ty)).toBe(1);
     g.toggleTool();
     expect(g.tool).toBe('pistol');
+    g.toggleTool();
+    expect(g.tool).toBe('rod');
     g.toggleTool();
     expect(g.tool).toBe('drill');
   });

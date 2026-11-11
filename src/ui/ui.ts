@@ -1,5 +1,9 @@
 import type { Game, Tool } from '../sim/game';
 import { MapView } from './map';
+import { ICON, drawIcon } from '../render/icons';
+import { drawPlayer } from '../render/sprites';
+import { playerGear } from '../render/renderer';
+import { FOOD } from '../sim/fishing';
 import { CODEX, RECALL_TIME } from '../sim/explore';
 import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type Inventory, type ItemId } from '../sim/tiles';
 import { UPGRADES } from '../sim/upgrades';
@@ -23,7 +27,15 @@ export type UiAction =
   | { k: 'tool' }
   | { k: 'settool'; t: Tool }
   | { k: 'map' }
-  | { k: 'recall' };
+  | { k: 'recall' }
+  | { k: 'inv' }
+  | { k: 'interact' }
+  | { k: 'invsel'; id: ItemId }
+  | { k: 'use'; id: ItemId }
+  | { k: 'drop'; id: ItemId }
+  | { k: 'take'; id: ItemId | 'all' }
+  | { k: 'put'; id: ItemId }
+  | { k: 'breakchest' };
 
 export type ShopTab = 'upgrades' | 'fab';
 
@@ -49,10 +61,11 @@ interface Toast {
   life: number;
 }
 
-const TOOL_SLOTS: { tool: Tool; label: string; color: string }[] = [
-  { tool: 'drill', label: 'DRL', color: '#9aa3b8' },
-  { tool: 'blade', label: 'BLD', color: '#36e0e8' },
-  { tool: 'pistol', label: 'GUN', color: '#ffd24a' },
+const TOOL_SLOTS: { tool: Tool; label: string; key: string }[] = [
+  { tool: 'drill', label: 'Drill', key: '1' },
+  { tool: 'blade', label: 'Blade', key: '2' },
+  { tool: 'pistol', label: 'Pistol', key: '3' },
+  { tool: 'rod', label: 'Fishing rod', key: '4' },
 ];
 
 const FONT = 'ui-monospace, Menlo, Consolas, "Courier New", monospace';
@@ -76,6 +89,9 @@ export function stashLine(stash: Inventory): ItemId[] {
 
 export class UI {
   mapOpen = false;
+  invOpen = false;
+  /** Item highlighted in the inventory. */
+  invSel: ItemId | null = null;
   /** Seconds left to confirm abandoning the world (NEW WORLD needs two taps). */
   newWorldArmed = 0;
   private mapView = new MapView();
@@ -177,7 +193,164 @@ export class UI {
       this.drawMapScreen(ctx, game, w, h, u, time);
       return;
     }
+    if (this.invOpen) {
+      this.drawInventory(ctx, game, w, h, u, time);
+      return;
+    }
     this.drawHud(ctx, game, w, h, u, time);
+    if (game.chestOpen) this.drawChest(ctx, game, w, h, u);
+  }
+
+  /** One item cell: dark slot, pixel icon, count in the corner, highlight when selected. */
+  private cell(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, id: ItemId | Tool, count: number | null, sel: boolean, a: UiAction | null, dim = false): void {
+    ctx.fillStyle = sel ? 'rgba(54,224,232,0.18)' : 'rgba(10,12,20,0.75)';
+    ctx.fillRect(x, y, size, size);
+    ctx.strokeStyle = sel ? '#36e0e8' : '#3a4052';
+    ctx.lineWidth = sel ? 3 : 2;
+    ctx.strokeRect(x + 1, y + 1, size - 2, size - 2);
+    // Inner bevel so slots read as physical sockets.
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillRect(x + 3, y + 3, size - 6, 2);
+    const s = Math.max(1, Math.floor((size * 0.72) / ICON));
+    ctx.globalAlpha = dim ? 0.35 : 1;
+    drawIcon(ctx, id, x + (size - ICON * s) / 2, y + (size - ICON * s) / 2 - size * 0.04, s);
+    ctx.globalAlpha = 1;
+    if (count !== null) {
+      const label = count >= 1000 ? `${Math.floor(count / 1000)}k` : `${count}`;
+      ctx.font = `bold ${Math.round(size * 0.3)}px ${FONT}`;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = '#000';
+      ctx.fillText(label, x + size - 3, y + size - 3);
+      ctx.fillStyle = count > 0 ? '#fff' : '#ff8a8a';
+      ctx.fillText(label, x + size - 4, y + size - 4);
+    }
+    if (a) this.rects.push({ x, y, w: size, h: size, a });
+  }
+
+  /** Grid of item cells; returns the height used. */
+  private grid(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, ids: ItemId[], counts: Inventory, cellSize: number, sel: ItemId | null, act: (id: ItemId) => UiAction): number {
+    const gap = Math.max(3, cellSize * 0.1);
+    const cols = Math.max(1, Math.floor((w + gap) / (cellSize + gap)));
+    ids.forEach((id, i) => this.cell(ctx, x + (i % cols) * (cellSize + gap), y + Math.floor(i / cols) * (cellSize + gap), cellSize, id, counts[id] ?? 0, sel === id, act(id)));
+    return Math.ceil(ids.length / cols) * (cellSize + gap);
+  }
+
+  private panel(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
+    ctx.fillStyle = 'rgba(8,10,18,0.97)';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = '#36e0e8';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+    ctx.strokeStyle = 'rgba(54,224,232,0.25)';
+    ctx.strokeRect(x + 5, y + 5, w - 10, h - 10);
+  }
+
+  /** Inventory: the character in their gear, tool slots, pack contents and actions for the selected item. */
+  private drawInventory(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, time: number): void {
+    const pw = Math.min(w - u, u * 46);
+    const ph = Math.min(h - u, u * 32);
+    const px = (w - pw) / 2;
+    const py = (h - ph) / 2;
+    this.panel(ctx, px, py, pw, ph);
+    this.text(ctx, 'INVENTORY', px + u, py + u * 1.6, Math.round(u * 1.3), '#36e0e8');
+    this.button(ctx, px + pw - u * 6.5, py + u * 0.5, u * 6, u * 2.1, 'CLOSE', { k: 'inv' }, u * 0.9);
+    const narrow = pw < u * 30;
+    // Character preview with gear.
+    const cw = narrow ? pw - u * 2 : pw * 0.36;
+    const ch = narrow ? u * 9.5 : ph - u * 4.5;
+    const cx = px + u;
+    const cy = py + u * 3;
+    ctx.fillStyle = 'rgba(20,26,40,0.9)';
+    ctx.fillRect(cx, cy, cw, ch);
+    const scale = Math.max(2, Math.floor(Math.min((ch * (narrow ? 0.9 : 0.55)) / 24, (cw * 0.45) / 16)));
+    const fx = narrow ? cx + cw * 0.22 : cx + cw / 2;
+    const fy = narrow ? cy + ch - u * 0.6 : cy + 24 * scale + u * 1.2;
+    ctx.fillStyle = 'rgba(54,224,232,0.15)';
+    ctx.beginPath();
+    ctx.ellipse(fx, fy, 9 * scale, 2 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    drawPlayer(ctx, fx, fy, scale, { facing: 1, walking: false, t: time, airborne: false, tier: game.upgrades.armor ?? 0, gear: playerGear(game), held: game.tool });
+    const up = game.upgrades;
+    const gearLines: [string, number][] = [
+      ['Helmet lamp', up.lamp ?? 0],
+      ['Drill visor', up.pick ?? 0],
+      ['Plated suit', up.armor ?? 0],
+      ['Cargo pack', up.pack ?? 0],
+      ['Battery cell', up.battery ?? 0],
+      ['Servo boots', up.boots ?? 0],
+    ];
+    let gy = narrow ? cy + u * 1.2 : fy + u * 2;
+    const gx = narrow ? cx + cw * 0.45 : cx + u * 0.8;
+    for (const [name, lv] of gearLines) {
+      this.text(ctx, `${name}`, gx, gy, Math.round(u * 0.75), '#c9d0e4', 'left', cw * 0.4);
+      this.text(ctx, `Lv ${lv}`, gx + (narrow ? cw * 0.38 : cw - u * 4.2), gy, Math.round(u * 0.75), lv > 0 ? '#9ff6a0' : '#5a6078');
+      gy += u * (narrow ? 1.25 : 1.35);
+    }
+    // Tools and pack.
+    const rx = narrow ? px + u : cx + cw + u;
+    const rw = narrow ? pw - u * 2 : pw - cw - u * 3;
+    let ry = narrow ? cy + ch + u * 0.8 : cy;
+    this.text(ctx, 'TOOLS  (1-4, Q, mouse wheel)', rx, ry + u * 0.6, Math.round(u * 0.75), '#8a90a2', 'left', rw);
+    ry += u * 1.2;
+    const cs = Math.min(u * 3.4, (rw - u * 1.5) / 6);
+    TOOL_SLOTS.forEach((t, i) => this.cell(ctx, rx + i * (cs + u * 0.4), ry, cs, t.tool, null, game.tool === t.tool, { k: 'settool', t: t.tool }));
+    this.text(ctx, TOOL_SLOTS.find((t) => t.tool === game.tool)?.label ?? '', rx + 4 * (cs + u * 0.4) + u * 0.3, ry + cs * 0.6, Math.round(u * 0.8), '#36e0e8', 'left', rw - 4 * (cs + u * 0.4));
+    ry += cs + u * 1.2;
+    const total = invTotal(game.carried);
+    this.text(ctx, `PACK  ${total}/${game.derived.packCap}`, rx, ry, Math.round(u * 0.8), total >= game.derived.packCap ? '#ff9a3c' : '#8a90a2');
+    ry += u * 0.6;
+    const ids = ITEM_IDS.filter((id) => (game.carried[id] ?? 0) > 0);
+    if (ids.length === 0) this.text(ctx, 'Empty. Dig, chop, fish and open chests.', rx, ry + u * 1.4, Math.round(u * 0.8), '#5a6078', 'left', rw);
+    const gh = this.grid(ctx, rx, ry, rw, ids, game.carried, cs, this.invSel, (id) => ({ k: 'invsel', id }));
+    ry += Math.max(gh, u * 2) + u * 0.6;
+    // Selected item: name, what it does, actions.
+    const sel = this.invSel && (game.carried[this.invSel] ?? 0) > 0 ? this.invSel : null;
+    if (sel) {
+      const def = ITEMS[sel];
+      const food = FOOD[sel];
+      const what = food ? `Eat: +${food.hp} HP${food.battery ? `, +${food.battery} battery` : ''}` : def.places !== null || def.placesWall !== undefined ? 'Build with it (right click / BUILD mode)' : 'Material: spend it at the workshop';
+      this.text(ctx, def.name, rx, ry + u * 0.4, Math.round(u * 0.95), '#fff', 'left', rw);
+      this.text(ctx, what, rx, ry + u * 1.6, Math.round(u * 0.72), '#9aa3b8', 'left', rw);
+      ry += u * 2.4;
+      const bw2 = Math.min(u * 7, (rw - u) / 3);
+      let bx2 = rx;
+      if (food) {
+        this.button(ctx, bx2, ry, bw2, u * 2.2, 'EAT', { k: 'use', id: sel }, u * 0.85, { color: '#1f7a3a' });
+        bx2 += bw2 + u * 0.5;
+      }
+      if (PLACEABLE.includes(sel)) {
+        this.button(ctx, bx2, ry, bw2, u * 2.2, 'HOLD', { k: 'sel', i: PLACEABLE.indexOf(sel) }, u * 0.85);
+        bx2 += bw2 + u * 0.5;
+      }
+      this.button(ctx, bx2, ry, bw2, u * 2.2, 'DROP', { k: 'drop', id: sel }, u * 0.85, { color: '#7a3a2a' });
+    }
+  }
+
+  /** Chest window: contents (tap to take), TAKE ALL, your pack (tap to store), BREAK to pick the chest up. */
+  private drawChest(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number): void {
+    const at = game.chestOpen;
+    if (!at) return;
+    const inv = game.chestContents(at.x, at.y);
+    const pw = Math.min(w - u * 2, u * 30);
+    const cs = Math.min(u * 3.2, (pw - u * 2) / 6);
+    const ph = Math.min(h - u * 8, u * 4 + cs * 5);
+    const px = (w - pw) / 2;
+    const py = Math.max(u * 5, (h - ph) / 2 - u * 2);
+    this.panel(ctx, px, py, pw, ph);
+    this.text(ctx, 'CHEST', px + u, py + u * 1.5, Math.round(u * 1.2), '#ffcf4a');
+    this.button(ctx, px + pw - u * 5.5, py + u * 0.5, u * 5, u * 2, 'CLOSE', { k: 'interact' }, u * 0.8);
+    const ids = ITEM_IDS.filter((id) => (inv[id] ?? 0) > 0);
+    let y = py + u * 3;
+    if (ids.length === 0) this.text(ctx, 'Empty. Tap pack items below to store them.', px + u, y + u * 0.8, Math.round(u * 0.8), '#8a90a2', 'left', pw - u * 2);
+    y += Math.max(u * 1.6, this.grid(ctx, px + u, y, pw - u * 2, ids, inv, cs, null, (id) => ({ k: 'take', id })));
+    const bw = (pw - u * 3) / 2;
+    this.button(ctx, px + u, y, bw, u * 2.2, 'TAKE ALL', { k: 'take', id: 'all' }, u * 0.85, { enabled: ids.length > 0 });
+    this.button(ctx, px + u * 2 + bw, y, bw, u * 2.2, 'PICK UP CHEST', { k: 'breakchest' }, u * 0.8, { color: '#7a5a1f' });
+    y += u * 3;
+    this.text(ctx, 'YOUR PACK (tap to store)', px + u, y, Math.round(u * 0.75), '#8a90a2');
+    const mine = ITEM_IDS.filter((id) => (game.carried[id] ?? 0) > 0);
+    this.grid(ctx, px + u, y + u * 0.5, pw - u * 2, mine, game.carried, cs * 0.8, null, (id) => ({ k: 'put', id }));
   }
 
   private drawMapScreen(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, time: number): void {
@@ -254,38 +427,33 @@ export class UI {
     // Hotbar: tools first, then placeable blocks.
     const gap = u * 0.4;
     const shown = visiblePlaceables(game.carried, game.selected);
-    const count = TOOL_SLOTS.length + shown.length;
+    const count = TOOL_SLOTS.length + shown.length + 1;
     const slot = Math.min(u * 3.4, (w - u * 2 - (count + 1) * gap) / count);
     const total = count * slot + (count - 1) * gap + gap * 2;
     let sx = (w - total) / 2;
     const sy = h - slot - u * 2.2;
     TOOL_SLOTS.forEach((ts, i) => {
-      const sel = game.tool === ts.tool;
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(sx, sy, slot, slot);
-      ctx.strokeStyle = sel ? '#36e0e8' : '#454a5c';
-      ctx.lineWidth = sel ? 3 : 2;
-      ctx.strokeRect(sx + 1, sy + 1, slot - 2, slot - 2);
-      ctx.fillStyle = ts.color;
-      ctx.fillRect(sx + slot * 0.22, sy + slot * 0.18, slot * 0.56, slot * 0.4);
-      this.text(ctx, ts.label, sx + slot / 2, sy + slot * 0.8, Math.round(u * 0.8), '#fff', 'center');
-      this.rects.push({ x: sx, y: sy, w: slot, h: slot, a: { k: 'settool', t: ts.tool } });
+      this.cell(ctx, sx, sy, slot, ts.tool, null, game.tool === ts.tool, { k: 'settool', t: ts.tool });
+      if (!this.touch) this.text(ctx, ts.key, sx + 4, sy + slot * 0.28, Math.round(slot * 0.22), '#8a90a2');
       sx += slot + gap + (i === TOOL_SLOTS.length - 1 ? gap * 2 : 0);
     });
     shown.forEach((id) => {
       const i = PLACEABLE.indexOf(id);
-      const sel = game.selected === id;
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(sx, sy, slot, slot);
-      ctx.strokeStyle = sel ? '#ffcf4a' : '#454a5c';
-      ctx.lineWidth = sel ? 3 : 2;
-      ctx.strokeRect(sx + 1, sy + 1, slot - 2, slot - 2);
-      ctx.fillStyle = ITEMS[id].color;
-      ctx.fillRect(sx + slot * 0.22, sy + slot * 0.18, slot * 0.56, slot * 0.4);
-      this.text(ctx, `${invCount(game.carried, id)}`, sx + slot / 2, sy + slot * 0.8, Math.round(u * 0.95), '#fff', 'center');
-      this.rects.push({ x: sx, y: sy, w: slot, h: slot, a: { k: 'sel', i } });
+      const n = invCount(game.carried, id);
+      this.cell(ctx, sx, sy, slot, id, n, game.selected === id, { k: 'sel', i }, n <= 0);
+      if (game.selected === id) {
+        ctx.strokeStyle = '#ffcf4a';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(sx + 1, sy + 1, slot - 2, slot - 2);
+      }
       sx += slot + gap;
     });
+    // Bag button (inventory) at the end of the bar.
+    this.cell(ctx, sx + gap, sy, slot, 'chest', null, false, { k: 'inv' });
+    this.text(ctx, this.touch ? 'BAG' : 'I', sx + gap + slot / 2, sy - u * 0.3, Math.round(u * 0.7), '#c9d0e4', 'center');
+    // What is held, above the bar.
+    const heldName = TOOL_SLOTS.find((t) => t.tool === game.tool)?.label ?? '';
+    this.text(ctx, game.tool === 'rod' && game.fishing ? (game.fishing.bite > 0 ? 'BITE! Click now!' : 'Waiting for a bite...') : heldName, w / 2, sy - u * 0.5, Math.round(u * 0.85), game.fishing && game.fishing.bite > 0 ? '#ffcf4a' : '#c9d0e4', 'center');
 
     // Toasts.
     let ty = y + u * 2.2;
@@ -301,7 +469,7 @@ export class UI {
     const auto = game.stats.playTime >= 40 ? game.hintAutomation(this.touch) : null;
     if (auto) this.text(ctx, auto, w / 2, h - u * 0.7, Math.round(u * 0.75), '#7dffb0', 'center', w - u * 2);
     if (game.stats.playTime < 40) {
-      const hint = this.touch ? 'Left thumb: move, drag up to jump. Right side: dig.' : 'A/D move, W jump. Hold click to dig, right click to build, 1-3 or Q switch tool. Return to the pad to bank loot.';
+      const hint = this.touch ? 'Left thumb: move, drag up to jump. Right side: dig.' : 'A/D move, W jump. Click: dig / open chests. Right click: build. 1-4 or wheel: tools. I: inventory. E: open chest.';
       this.text(ctx, hint, w / 2, h - u * 0.7, Math.round(u * 0.75), '#c9d0e4', 'center', w - u * 2);
     }
   }

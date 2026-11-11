@@ -31,7 +31,7 @@ describe('biomes', () => {
     let checked = 0;
     for (let x = 30; x < w.w - 30; x += 11) {
       const t = w.get(x, w.surface[x] + 1);
-      if (t === T.RUIN || t === T.METAL || t === T.CRYSTAL || t === T.IRON || t === T.AIR || t === T.PAD) continue;
+      if (t === T.RUIN || t === T.METAL || t === T.CRYSTAL || t === T.IRON || t === T.AIR || t === T.PAD || t === T.WATER) continue;
       expect(t).toBe(crust[w.biome[x]]);
       checked++;
     }
@@ -219,6 +219,29 @@ describe('cost labels', () => {
       const t = costText({ [id]: 2 });
       expect(t).not.toContain('undefined');
       expect(t.startsWith('2 ')).toBe(true);
+    }
+  });
+});
+
+describe('surface ponds and sky islands', () => {
+  it('every world has fishable ponds and floating islands with a chest', () => {
+    for (const seed of SEEDS) {
+      const w = generateWorld(seed);
+      const ponds = w.structures.filter((s) => s.kind === 'pond');
+      const isles = w.structures.filter((s) => s.kind === 'island');
+      expect(ponds.length).toBeGreaterThanOrEqual(4);
+      expect(isles.length).toBeGreaterThanOrEqual(4);
+      for (const p of ponds) expect(w.get((p.x0 + p.x1) >> 1, p.y0)).toBe(T.WATER);
+      for (const s of isles) {
+        const mid = (s.x0 + s.x1) >> 1;
+        // Floating: open air between the island's underside and the ground.
+        expect(TILES[w.get(mid, s.y1 + 2)].solid).toBe(false);
+        expect(s.y1).toBeLessThan(w.surface[mid] - 3);
+        let chests = 0;
+        for (let y = s.y0 - 1; y <= s.y1; y++) for (let x = s.x0; x <= s.x1; x++) if (w.get(x, y) === T.CHEST) chests++;
+        expect(chests).toBe(1);
+        expect(Math.abs(mid - w.padX)).toBeGreaterThan(PAD_CLEAR);
+      }
     }
   });
 });

@@ -1,5 +1,5 @@
 import { decodeSeed, encodeSeed } from './seedcode';
-import { mixSeed, mulberry32 } from './rng';
+import { hash2, mixSeed, mulberry32 } from './rng';
 import { ENEMIES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
 import { type Body, moveX, moveY, onLadder, probeGround, unstick, BODY_H, HALF_W } from './physics';
 import { defaultSave, type SaveData } from './save';
@@ -20,6 +20,9 @@ import {
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
 import { recipeById } from './recipes';
 import { chestLoot } from './loot';
+import { SOIL_TILES, growTime, stepSaplings } from './structures';
+import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
+import { FOOD, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE } from './fishing';
 import { daylight } from './daynight';
 import { awaySeconds, simulateOffline, OFFLINE_MIN, type OfflineResult } from './offline';
 import { automationHint, stepGrid, newPower, scanMachines, stepSmelting, stepMining, stepDrones, SMELT_RUST, type PowerState } from './power';
@@ -74,6 +77,13 @@ export type GameEvent =
   | { t: 'recall' }
   | { t: 'nightfall' }
   | { t: 'lore'; text: string }
+  | { t: 'eat'; item: ItemId }
+  | { t: 'cast'; x: number; y: number }
+  | { t: 'bite' }
+  | { t: 'catch'; item: ItemId; n: number }
+  | { t: 'reel' }
+  | { t: 'nosoil' }
+  | { t: 'grow' }
   | { t: 'dawn' }
   | { t: 'fell'; x: number; y: number; tiles: number }
   | { t: 'hurt'; amount: number }
@@ -95,8 +105,8 @@ export type GameEvent =
   | { t: 'splash'; x: number; y: number; kind: 'acid' | 'debris' }
   | { t: 'gas' };
 
-export type Tool = 'drill' | 'blade' | 'pistol';
-export const TOOLS: readonly Tool[] = ['drill', 'blade', 'pistol'];
+export type Tool = 'drill' | 'blade' | 'pistol' | 'rod';
+export const TOOLS: readonly Tool[] = ['drill', 'blade', 'pistol', 'rod'];
 export const PISTOL_DMG = 8;
 export const PISTOL_CD = 0.35;
 export const PISTOL_SPEED = 22;
@@ -157,6 +167,15 @@ export class Game {
   recallT = 0;
   private discoverCd = 0;
   private wasNight = false;
+  /** Items lying in the world. */
+  drops: Drop[] = [];
+  /** Chest whose window is open (closes when out of reach). */
+  chestOpen: { x: number; y: number } | null = null;
+  private prevDig = false;
+  /** Fishing line state (rod tool). */
+  fishing: Fishing | null = null;
+  /** Casts so far this session (seeds the bite timer and catch). */
+  private casts = 0;
   /** Liquid tile the player's body centre is in (0 = none). */
   inLiquid = 0;
   private acidTick = 0;
@@ -295,6 +314,9 @@ export class Game {
     }
     this.recallT = 0;
     this.shots = [];
+    this.drops = [];
+    this.chestOpen = null;
+    this.fishing = null;
     this.fallers = [];
     this.hazards = placeHazards(this.world);
     this.inGas = false;
@@ -593,6 +615,9 @@ export class Game {
 
     this.runDeepest = Math.max(this.runDeepest, this.depth);
     this.stepMachines(dt);
+    for (const p of stepDrops(this.world, this.drops, dt, b.x, b.y, (item) => (invTotal(this.carried) < this.derived.packCap ? this.derived.packCap - invTotal(this.carried) : 0) * (ITEMS[item] ? 1 : 0), (item, n) => invAdd(this.carried, item, n)))
+      this.emit({ t: 'pickup', item: p.item, x: b.x, y: b.y - 1 });
+    if (this.world.saplings.size > 0 && stepSaplings(this.world, dt) > 0) this.emit({ t: 'grow' });
     this.liquidAcc += dt;
     if (this.liquidAcc >= 1 / LIQUID_HZ) {
       this.liquidAcc = 0;
@@ -603,9 +628,20 @@ export class Game {
     this.placeCd = Math.max(0, this.placeCd - dt);
     this.fullCd = Math.max(0, this.fullCd - dt);
     let mining = false;
-    if (c.dig && this.tool === 'blade') this.blade();
-    if (c.dig && this.tool === 'pistol') this.firePistol(c.aim);
-    if (c.dig && this.tool === 'drill' && c.aim && this.reachable(c.aim.tx, c.aim.ty)) {
+    // Chests are containers: pressing on one within reach opens it (with any tool) instead of digging.
+    const pressed = c.dig && !this.prevDig;
+    const onChest = c.dig && c.aim && this.world.get(c.aim.tx, c.aim.ty) === T.CHEST && this.reachable(c.aim.tx, c.aim.ty);
+    if (onChest && c.aim && pressed) this.openChestAt(c.aim.tx, c.aim.ty);
+    if (this.chestOpen && (!this.reachable(this.chestOpen.x, this.chestOpen.y) || this.world.get(this.chestOpen.x, this.chestOpen.y) !== T.CHEST)) this.chestOpen = null;
+    const dig = c.dig && !onChest;
+    this.prevDig = c.dig;
+    if (pressed && !onChest && this.tool === 'rod') this.pressRod(c.aim);
+    this.stepFishing(dt);
+    if (c.dig && onChest) {
+      // handled above
+    } else if (c.dig && this.tool === 'blade') this.blade();
+    if (dig && this.tool === 'pistol') this.firePistol(c.aim);
+    if (dig && this.tool === 'drill' && c.aim && this.reachable(c.aim.tx, c.aim.ty)) {
       const { tx, ty } = c.aim;
       const tile = this.world.get(tx, ty);
       // Nothing in front: the drill works on a player-built back wall instead.
@@ -635,7 +671,6 @@ export class Game {
               invAdd(this.carried, def.drop, 1);
               this.emit({ t: 'pickup', item: def.drop, x: tx, y: ty });
             }
-            if (tile === T.CHEST) this.openChest(tx, ty, d.packCap);
             if (tile === T.TERMINAL) this.emit({ t: 'lore', text: loreAt(this.world.seed, tx, ty) });
             if (tile === T.TRUNK) this.fellTree(tx, ty, d.packCap);
             this.mining = null;
@@ -657,10 +692,19 @@ export class Game {
         this.hasSolidNeighbour(tx, ty) &&
         !this.overlapsPlayer(tx, ty)
       ) {
-        this.world.set(tx, ty, item.places);
-        invAdd(this.carried, this.selected, -1);
-        this.placeCd = 0.12;
-        this.emit({ t: 'place', x: tx, y: ty });
+        if (item.places === T.SAPLING && !SOIL_TILES.has(this.world.get(tx, ty + 1))) {
+          // Seeds need soil underneath (not metal, ore or built blocks).
+          if (this.placeCd === 0) this.emit({ t: 'nosoil' });
+          this.placeCd = 0.5;
+        } else {
+          this.world.set(tx, ty, item.places);
+          const i = ty * this.world.w + tx;
+          if (item.places === T.SAPLING) this.world.saplings.set(i, growTime(this.world, i));
+          if (item.places === T.CHEST) this.world.chests.set(i, {});
+          invAdd(this.carried, this.selected, -1);
+          this.placeCd = 0.12;
+          this.emit({ t: 'place', x: tx, y: ty });
+        }
       } else if (item.placesWall !== undefined && invCount(this.carried, this.selected) > 0 && this.canPlaceWall(tx, ty)) {
         // Back walls sit behind tiles, so they may overlap the player, torches and ladders.
         this.world.setWall(tx, ty, item.placesWall);
@@ -845,7 +889,7 @@ export class Game {
       }
       if (e.hp <= 0) {
         this.emit({ t: 'enemykill', x: e.x, y: e.y - 0.5, kind: e.kind });
-        if (invTotal(this.carried) < this.derived.packCap) invAdd(this.carried, ENEMIES[e.kind].drop ?? 'iron_scrap', 1);
+        addDrop(this.drops, makeDrop(ENEMIES[e.kind].drop ?? 'iron_scrap', 1, e.x, e.y - 0.4, (hash2(e.id, 3, 77) - 0.5) * 4, -6));
       }
     }
     this.enemies = alive;
@@ -890,20 +934,157 @@ export class Game {
     return null;
   }
 
-  /** Loot from a broken chest goes into the pack, as much as fits. */
-  openChest(tx: number, ty: number, cap: number): number {
-    const loot = chestLoot(this.world.seed, tx, ty, ty - this.world.padY);
-    let got = 0;
-    for (const id of Object.keys(loot) as ItemId[]) {
-      const n = Math.min(loot[id] ?? 0, Math.max(0, cap - invTotal(this.carried)));
-      if (n <= 0) continue;
-      invAdd(this.carried, id, n);
-      got += n;
-      this.emit({ t: 'pickup', item: id, x: tx, y: ty });
+  /** Contents of the chest at (tx, ty): world chests roll seeded loot the first time they are opened. */
+  chestContents(tx: number, ty: number): Inventory {
+    const i = ty * this.world.w + tx;
+    let inv = this.world.chests.get(i);
+    if (!inv) {
+      inv = chestLoot(this.world.seed, tx, ty, ty - this.world.padY);
+      this.world.chests.set(i, inv);
     }
-    if (got === 0) this.emit({ t: 'full' });
-    this.emit({ t: 'chest', x: tx, y: ty, items: got });
+    return inv;
+  }
+
+  openChestAt(tx: number, ty: number): boolean {
+    if (this.world.get(tx, ty) !== T.CHEST) return false;
+    this.chestContents(tx, ty);
+    this.chestOpen = { x: tx, y: ty };
+    this.emit({ t: 'chest', x: tx, y: ty, items: invTotal(this.chestContents(tx, ty)) });
+    return true;
+  }
+
+  /** E: open the nearest chest within reach. */
+  interact(): boolean {
+    const b = this.body;
+    let best: { x: number; y: number; d: number } | null = null;
+    for (let y = Math.floor(b.y - 5); y <= Math.floor(b.y + 3); y++) {
+      for (let x = Math.floor(b.x - 5); x <= Math.floor(b.x + 5); x++) {
+        if (this.world.get(x, y) !== T.CHEST || !this.reachable(x, y)) continue;
+        const d = Math.hypot(x + 0.5 - b.x, y + 0.5 - (b.y - 0.9));
+        if (!best || d < best.d) best = { x, y, d };
+      }
+    }
+    if (this.chestOpen) {
+      this.chestOpen = null;
+      return true;
+    }
+    return best ? this.openChestAt(best.x, best.y) : false;
+  }
+
+  /** Move items from the open (or given) chest into the pack: one item id, or everything. Returns the count. */
+  takeFromChest(id: ItemId | 'all', at = this.chestOpen): number {
+    if (!at) return 0;
+    const inv = this.chestContents(at.x, at.y);
+    let got = 0;
+    for (const k of (id === 'all' ? Object.keys(inv) : [id]) as ItemId[]) {
+      const n = Math.min(inv[k] ?? 0, Math.max(0, this.derived.packCap - invTotal(this.carried)));
+      if (n <= 0) continue;
+      invAdd(this.carried, k, n);
+      invAdd(inv, k, -n);
+      if ((inv[k] ?? 0) <= 0) delete inv[k];
+      got += n;
+      this.emit({ t: 'pickup', item: k, x: at.x, y: at.y });
+    }
+    if (got === 0 && invTotal(inv) > 0) this.emit({ t: 'full' });
+    this.world.markChest(at.x, at.y);
     return got;
+  }
+
+  /** Store a stack from the pack in the open chest. */
+  putInChest(id: ItemId, n = Infinity): number {
+    const at = this.chestOpen;
+    if (!at) return 0;
+    const k = Math.min(n, invCount(this.carried, id));
+    if (k <= 0) return 0;
+    invAdd(this.carried, id, -k);
+    invAdd(this.chestContents(at.x, at.y), id, k);
+    this.world.markChest(at.x, at.y);
+    return k;
+  }
+
+  /** Remove the open chest: its contents spill on the ground and the chest goes into the pack. */
+  breakChest(): boolean {
+    const at = this.chestOpen;
+    if (!at) return false;
+    const inv = this.chestContents(at.x, at.y);
+    for (const k of Object.keys(inv) as ItemId[]) if ((inv[k] ?? 0) > 0) addDrop(this.drops, makeDrop(k, inv[k] ?? 0, at.x + 0.5, at.y + 0.5));
+    this.world.chests.delete(at.y * this.world.w + at.x);
+    this.world.set(at.x, at.y, T.AIR);
+    this.world.markChest(at.x, at.y);
+    addDrop(this.drops, makeDrop('chest', 1, at.x + 0.5, at.y + 0.5));
+    this.chestOpen = null;
+    return true;
+  }
+
+  /** Compatibility: take everything a chest holds (as much as fits). */
+  openChest(tx: number, ty: number, _cap?: number): number {
+    return this.takeFromChest('all', { x: tx, y: ty });
+  }
+
+  /** Rod press: cast at water, land a biting fish, or reel the line in. */
+  pressRod(aim: Controls['aim']): void {
+    const f = this.fishing;
+    if (f) {
+      if (f.bite > 0) {
+        const got = catchFor(this.world.seed, f.cast, this.depth, isNight(this.time));
+        const room = Math.max(0, this.derived.packCap - invTotal(this.carried));
+        const n = Math.min(room, got.n);
+        if (n > 0) invAdd(this.carried, got.item, n);
+        if (got.n > n) addDrop(this.drops, makeDrop(got.item, got.n - n, this.body.x, this.body.y - 1));
+        this.emit({ t: 'catch', item: got.item, n: got.n });
+        this.emit({ t: 'pickup', item: got.item, x: f.x, y: f.y });
+      } else this.emit({ t: 'reel' });
+      this.fishing = null;
+      return;
+    }
+    if (!aim) return;
+    const at = castTarget(this.world, this.body.x, this.body.y, aim.tx, aim.ty);
+    if (!at) return;
+    const cast = this.casts++;
+    this.fishing = { x: at.x, y: at.y, t: 0, biteAt: biteDelay(this.world.seed, cast), bite: 0, cast };
+    this.emit({ t: 'cast', x: at.x, y: at.y });
+  }
+
+  private stepFishing(dt: number): void {
+    const f = this.fishing;
+    if (!f) return;
+    // Walking away, switching tools or the water vanishing breaks the line.
+    if (this.tool !== 'rod' || this.world.get(f.x, f.y) !== T.WATER || Math.hypot(f.x + 0.5 - this.body.x, f.y - this.body.y) > CAST_RANGE + 3) {
+      this.fishing = null;
+      return;
+    }
+    f.t += dt;
+    if (f.bite > 0) {
+      f.bite -= dt;
+      if (f.bite <= 0) {
+        // It got away: wait for the next bite.
+        f.bite = 0;
+        f.biteAt = f.t + biteDelay(this.world.seed, f.cast + 1000);
+      }
+    } else if (f.t >= f.biteAt) {
+      f.bite = BITE_WINDOW;
+      this.emit({ t: 'bite' });
+    }
+  }
+
+  /** Eat food from the pack. */
+  useItem(id: ItemId): boolean {
+    const food = FOOD[id];
+    if (!food || invCount(this.carried, id) <= 0) return false;
+    invAdd(this.carried, id, -1);
+    this.hp = Math.min(this.derived.maxHp, this.hp + food.hp);
+    this.battery = Math.min(this.derived.maxBattery, this.battery + food.battery);
+    this.emit({ t: 'eat', item: id });
+    return true;
+  }
+
+  /** Throw a stack from the pack in front of the player (it cannot be picked up for a moment). */
+  dropItem(id: ItemId, n = Infinity): number {
+    const k = Math.min(n, invCount(this.carried, id));
+    if (k <= 0) return 0;
+    invAdd(this.carried, id, -k);
+    addDrop(this.drops, makeDrop(id, k, this.body.x + this.facing * 0.8, this.body.y - 1.2, this.facing * 5, -4, 1.5));
+    return k;
   }
 
   /** Cutting a trunk fells the whole connected tree: biomass for each trunk, a little for leaves. */
@@ -925,11 +1106,15 @@ export class Game {
       this.emit({ t: 'break', x, y, tile: t });
       stack.push([x + 1, y], [x - 1, y], [x, y - 1], [x, y + 1]);
     }
-    const n = Math.min(trunks + Math.ceil(leaves / 6), Math.max(0, cap - invTotal(this.carried)));
+    const total = trunks + Math.ceil(leaves / 6);
+    const n = Math.min(total, Math.max(0, cap - invTotal(this.carried)));
     if (n > 0) {
       invAdd(this.carried, 'biomass', n);
       this.emit({ t: 'pickup', item: 'biomass', x: tx, y: ty });
     }
+    // What does not fit lands on the ground, plus seeds to plant new trees.
+    if (total > n) addDrop(this.drops, makeDrop('biomass', total - n, tx + 0.5, ty));
+    if (trunks > 0) addDrop(this.drops, makeDrop('seed', 1 + (hash2(tx, ty, this.world.seed) < 0.5 ? 1 : 0), tx + 0.5, ty - 1, 1.5, -5));
     this.emit({ t: 'fell', x: tx, y: ty, tiles: trunks + leaves });
     return n;
   }

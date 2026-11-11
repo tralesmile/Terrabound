@@ -50,7 +50,9 @@ describe('biome enemies', () => {
     e.hp = 0;
     g.enemies = [e];
     g.step(1 / 60, { moveX: 0, jump: false, dig: false, place: false, aim: null });
-    expect(g.carried.crystal).toBe(1);
+    // Far from the player, the loot stays on the ground as a pickup.
+    expect(g.drops.some((d) => d.item === 'crystal' && d.n === 1)).toBe(true);
+    expect(g.carried.crystal ?? 0).toBe(0);
   });
 
   it('shard mites hop at a nearby player; hulks are tanky and slow', () => {

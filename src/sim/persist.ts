@@ -7,7 +7,7 @@
  * previous entry's last index (first entry: from -1); run (default 1) repeats the value on consecutive indices.
  * Fog format: base36 run lengths joined by ",", alternating unseen/seen, starting with unseen.
  */
-import { TILES } from './tiles';
+import { ITEM_IDS, T, TILES, type Inventory } from './tiles';
 import type { World } from './world';
 import { W } from './world';
 import type { FogMap } from './explore';
@@ -89,10 +89,47 @@ export interface WorldDiff {
   tiles: string;
   walls: string;
   fog: string;
+  /** v8: contents of opened and placed chests, JSON [[index, {item: n}], ...]. */
+  chests?: string;
+  /** v8: growing saplings, edit-diff format with seconds left as the value. */
+  saplings?: string;
+}
+
+export function encodeChests(chests: Map<number, Inventory>): string {
+  const out: [number, Inventory][] = [];
+  for (const [i, inv] of chests) out.push([i, inv]);
+  return out.length ? JSON.stringify(out) : '';
+}
+
+/** Never throws; drops bad indices, unknown items and non-positive counts. */
+export function decodeChests(s: unknown, size: number): Map<number, Inventory> {
+  const m = new Map<number, Inventory>();
+  if (typeof s !== 'string' || !s) return m;
+  let raw: unknown;
+  try {
+    raw = JSON.parse(s);
+  } catch {
+    return m;
+  }
+  if (!Array.isArray(raw)) return m;
+  for (const e of raw) {
+    if (!Array.isArray(e) || e.length !== 2) continue;
+    const [i, inv] = e as [unknown, unknown];
+    if (typeof i !== 'number' || !Number.isInteger(i) || i < 0 || i >= size || !inv || typeof inv !== 'object') continue;
+    const clean: Inventory = {};
+    for (const id of ITEM_IDS) {
+      const n = (inv as Record<string, unknown>)[id];
+      if (typeof n === 'number' && Number.isFinite(n) && n > 0) clean[id] = Math.min(1e6, Math.floor(n));
+    }
+    m.set(i, clean);
+  }
+  return m;
 }
 
 export function captureDiff(world: World, fog: FogMap): WorldDiff {
-  return { tiles: encodeEdits(world.edits), walls: encodeEdits(world.wallEdits), fog: encodeFog(fog.seen) };
+  const sap = new Map<number, number>();
+  for (const [i, t] of world.saplings) sap.set(i, Math.max(1, Math.ceil(t)));
+  return { tiles: encodeEdits(world.edits), walls: encodeEdits(world.wallEdits), fog: encodeFog(fog.seen), chests: encodeChests(world.chests), saplings: encodeEdits(sap) };
 }
 
 /** Replay saved edits onto a freshly generated world of the same seed. */
@@ -103,12 +140,16 @@ export function applyDiff(world: World, fog: FogMap, diff: WorldDiff | null): vo
   const maxWall = Math.max(...Object.values(W));
   for (const [i, wl] of decodeEdits(diff.walls, size, maxWall)) world.setWall(i % world.w, Math.floor(i / world.w), wl);
   decodeFog(diff.fog, fog);
+  // Chests and saplings only count where the tile still is one (edits were replayed above).
+  for (const [i, inv] of decodeChests(diff.chests, size)) if (world.tiles[i] === T.CHEST) world.chests.set(i, inv);
+  for (const [i, t] of decodeEdits(diff.saplings, size, 10_000)) if (world.tiles[i] === T.SAPLING) world.saplings.set(i, t);
 }
 
 export function sanitizeDiff(v: unknown): WorldDiff | null {
   if (!v || typeof v !== 'object') return null;
   const r = v as Record<string, unknown>;
   const str = (x: unknown): string => (typeof x === 'string' && x.length < 4_000_000 ? x : '');
-  const d = { tiles: str(r.tiles), walls: str(r.walls), fog: str(r.fog) };
-  return d.tiles || d.walls || d.fog ? d : null;
+  // v7 -> v8: chests and saplings are new (missing means none opened / none planted).
+  const d = { tiles: str(r.tiles), walls: str(r.walls), fog: str(r.fog), chests: str(r.chests), saplings: str(r.saplings) };
+  return d.tiles || d.walls || d.fog || d.chests || d.saplings ? d : null;
 }

@@ -1,5 +1,5 @@
 import { valueNoise, hash2 } from './rng';
-import { T, TILES } from './tiles';
+import { T, TILES, type Inventory } from './tiles';
 import { BIOMES, biomeLayout, type BiomeId } from './biomes';
 import { decorate, type Structure } from './structures';
 
@@ -33,6 +33,12 @@ export class World {
   readonly torches = new Set<number>();
   /** Points of interest placed by worldgen (ruins, towers, ships, vaults, geodes). */
   readonly structures: Structure[] = [];
+  /** Growing saplings: tile index -> seconds until they become a tree. */
+  readonly saplings = new Map<number, number>();
+  /** Chest contents by tile index (world chests appear here once opened; placed chests start empty). */
+  readonly chests = new Map<number, Inventory>();
+  /** Bumped when any chest's contents change (saves pick it up through the diff). */
+  chestVersion = 0;
   /** Persistent edits since generation: index -> tile / wall (saved as a diff, see persist.ts). */
   readonly edits = new Map<number, number>();
   readonly wallEdits = new Map<number, number>();
@@ -68,6 +74,8 @@ export class World {
     const i = y * this.w + x;
     if (this.tiles[i] === T.TORCH) this.torches.delete(i);
     if (t === T.TORCH) this.torches.add(i);
+    if (t !== T.SAPLING) this.saplings.delete(i);
+    if (t !== T.CHEST && this.chests.delete(i)) this.chestVersion++;
     this.tiles[i] = t;
     this.version++;
     this.mark(i);
@@ -87,6 +95,10 @@ export class World {
     this.mark(y * this.w + x);
     this.wallEdits.set(y * this.w + x, wall);
     return true;
+  }
+
+  markChest(_x: number, _y: number): void {
+    this.chestVersion++;
   }
 
   private mark(i: number): void {

@@ -73,6 +73,8 @@ const POI_NAMES: Record<StructureKind, string> = {
   geode: 'Crystal geode',
   shrine: 'Data shrine',
   wreck: 'Drone wreck',
+  pond: 'Surface pond',
+  island: 'Sky island',
 };
 
 const POI_REWARD: Record<StructureKind, Inventory> = {
@@ -83,6 +85,8 @@ const POI_REWARD: Record<StructureKind, Inventory> = {
   geode: { crystal: 4 },
   shrine: { crystal: 2, copper_wire: 2 },
   wreck: { copper_wire: 5 },
+  pond: { fish: 2 },
+  island: { crystal: 5, seed: 2 },
 };
 
 /** Every discoverable entry: the five biomes and seven kinds of point of interest. */

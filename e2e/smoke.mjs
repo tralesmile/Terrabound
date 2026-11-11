@@ -402,17 +402,93 @@ try {
     const pos = await tileToCss(page, chestAt.x, chestAt.y);
     await page.mouse.move(pos.x, pos.y);
     await page.mouse.down();
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(150);
     await page.mouse.up();
   }
+  const opened = await page.evaluate(() => !!window.__terrabound.game.chestOpen);
+  check('clicking a ruin chest opens its window (it is not destroyed)', !!chestAt && opened, JSON.stringify({ chestAt, opened }));
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: path.join(out, '12-chest-window.png') });
+  // TAKE ALL like a player.
+  const takeBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'take' && r.a.id === 'all'));
+  if (takeBtn) await page.mouse.click(takeBtn.x + takeBtn.w / 2, takeBtn.y + takeBtn.h / 2);
+  await page.waitForTimeout(200);
   const loot = await page.evaluate(() => Object.values(window.__terrabound.game.carried).reduce((a, n) => a + (n || 0), 0));
-  check('breaking a ruin chest fills the pack with loot', !!chestAt && loot > 0, JSON.stringify({ chestAt, loot }));
+  check('TAKE ALL moves the chest loot into the pack', !!chestAt && loot > 0, JSON.stringify({ chestAt, loot }));
+  await page.keyboard.press('KeyE');
+  check('E closes the chest window', !(await page.evaluate(() => !!window.__terrabound.game.chestOpen)));
+  // Inventory: I opens it with the character in gear; selecting a fish and eating it heals.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.carried.fish = 2;
+    g.hp = 40;
+  });
+  await page.keyboard.press('KeyI');
+  await page.waitForTimeout(250);
+  check('I opens the inventory', await page.evaluate(() => window.__terrabound.ui.invOpen));
+  const fishCell = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'invsel' && r.a.id === 'fish'));
+  if (fishCell) await page.mouse.click(fishCell.x + fishCell.w / 2, fishCell.y + fishCell.h / 2);
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: path.join(out, '18-inventory.png') });
+  const eatBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'use'));
+  if (eatBtn) await page.mouse.click(eatBtn.x + eatBtn.w / 2, eatBtn.y + eatBtn.h / 2);
+  const ate = await page.evaluate(() => ({ hp: window.__terrabound.game.hp, fish: window.__terrabound.game.carried.fish }));
+  check('selecting a fish in the inventory and pressing EAT heals', ate.hp > 40 && ate.fish === 1, JSON.stringify(ate));
+  await page.keyboard.press('KeyI');
+  check('I closes the inventory', !(await page.evaluate(() => window.__terrabound.ui.invOpen)));
+  // Tools: mouse wheel cycles to the fishing rod; casting at a pond and clicking on the bite lands a catch.
+  await page.evaluate(() => window.__terrabound.game.setTool('pistol'));
+  await page.mouse.wheel(0, 100);
+  await page.waitForTimeout(100);
+  check('mouse wheel switches tools', (await page.evaluate(() => window.__terrabound.game.tool)) === 'rod');
+  const pond = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const p = g.world.structures.find((s) => s.kind === 'pond');
+    if (!p) return null;
+    const mid = (p.x0 + p.x1) >> 1;
+    g.enemies = [];
+    g.body.x = p.x0 - 1.5;
+    g.body.y = g.world.surface[p.x0 - 2] - 0.01;
+    g.body.vx = g.body.vy = 0;
+    g.time = 30;
+    return { x: mid - 2, y: p.y0 };
+  });
+  await page.waitForTimeout(300);
+  await page.waitForFunction(() => Math.abs(window.__terrabound.renderer.camX - window.__terrabound.game.body.x) < 0.3, null, { timeout: 3000 }).catch(() => {});
+  let caught = false;
+  if (pond) {
+    const wp = await tileToCss(page, pond.x, pond.y);
+    await page.mouse.click(wp.x, wp.y);
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(out, '19-fishing.png') });
+    await page.waitForFunction(() => (window.__terrabound.game.fishing?.bite ?? 0) > 0, null, { timeout: 9000 }).catch(() => {});
+    await page.mouse.click(wp.x, wp.y);
+    await page.waitForTimeout(150);
+    caught = await page.evaluate(() => window.__terrabound.game.fishing === null);
+  }
+  const bag = await page.evaluate(() => JSON.stringify(window.__terrabound.game.carried));
+  check('casting the rod at a pond and clicking on the bite lands a catch', !!pond && caught, bag);
+  // Sky island screenshot.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const s = g.world.structures.find((x) => x.kind === 'island');
+    if (!s) return;
+    g.body.x = (s.x0 + s.x1) / 2;
+    g.body.y = s.y0 + 0.99;
+    g.body.vx = g.body.vy = 0;
+    g.enemies = [];
+    g.setTool('drill');
+  });
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: path.join(out, '20-sky-island.png') });
   await page.screenshot({ path: path.join(out, '12-chest-loot.png') });
 
   // Map: M opens it (pauses the dive), M closes it. Then beam home from the surface with R.
   await page.evaluate(() => {
     const g = window.__terrabound.game;
-    const x = g.world.padX + 90;
+    // A dry, open surface column (ponds and structures dot the surface now).
+    let x = g.world.padX + 90;
+    while (!(g.world.isSolid(x, g.world.surface[x]) && g.world.get(x, g.world.surface[x] - 1) === 0 && g.world.get(x, g.world.surface[x] - 2) === 0)) x++;
     g.enemies = [];
     g.fallers = [];
     g.body.x = x + 0.5;

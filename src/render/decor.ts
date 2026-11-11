@@ -290,7 +290,7 @@ export function buildDecor(): DecorAtlas {
 /** Sky gradient stops per biome: top, middle, horizon; plus the skyline silhouette colour. */
 export const SKY: Record<number, [string, string, string, string]> = {
   [B.WASTES]: ['#0b1026', '#2a1f4d', '#e87f5b', '#1a1536'],
-  [B.JUNGLE]: ['#06181a', '#1d4a3a', '#a8d86a', '#0f2a22'],
+  [B.JUNGLE]: ['#06181a', '#1d4a3a', '#7fb86a', '#0f2a22'],
   [B.CRYSTAL]: ['#120a2c', '#3d2a73', '#c79bff', '#1e1544'],
   [B.ASH]: ['#120a0a', '#3d1f1a', '#d9573a', '#221312'],
   [B.FROST]: ['#081830', '#2c5a8a', '#cfe8ff', '#16304e'],

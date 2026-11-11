@@ -7,12 +7,16 @@ export type ItemId =
   | 'copper_wire'
   | 'crystal'
   | 'biomass'
+  | 'seed'
+  | 'fish'
+  | 'glowfish'
   | 'torch'
   | 'ladder'
   | 'scaffold'
   | 'platform'
   | 'door'
   | 'wall'
+  | 'chest'
   | 'solar'
   | 'smelter'
   | 'battery'
@@ -25,12 +29,16 @@ export const ITEM_IDS: ItemId[] = [
   'copper_wire',
   'crystal',
   'biomass',
+  'seed',
+  'fish',
+  'glowfish',
   'torch',
   'ladder',
   'scaffold',
   'platform',
   'door',
   'wall',
+  'chest',
   'solar',
   'smelter',
   'battery',
@@ -72,6 +80,7 @@ export const T = {
   BATTERY: 29,
   MINER: 30,
   DRONE: 31,
+  SAPLING: 32,
 } as const;
 
 export interface TileDef {
@@ -90,6 +99,8 @@ export interface TileDef {
   enemyBlock?: boolean;
   /** Emits a faint light (crystals). */
   glow?: boolean;
+  /** Saplings need soil under them. */
+  soil?: boolean;
   /** Flows (liquids.ts); swimmable; blocks placing only until displaced. */
   liquid?: boolean;
 }
@@ -127,6 +138,7 @@ export const TILES: TileDef[] = [
   { name: 'Battery', hardness: 0.5, solid: false, drop: 'battery', minable: true },
   { name: 'Miner rig', hardness: 0.6, solid: false, drop: 'miner', minable: true },
   { name: 'Drone bay', hardness: 0.6, solid: false, drop: 'drone', minable: true },
+  { name: 'Sapling', hardness: 0.05, solid: false, drop: 'seed', minable: true },
 ];
 
 export interface ItemDef {
@@ -147,12 +159,16 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   copper_wire: { name: 'Copper wire', color: '#e08a3c', places: null },
   crystal: { name: 'Crystal', color: '#c08cff', places: null },
   biomass: { name: 'Biomass', color: '#7fcf5a', places: null },
+  seed: { name: 'Tree seed', color: '#c9a35a', places: T.SAPLING },
+  fish: { name: 'Hollow fish', color: '#5aa6ff', places: null },
+  glowfish: { name: 'Glowfish', color: '#36e0e8', places: null },
   torch: { name: 'Torch', color: '#ffb03a', places: T.TORCH, kit: true },
   ladder: { name: 'Ladder', color: '#c9a35a', places: T.LADDER, kit: true },
   scaffold: { name: 'Scaffold', color: '#7d8da6', places: T.SCAFFOLD, kit: true },
   platform: { name: 'Platform', color: '#9fb0c8', places: T.PLATFORM, kit: true },
   door: { name: 'Door', color: '#6fa8c9', places: T.DOOR, kit: true },
   // 3 = W.PLATE (world.ts); kept numeric to avoid an import cycle.
+  chest: { name: 'Storage chest', color: '#c9a35a', places: T.CHEST, kit: true },
   wall: { name: 'Back wall', color: '#5a6478', places: null, placesWall: 3, kit: true },
   solar: { name: 'Solar cell', color: '#4aa8ff', places: T.SOLAR, kit: true },
   smelter: { name: 'Smelter', color: '#ff8a3a', places: T.SMELTER, kit: true },
@@ -161,7 +177,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   drone: { name: 'Drone bay', color: '#8ad8ff', places: T.DRONE, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'solar', 'smelter', 'battery', 'miner', 'drone'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone'];
 
 /** Placeables worth showing in the hotbar: owned ones plus the selected one, in PLACEABLE order. */
 export function visiblePlaceables(inv: Inventory, selected: ItemId): ItemId[] {

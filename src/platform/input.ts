@@ -43,12 +43,17 @@ export class Input {
       else if (e.code === 'Digit1') this.onAction({ k: 'settool', t: 'drill' });
       else if (e.code === 'Digit2') this.onAction({ k: 'settool', t: 'blade' });
       else if (e.code === 'Digit3') this.onAction({ k: 'settool', t: 'pistol' });
-      else if (e.code === 'Digit4') this.onAction({ k: 'sel', i: 0 });
-      else if (e.code === 'Digit5') this.onAction({ k: 'sel', i: 1 });
-      else if (e.code === 'Digit6') this.onAction({ k: 'sel', i: 2 });
-      else if (e.code === 'Digit7') this.onAction({ k: 'sel', i: 3 });
-      else if (e.code === 'Digit8') this.onAction({ k: 'sel', i: 4 });
-      else if (e.code === 'Digit9') this.onAction({ k: 'sel', i: 5 });
+      else if (e.code === 'Digit4') this.onAction({ k: 'settool', t: 'rod' });
+      else if (e.code === 'Digit5') this.onAction({ k: 'sel', i: 0 });
+      else if (e.code === 'Digit6') this.onAction({ k: 'sel', i: 1 });
+      else if (e.code === 'Digit7') this.onAction({ k: 'sel', i: 2 });
+      else if (e.code === 'Digit8') this.onAction({ k: 'sel', i: 3 });
+      else if (e.code === 'Digit9') this.onAction({ k: 'sel', i: 4 });
+      else if (e.code === 'Digit0') this.onAction({ k: 'sel', i: 5 });
+      else if (e.code === 'KeyI' || e.code === 'Tab') {
+        e.preventDefault();
+        this.onAction({ k: 'inv' });
+      } else if (e.code === 'KeyE') this.onAction({ k: 'interact' });
       else if (e.code === 'Digit0') this.onAction({ k: 'sel', i: 6 });
       else if (e.code === 'Minus') this.onAction({ k: 'sel', i: 7 });
       else if (this.ui.screen === 'title') this.onAction({ k: 'start' });

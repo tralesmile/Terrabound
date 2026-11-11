@@ -12,7 +12,7 @@ export const PAD_CLEAR = 22;
 /** Plants keep out of the base strip. */
 export const PLANT_CLEAR = 9;
 
-export type StructureKind = 'ruin' | 'tower' | 'ship' | 'vault' | 'geode' | 'shrine' | 'wreck';
+export type StructureKind = 'ruin' | 'tower' | 'ship' | 'vault' | 'geode' | 'shrine' | 'wreck' | 'pond' | 'island';
 export interface Structure {
   kind: StructureKind;
   x0: number;
@@ -26,6 +26,8 @@ export function decorate(world: World): Structure[] {
   const out: Structure[] = [];
   const used = new Uint8Array(world.w);
   surfaceStructures(world, used, out);
+  ponds(world, used, out);
+  islands(world, out);
   trees(world, used);
   plants(world);
   underground(world, out);
@@ -176,7 +178,8 @@ function trees(world: World, used: Uint8Array): void {
       world.get(x, s - 1) === T.AIR &&
       world.surface[x - 1] >= s - 1 &&
       world.surface[x + 1] >= s - 1;
-    if (ok && hash2(x, 1, seed) < def.treeChance) {
+    // Trees under a sky island would grow into it.
+    if (ok && hash2(x, 1, seed) < def.treeChance && treeFits(world, x, s)) {
       tree(world, x, s, def.tree, hash2(x, 2, seed));
       x += 5 + Math.floor(hash2(x, 3, seed) * 4);
     } else x++;
@@ -187,7 +190,8 @@ function leaf(world: World, x: number, y: number): void {
   if (world.get(x, y) === T.AIR) put(world, x, y, T.LEAVES);
 }
 
-function tree(world: World, x: number, s: number, shape: TreeShape, r: number): void {
+/** Grow a tree of `shape` with its trunk base on top of ground row `s` (also used by planted saplings). */
+export function tree(world: World, x: number, s: number, shape: TreeShape, r: number): void {
   const range: Record<TreeShape, [number, number]> = {
     wire: [4, 7],
     canopy: [6, 11],
@@ -352,4 +356,127 @@ function vault(world: World, x0: number, y0: number, i: number): Structure {
   if (hash2(i, 3, seed) < 0.5) put(world, x1 - 3, y1 - 1, T.CHEST);
   put(world, x0 + 5, y0 + 2, T.TORCH);
   return { kind: 'vault', x0, y0, x1, y1 };
+}
+
+/** Soil a sapling can grow on. */
+export const SOIL_TILES = new Set<number>([T.RUST, T.SOIL, T.SAND, T.ASH, T.FROST]);
+
+/** Seconds a planted sapling takes to grow. */
+export function growTime(world: World, i: number): number {
+  return 60 + Math.floor(hash2(i, 5, world.seed) * 60);
+}
+
+/** True if a tree fits above ground row s at column x (enough open sky for the tallest shape). */
+export function treeFits(world: World, x: number, s: number): boolean {
+  for (let y = s - 12; y < s - 1; y++) for (let dx = -2; dx <= 2; dx++) if (TILES[world.get(x + dx, y)].solid) return false;
+  return true;
+}
+
+/** Advance every sapling by dt seconds; grown ones become trees (or retry later when blocked). Returns trees grown. */
+export function stepSaplings(world: World, dt: number): number {
+  let grown = 0;
+  for (const [i, left] of [...world.saplings]) {
+    const t = left - dt;
+    if (t > 0) {
+      world.saplings.set(i, t);
+      continue;
+    }
+    const x = i % world.w;
+    const y = Math.floor(i / world.w);
+    if (world.get(x, y) !== T.SAPLING) {
+      world.saplings.delete(i);
+      continue;
+    }
+    if (!treeFits(world, x, y + 1)) {
+      world.saplings.set(i, 20);
+      continue;
+    }
+    world.set(x, y, T.AIR);
+    tree(world, x, y + 1, BIOMES[world.biome[x] as BiomeId].tree, hash2(x, y, world.seed));
+    grown++;
+  }
+  return grown;
+}
+
+/** Surface ponds (fishing spots): bowl-shaped water basins dug into the ground, a few per biome band. */
+function ponds(world: World, used: Uint8Array, out: Structure[]): void {
+  const seed = world.seed ^ 0x90d;
+  let x = 30;
+  let k = 0;
+  while (x < world.w - 40) {
+    x += 70 + Math.floor(hash2(k, 1, seed) * 90);
+    k++;
+    const hw = 4 + Math.floor(hash2(k, 2, seed) * 5);
+    const depth = 3 + Math.floor(hash2(k, 3, seed) * 3);
+    if (x + hw >= world.w - 4 || Math.abs(x - world.padX) < PAD_CLEAR + hw + 4) continue;
+    // Ash Dunes are dry.
+    if (world.biome[x] === 3) continue;
+    let clear = true;
+    for (let c = x - hw - 2; c <= x + hw + 2; c++) if (used[c]) clear = false;
+    if (!clear) continue;
+    const top = world.surface[x];
+    flatten(world, x - hw - 1, x + hw + 1, top, 6);
+    for (let dx = -hw; dx <= hw; dx++) {
+      const d = Math.max(1, Math.round(depth * (1 - (dx / (hw + 0.5)) ** 2)));
+      for (let y = top; y < top + d; y++) put(world, x + dx, y, T.WATER);
+      // Solid lining so the pond holds its water.
+      const lining = BIOMES[world.biome[x + dx] as BiomeId].crust;
+      put(world, x + dx, top + d, lining);
+      if (Math.abs(dx) === hw) put(world, x + dx + Math.sign(dx), top, lining);
+    }
+    for (let c = x - hw - 2; c <= x + hw + 2; c++) used[c] = 1;
+    out.push({ kind: 'pond', x0: x - hw, y0: top, x1: x + hw, y1: top + depth });
+  }
+}
+
+/** Floating sky islands: one or two per biome band, each with soil, a tree and a rich chest. */
+function islands(world: World, out: Structure[]): void {
+  const seed = world.seed ^ 0x15a;
+  let start = 0;
+  let band = 0;
+  for (let x = 1; x <= world.w; x++) {
+    if (x < world.w && world.biome[x] === world.biome[start]) continue;
+    const mid = Math.floor((start + x) / 2);
+    const count = x - start > 220 ? 2 : 1;
+    for (let i = 0; i < count; i++) {
+      const want = start + Math.floor(((i + 1) / (count + 1)) * (x - start)) + Math.floor((hash2(band, i, seed) - 0.5) * 30);
+      // Never hang over a tower, ruin or ship (their roofs and chests must stay reachable): slide to a gap.
+      const tall = out.filter((st) => st.kind === 'tower' || st.kind === 'ruin' || st.kind === 'ship');
+      const free = (c: number): boolean => !tall.some((st) => st.x1 >= c - 15 && st.x0 <= c + 15);
+      const cx = [0, 12, -12, 24, -24, 36, -36, 48, -48].map((o) => want + o).find(free);
+      if (cx === undefined || Math.abs(cx - world.padX) < PAD_CLEAR + 20 || cx < 20 || cx > world.w - 20) continue;
+      let ground = world.h;
+      for (let c = cx - 14; c <= cx + 14; c++) ground = Math.min(ground, world.surface[Math.max(0, Math.min(world.w - 1, c))]);
+      const top = Math.max(5, ground - 14 - Math.floor(hash2(band, i + 9, seed) * 8));
+      if (top > ground - 10) continue;
+      out.push(island(world, cx, top, band * 7 + i));
+    }
+    void mid;
+    start = x;
+    band++;
+  }
+}
+
+function island(world: World, cx: number, top: number, k: number): Structure {
+  const seed = world.seed ^ 0x15b;
+  const hw = 7 + Math.floor(hash2(k, 1, seed) * 6);
+  const thick = 4 + Math.floor(hash2(k, 2, seed) * 3);
+  const crust = BIOMES[world.biome[cx] as BiomeId].crust;
+  for (let dx = -hw; dx <= hw; dx++) {
+    // Flat top, tapered rocky underside.
+    const d = Math.max(1, Math.round(thick * Math.sqrt(1 - (dx / (hw + 0.5)) ** 2)) + (hash2(dx, k, seed) < 0.3 ? 1 : 0));
+    for (let y = top; y < top + d; y++) put(world, cx + dx, y, y === top || y === top + 1 ? crust : hash2(cx + dx, y, seed) < 0.12 ? T.CRYSTAL : T.METAL);
+  }
+  // A tree and plants on top, a chest with sky loot.
+  tree(world, cx - Math.floor(hw / 2), top, BIOMES[world.biome[cx] as BiomeId].tree, hash2(k, 3, seed));
+  for (let dx = -hw + 1; dx < hw; dx++) if (world.get(cx + dx, top - 1) === T.AIR && hash2(dx, k, seed + 1) < 0.35) put(world, cx + dx, top - 1, T.PLANT);
+  const chestX = cx + Math.floor(hw / 2);
+  put(world, chestX, top - 1, T.CHEST);
+  world.chests.set((top - 1) * world.w + chestX, {
+    crystal: 4 + Math.floor(hash2(k, 4, seed) * 5),
+    copper_wire: 3 + Math.floor(hash2(k, 5, seed) * 4),
+    seed: 2,
+    glowfish: hash2(k, 6, seed) < 0.5 ? 1 : 0,
+  });
+  return { kind: 'island', x0: cx - hw, y0: top - 1, x1: cx + hw, y1: top + thick };
 }

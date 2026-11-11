@@ -45,9 +45,9 @@ describe('fog map', () => {
 });
 
 describe('codex', () => {
-  it('has twelve unique entries, each with a reward', () => {
-    expect(CODEX.length).toBe(12);
-    expect(new Set(CODEX.map((c) => c.id)).size).toBe(12);
+  it('has fourteen unique entries, each with a reward', () => {
+    expect(CODEX.length).toBe(14);
+    expect(new Set(CODEX.map((c) => c.id)).size).toBe(14);
     for (const c of CODEX) expect(Object.values(c.reward).reduce((a, n) => a + (n ?? 0), 0)).toBeGreaterThan(0);
   });
 
