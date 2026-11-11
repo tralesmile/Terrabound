@@ -47,7 +47,8 @@ export type UiAction =
   | { k: 'equip'; id: GearId }
   | { k: 'mapzoom'; d: number }
   | { k: 'mapcenter' }
-  | { k: 'victoryclose' };
+  | { k: 'victoryclose' }
+  | { k: 'share' };
 
 export type ShopTab = 'upgrades' | 'fab' | 'gear';
 
@@ -242,6 +243,7 @@ export class UI {
     lines.forEach((l, i) => this.text(ctx, l, w / 2, h * 0.36 + i * u * 1.8, Math.round(u * 0.9), i === 3 ? '#ffcf4a' : '#c9d0e4', 'center', w - u * 2));
     const bw = Math.min(w - u * 2, u * 14);
     this.button(ctx, (w - bw) / 2, h * 0.76, bw, u * 2.6, 'KEEP PLAYING', { k: 'victoryclose' }, u);
+    this.button(ctx, (w - bw) / 2, h * 0.76 + u * 3.2, bw, u * 2.2, 'SHARE MY WIN', { k: 'share' }, u * 0.85, { color: '#7a5a1f' });
   }
 
   private drawBossBar(ctx: CanvasRenderingContext2D, game: Game, w: number, u: number): void {
@@ -449,6 +451,7 @@ export class UI {
     this.button(ctx, zx, u * 0.4, zb, u * 2.2, '+', { k: 'mapzoom', d: 1 }, u, { enabled: this.mapView.zoom < MAP_ZOOMS.length - 1 });
     zx += zb + u * 0.4;
     this.button(ctx, zx, u * 0.4, zb * 1.6, u * 2.2, 'YOU', { k: 'mapcenter' }, u * 0.8);
+    this.button(ctx, w - bw - u * 2 - zb * 2 - zb * 1.6 - u * 1.2 - zb * 2.4, u * 0.4, zb * 2.2, u * 2.2, 'SHARE', { k: 'share' }, u * 0.75, { color: '#7a5a1f' });
     this.mapRect = { x: u, y: u * 3.2, w: w - u * 2, h: h - u * 6.4 };
     this.mapView.draw(ctx, game, u, u * 3.2, w - u * 2, h - u * 6.4, u, time);
     const hint = game.canRecall() ? (this.touch ? 'Surface: tap HOME to beam to the pad' : 'Surface: hold still and press R to beam to the pad') : 'Reach the surface to beam home';

@@ -292,3 +292,5 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 Also: procedural music (composer.ts + Sfx.updateMusic, mood from biome/layer/night/boss), save v11 music setting. 259 unit tests, bundle 181 kB (62.7 kB gzip).
 Also: weather and events (weather.ts): dust storms, meteor showers, eclipses. 264 unit tests, bundle 184 kB (63.8 kB gzip).
 Also: pets (scout bot, glow moth, spark pup) in a new gear slot. 266 unit tests, bundle 186 kB (64.5 kB gzip).
+Also: share cards (SHARE on the map and victory screens). 267 unit tests, e2e green, bundle 189 kB (65.3 kB gzip).
+Interactive session claims are all finished; scheduled runs continue P1.8 from "Living base and drones" (skip items already ticked).

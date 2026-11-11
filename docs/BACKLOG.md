@@ -101,7 +101,7 @@ World
 
 Together
 - [ ] Daily world leaderboard (local first, then free-tier backend behind the Leaderboard interface): deepest, most loot, fastest boss
-- [ ] Share card: one-tap image of the run or base (canvas to PNG, Web Share API, download fallback) (CLAIMED by the interactive session 2026-11-11)
+- [x] Share card (src/ui/share.ts): 1200x630 image with stats and world code; SHARE on the map and victory screens; Web Share API with PNG download fallback
 - [ ] Co-op research spike then implementation (2-4 players, WebRTC peer-to-peer, host-authoritative sim); keep behind a feature flag until stable
 
 Polish

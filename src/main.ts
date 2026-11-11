@@ -13,6 +13,7 @@ import { codexEntry } from './sim/explore';
 import { GEAR } from './sim/gear';
 import { isNight } from './sim/daynight';
 import { WEATHER } from './sim/weather';
+import { shareCard } from './ui/share';
 import { BOSSES } from './sim/bosses';
 import { UI, type UiAction } from './ui/ui';
 
@@ -204,6 +205,16 @@ function boot(): void {
         game.setTool(a.t);
         ui.toast(TOOL_NAMES[a.t], '#36e0e8');
         break;
+      case 'share': {
+        // Share the world view, not the menu on top of it.
+        const wasMap = ui.mapOpen;
+        ui.mapOpen = false;
+        ui.victory = false;
+        renderer.draw(game, fx, null, clock);
+        void shareCard(game, canvas).then((r) => ui.toast(r === 'shared' ? 'Shared!' : r === 'downloaded' ? 'Card saved as an image' : 'Could not create the card', '#ffcf4a'));
+        ui.mapOpen = wasMap;
+        break;
+      }
       case 'victoryclose':
         ui.victory = false;
         break;

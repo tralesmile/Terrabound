@@ -702,6 +702,18 @@ try {
     return g.equipped('pet') === 'spark_pup' && Math.hypot(g.pet.x - g.body.x, g.pet.y - g.body.y) < 5;
   }));
 
+  // Share card: SHARE on the map downloads a PNG in a headless browser (no Web Share there).
+  await page.keyboard.press('KeyM');
+  await page.waitForTimeout(200);
+  const shareBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'share'));
+  const dl = page.waitForEvent('download', { timeout: 5000 }).catch(() => null);
+  if (shareBtn) await page.mouse.click(shareBtn.x + shareBtn.w / 2, shareBtn.y + shareBtn.h / 2);
+  const file = await dl;
+  if (file) await file.saveAs(path.join(out, '32-share-card.png'));
+  check('SHARE creates a share card image', !!file && /terrabound-.*\.png/.test(file.suggestedFilename()), file ? file.suggestedFilename() : 'no download');
+  await page.keyboard.press('KeyM');
+  await page.waitForTimeout(100);
+
   // Map: zoom with the wheel and the +/- buttons.
   await page.keyboard.press('KeyM');
   await page.waitForTimeout(200);
