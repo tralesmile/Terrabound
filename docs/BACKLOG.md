@@ -61,6 +61,18 @@ World size and variety:
 - [x] Exploration rewards: 10 codex entries (biomes + structure kinds) with one-time stash rewards, save v4. (Explorer achievements move to P4 achievements.)
 - [x] Simulated-player test (tests/biomes.test.ts over 8 seeds): biomes, structures and chests appear within the expected distances on 25 seeds; no structure overlaps the pad.
 
+## P1.6 Owner requests 2026-11-11 (done in an interactive session)
+
+- [x] Inventory screen (I / Tab / bag slot) with the character in gear, tools, pack grid, EAT / HOLD / DROP
+- [x] Pixel icons for every item and tool (src/render/icons.ts); hotbar uses them; visible gear and held tool on the character
+- [x] Tool switching: 1-4, Q, mouse wheel; fishing rod as tool 4
+- [x] Chests open as containers (click / E): take, take all, store, pick up; storage chest item; contents persist (save v8)
+- [x] Ground pickups (src/sim/drops.ts): enemy loot, overflow, dropped items
+- [x] Seeds from felled trees; planting on soil grows trees (saplings persist)
+- [x] Fishing (src/sim/fishing.ts) at surface ponds; fish heal when eaten
+- [x] Floating sky islands with a rich chest; surface ponds (codex now 14 entries)
+- [ ] Follow-ups: gear/armor as real equippable items (P3 equipment slots), crops and farming, ice fishing in Frozen Spires, a way up to islands (jump pads / grapple), an inventory hotbar the player can arrange, touch long-press for item actions
+
 ## P2 Base and automation (M2)
 
 - [x] Persistent base strip above the pad (15x10 tiles, src/sim/base.ts) saved in format v2 with v1 migration test; built tiles survive dives and reloads

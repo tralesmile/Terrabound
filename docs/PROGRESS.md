@@ -247,3 +247,13 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 **Next:** local best per daily world, run summary + share card, pause menu, drone rules UI.
 
 **Known issues:** DAILY replaces the persistent world (confirm tap not added; NEW WORLD has one); hotbar "0" slot for a selected unowned block.
+
+## 2026-11-11 Interactive session (owner feedback: inventory, chests, pickups, planting, fishing, islands, graphics)
+
+**Done:** see BACKLOG P1.6. Inventory screen, pixel icons, visible gear and held tool, rod tool and fishing, chests as containers with storage chests, ground drops, seeds and saplings, surface ponds, sky islands, save v8 (chests and saplings in the world diff, v7 migration). Jungle sky toned down. The scheduled task could not be paused from the session (permission check), so runs continued in parallel; no conflicts.
+
+**Numbers:** 234 unit tests, e2e all green (new: chest window, TAKE ALL, E close, inventory open/eat/close, wheel tool switch, fishing catch), bundle 141 kB (49.9 kB gzip).
+
+**Next:** P1.6 follow-ups (way up to islands, equipment items, crops), then P2/P3 as ordered.
+
+**Known issues:** hotbar shows a dimmed "0" slot for a selected block you no longer own; the fishing screenshot sometimes shows no line because the capture runs before the cast lands; island access needs building ladders/scaffolds.

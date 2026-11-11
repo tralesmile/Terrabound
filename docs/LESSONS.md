@@ -47,3 +47,5 @@
 - **Check codes must use odd weights.** A first draft weighted positions 1..7, so even weights are not invertible mod 32 and some typos passed. Guard: the test now tries every single-character substitution and expects null.
 - **Shop panel scrolls now (9 rows).** Adding rows is safe; still view 09/09b screenshots.
 - **Duplicate `const` names in one long UI method fail tsc.** Guard: run `npx tsc --noEmit` before the full gate (already noted); use distinct names (`tbw`) for per-row widths.
+- **Tile ids are shared across parallel work.** A new tile collided with ids another run had added (SAPLING vs SOLAR=27). Guard: tests/icons.test.ts asserts tile ids are contiguous and TILES has one entry per id; always append new ids at the end of `T`.
+- **New surface features break fixed e2e spots.** Recall checks used `padX + 90`, which became a pond. Guard: e2e searches for a dry, open column instead of a fixed offset.
