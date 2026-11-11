@@ -265,3 +265,13 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 **Next:** run summary + share card, pause menu, DAILY confirm tap, drone rules UI, equipment slots (P3).
 
 **Known issues:** DAILY replaces the persistent world without a confirm; fishing screenshot sometimes shows no line.
+
+## 2026-11-11 Interactive session (owner: swinging, more weapons and abilities, craftable weapons/armor/vehicles, better map)
+
+**Done:** BACKLOG P1.7: craftable gear in the GEAR tab (17 pieces, save v9 with v8 migration), grappling hook, double jump, dash, jetpack, glider, hoverbike and Sky Jet, armor recolours, bombs that dig craters, rail/scatter guns, zoomable draggable map with pins and legend, workshop rows fit any screen.
+
+**Numbers:** 247 unit tests, e2e all green (new: GEAR tab build, ride and fly, hook attach/release, map zoom/pan), bundle 159 kB (55.5 kB gzip).
+
+**Next:** P1.7 follow-ups, then P2/P3 in order.
+
+**Known issues:** vehicles are drawn from rectangles (art pass pending); on touch, reeling the hook needs holding the dig side.

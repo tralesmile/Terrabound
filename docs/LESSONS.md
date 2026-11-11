@@ -49,3 +49,5 @@
 - **Duplicate `const` names in one long UI method fail tsc.** Guard: run `npx tsc --noEmit` before the full gate (already noted); use distinct names (`tbw`) for per-row widths.
 - **Tile ids are shared across parallel work.** A new tile collided with ids another run had added (SAPLING vs SOLAR=27). Guard: tests/icons.test.ts asserts tile ids are contiguous and TILES has one entry per id; always append new ids at the end of `T`.
 - **New surface features break fixed e2e spots.** Recall checks used `padX + 90`, which became a pond. Guard: e2e searches for a dry, open column instead of a fixed offset.
+- **A Playwright `mouse.click` or `keyboard.press` can fall between two sim frames** (the sim only sees held state). Guard: in e2e, press, wait ~60-80 ms, then release for anything the sim must see as a press.
+- **`npm run ship` is rejected when a parallel run pushed first.** Fix: `git fetch origin && git rebase origin/main` (dev and main are the same commit after every ship), then ship again.

@@ -73,6 +73,14 @@ World size and variety:
 - [x] Floating sky islands with a rich chest; surface ponds (codex now 14 entries)
 - [ ] Follow-ups: gear/armor as real equippable items (P3 equipment slots), crops and farming, ice fishing in Frozen Spires, a way up to islands (jump pads / grapple), an inventory hotbar the player can arrange, touch long-press for item actions
 
+## P1.7 Owner requests 2026-11-11 evening (done in an interactive session)
+
+- [x] Craftable gear (src/sim/gear.ts, save v9) in the workshop GEAR tab: 2 melee, 3 ranged, 4 armor, 2 boots, 2 back items, 2 vehicles; equip from the workshop or inventory
+- [x] Grappling hook tool (5): rope pendulum, reel in / lower, jump to release
+- [x] Abilities: double jump, dash, jetpack, glider; vehicles hoverbike and Sky Jet (V / RIDE)
+- [x] Map: tile detail, zoom (wheel, +/-), drag pan, YOU, chest pins, structure outlines, legend
+- [ ] Follow-ups: gear tiers and upgrades (Mk II), weapon mods, enemy-dropped gear, vehicle art pass (sprites instead of rectangles), map waypoints and fast travel between beacons, touch: hold-to-reel button for the hook
+
 ## P2 Base and automation (M2)
 
 - [x] Persistent base strip above the pad (15x10 tiles, src/sim/base.ts) saved in format v2 with v1 migration test; built tiles survive dives and reloads
