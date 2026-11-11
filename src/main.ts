@@ -1,4 +1,5 @@
 import { drawDecorGallery } from './render/decor';
+import { dailyCode } from './sim/daily';
 import { Input } from './platform/input';
 import { Sfx } from './platform/audio';
 import { loadRaw, saveRaw } from './platform/storage';
@@ -134,6 +135,13 @@ function boot(): void {
         }
         break;
       }
+      case 'daily':
+        if (game.newDive(dailyCode(Date.now()))) {
+          ui.shopOpen = false;
+          saveNow();
+          ui.toast(`Daily Dive ${dailyCode(Date.now())}: same world for everyone today`, '#36e0e8', 5);
+        } else ui.toast('Return to the pad first', '#ff8a8a');
+        break;
       case 'scroll':
         ui.scrollShop(a.d);
         break;

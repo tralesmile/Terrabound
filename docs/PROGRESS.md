@@ -239,3 +239,11 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 **Next:** drone rules UI / world-flying drones, equipment slots (P3), Daily Dive (needs a mode that does not clobber the persistent world), run summary card.
 
 **Known issues:** PLAY A CODE uses window.prompt (no in-canvas text entry; fine on web, check Capacitor); hotbar "0" slot for a selected unowned block.
+
+## 2026-11-11 Scheduled run 10
+
+**Done:** baseline green. Daily Dive v1: `src/sim/daily.ts` (UTC-day hash -> world code, DST-proof), workshop row is now COPY CODE / PLAY CODE / DAILY with the world code in the footer; DAILY action e2e check; 4 new tests (213 total). Screenshot 09 reviewed at 360 px.
+
+**Next:** local best per daily world, run summary + share card, pause menu, drone rules UI.
+
+**Known issues:** DAILY replaces the persistent world (confirm tap not added; NEW WORLD has one); hotbar "0" slot for a selected unowned block.

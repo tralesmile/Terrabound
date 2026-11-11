@@ -92,7 +92,7 @@ World size and variety:
 
 ## P4 Retention and sharing (M4)
 
-- [ ] Daily Dive: date-seeded world, same for everyone, local best, UTC rollover and DST-safe
+- [x] Daily Dive v1: UTC-day world code (src/sim/daily.ts), workshop DAILY button, tests for rollover/DST. Todo: local best per day, daily leaderboard-free share card
 - [x] Seed sharing: 8-char world code with checksum (src/sim/seedcode.ts), COPY and PLAY A CODE in the workshop, save v7 `worldSeed`
 - [ ] Run summary screen and share card image (canvas to PNG, Web Share API with fallback download)
 - [ ] Achievements (30) with cosmetic rewards; stats screen

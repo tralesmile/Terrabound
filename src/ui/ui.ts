@@ -17,6 +17,7 @@ export type UiAction =
   | { k: 'scroll'; d: number }
   | { k: 'copyseed' }
   | { k: 'enterseed' }
+  | { k: 'daily' }
   | { k: 'dive' }
   | { k: 'sel'; i: number }
   | { k: 'tool' }
@@ -380,10 +381,12 @@ export class UI {
 
     const fy = py + ph - u * 4.4;
     const bw = (pw - u * 3) / 2;
-    this.button(ctx, px + u, fy - u * 2.8, bw, u * 2.2, `COPY ${game.seedCode}`, { k: 'copyseed' }, u * 0.8);
-    this.button(ctx, px + u * 2 + bw, fy - u * 2.8, bw, u * 2.2, 'PLAY A CODE', { k: 'enterseed' }, u * 0.8);
+    const tbw = (pw - u * 4) / 3;
+    this.button(ctx, px + u, fy - u * 2.8, tbw, u * 2.2, 'COPY CODE', { k: 'copyseed' }, u * 0.7);
+    this.button(ctx, px + u * 2 + tbw, fy - u * 2.8, tbw, u * 2.2, 'PLAY CODE', { k: 'enterseed' }, u * 0.7);
+    this.button(ctx, px + u * 3 + tbw * 2, fy - u * 2.8, tbw, u * 2.2, 'DAILY', { k: 'daily' }, u * 0.7, { color: '#2a6a7a' });
     this.button(ctx, px + u, fy, bw, u * 2.4, this.newWorldArmed > 0 ? 'CONFIRM?' : 'NEW WORLD', { k: 'dive' }, u, { color: this.newWorldArmed > 0 ? '#a33a2a' : '#7a5a1f', pulse: this.newWorldArmed > 0 });
     this.button(ctx, px + u * 2 + bw, fy, bw, u * 2.4, 'CLOSE', { k: 'close' }, u);
-    this.text(ctx, `Best depth ${game.stats.deepest}m   Dives ${game.runs}   Deaths ${game.stats.deaths}`, px + pw / 2, py + ph - u * 0.9, Math.round(u * 0.65), '#8a90a2', 'center', pw - u);
+    this.text(ctx, `World ${game.seedCode}   Best ${game.stats.deepest}m   Dives ${game.runs}   Deaths ${game.stats.deaths}`, px + pw / 2, py + ph - u * 0.9, Math.round(u * 0.65), '#8a90a2', 'center', pw - u);
   }
 }

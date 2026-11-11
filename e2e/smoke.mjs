@@ -569,6 +569,13 @@ try {
   await page.screenshot({ path: path.join(out, '09b-mobile-shop-fab.png') });
   await page.evaluate(() => { window.__terrabound.act({ k: 'tab', t: 'upgrades' }); });
   check('shop tab action switches tabs', (await page.evaluate(() => window.__terrabound.ui.shopTab)) === 'upgrades');
+  await page.evaluate(() => { window.__terrabound.act({ k: 'daily' }); });
+  await page.waitForTimeout(200);
+  const dailyOk = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    return /^[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(g.seedCode) && !window.__terrabound.ui.shopOpen;
+  });
+  check('DAILY action starts a code-seeded world', dailyOk);
   await page.evaluate(() => { window.__terrabound.ui.shopOpen = false; });
   await page.waitForTimeout(200);
   // Tap the MAP button like a player would.
