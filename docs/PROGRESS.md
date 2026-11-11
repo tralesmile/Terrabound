@@ -161,3 +161,13 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 **Next:** remaining P1.5 polish (extra parallax layers, shaped ore veins), then P2 base automation: power, smelter, storage, conveyors, miner drones, offline production.
 
 **Known issues:** worldgen pools are not pre-settled, so water visibly flows for a few seconds when you first get near. Leaves across biome borders can merge. Map cells are coarse on phones.
+
+## 2026-11-11 Scheduled run
+
+**Done:** P2 power v1: solar cell and smelter tiles (`src/sim/power.ts`), one shared base grid, solar scaled by daylight, smelter turns 4 stash rust into 1 metal per 6 s, glow/animation in the renderer, `smelt` sfx, recipes (solar: 2 metal + 1 crystal; smelter: 4 metal + 2 copper wire). Persisted through the existing base tile list, so no save version bump. 5 new unit tests, 1 new e2e check + screenshot `18-machines.png`.
+
+**Numbers:** bundle 106 kB (38.7 kB gzip), baseline was green at start (`npm run check`).
+
+**Next:** battery + wire so smelters run at night, HUD power readout, storage chest, miner drone v1, offline production.
+
+**Known issues:** machines only run while the game is stepping (no offline production yet); at night with no battery they stop. Hotbar shows "0" with no icon label for a selected unowned block.

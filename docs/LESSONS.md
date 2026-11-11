@@ -34,3 +34,4 @@
 - **Commit messages with double quotes break `git commit -m "..."`.** Guard: write the message to a file and use `git commit -F`.
 - **Cellular liquid rules can settle into staircases or stranded puddles.** Guard: tests assert volume conservation, flat-within-1 settling and draining into a dug hole; the row scan only moves to strictly lower spots so settled pools never jitter.
 - **A screenshot caught "Cost: 3 undefined"** after adding items. Guard: a test renders a cost label for every item id.
+- **Test loops must cover the simulated time they assert on.** My smelter test ran 6.5 s of a 6 s/unit process and expected 2 units; derive the loop length from the constants (`SMELT_TIME * n`).
