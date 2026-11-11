@@ -120,14 +120,16 @@ export function stepMining(stash: Inventory, state: PowerState, progress: number
  * First-automation tutorial beat: one fading line at the base that points at the next step (craft solar, craft a miner,
  * place both). Returns null once a rig is running or when nothing useful can be said yet. Pure.
  */
-export function automationHint(counts: { solars: number; miners: number }, have: Inventory, ratio: number, touch: boolean): string | null {
+export function automationHint(counts: { solars: number; miners: number }, have: Inventory, ratio: number, touch: boolean, fab = 2): string | null {
   if (counts.miners > 0 && counts.solars > 0 && ratio > 0) return null;
   const tap = touch ? 'tap' : 'press';
   if (counts.solars === 0) {
+    if (fab < 1) return (have.iron_scrap ?? 0) >= 6 && (have.rust ?? 0) >= 10 ? 'Workshop: upgrade the Fabricator to unlock machines' : null;
     if ((have.metal ?? 0) >= 2 && (have.crystal ?? 0) >= 1) return `Workshop: make a Solar Cell, then ${tap} its hotbar slot and build it in the base`;
     return null;
   }
   if (counts.miners === 0) {
+    if (fab < 2) return (have.metal ?? 0) >= 6 && (have.copper_wire ?? 0) >= 4 ? 'Workshop: upgrade the Fabricator to Lv 2 for the Miner Rig' : null;
     if ((have.metal ?? 0) >= 3 && (have.copper_wire ?? 0) >= 2) return 'Workshop: make a Miner Rig and place it next to your solar cell';
     return null;
   }

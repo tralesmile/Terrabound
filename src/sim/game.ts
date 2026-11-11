@@ -360,7 +360,7 @@ export class Game {
   /** Craft at the base: pay from the stash, output goes to the pack (needs room). */
   craft(id: string): boolean {
     const r = recipeById(id);
-    if (!r || !this.isAtBase() || !canAfford(this.stash, r.cost)) return false;
+    if (!r || !this.isAtBase() || (this.upgrades.fab ?? 0) < (r.fab ?? 0) || !canAfford(this.stash, r.cost)) return false;
     if (invTotal(this.carried) + r.qty > this.derived.packCap) return false;
     pay(this.stash, r.cost);
     invAdd(this.carried, r.out, r.qty);
@@ -957,7 +957,7 @@ export class Game {
   /** Tutorial line for the first automation, shown at the base only. */
   hintAutomation(touch: boolean): string | null {
     if (!this.isAtBase()) return null;
-    return automationHint(this.machineCounts, this.stash, this.power.ratio, touch);
+    return automationHint(this.machineCounts, this.stash, this.power.ratio, touch, this.upgrades.fab ?? 0);
   }
 
   /** Cheapest affordable upgrade hint for UI badges. */

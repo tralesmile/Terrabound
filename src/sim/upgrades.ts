@@ -1,6 +1,6 @@
 import type { Inventory } from './tiles';
 
-export type UpgradeId = 'battery' | 'pick' | 'pack' | 'boots' | 'armor' | 'lamp';
+export type UpgradeId = 'battery' | 'pick' | 'pack' | 'boots' | 'armor' | 'lamp' | 'fab';
 
 export interface UpgradeDef {
   id: UpgradeId;
@@ -54,6 +54,13 @@ export const UPGRADES: UpgradeDef[] = [
     desc: '+1.5 tiles of light',
     maxLevel: 4,
     cost: (l) => ({ iron_scrap: scale(7, l), copper_wire: scale(2, l) }),
+  },
+  {
+    id: 'fab',
+    name: 'Fabricator',
+    desc: 'Unlocks machine recipes (Lv1 solar, battery; Lv2 miner, smelter)',
+    maxLevel: 2,
+    cost: (l) => (l === 0 ? { iron_scrap: 6, rust: 10 } : { metal: 6, copper_wire: 4, iron_scrap: 8 }),
   },
 ];
 
