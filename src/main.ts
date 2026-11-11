@@ -43,6 +43,13 @@ function boot(): void {
   let dpr = 1;
   const game = new Game(parseSave(loadRaw()));
   const ui = new UI();
+  const away = game.applyOffline(Date.now());
+  if (away) {
+    const h = Math.floor(away.seconds / 3600);
+    const m = Math.floor((away.seconds % 3600) / 60);
+    const parts = [`${away.rust} rust`, `${away.scrap} scrap`, `${away.metal} metal`].filter((x) => !x.startsWith('0 '));
+    ui.toast(`While you were away (${h > 0 ? h + ' h ' : ''}${m} min): ${parts.join(', ')}`, '#7dffb0', 6);
+  }
   const fx = new Fx();
   const sfx = new Sfx();
   sfx.muted = game.muted;
@@ -66,7 +73,7 @@ function boot(): void {
   if (typeof ResizeObserver !== 'undefined') new ResizeObserver(resize).observe(canvas);
 
   const saveNow = (): void => {
-    saveRaw(serializeSave(game.toSave()));
+    saveRaw(serializeSave(game.toSave(Date.now())));
   };
 
   const act = (a: UiAction): void => {

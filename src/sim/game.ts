@@ -20,6 +20,7 @@ import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgr
 import { recipeById } from './recipes';
 import { chestLoot } from './loot';
 import { daylight } from './daynight';
+import { awaySeconds, simulateOffline, OFFLINE_MIN, type OfflineResult } from './offline';
 import { stepGrid, newPower, scanMachines, stepSmelting, stepMining, SMELT_RUST, type PowerState } from './power';
 import { LIQUID_HZ, flowLiquids, isLiquid } from './liquids';
 import { isNight } from './daynight';
@@ -204,6 +205,28 @@ export class Game {
     stampBase(this.world, this.save.base);
     stampWalls(this.world, this.save.walls);
     this.respawn(false);
+    this.time = this.save.away.time;
+    this.power = { ...newPower(), charge: this.save.away.charge };
+  }
+
+  /**
+   * Run base machines for the time spent away (cap 8 h, clock-skew safe). Call once after loading, with the wall clock in ms.
+   * Returns the summary, or null if the player was away less than a minute or there is nothing to run.
+   */
+  applyOffline(now: number): OfflineResult | null {
+    const secs = awaySeconds(this.save.away.savedAt, now);
+    this.save.away.savedAt = 0; // never apply the same absence twice
+    if (secs < OFFLINE_MIN) return null;
+    this.machineCounts = scanMachines(this.world);
+    const m = this.machineCounts;
+    if (m.smelters + m.miners === 0 && m.batteries === 0) return null;
+    const r = simulateOffline(this.stash, m, { progressSmelt: this.smeltProgress, progressMine: this.mineProgress, mineCount: this.mineCount, charge: this.power.charge, time: this.time }, secs);
+    this.smeltProgress = r.progressSmelt;
+    this.mineProgress = r.progressMine;
+    this.mineCount = r.mineCount;
+    this.time = r.time;
+    this.power = { ...this.power, charge: r.charge };
+    return r.metal + r.scrap + r.rust > 0 ? r : null;
   }
 
   get derived(): Derived {
@@ -915,9 +938,10 @@ export class Game {
     return tx + 1 > b.x - HALF_W && tx < b.x + HALF_W && ty + 1 > b.y - BODY_H && ty < b.y;
   }
 
-  toSave(): SaveData {
+  toSave(now = 0): SaveData {
     return {
       ...this.save,
+      away: { savedAt: now, time: this.time, charge: this.power.charge },
       base: captureBase(this.world),
       walls: captureWalls(this.world),
       stash: { ...this.stash },

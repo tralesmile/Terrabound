@@ -76,7 +76,7 @@ World size and variety:
 - [ ] Machines: ore-to-plate recipes, fabricator upgrade path
 - [ ] Drone v2: miner drone that flies to assigned ore tiles in a base mine shaft (builds on the miner rig)
 - [ ] Drone rules UI (3 rules per drone, deterministic evaluation)
-- [ ] Offline production (cap 8 h, clock-skew safe) and a "while you were away" summary
+- [x] Offline production (cap 8 h, clock-skew safe, save v6 `away` stamp, src/sim/offline.ts) and a "while you were away" toast
 - [ ] First automation moment tutorial beat
 
 ## P3 Gear and layers (M3)

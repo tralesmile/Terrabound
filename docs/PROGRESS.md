@@ -188,4 +188,12 @@ Later in the same session: day/night cycle with night surface spawns; one enemy 
 
 **Next:** offline production (smelters, miners, battery charge for up to 8 h, clock-skew safe) with a "while you were away" summary, then the first-automation tutorial beat, then drone rules.
 
-**Known issues:** battery charge still resets on reload; hotbar "0" slot for a selected unowned block.
+**Known issues:** hotbar "0" slot for a selected unowned block.
+
+## 2026-11-11 Scheduled run 4
+
+**Done:** baseline green. Offline production: `src/sim/offline.ts` (`awaySeconds` clamps skew/future stamps to 0 and caps at 8 h; `simulateOffline` reuses live `stepGrid/stepMining/stepSmelting` in 15 s steps). Save v6 adds `away {savedAt,time,charge}` (v5 migration tested), so the day clock and battery charge now persist too (fixes "battery charge resets on reload"). `Game.applyOffline(now)` consumes the stamp once; main.ts shows a "While you were away" toast. 5 new unit tests (191 total).
+
+**Next:** first-automation tutorial beat, then drone rules / miner drone, ore-to-plate recipes.
+
+**Known issues:** summary is a toast (6 s), not a panel; hotbar "0" slot for a selected unowned block.

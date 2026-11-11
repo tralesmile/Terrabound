@@ -4,7 +4,7 @@ import { UPGRADES, type Levels } from './upgrades';
 import { CODEX_IDS } from './explore';
 import { sanitizeDiff, type WorldDiff } from './persist';
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -27,6 +27,8 @@ export interface SaveData {
   codex: string[];
   /** v5: the current world persists until death: edits since generation and the explored map (persist.ts). */
   world: WorldDiff | null;
+  /** v6: when the game was last saved (ms epoch, 0 = unknown), the day clock and battery charge then; drives offline production. */
+  away: { savedAt: number; time: number; charge: number };
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -43,6 +45,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     walls: [],
     codex: [],
     world: null,
+    away: { savedAt: 0, time: 0, charge: 0 },
   };
 }
 
@@ -105,7 +108,14 @@ export function parseSave(raw: string | null | undefined): SaveData {
     codex: sanitizeCodex(r.codex),
     // v4 -> v5: no stored world; the game regenerates the current seed fresh.
     world: sanitizeDiff(r.world),
+    // v5 -> v6: no away stamp (savedAt 0), so nothing is simulated offline.
+    away: sanitizeAway(r.away),
   };
+}
+
+function sanitizeAway(v: unknown): SaveData['away'] {
+  const a = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
+  return { savedAt: Math.floor(num(a.savedAt, 0, 4e12, 0)), time: num(a.time, 0, 1e9, 0), charge: num(a.charge, 0, 1e6, 0) };
 }
 
 function sanitizeCodex(v: unknown): string[] {
