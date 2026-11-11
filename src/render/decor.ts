@@ -404,3 +404,47 @@ export function towerShape(i: number, layer: number): TowerShape {
   }
   return { rects, windows, top, w };
 }
+
+/** Near foliage layer: low silhouettes between the skyline and the playfield (parallax 0.8). */
+export const NEAR_LAYER = { par: 0.8, spacing: 2, salt: 77, maxH: 3.2 } as const;
+
+/** One near-layer primitive in tiles, relative to the slot's left edge and the ground line. */
+export interface NearPiece {
+  k: 'hump' | 'spike' | 'stalk' | 'block';
+  x: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * Deterministic near-layer cluster for slot `i` over `biome`: rounded bushes and fern stalks in
+ * the jungle, shards on the crystal flats, snow mounds in the frost, boulders in the ash, rubble
+ * and bent rebar in the wastes. Some slots are empty so the layer reads as clumps, not a fence.
+ */
+export function nearPieces(i: number, biome: number): NearPiece[] {
+  const s = NEAR_LAYER.salt;
+  const r = (k: number): number => hash2(i, k, s);
+  if (r(1) < 0.35) return [];
+  const out: NearPiece[] = [];
+  const n = 1 + Math.floor(r(2) * 3);
+  for (let j = 0; j < n; j++) {
+    const x = r(10 + j) * 1.6;
+    const big = r(20 + j);
+    if (biome === B.JUNGLE) {
+      out.push({ k: 'hump', x, w: 0.8 + big * 1.2, h: 0.6 + big * 1.2 });
+      if (r(30 + j) < 0.5) out.push({ k: 'stalk', x: x + 0.3, w: 0.12, h: 1.4 + big * 1.6 });
+    } else if (biome === B.CRYSTAL) {
+      out.push({ k: 'spike', x, w: 0.4 + big * 0.5, h: 0.8 + big * 2 });
+    } else if (biome === B.FROST) {
+      out.push({ k: 'hump', x, w: 1 + big * 1.4, h: 0.4 + big * 0.8 });
+    } else if (biome === B.ASH) {
+      out.push({ k: 'hump', x, w: 0.6 + big * 0.9, h: 0.4 + big * 0.7 });
+      if (r(30 + j) < 0.3) out.push({ k: 'spike', x: x + 0.2, w: 0.3, h: 0.9 + big });
+    } else {
+      out.push({ k: 'block', x, w: 0.5 + big * 0.9, h: 0.3 + big * 0.8 });
+      if (r(30 + j) < 0.45) out.push({ k: 'stalk', x: x + 0.2, w: 0.1, h: 0.8 + big * 1.4 });
+    }
+  }
+  for (const p of out) p.h = Math.min(NEAR_LAYER.maxH, p.h);
+  return out;
+}

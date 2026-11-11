@@ -24,3 +24,17 @@ describe('toast layout', () => {
     expect(l.y).toBe(90);
   });
 });
+
+describe('toast stacking', () => {
+  it('a repeated message refreshes instead of stacking', async () => {
+    const { UI } = await import('../src/ui/ui');
+    const ui = new UI();
+    ui.toast('Mining drill');
+    ui.update(1);
+    ui.toast('Mining drill');
+    expect(ui.toasts.length).toBe(1);
+    expect(ui.toasts[0].life).toBeCloseTo(2.4);
+    ui.toast('Other');
+    expect(ui.toasts.length).toBe(2);
+  });
+});

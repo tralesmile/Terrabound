@@ -11,7 +11,7 @@ import { ICON, drawIcon } from './icons';
 import { GEAR } from '../sim/gear';
 import { BOSSES } from '../sim/bosses';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, leafMask } from './autotile';
-import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, towerShape } from './decor';
+import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape } from './decor';
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
@@ -855,6 +855,51 @@ export class Renderer {
     // Parallax skyline in two depth layers: a pale far haze, then the near silhouettes.
     this.drawSkyline(ctx, horizon, time, world, 1, mixHex(this.sky[3], this.sky[1], 0.45));
     this.drawSkyline(ctx, horizon, time, world, 0, this.sky[3]);
+    this.drawNearLayer(ctx, horizon, world, mixHex(this.sky[3], '#000000', 0.4));
+  }
+
+  /** Near foliage silhouettes just above the ground line, scrolling faster than the skyline. */
+  private drawNearLayer(ctx: CanvasRenderingContext2D, horizon: number, world: Game['world'], color: string): void {
+    const ts = TS * this.scale;
+    const { par, spacing: sp } = NEAR_LAYER;
+    const left = Math.floor(this.camX * par - this.w / 2 / ts) - 3;
+    const right = Math.ceil(this.camX * par + this.w / 2 / ts) + 3;
+    const base = horizon + ts * 0.6;
+    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    // A ground band under the clumps, so where the terrain dips below the horizon the
+    // backdrop reads as a nearer ridge instead of shapes floating on the sky.
+    ctx.fillRect(0, base - 1, this.w, ts * 10);
+    for (let i = Math.floor(left / sp); i <= Math.ceil(right / sp); i++) {
+      const wx = i * sp;
+      const col = Math.min(world.w - 1, Math.max(0, Math.round(this.camX + (wx - this.camX * par))));
+      const x0 = this.w / 2 + (wx - this.camX * par) * ts;
+      for (const p of nearPieces(i, world.biome[col] ?? 0)) {
+        const x = x0 + p.x * ts;
+        const pw = p.w * ts;
+        const ph = p.h * ts;
+        if (p.k === 'hump') {
+          ctx.beginPath();
+          ctx.ellipse(x + pw / 2, base, pw / 2, ph, 0, Math.PI, 0);
+          ctx.fill();
+        } else if (p.k === 'spike') {
+          ctx.beginPath();
+          ctx.moveTo(x, base);
+          ctx.lineTo(x + pw * 0.45, base - ph);
+          ctx.lineTo(x + pw, base);
+          ctx.fill();
+        } else if (p.k === 'stalk') {
+          // A curved frond or bent rebar.
+          ctx.lineWidth = Math.max(1, this.scale * 1.5);
+          ctx.beginPath();
+          ctx.moveTo(x, base);
+          ctx.quadraticCurveTo(x, base - ph, x + ts * 0.6, base - ph * 0.85);
+          ctx.stroke();
+        } else {
+          ctx.fillRect(Math.round(x), Math.round(base - ph), Math.max(1, Math.round(pw)), Math.ceil(ph));
+        }
+      }
+    }
   }
 
   /** One skyline layer; each silhouette takes the shape of the biome it stands over. */

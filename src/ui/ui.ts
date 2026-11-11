@@ -150,6 +150,12 @@ export class UI {
   private rects: Rect[] = [];
 
   toast(text: string, color = '#ffffff', life = 2.4): void {
+    // The same message twice in a row refreshes the existing line instead of stacking.
+    const same = this.toasts.find((t) => t.text === text);
+    if (same) {
+      same.life = Math.max(same.life, life);
+      return;
+    }
     if (this.toasts.length >= 4) this.toasts.shift();
     this.toasts.push({ text, color, life });
   }
