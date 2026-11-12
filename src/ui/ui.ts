@@ -1,4 +1,5 @@
 import { AWARDS, awardProgress } from '../sim/achievements';
+import { FTUE_STEPS } from '../sim/ftue';
 import { PREFS, prefValueLabel, type PrefKey } from '../sim/settings';
 import { BINDS, keyLabel, type BindId } from '../sim/keys';
 import { recordLine } from '../sim/records';
@@ -1023,6 +1024,9 @@ export class UI {
     const tl = toastColumn(u, x, anc.rightLimit, hudLow);
     this.toastRects = [];
     let ty = tl.y;
+    const goal = game.goal;
+    this.goalRect = null;
+    if (goal && !game.boss && !this.mapOpen && !this.invOpen) ty += this.drawGoal(ctx, game, goal, tl.x, ty, tl.maxW, u, time) + u * 0.35;
     for (let i = this.toasts.length - 1; i >= 0; i--) ty += this.drawToast(ctx, this.toasts[i], tl.x, ty, tl.maxW, u) + u * 0.35;
 
     // Contextual warnings and first-minute hints.
@@ -1033,6 +1037,51 @@ export class UI {
       const hint = this.touch ? (this.stickSide === 1 ? 'Right thumb: move, drag up to jump. Left side: dig.' : 'Left thumb: move, drag up to jump. Right side: dig.') : `${keyLabel(game.keys.left)}/${keyLabel(game.keys.right)} move, ${keyLabel(game.keys.jump)} jump. Click: dig / open chests. Right click: build. 1-5 or wheel: tools. ${keyLabel(game.keys.inventory)}: inventory. ${keyLabel(game.keys.interact)}: open chest.`;
       this.text(ctx, hint, w / 2, h - u * 0.7, Math.round(u * 0.75), '#c9d0e4', 'center', w - u * 2);
     }
+  }
+
+  /** Guided-goal card on screen this frame (e2e), or null. */
+  goalRect: { x: number; y: number; w: number; h: number; id: string } | null = null;
+
+  /** GOAL card: "GOAL 2/7" head, the step text (keys filled in), and a progress bar for counted steps. */
+  private drawGoal(ctx: CanvasRenderingContext2D, game: Game, g: NonNullable<Game['goal']>, x: number, y: number, maxW: number, u: number, time: number): number {
+    const pad = u * 0.45;
+    const bodyFs = Math.round(u * 0.78);
+    const headFs = Math.round(u * 0.58);
+    const raw = this.touch ? g.step.touch : g.step.text;
+    const body = raw.replace('{shop}', keyLabel(game.keys.shop));
+    const textW = maxW - pad * 3;
+    ctx.font = `bold ${bodyFs}px ${FONT}`;
+    const lines = wrapText(body, textW, (s) => ctx.measureText(s).width);
+    let wide = 0;
+    for (const l of lines) wide = Math.max(wide, Math.min(textW, ctx.measureText(l).width));
+    const head = `GOAL ${g.index + 1}/${FTUE_STEPS.length}`;
+    const counted = g.step.goal > 1;
+    const barH = counted ? u * 0.75 : 0;
+    const ph = headFs * 1.25 + lines.length * bodyFs * 1.2 + pad * 1.4 + barH;
+    const pw = Math.max(wide, u * 9) + pad * 3;
+    const pulse = 0.5 + 0.5 * Math.sin(time * 3);
+    ctx.fillStyle = 'rgba(8,10,18,0.72)';
+    ctx.fillRect(x, y, pw, ph);
+    ctx.fillStyle = `rgba(54,224,232,${0.7 + 0.3 * pulse})`;
+    ctx.fillRect(x, y, Math.max(2, u * 0.18), ph);
+    let ly = y + pad * 0.7;
+    const tx = x + pad * 1.6;
+    this.text(ctx, head, tx, ly + headFs * 0.6, headFs, '#36e0e8', 'left', textW);
+    if (counted) this.text(ctx, `${g.have}/${g.step.goal}`, x + pw - pad, ly + headFs * 0.6, headFs, '#8a90a2', 'right', u * 4);
+    ly += headFs * 1.25;
+    for (const l of lines) {
+      this.text(ctx, l, tx, ly + bodyFs * 0.6, bodyFs, '#eef1f8', 'left', textW);
+      ly += bodyFs * 1.2;
+    }
+    if (counted) {
+      const bw = pw - pad * 2.6;
+      ctx.fillStyle = '#2a3046';
+      ctx.fillRect(tx, ly + u * 0.15, bw, u * 0.32);
+      ctx.fillStyle = '#36e0e8';
+      ctx.fillRect(tx, ly + u * 0.15, bw * (g.have / g.step.goal), u * 0.32);
+    }
+    this.goalRect = { x, y, w: pw, h: ph, id: g.step.id };
+    return ph;
   }
 
   /** One toast pill: accent bar, kind icon, optional small head label, body wrapped to 2 lines. Returns its height. */

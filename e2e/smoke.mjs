@@ -151,6 +151,23 @@ try {
   const carried = await page.evaluate(() => Object.values(window.__terrabound.game.carried).reduce((a, b) => a + (b ?? 0), 0));
   check('mouse digging removes the block', before !== 0 && after === 0, `tile ${before} -> ${after}`);
   check('mined block lands in the pack', carried >= 1, `carried ${carried}`);
+  // Guided goals: a fresh game shows GOAL 1 (drill down) under the HUD, clear of the buttons; finishing it moves on.
+  const goal1 = await page.evaluate(() => {
+    const { ui, game } = window.__terrabound;
+    const g = ui.goalRect;
+    const btns = ui.rects.filter((r) => ['settings', 'mute', 'map'].includes(r.a.k));
+    const clear = !!g && btns.every((b) => g.x + g.w <= b.x || b.x + b.w <= g.x || g.y + g.h <= b.y || b.y + b.h <= g.y);
+    return { id: g?.id, clear, step: game.goal?.step.id, have: game.goal?.have };
+  });
+  check('fresh game shows the first guided goal card, clear of the HUD buttons', goal1.id === 'dig' && goal1.clear, JSON.stringify(goal1));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    for (let i = 0; i < 8; i++) g.emit({ t: 'break', x: 0, y: 0, tile: 1 });
+  });
+  await page.waitForTimeout(250);
+  const goal2 = await page.evaluate(() => ({ id: window.__terrabound.ui.goalRect?.id, toast: window.__terrabound.ui.toasts.some((t) => t.text.startsWith('Goal done')) }));
+  await page.screenshot({ path: path.join(out, '49-goal.png') });
+  check('finishing a goal toasts and shows the next goal', goal2.id === 'deep' && goal2.toast, JSON.stringify(goal2));
 
   // Shop flow at the base: grant resources, buy through the real UI action, verify persistence across reload.
   await page.evaluate(() => {
@@ -433,11 +450,12 @@ try {
     const r = t.renderer;
     const ts = 16 * r.scale;
     const ctx = document.getElementById('game').getContext('2d');
-    const px = Math.round(r.w / 2 + (x - r.camX) * ts);
+    // A 5-tile strip centred on the pool: the swimmer covers about one tile of it.
+    const px = Math.round(r.w / 2 + (x - 2 - r.camX) * ts);
     const py = Math.round(r.h / 2 + (top - r.camY) * ts);
-    const strip = () => Array.from(ctx.getImageData(px, py, Math.round(ts), Math.round(ts / 4)).data).join(',');
+    const strip = () => Array.from(ctx.getImageData(px, py, Math.round(ts * 5), Math.round(ts / 4)).data).join(',');
     const frames = [];
-    for (const time of [1, 1.4, 1.8, 2.2]) {
+    for (const time of [1, 1.4, 1.8, 2.2, 2.6, 3.0]) {
       r.draw(g, t.fx, null, time);
       frames.push(strip());
     }

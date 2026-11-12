@@ -262,6 +262,9 @@ export class Sfx {
       case 'recall':
         [880, 660, 1320].forEach((f, i) => this.tone(f, 0.12, 'sine', 0.12, undefined, i * 0.06));
         break;
+      case 'goal':
+        [659, 880].forEach((f, i) => this.tone(f, 0.1, 'triangle', 0.08, undefined, i * 0.08));
+        break;
       case 'award':
         // Award: a quick sparkle arpeggio, one note higher per tier.
         [784, 988, 1175, 1568].slice(0, 2 + e.tier).forEach((f, i) => this.tone(f, 0.1, 'triangle', 0.09, undefined, i * 0.07));

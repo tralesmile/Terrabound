@@ -1,3 +1,4 @@
+import { FTUE_STEPS } from './sim/ftue';
 import { audioGains, shakeMul, uiScale } from './sim/settings';
 import { CROPS } from './sim/farming';
 import { drawDecorGallery } from './render/decor';
@@ -450,6 +451,11 @@ function boot(): void {
         ui.toast(`Banked ${e.total} items`, '#9ff6a0');
         saveNow();
         break;
+      case 'goal': {
+        const next = FTUE_STEPS[e.next];
+        ui.toast(next ? 'Goal done! Next goal below' : 'Goal done! You know the basics: the AWARDS page in your inventory has more', '#7dffb0', 3, 'goal');
+        break;
+      }
       case 'award':
         ui.toast(`Award: ${e.name}`, e.tier === 3 ? '#ffd23a' : e.tier === 2 ? '#d8e4f0' : '#e0a060', 3.5, 'award');
         ui.awardFlash(e.id);
