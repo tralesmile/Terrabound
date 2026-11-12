@@ -636,6 +636,11 @@ export function medicRows(t: number, walking: boolean): string[] {
   return rows;
 }
 
+/** Merchant drone colours over the field-drone hull: gold plating, cyan eye band. */
+export const MERCHANT_REMAP: Record<string, string> = { P: '#ffd23a', p: '#b8862a', e: '#5ad8ff', H: '#c99a2a', h: '#ffe8a0' };
+/** Cargo crate the merchant carries under its claws (11 px wide). */
+export const MERCHANT_CRATE = ['   oPo   oPo', '  ooooooooooo', '  oCCCCCCCCCo', '  oCcCcCcCcCo', '  oCCCCCCCCCo', '  ooooooooooo'];
+
 /** Hop height in art px for a reaction with `left` seconds to go: a cheer bounces, a wave hops once. Pure. */
 export function npcHop(react: 'wave' | 'cheer', left: number): number {
   if (left <= 0) return 0;

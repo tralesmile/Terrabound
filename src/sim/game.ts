@@ -36,7 +36,8 @@ import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight, DAY_LENGTH } from './daynight';
 import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
 import { findRooms, mountOk, roomHint, type Room } from './rooms';
-import { NPC_INFO, deathKeep, doTrade, npcLine, npcSpots, reactNpcs, roomFloor, stepNpc, syncNpcs, tradeById, tradeOpen, type Npc, type NpcKind } from './npcs';
+import { NPC_INFO, TRADES, deathKeep, doTrade, npcLine, npcSpots, reactNpcs, roomFloor, stepNpc, syncNpcs, tradeOpen, type Npc, type NpcKind, type Trade } from './npcs';
+import { merchantDay, merchantPresent, merchantStock } from './merchant';
 import { placement, removeTile } from './wide';
 import { blueprintDrop, RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
 import { applyDiff, captureDiff } from './persist';
@@ -100,6 +101,7 @@ export type GameEvent =
   | { t: 'npcarrive'; kind: NpcKind }
   | { t: 'npcleave'; kind: NpcKind }
   | { t: 'npctalk'; kind: NpcKind }
+  | { t: 'merchant'; here: boolean }
   | { t: 'trade'; id: string }
   | { t: 'raidwarn'; n: number; side: number; secs: number }
   | { t: 'turretshot'; x: number; y: number; tx: number; ty: number }
@@ -249,6 +251,8 @@ export class Game {
   /** Robot NPCs living in base rooms (npcs.ts); derived from the world, never saved. */
   npcs: Npc[] = [];
   private npcSync: { v: number; first: boolean } = { v: -1, first: true };
+  /** Merchant presence last frame near the base (null until the first look, so loading is silent). */
+  private merchantWas: boolean | null = null;
   /** Current weather or world event (weather.ts). */
   weather: WeatherKind = 'clear';
   /** Falling meteors during a shower. */
@@ -525,6 +529,7 @@ export class Game {
     // A new world rebuilds the base from the save: robots re-home silently.
     this.npcs = [];
     this.npcSync = { v: -1, first: true };
+    this.merchantWas = null;
     this.iframes = 0;
     this.swing = 0;
     this.bladeCd = 0;
@@ -1070,6 +1075,7 @@ export class Game {
     // A tap or click on a robot NPC talks to it (the UI opens its panel).
     const npcTap = pressed && c.aim ? this.npcAtTile(c.aim.tx, c.aim.ty) : null;
     if (npcTap) this.emit({ t: 'npctalk', kind: npcTap.kind });
+    else if (pressed && c.aim && this.merchantAtTile(c.aim.tx, c.aim.ty)) this.emit({ t: 'npctalk', kind: 'merchant' });
     // A tap on a drone bay in the base changes its role (holding still digs it up).
     if (pressed && c.aim && this.world.get(c.aim.tx, c.aim.ty) === T.DRONE && this.reachable(c.aim.tx, c.aim.ty)) {
       const key = `${c.aim.tx - this.world.padX},${this.world.padY - c.aim.ty}`;
@@ -1678,6 +1684,11 @@ export class Game {
       this.setDroneRole(bay.key);
       return true;
     }
+    // The merchant hovers over the pad, so a drone bay or chest right beside you comes first.
+    if (this.merchantNear() && !best) {
+      this.emit({ t: 'npctalk', kind: 'merchant' });
+      return true;
+    }
     return best ? this.openChestAt(best.x, best.y) : false;
   }
 
@@ -2033,6 +2044,10 @@ export class Game {
       const r = this.droneRole(bay.key);
       return `Drone bay: ${ROLE_INFO[r].name} (${ROLE_INFO[r].desc}). ${touch ? 'Tap the bay' : 'Press E'} to change role, DRONES for rules`;
     }
+    if (this.merchantNear()) {
+      const info = NPC_INFO.merchant;
+      return `${info.name} the ${info.title}: "${npcLine('merchant', this.time)}"  ${touch ? 'Tap' : 'E'} for today's stock`;
+    }
     return automationHint(this.machineCounts, this.stash, this.power.ratio, touch, this.upgrades.fab ?? 0);
   }
 
@@ -2075,6 +2090,9 @@ export class Game {
       }
       this.npcSync = { v: w.version, first: false };
     }
+    const here = this.merchantHere();
+    if (this.merchantWas !== null && here !== this.merchantWas) this.emit({ t: 'merchant', here });
+    this.merchantWas = here;
     const near = this.npcNear();
     const mood = { night: isNight(this.time), raid: this.raid !== null };
     for (const n of this.npcs) {
@@ -2109,9 +2127,39 @@ export class Game {
     return this.isAtBase() || this.npcNear() !== null;
   }
 
-  /** Is a robot of this kind living in the base? */
+  /** Is a robot of this kind living in the base (for the merchant: parked on the pad now)? */
   hasNpc(kind: NpcKind): boolean {
+    if (kind === 'merchant') return this.merchantHere();
     return this.npcs.some((n) => n.kind === kind);
+  }
+
+  /** The merchant drone is parked on the pad: by day, and never during a raid. */
+  merchantHere(): boolean {
+    return merchantPresent(this.time) && this.raid === null;
+  }
+
+  /** Where the merchant drone hovers (tile coords of its centre): over the right end of the pad. */
+  merchantPos(): { x: number; y: number } {
+    return { x: this.world.padX + 4.5, y: this.world.padY - 2.2 };
+  }
+
+  /** The player stands next to the parked merchant drone. */
+  merchantNear(): boolean {
+    if (!this.merchantHere()) return false;
+    const p = this.merchantPos();
+    return Math.abs(p.x - this.body.x) < 2.4 && Math.abs(p.y - (this.body.y - 1)) < 2.6;
+  }
+
+  /** The parked merchant drone is drawn over tile (tx, ty) (about 2x2 tiles around its centre). */
+  merchantAtTile(tx: number, ty: number): boolean {
+    if (!this.merchantHere()) return false;
+    const p = this.merchantPos();
+    return Math.abs(tx + 0.5 - p.x) <= 1 && Math.abs(ty + 0.5 - p.y) <= 1.2;
+  }
+
+  /** Every posted rate: the robots' fixed ones, then the merchant's stock for today (or its next visit). */
+  tradeList(): Trade[] {
+    return [...TRADES, ...merchantStock(this.world.seed, merchantDay(this.time))];
   }
 
   /** Comfort (0..4) of the room a robot lives in, 0 when it is not home. */
@@ -2123,7 +2171,7 @@ export class Game {
 
   /** Swap with the Trader at a posted rate (base only, Trader must live here). Stash to stash. */
   trade(id: string): boolean {
-    const t = tradeById(id);
+    const t = this.tradeList().find((k) => k.id === id);
     if (!t || !this.canShop() || !tradeOpen(t, this.hasNpc(t.npc), this.npcComfort(t.npc)) || !doTrade(this.stash, t, this.carried)) return false;
     this.emit({ t: 'trade', id });
     return true;

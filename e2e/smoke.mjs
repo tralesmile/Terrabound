@@ -1336,6 +1336,33 @@ try {
   await page.waitForTimeout(250);
   await page.screenshot({ path: path.join(out, '39c-robots-wave.png') });
   check('robots wave when you bring loot home', waved.length >= 2 && waved.every((r) => r === 'wave'), JSON.stringify(waved));
+  // Dex the merchant drone parks over the pad by day; E beside it opens TRADE at today's stock.
+  const merch = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.time = 60;
+    const p = g.merchantPos();
+    g.body.x = p.x;
+    g.body.y = g.world.padY;
+    g.body.vx = g.body.vy = 0;
+    // Enough goods for every offer, so each row's TRADE button is live.
+    for (const t of g.tradeList().filter((k) => k.npc === 'merchant')) for (const [k, n] of Object.entries(t.give)) g.stash[k] = (g.stash[k] ?? 0) + n;
+    return { here: g.merchantHere() };
+  });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(out, '40-merchant.png') });
+  await page.keyboard.down('KeyE');
+  await page.waitForTimeout(80);
+  await page.keyboard.up('KeyE');
+  await page.waitForTimeout(250);
+  const merchShop = await page.evaluate(() => {
+    const { ui, game } = window.__terrabound;
+    const ids = game.tradeList().filter((t) => t.npc === 'merchant').map((t) => t.id);
+    return { open: ui.shopOpen, tab: ui.shopTab, near: game.merchantNear(), btns: ids.filter((id) => ui.rects.some((r) => r.a.k === 'trade' && r.a.id === id)).length };
+  });
+  await page.screenshot({ path: path.join(out, '40b-merchant-trade.png') });
+  check('the merchant drone parks on the pad by day and E opens its stock', merch.here && merchShop.open && merchShop.tab === 'trade' && merchShop.btns === 3, JSON.stringify({ merch, merchShop }));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(150);
   await page.evaluate((raids) => {
     const g = window.__terrabound.game;
     g.time = 30;

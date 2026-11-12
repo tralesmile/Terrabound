@@ -15,6 +15,7 @@ import { UPGRADES } from '../sim/upgrades';
 import { RECIPES } from '../sim/recipes';
 import { ACT_INFO, COND_INFO, RULE_MAX, ROLE_INFO } from '../sim/drones';
 import { NPC_INFO, TRADES, tradeOpen } from '../sim/npcs';
+import { MERCHANT_STOCK } from '../sim/merchant';
 
 export type UiAction =
   | { k: 'start' }
@@ -156,7 +157,7 @@ export class UI {
 
   /** Row count of the current shop tab. */
   shopRows(): number {
-    return this.shopTab === 'upgrades' ? UPGRADES.length : this.shopTab === 'gear' ? GEAR_IDS.length : this.shopTab === 'trade' ? TRADES.length : RECIPES.length;
+    return this.shopTab === 'upgrades' ? UPGRADES.length : this.shopTab === 'gear' ? GEAR_IDS.length : this.shopTab === 'trade' ? TRADES.length + MERCHANT_STOCK : RECIPES.length;
   }
 
   scrollShop(d: number): void {
@@ -829,11 +830,11 @@ export class UI {
       ry += rowH;
     }
 
-    for (const tr of this.shopTab === 'trade' ? TRADES.slice(this.shopScroll, this.shopScroll + vis) : []) {
+    for (const tr of this.shopTab === 'trade' ? game.tradeList().slice(this.shopScroll, this.shopScroll + vis) : []) {
       const comfort = game.npcComfort(tr.npc);
       const home = tradeOpen(tr, game.hasNpc(tr.npc), comfort);
       const afford = home && ITEM_IDS.every((k) => (game.stash[k] ?? 0) >= (tr.give[k] ?? 0));
-      ctx.fillStyle = tr.cozy ? 'rgba(255,196,110,0.09)' : tr.npc === 'medic' ? 'rgba(255,90,90,0.07)' : 'rgba(255,255,255,0.05)';
+      ctx.fillStyle = tr.cozy ? 'rgba(255,196,110,0.09)' : tr.npc === 'medic' ? 'rgba(255,90,90,0.07)' : tr.npc === 'merchant' ? 'rgba(90,220,255,0.08)' : 'rgba(255,255,255,0.05)';
       ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
       // Icons read at a glance: what you give (count), an arrow, what you get.
       const isz = rowH - u * 0.8;
@@ -856,8 +857,10 @@ export class UI {
       const have = tradeParts(tr.give).map(([k]) => `${game.stash[k] ?? 0} ${ITEMS[k].name.toLowerCase()}`).join(', ');
       const cozy = tr.cozy ? 'Cozy rate. ' : '';
       const sub = home
-        ? `${cozy}${info.name}${tr.toPack ? ' (into your pack)' : ''}: you have ${have}`
-        : !game.hasNpc(tr.npc)
+        ? `${cozy}${info.name}${tr.npc === 'merchant' ? ' (today only)' : ''}${tr.toPack ? ' (into your pack)' : ''}: you have ${have}`
+        : tr.npc === 'merchant'
+          ? `${info.name} the ${info.title.toLowerCase()} brings this to the pad next morning`
+          : !game.hasNpc(tr.npc)
           ? `No ${info.title.toLowerCase()} yet: furnish ${tr.npc === 'medic' ? 'a second' : 'a'} room (light, table, bed)`
           : `Cozy rate: ${info.name}'s room needs comfort ${tr.cozy}/4 (now ${comfort}): decor, back wall, window`;
       this.text(ctx, sub, tx2, ry + rowH * 0.68, Math.round(u * 0.64), afford ? '#9ff6a0' : '#ff8a8a', 'left', tw2);

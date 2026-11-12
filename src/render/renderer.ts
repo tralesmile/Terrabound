@@ -21,7 +21,7 @@ import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
-import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, traderRows, medicRows, MEDIC_REMAP, npcSitRows, npcBedHeadRows, blanketRows, npcHop, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, traderRows, medicRows, MEDIC_REMAP, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 
 /** Chunk size in tiles for the render cache. */
@@ -336,6 +336,7 @@ export class Renderer {
     }
     this.drawFieldDrones(ctx, game, shakeX, shakeY, time);
     this.drawNpcs(ctx, game, shakeX, shakeY, time);
+    this.drawMerchant(ctx, game, shakeX, shakeY, time);
     // Back gear and vehicles behind / under the player.
     const veh = game.vehicle;
     const eq = (slot: 'head' | 'body' | 'feet' | 'back'): [string, string] | undefined => {
@@ -898,7 +899,7 @@ export class Renderer {
       if (n.pose === 'sleep') this.drawNpcAsleep(ctx, game, n, x, y, t, medic, game.raid !== null);
       else if (n.pose === 'sit') {
         // On the chair seat, shifted forward so the chair back shows behind; legs bend towards the table.
-        drawRows(ctx, npcSitRows(n.kind, t), Math.round(x - (TRADER_W / 2 - 4) * s), Math.round(y - 21 * s), s, false, TRADER_W, undefined, remap);
+        drawRows(ctx, npcSitRows(medic ? 'medic' : 'trader', t), Math.round(x - (TRADER_W / 2 - 4) * s), Math.round(y - 21 * s), s, false, TRADER_W, undefined, remap);
       } else {
         const rows = (medic ? medicRows : traderRows)(t, n.to !== null);
         drawRows(ctx, rows, Math.round(x - (TRADER_W / 2) * s), Math.round(y - 20 * s), s, n.face < 0, TRADER_W, undefined, remap);
@@ -919,6 +920,38 @@ export class Renderer {
         ctx.textBaseline = 'middle';
         ctx.fillText(label, x, ty - s);
       }
+    }
+  }
+
+  /** Dex, the merchant drone, hovering over the pad with its crate while it is parked there (merchant.ts). */
+  private drawMerchant(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
+    if (!game.merchantHere()) return;
+    const s = this.scale;
+    const p = game.merchantPos();
+    const x = this.sx(p.x, shakeX);
+    const y = this.sy(p.y + Math.sin(time * 2.2) * 0.12, shakeY);
+    const rows = [...droneRows('home', time), ...MERCHANT_CRATE];
+    // A soft cyan landing beam under the crate.
+    const g = ctx.createLinearGradient(0, y, 0, this.sy(game.world.padY, shakeY));
+    g.addColorStop(0, 'rgba(90,216,255,0.22)');
+    g.addColorStop(1, 'rgba(90,216,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x - 5 * s, y + 4 * s, 10 * s, this.sy(game.world.padY, shakeY) - y - 4 * s);
+    drawRows(ctx, rows, Math.round(x - (DRONE_W / 2) * s), Math.round(y - 8 * s), s, false, DRONE_W, undefined, { ...MERCHANT_REMAP, C: '#a07a4a', c: '#6b5028' });
+    if (game.merchantNear()) {
+      const label = 'DEX  Merchant';
+      ctx.font = `bold ${Math.round(s * 4)}px monospace`;
+      const tw = ctx.measureText(label).width + s * 4;
+      const ty = y - 13 * s + Math.sin(time * 3) * s;
+      ctx.fillStyle = 'rgba(10,12,20,0.8)';
+      ctx.fillRect(x - tw / 2, ty - s * 3.5, tw, s * 5);
+      ctx.strokeStyle = '#5ad8ff';
+      ctx.lineWidth = Math.max(1, s * 0.5);
+      ctx.strokeRect(x - tw / 2, ty - s * 3.5, tw, s * 5);
+      ctx.fillStyle = '#5ad8ff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, x, ty - s);
     }
   }
 

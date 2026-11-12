@@ -9,7 +9,8 @@ import { T, TILES, canAfford, invAdd, pay, type Inventory } from './tiles';
 import type { Room } from './rooms';
 import type { World } from './world';
 
-export type NpcKind = 'trader' | 'medic';
+/** Robots that live in rooms, plus the merchant drone that visits the pad (merchant.ts). */
+export type NpcKind = 'trader' | 'medic' | 'merchant';
 
 export interface NpcInfo {
   name: string;
@@ -39,10 +40,19 @@ export const NPC_INFO: Record<NpcKind, NpcInfo> = {
       'Two homes in one base. Bolt finally has a neighbour.',
     ],
   },
+  merchant: {
+    name: 'Dex',
+    title: 'Merchant drone',
+    lines: [
+      'Fresh stock every morning. Everything priced on the crate.',
+      'I fly the whole Hollow. Somebody always needs plasma.',
+      'Gone by afternoon, back tomorrow with new goods.',
+    ],
+  },
 };
 
 /** Order robots move in: the first valid room gets the first kind. */
-export const NPC_ORDER: readonly NpcKind[] = ['trader', 'medic'];
+export const NPC_ORDER: readonly NpcKind[] = ['trader', 'medic']; // the merchant never moves in
 
 export interface Trade {
   id: string;

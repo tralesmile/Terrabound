@@ -17,7 +17,7 @@ import { shareCard } from './ui/share';
 import { BOSSES } from './sim/bosses';
 import { ROLE_INFO, nextAct, nextCond } from './sim/drones';
 import { UI, type UiAction } from './ui/ui';
-import { NPC_INFO, TRADES } from './sim/npcs';
+import { NPC_INFO } from './sim/npcs';
 
 const TOOL_NAMES: Record<Tool, string> = { drill: 'Mining drill', blade: 'Energy blade', pistol: 'Pulse pistol', rod: 'Fishing rod: click water to cast', hook: 'Grappling hook: click a ceiling, swing, jump to let go' };
 
@@ -530,10 +530,14 @@ function boot(): void {
           ui.shopOpen = true;
           ui.setShopTab('trade');
           // Jump to the rows this robot posts (the Medic's sit below the Trader's).
-          ui.shopScroll = Math.max(0, TRADES.findIndex((t) => t.npc === e.kind));
+          ui.shopScroll = Math.max(0, game.tradeList().findIndex((t) => t.npc === e.kind));
         }
         break;
       case 'trade':
+        break;
+      case 'merchant':
+        if (e.here) ui.toast(`${NPC_INFO.merchant.name} the merchant drone landed on the pad: today's stock is in TRADE`, '#5ad8ff', 5);
+        else ui.toast(`${NPC_INFO.merchant.name} flew off. New stock tomorrow morning`, '#8a90a2', 3);
         break;
       case 'roomready':
         ui.toast('Room complete! A robot can move in here soon', '#7dffb0', 4);
