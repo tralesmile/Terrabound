@@ -389,6 +389,10 @@ function boot(): void {
         break;
       case 'pickup':
         fx.pickup(e.x + 0.5, e.y, e.item, ITEMS[e.item].name, ITEMS[e.item].color);
+        {
+          const at = renderer.worldToScreen(e.x + 0.5, e.y + 0.5);
+          ui.flyPickup(e.item, at.x / dpr, at.y / dpr);
+        }
         break;
       case 'hurt':
         fx.addShake(0.5);

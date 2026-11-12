@@ -1588,6 +1588,24 @@ try {
     return { tile: g.world.get(x0 + 6, y - 1), corn: g.carried.glowcorn ?? 0, seeds: g.carried.corn_seed ?? 0 };
   }, farm);
   await page.screenshot({ path: path.join(out, '41b-harvest.png') });
+  {
+    // Harvested produce arcs into the hotbar/bag as icons (pickup flyers) and the slot pulses.
+    const fly = await page.evaluate(() => {
+      const f = window.__terrabound.ui.flyers;
+      return { spawned: f.spawned, inFlight: f.list.length, pulses: f.pulse.size };
+    });
+    await page.waitForTimeout(700);
+    const after = await page.evaluate(() => window.__terrabound.ui.flyers.list.length);
+    await page.evaluate(() => {
+      const t = window.__terrabound;
+      const c = document.getElementById('game');
+      for (let i = 0; i < 4; i++) t.ui.flyPickup('glowcorn', c.clientWidth * 0.3 + i * 30, c.clientHeight * 0.35);
+      t.ui.flyPickup('rust', c.clientWidth * 0.7, c.clientHeight * 0.3);
+    });
+    await page.waitForTimeout(220);
+    await page.screenshot({ path: path.join(out, '41e-pickup-fly.png') });
+    check('harvest launches pickup icons that fly into the bar and land', fly.spawned >= 1 && fly.inFlight + fly.pulses >= 1 && after === 0, JSON.stringify({ ...fly, after }));
+  }
   check('drilling ripe glowcorn harvests 2+ corn and a seed into the pack', reaped.tile === 0 && reaped.corn >= 2 && reaped.seeds >= 1, JSON.stringify(reaped));
   await page.evaluate(() => {
     const g = window.__terrabound.game;

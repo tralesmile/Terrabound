@@ -2,6 +2,7 @@ import { PREFS, prefValueLabel, type PrefKey } from '../sim/settings';
 import { recordLine } from '../sim/records';
 import type { Game, Tool } from '../sim/game';
 import { MAP_ZOOMS, MapView } from './map';
+import { FLY_TIME, Flyers, flyerPos, pulseAmount } from './flyers';
 import { ICON, drawIcon } from '../render/icons';
 import { TRADER_W, drawPlayer, drawRows, robotRows, type RobotKind } from '../render/sprites';
 import { ROBOT_LOOK, playerGear } from '../render/renderer';
@@ -197,6 +198,10 @@ export class UI {
   touch = false;
   toasts: Toast[] = [];
   private rects: Rect[] = [];
+  /** Pickup icons arcing into the hotbar or bag. */
+  flyers = new Flyers();
+  /** Hotbar slot rects by key (placeable item id, or 'inv' for the bag), refreshed each HUD frame. */
+  private slotPos = new Map<string, { x: number; y: number; s: number }>();
 
   toast(text: string, color = '#ffffff', life = 2.4, group?: string): void {
     // The same message twice in a row refreshes the existing line instead of stacking.
@@ -215,6 +220,13 @@ export class UI {
     this.dailyArmed = Math.max(0, this.dailyArmed - dt);
     for (const t of this.toasts) t.life -= dt;
     this.toasts = this.toasts.filter((t) => t.life > 0);
+    this.flyers.update(dt, (i) => (this.slotPos.has(i) ? i : 'inv'));
+  }
+
+  /** A picked-up item's icon arcs from (x, y) in CSS px into its hotbar slot or the bag. */
+  flyPickup(item: string, x: number, y: number): void {
+    if (this.screen !== 'play') return;
+    this.flyers.add(item, x, y);
   }
 
   hit(x: number, y: number): UiAction | null {
@@ -832,9 +844,11 @@ export class UI {
       }
       sx += slot + gap + (i === TOOL_SLOTS.length - 1 ? gap * 2 : 0);
     });
+    this.slotPos.clear();
     shown.forEach((id) => {
       const i = PLACEABLE.indexOf(id);
       const n = invCount(game.carried, id);
+      this.slotPos.set(id, { x: sx, y: sy, s: slot });
       this.cell(ctx, sx, sy, slot, id, n > 0 ? n : null, game.selected === id, { k: 'sel', i }, n <= 0);
       if (game.selected === id) {
         ctx.strokeStyle = '#ffcf4a';
@@ -845,7 +859,9 @@ export class UI {
     });
     // Bag button (inventory) at the end of the bar.
     this.cell(ctx, sx + gap, sy, slot, 'chest', null, false, { k: 'inv' });
+    this.slotPos.set('inv', { x: sx + gap, y: sy, s: slot });
     this.text(ctx, this.touch ? 'BAG' : 'I', sx + gap + slot / 2, sy - u * 0.3, Math.round(u * 0.7), '#c9d0e4', 'center');
+    this.drawFlyers(ctx, slot);
     // What is held, above the bar.
     const heldName = TOOL_SLOTS.find((t) => t.tool === game.tool)?.label ?? '';
     this.text(ctx, game.tool === 'rod' && game.fishing ? (game.fishing.bite > 0 ? 'BITE! Click now!' : 'Waiting for a bite...') : heldName, w / 2, sy - u * 0.5, Math.round(u * 0.85), game.fishing && game.fishing.bite > 0 ? '#ffcf4a' : '#c9d0e4', 'center');
@@ -867,6 +883,34 @@ export class UI {
     if (game.stats.playTime < 40) {
       const hint = this.touch ? 'Left thumb: move, drag up to jump. Right side: dig.' : 'A/D move, W jump. Click: dig / open chests. Right click: build. 1-4 or wheel: tools. I: inventory. E: open chest.';
       this.text(ctx, hint, w / 2, h - u * 0.7, Math.round(u * 0.75), '#c9d0e4', 'center', w - u * 2);
+    }
+  }
+
+  /** Slot pulses (a bright ring that swells as an icon lands) and the icons in flight. */
+  private drawFlyers(ctx: CanvasRenderingContext2D, slot: number): void {
+    for (const [k, left] of this.flyers.pulse) {
+      const r = this.slotPos.get(k);
+      if (!r) continue;
+      const a = pulseAmount(left);
+      const g = r.s * a;
+      ctx.strokeStyle = `rgba(255,236,140,${Math.min(1, a * 5).toFixed(2)})`;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(r.x - g, r.y - g, r.s + g * 2, r.s + g * 2);
+    }
+    const s = Math.max(1, Math.floor((slot * 0.6) / ICON));
+    for (const f of this.flyers.list) {
+      if (f.t < 0) continue;
+      const r = this.slotPos.get(f.item) ?? this.slotPos.get('inv');
+      if (!r) continue;
+      const p = flyerPos(f.t / FLY_TIME, f.x0, f.y0, r.x + r.s / 2, r.y + r.s / 2);
+      const z = Math.max(1, Math.round(s * p.s));
+      const half = (ICON * z) / 2;
+      // Soft glow under the icon so it reads over dark caves.
+      ctx.fillStyle = 'rgba(255,230,140,0.22)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, half * 1.15, 0, Math.PI * 2);
+      ctx.fill();
+      drawIcon(ctx, f.item, Math.round(p.x - half), Math.round(p.y - half), z);
     }
   }
 

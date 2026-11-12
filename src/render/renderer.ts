@@ -141,6 +141,11 @@ export class Renderer {
     };
   }
 
+  /** World tile coords to device px (no shake), for screen-space effects like pickup flyers. */
+  worldToScreen(wx: number, wy: number): { x: number; y: number } {
+    return { x: this.sx(wx, 0), y: this.sy(wy, 0) };
+  }
+
   private sx(wx: number, shakeX: number): number {
     return Math.round(this.w / 2 + (wx - this.camX) * TS * this.scale + shakeX);
   }
