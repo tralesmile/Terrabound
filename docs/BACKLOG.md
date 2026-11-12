@@ -80,7 +80,7 @@ World size and variety:
 - [x] Parts per vehicle: engine (speed), armor (damage taken), battery (drain); 3 levels each
 - [x] Vehicles are parked world objects: DEPLOY from the garage, walk up and press V to enter, leaving parks it; save migration parks owned vehicles at the pad
 - [x] Art for the garage, buggy and drill tank; e2e checks and screenshots
-- [ ] Follow-ups (scheduled runs may take these): plane variant with cargo, vehicle paint colours, fuel/charge station at the garage, drill tank drawn in front of the pilot
+- [ ] Follow-ups (scheduled runs may take these): plane variant with cargo, vehicle paint colours, fuel/charge station at the garage (pilot seated inside buggy and drill tank done run 34)
 
 ## P1.8 Owner request 2026-11-11: "add all" (do these FIRST, top to bottom, before P2)
 
@@ -142,7 +142,8 @@ Polish
 - [x] Guided first minutes (run 31, src/sim/ftue.ts): 7-step GOAL card above the toasts, read from award counters (no save field)
 - [x] Codex screen (run 32, src/sim/codex.ts): CODEX in the inventory, tabs PLACES / CREATURES (kill counts, field notes, bosses) / LOGS (12 data logs); derived from save.codex, save.bosses and award counters (no save field)
 - [x] Suit paints (run 32, src/sim/paints.ts): 6 cosmetic paints, one per gold award, PAINT button on the inventory preview, shown in the world; save v25
-- [ ] Codex follow-ups: a log reader that pages the full story in order, codex entries for robots and the merchant, paint colours for helmets and vehicles
+- [x] Codex follow-ups (run 34): log reader paging read logs in story order with a story strip; CREW tab for the 4 robots and Dex (derived from award counters + who is present, no save bump)
+- [ ] Paint colours for helmets and vehicles (gold-award paints extended; vehicle paint pairs with the P1.9 follow-up)
 - [x] Mobile polish (run 33): safe-area insets (notch / home bar, src/ui/safearea.ts), HOLD REEL touch button for the hook; hotbar slots were already ~44 CSS px on a 390 px phone; real-device check stays in NEEDS_FROM_USER
 
 Money (ethical, no paywalls)

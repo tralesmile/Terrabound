@@ -138,3 +138,8 @@
 - **Translating the UI for safe areas would break every e2e that clicks `ui.rects`.** Guard: `UI.draw` translates the context but shifts the rects back to canvas CSS px after drawing, so hit tests and e2e coordinates never change; `?inset=` fakes a notch for the check.
 - **Hold buttons cannot go through `onAction` (one-shot).** Guard: Input turns a press on a `reel` rect into a held pointer kind, read every frame like the stick.
 - **Retro:** two slices, two ships (~4 min each), no rebase needed. Building the e2e fixture deterministically from the start (tank) would have saved one e2e round.
+
+- **Drawing order is the only depth there is.** "Pilot inside a vehicle" needs three passes: vehicle, player clipped above the floor pan, then the hull rows again clipped below the cab line. Guard: e2e samples the pilot's waist pixel on the drill tank (must be hull colour) via `worldToScreen` + canvas readback in device px.
+- **Cosmetic animation state keyed by object identity** (the rope twang restarts when `game.hook` is a new object) needs no sim field; prefer that over new events for render-only timers.
+- **Retro:** three slices, three ships (~4 min each), no rebase. The repo dir existed on a detached HEAD without a local dev branch; `git fetch && git checkout -B dev origin/dev` fixed it. Content-growth tests (codex row count) were updated to include the new section, not loosened.
+

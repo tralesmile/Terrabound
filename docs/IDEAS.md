@@ -1,5 +1,14 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-12 run 34
+
+- Done this run: grappling rope sag + attach twang + claw (carried 1 run); pilot seated inside ground vehicles; codex log reader + CREW tab.
+- Weakest graphics (carried 3): open caves are one flat tone between rims; faint inner ambient-occlusion band baked into the chunk cache (Core Keeper).
+- Weakest progression (carried 3): bronze/silver awards pay only a star; small one-time stash gifts per award (nothing expires).
+- Weakest story: logs are one line each; expand each to 3-4 lines so the reader page earns its space (Noita/Starbound lore tablets).
+- Weakest UI (carried): full-screen panels leave the notch strip showing the world; dark fill behind the safe frame on phones.
+- Weakest controls (carried): hold right click to sow a row; hotbar digits not remappable.
+
 ## 2026-11-12 run 33
 
 - Done this run: water splash crown + helmet air bubbles (carried 2 runs); safe-area insets; HOLD REEL touch button.
@@ -17,11 +26,3 @@
 - Weakest progression: bronze/silver awards still pay only a star; small one-time stash gifts per award (no pressure, nothing expires) would make every star land.
 - Weakest controls: hold right click to sow a row (carried); hotbar digits not remappable.
 - Weakest UI: lore is read as one toast at a terminal; a LOGS reader that pages the story in order (codex follow-up in BACKLOG).
-
-## 2026-11-12 run 31
-
-- Done this run: living water/acid (rolling crest, glints, depth shade, caustics, bubbles); 44 awards with an AWARDS page; 7-step guided GOAL card.
-- Weakest progression: awards give only a star; gold awards should unlock suit colours shown in the inventory preview (Terraria vanity), promoted to BACKLOG with the codex screen.
-- Weakest graphics (carried): cave darkness flattens strata; a faint rim light on tile edges facing the lamp (Core Keeper).
-- Weakest feel: entering water has no splash ring or slowed bubbles from the suit; a splash burst + air bubbles while submerged would sell swimming.
-- Weakest controls: hold right click to sow a row (carried); hotbar digits not remappable.

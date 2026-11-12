@@ -527,3 +527,14 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** codex follow-ups (log reader, robot/merchant entries, helmet/vehicle paints); P1.9 garage follow-ups; small stash gifts for bronze/silver awards.
 
 **Known issues:** the full-screen panels fill only the safe frame (the world shows in the notch strip); rims subtle in big open caves; drone mining counts toward "mined"; digits 1-0 not remappable; toast kinds guessed from text; ore marks 5 px; offline crop growth ignores robot gardeners; crops restart their stage when the base moves; upgrade BUY refuses upstairs off the pad; turrets draw 1 power idle; e2e farm uses raw tile ids (57-67); drill tank drawn behind the pilot.
+
+## 2026-11-12 Scheduled run 34
+
+**Done:** baseline green (612 tests). Creative review: the grappling rope was a straight 1 px laser line (23-grapple). Rope feel (src/render/ropefx.ts): two-tone braided cord that sags with slack, a decaying twang on attach, a three-prong claw at the anchor, synth hook/unhook sounds (23-grapple, 23c-rope-slack). Backlog codex follow-ups: log reader (click a read log; PREV/NEXT through read logs in story order, ALL LOGS back, story strip of lit/dark cells; 51f-log-reader, 51h-mobile-log-reader) and a CREW tab (Bolt, Patch, Rook, Nova, Dex; met from the robots award keys `seen:npc:*`, Dex from seeing him or talking; present crew count as met for older saves; 51g-codex-crew). No save bump. P1.9 follow-up: the pilot sits inside the buggy and drill tank (hull redrawn over the pilot, pilot clipped at the floor pan; 22b-drill_tank, 22c-buggy).
+
+**Numbers:** 620 unit tests (new: ropefx 5, codex +3), 172 e2e checks all green (new: rope cord drawn/cleared, slack sag, log reader open/next/all, crew tab, phone reader fit, tank hull over pilot), bundle 362 kB (124.9 kB gzip).
+
+**Next:** helmet/vehicle paints; P1.9 follow-ups (plane with cargo, charge station); small stash gifts for bronze/silver awards; cave ambient occlusion.
+
+**Known issues:** the log reader leaves empty space on desktop for these one-line logs; full-screen panels fill only the safe frame (world shows in the notch strip); rims subtle in big open caves; drone mining counts toward "mined"; digits 1-0 not remappable; toast kinds guessed from text; ore marks 5 px; offline crop growth ignores robot gardeners; crops restart their stage when the base moves; upgrade BUY refuses upstairs off the pad; turrets draw 1 power idle; e2e farm uses raw tile ids (57-67).
+
