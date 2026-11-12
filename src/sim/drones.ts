@@ -11,15 +11,103 @@ import type { World } from './world';
  * - hauler: when the pack is getting full away from base, takes a load from it and banks it.
  * Pure and deterministic: no randomness, only the dt it is given.
  */
-export type DroneRole = 'survey' | 'miner' | 'guard' | 'hauler';
-export const DRONE_ROLES: readonly DroneRole[] = ['survey', 'miner', 'guard', 'hauler'];
+export type DroneRole = 'survey' | 'miner' | 'guard' | 'hauler' | 'repair';
+export const DRONE_ROLES: readonly DroneRole[] = ['survey', 'miner', 'guard', 'hauler', 'repair'];
 
 export const ROLE_INFO: Record<DroneRole, { name: string; color: string; desc: string }> = {
   survey: { name: 'Survey', color: '#8ad8ff', desc: 'flies off-map for copper and crystal (works offline)' },
   miner: { name: 'Miner', color: '#ffb03a', desc: 'drills ore near you and flies it home' },
   guard: { name: 'Guard', color: '#ff5a6a', desc: 'follows you and shoots enemies' },
   hauler: { name: 'Hauler', color: '#7dff9a', desc: 'carries loot from your pack to the base' },
+  repair: { name: 'Repair', color: '#5affd8', desc: 'follows you and patches your suit' },
 };
+
+/**
+ * Drone rules (slice 2): up to RULE_MAX "IF condition THEN action" lines per bay, checked top to
+ * bottom; the first true one decides what the drone does right now, otherwise it does its role.
+ */
+export type RuleCond = 'night' | 'enemy' | 'pack_half' | 'hp_low' | 'deep';
+export type RuleAct = 'miner' | 'guard' | 'hauler' | 'repair' | 'home';
+export interface DroneRule {
+  when: RuleCond;
+  then: RuleAct;
+}
+export const RULE_MAX = 3;
+export const RULE_CONDS: readonly RuleCond[] = ['night', 'enemy', 'pack_half', 'hp_low', 'deep'];
+export const RULE_ACTS: readonly RuleAct[] = ['guard', 'repair', 'hauler', 'miner', 'home'];
+export const COND_INFO: Record<RuleCond, string> = {
+  night: 'it is night',
+  enemy: 'enemy near me',
+  pack_half: 'pack half full',
+  hp_low: 'my health < 40%',
+  deep: 'deeper than 60 m',
+};
+export const ACT_INFO: Record<RuleAct, { name: string; color: string }> = {
+  miner: { name: 'mine', color: '#ffb03a' },
+  guard: { name: 'guard', color: '#ff5a6a' },
+  hauler: { name: 'haul', color: '#7dff9a' },
+  repair: { name: 'repair', color: '#5affd8' },
+  home: { name: 'go home', color: '#8a90a2' },
+};
+/** Enemy within this many tiles of the player makes the "enemy" condition true. */
+export const ENEMY_NEAR = 8;
+export const HP_LOW = 0.4;
+export const DEEP_AT = 60;
+/** Hit points per second a repair drone restores while it is beside you. */
+export const REPAIR_HPS = 2.5;
+
+export function nextCond(c: RuleCond): RuleCond {
+  return RULE_CONDS[(RULE_CONDS.indexOf(c) + 1) % RULE_CONDS.length];
+}
+export function nextAct(a: RuleAct): RuleAct {
+  return RULE_ACTS[(RULE_ACTS.indexOf(a) + 1) % RULE_ACTS.length];
+}
+
+/** Facts the rule conditions read; the game fills them every frame. */
+export interface RuleFacts {
+  night: boolean;
+  enemy: boolean;
+  packHalf: boolean;
+  hpLow: boolean;
+  deep: boolean;
+}
+
+export function condTrue(c: RuleCond, f: RuleFacts): boolean {
+  switch (c) {
+    case 'night':
+      return f.night;
+    case 'enemy':
+      return f.enemy;
+    case 'pack_half':
+      return f.packHalf;
+    case 'hp_low':
+      return f.hpLow;
+    case 'deep':
+      return f.deep;
+  }
+}
+
+/** What a drone does right now: the first true rule's action, else its role. Pure. */
+export function actingRole(role: DroneRole, rules: readonly DroneRule[] | undefined, f: RuleFacts): RuleAct | 'survey' {
+  if (role === 'survey') return 'survey';
+  for (const r of (rules ?? []).slice(0, RULE_MAX)) if (condTrue(r.when, f)) return r.then;
+  return role;
+}
+
+/** Keeps only well-formed rules (max RULE_MAX). Used by the save loader and the editor. Never throws. */
+export function sanitizeRules(v: unknown): DroneRule[] {
+  if (!Array.isArray(v)) return [];
+  const out: DroneRule[] = [];
+  for (const r of v) {
+    if (out.length >= RULE_MAX) break;
+    if (!r || typeof r !== 'object') continue;
+    const o = r as Record<string, unknown>;
+    if (typeof o.when !== 'string' || typeof o.then !== 'string') continue;
+    if (!(RULE_CONDS as readonly string[]).includes(o.when) || !(RULE_ACTS as readonly string[]).includes(o.then)) continue;
+    out.push({ when: o.when as RuleCond, then: o.then as RuleAct });
+  }
+  return out;
+}
 
 /** Tiles a miner drone will drill: ore only, never building blocks or the base. */
 export const DRONE_ORES: ReadonlySet<number> = new Set([T.IRON, T.COPPER, T.CRYSTAL, T.CIRCUIT_ORE, T.PLASMA_ORE, T.CORE_ORE]);
@@ -54,6 +142,8 @@ export interface FieldDrone {
   target: { x: number; y: number } | null;
   work: number;
   cd: number;
+  /** What it is doing this frame (role or a rule's action); for drawing and the panel. */
+  act: RuleAct;
 }
 
 export interface Bay {
@@ -95,7 +185,7 @@ export function syncDrones(drones: FieldDrone[], bays: Bay[], roles: Record<stri
       out.push(old);
       continue;
     }
-    out.push({ key: b.key, role, bayX: b.x, bayY: b.y, x: b.x + 0.5, y: b.y + 0.3, mode: 'dock', cargo: old?.cargo ?? {}, target: null, work: 0, cd: 0 });
+    out.push({ key: b.key, role, bayX: b.x, bayY: b.y, x: b.x + 0.5, y: b.y + 0.3, mode: 'dock', cargo: old?.cargo ?? {}, target: null, work: 0, cd: 0, act: role });
   }
   return out;
 }
@@ -122,13 +212,20 @@ export interface DroneCtx {
   enemies: readonly DroneTarget[];
   carried: Inventory;
   stash: Inventory;
+  /** Rules per bay key and the facts they read (both optional: no rules means plain roles). */
+  rules?: Record<string, DroneRule[]>;
+  facts?: RuleFacts;
+  /** Player health, for repair drones. */
+  hp?: number;
+  maxHp?: number;
 }
 
 export type DroneEvent =
   | { t: 'dronemine'; x: number; y: number; item: ItemId; tile: number }
   | { t: 'droneshot'; x: number; y: number; tx: number; ty: number; id: number }
   | { t: 'dronebank'; n: number; role: DroneRole }
-  | { t: 'dronetake'; n: number };
+  | { t: 'dronetake'; n: number }
+  | { t: 'dronerepair'; hp: number };
 
 function total(inv: Inventory): number {
   let n = 0;
@@ -202,10 +299,20 @@ export function stepFieldDrones(drones: FieldDrone[], ctx: DroneCtx, dt: number)
   const ev: DroneEvent[] = [];
   const dockX = (d: FieldDrone) => d.bayX + 0.5;
   const dockY = (d: FieldDrone) => d.bayY + 0.3;
+  const noFacts: RuleFacts = { night: false, enemy: false, packHalf: false, hpLow: false, deep: false };
   drones.forEach((d, i) => {
     d.cd = Math.max(0, d.cd - dt);
-    // Unpowered or player at base: everyone heads home and unloads.
-    const goHome = !ctx.powered || ctx.atBase;
+    const act = actingRole(d.role, ctx.rules?.[d.key], ctx.facts ?? noFacts);
+    if (act === 'survey') return;
+    if (act !== d.act) {
+      // Switching jobs drops a half-drilled target (cargo stays aboard).
+      if (d.mode === 'drill') d.mode = 'follow';
+      d.target = null;
+      d.work = 0;
+      d.act = act;
+    }
+    // Unpowered, player at base, or a "go home" rule: everyone heads home and unloads.
+    const goHome = !ctx.powered || ctx.atBase || act === 'home';
     if (d.mode === 'home' || (goHome && d.mode !== 'dock')) {
       d.mode = 'home';
       d.target = null;
@@ -224,10 +331,22 @@ export function stepFieldDrones(drones: FieldDrone[], ctx: DroneCtx, dt: number)
       d.x = dockX(d);
       d.y = dockY(d);
       if (goHome) return;
-      if (d.role === 'hauler' && haulable(ctx.carried) < HAUL_AT) return;
+      if (act === 'hauler' && haulable(ctx.carried) < HAUL_AT) return;
+      if (act === 'repair' && (ctx.hp ?? 0) >= (ctx.maxHp ?? 0)) return;
       d.mode = 'follow';
     }
-    if (d.role === 'hauler') {
+    if (act === 'repair') {
+      const p = followPoint(i, ctx);
+      const there = fly(d, p.x, p.y, dt);
+      const missing = (ctx.maxHp ?? 0) - (ctx.hp ?? 0);
+      if (there && missing > 0) {
+        const hp = Math.min(missing, REPAIR_HPS * dt);
+        ctx.hp = (ctx.hp ?? 0) + hp;
+        ev.push({ t: 'dronerepair', hp });
+      }
+      return;
+    }
+    if (act === 'hauler') {
       const p = followPoint(i, ctx);
       if (fly(d, p.x, p.y, dt)) {
         let n = 0;
@@ -246,7 +365,7 @@ export function stepFieldDrones(drones: FieldDrone[], ctx: DroneCtx, dt: number)
       }
       return;
     }
-    if (d.role === 'guard') {
+    if (act === 'guard') {
       const p = followPoint(i, ctx);
       fly(d, p.x, p.y, dt);
       if (d.cd > 0) return;

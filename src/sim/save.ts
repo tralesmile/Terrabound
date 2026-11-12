@@ -5,9 +5,9 @@ import { CODEX_IDS } from './explore';
 import { defaultGear, sanitizeGear, type GearSave } from './gear';
 import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
-import { DRONE_ROLES, type DroneRole } from './drones';
+import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 12;
+export const SAVE_VERSION = 13;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -41,6 +41,8 @@ export interface SaveData {
   bosses: BossId[];
   /** v12: role per drone bay, keyed by the bay's offset from the pad ("dx,dy"); missing = survey. */
   drones: Record<string, DroneRole>;
+  /** v13: IF/THEN rules per drone bay (same keys as `drones`); missing = no rules. */
+  droneRules: Record<string, DroneRule[]>;
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -62,6 +64,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     gear: defaultGear(),
     bosses: [],
     drones: {},
+    droneRules: {},
   };
 }
 
@@ -135,6 +138,8 @@ export function parseSave(raw: string | null | undefined): SaveData {
     bosses: Array.isArray(r.bosses) ? BOSS_IDS.filter((id) => (r.bosses as unknown[]).includes(id)) : [],
     // v11 -> v12: every bay keeps the survey job.
     drones: sanitizeDrones(r.drones),
+    // v12 -> v13: no drone rules yet.
+    droneRules: sanitizeDroneRules(r.droneRules),
   };
 }
 
@@ -146,6 +151,21 @@ function sanitizeDrones(v: unknown): Record<string, DroneRole> {
     if (n >= 200) break;
     if (!/^-?\d{1,3},\d{1,3}$/.test(k) || typeof role !== 'string' || !(DRONE_ROLES as readonly string[]).includes(role) || role === 'survey') continue;
     out[k] = role as DroneRole;
+    n++;
+  }
+  return out;
+}
+
+function sanitizeDroneRules(v: unknown): Record<string, DroneRule[]> {
+  const out: Record<string, DroneRule[]> = {};
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return out;
+  let n = 0;
+  for (const [k, rules] of Object.entries(v as Record<string, unknown>)) {
+    if (n >= 200) break;
+    if (!/^-?\d{1,3},\d{1,3}$/.test(k)) continue;
+    const clean = sanitizeRules(rules);
+    if (clean.length === 0) continue;
+    out[k] = clean;
     n++;
   }
   return out;

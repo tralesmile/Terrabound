@@ -15,7 +15,7 @@ import { isNight } from './sim/daynight';
 import { WEATHER } from './sim/weather';
 import { shareCard } from './ui/share';
 import { BOSSES } from './sim/bosses';
-import { ROLE_INFO } from './sim/drones';
+import { ROLE_INFO, nextAct, nextCond } from './sim/drones';
 import { UI, type UiAction } from './ui/ui';
 
 const TOOL_NAMES: Record<Tool, string> = { drill: 'Mining drill', blade: 'Energy blade', pistol: 'Pulse pistol', rod: 'Fishing rod: click water to cast', hook: 'Grappling hook: click a ceiling, swing, jump to let go' };
@@ -125,6 +125,7 @@ function boot(): void {
         ui.shopOpen = false;
         ui.mapOpen = false;
         ui.invOpen = false;
+        ui.dronesOpen = false;
         if (game.chestOpen) game.interact();
         break;
       case 'map':
@@ -244,6 +245,32 @@ function boot(): void {
           ui.mapOpen = false;
         }
         break;
+      case 'drones':
+        if (ui.screen === 'play' && !ui.shopOpen && !ui.invOpen) ui.dronesOpen = !ui.dronesOpen && game.isAtBase() && game.bays().length > 0;
+        break;
+      case 'baynext':
+        ui.bayIdx += a.d;
+        break;
+      case 'bayrole': {
+        const bay = game.bays()[ui.bayIdx];
+        if (bay) game.setDroneRole(bay.key);
+        break;
+      }
+      case 'ruleadd':
+      case 'rulecond':
+      case 'ruleact':
+      case 'ruledel': {
+        const bay = game.bays()[ui.bayIdx];
+        if (!bay) break;
+        const rules = game.droneRules(bay.key).map((r) => ({ ...r }));
+        if (a.k === 'ruleadd') rules.push({ when: 'enemy', then: 'guard' });
+        else if (a.k === 'rulecond' && rules[a.i]) rules[a.i].when = nextCond(rules[a.i].when);
+        else if (a.k === 'ruleact' && rules[a.i]) rules[a.i].then = nextAct(rules[a.i].then);
+        else if (a.k === 'ruledel') rules.splice(a.i, 1);
+        game.setDroneRules(bay.key, rules);
+        saveNow();
+        break;
+      }
       case 'interact':
         if (ui.screen === 'play' && !ui.invOpen && !game.interact() && !game.chestOpen) ui.toast('No chest within reach', '#8a90a2');
         break;
@@ -479,12 +506,13 @@ function boot(): void {
         let steps = 0;
         while (acc >= FIXED_DT && steps < 6) {
           // The map pauses the dive (single player, no reason to punish looking).
-          if (!ui.mapOpen) game.step(FIXED_DT, ui.shopOpen || ui.invOpen ? NO_CONTROLS : input.read());
+          if (!ui.mapOpen) game.step(FIXED_DT, ui.shopOpen || ui.invOpen || ui.dronesOpen ? NO_CONTROLS : input.read());
           acc -= FIXED_DT;
           steps++;
         }
         if (steps === 6) acc = 0;
         if (ui.shopOpen && !game.isAtBase()) ui.shopOpen = false;
+        if (ui.dronesOpen && !game.isAtBase()) ui.dronesOpen = false;
       }
       for (const e of game.drainEvents()) handle(e);
       if (ui.screen === 'play' && !ui.mapOpen) {

@@ -159,7 +159,7 @@ describe('drone power and base', () => {
 
 describe('drone roles in saves and the game', () => {
   it('v11 saves migrate with every bay on survey; bad roles are dropped; roles round-trip', () => {
-    expect(SAVE_VERSION).toBe(12);
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(12);
     const old = { ...defaultSave(), v: 11 } as Record<string, unknown>;
     delete old.drones;
     expect(parseSave(JSON.stringify(old)).drones).toEqual({});

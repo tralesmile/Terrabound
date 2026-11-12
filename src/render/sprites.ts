@@ -491,6 +491,33 @@ const ROTORS = ['wwwwwo    owwwww', '  wwwo    owww', '     o    o'];
 /** Drone wisp: rotor spins over 3 frames; the eye blinks via a remap at draw time. 16x7. */
 export const FLYER_ROWS: string[][] = ROTORS.map((r) => [r, ...FLYER_BODY]);
 
+/** Field drone hull (16 wide): mast, eye band in the job colour (`e` remapped), plated belly. */
+const DRONE_HULL = [
+  '       oo',
+  '   oooooooooo',
+  '  oHhhhhhhhhHo',
+  ' oHhoeeeeeeohHo',
+  ' oPppoooooopppPo',
+  '  oPPPPPPPPPPPo',
+  '   oooooooooooo',
+];
+const DRONE_ROTORS = [' wwwwwo  owwwww', '    wwwo  owww'];
+/** Job attachments under the hull: drill bit, twin barrels, cargo claws, repair emitter. */
+const DRONE_TOOLS: Record<string, string[]> = {
+  miner: ['      osSo', '       sSo', '       oo'],
+  guard: ['    oLLo  oLLo', '    oLo    oLo', '     o      o'],
+  hauler: ['   oPo     oPo', '   oPoo   ooPo', '    ooo   ooo'],
+  repair: ['      oVVVo', '       oVo', '        o'],
+  home: [],
+};
+export const DRONE_W = 16;
+
+/** Rows for a field drone doing `act` at time t (rotor spins at 24 fps). Pure. */
+export function droneRows(act: string, t: number): string[] {
+  const rotor = DRONE_ROTORS[Math.floor(Math.max(0, t) * 24) % DRONE_ROTORS.length];
+  return [rotor, ...DRONE_HULL, ...(DRONE_TOOLS[act] ?? [])];
+}
+
 export type EnemySpriteKind = 'crawler' | 'flyer';
 
 /** Picks the animation frame for an enemy at time t. Pure. */
@@ -765,6 +792,13 @@ export function drawGallery(canvas: HTMLCanvasElement): void {
   for (const k of ['vine', 'mite', 'ember', 'hulk'] as EnemyKind[]) {
     drawEnemySprite(ctx, k, ex, 210 + 10 * z, z, 1, 0.4, false);
     ex += ENEMY_W * z * ENEMY_LOOKS[k].size + 12;
+  }
+  // Field drones for every job (eye band in the job colour), to the right of the player frames.
+  const DRONE_COLS: Record<string, string> = { miner: '#ffb03a', guard: '#ff5a6a', hauler: '#7dff9a', repair: '#5affd8', home: '#8a90a2' };
+  let dxg = 620;
+  for (const act of Object.keys(DRONE_COLS)) {
+    drawRows(ctx, droneRows(act, 0.01), dxg, 110, z, false, DRONE_W, undefined, { e: DRONE_COLS[act] });
+    dxg += DRONE_W * z + 14;
   }
   // Bosses at 2x in the free space bottom right: four walkers, then the wyrm and the core.
   const pose = { facing: 1, age: 0.3, flash: false, lift: 0, reach: 0, enraged: false, lookX: -1, lookY: 0.4 };

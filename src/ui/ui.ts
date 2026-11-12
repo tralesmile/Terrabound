@@ -13,6 +13,7 @@ import { CODEX, RECALL_TIME } from '../sim/explore';
 import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type Inventory, type ItemId } from '../sim/tiles';
 import { UPGRADES } from '../sim/upgrades';
 import { RECIPES } from '../sim/recipes';
+import { ACT_INFO, COND_INFO, RULE_MAX, ROLE_INFO } from '../sim/drones';
 
 export type UiAction =
   | { k: 'start' }
@@ -48,7 +49,14 @@ export type UiAction =
   | { k: 'mapzoom'; d: number }
   | { k: 'mapcenter' }
   | { k: 'victoryclose' }
-  | { k: 'share' };
+  | { k: 'share' }
+  | { k: 'drones' }
+  | { k: 'baynext'; d: number }
+  | { k: 'bayrole' }
+  | { k: 'rulecond'; i: number }
+  | { k: 'ruleact'; i: number }
+  | { k: 'ruledel'; i: number }
+  | { k: 'ruleadd' };
 
 export type ShopTab = 'upgrades' | 'fab' | 'gear';
 
@@ -124,6 +132,9 @@ export class UI {
   mapRect = { x: 0, y: 0, w: 0, h: 0 };
   screen: 'title' | 'play' = 'title';
   shopOpen = false;
+  /** Drone panel (roles and IF/THEN rules per bay) and which bay it shows. */
+  dronesOpen = false;
+  bayIdx = 0;
   /** Workshop tab: upgrades or Fabricator recipes (keeps the panel on screen however many rows exist). */
   shopTab: ShopTab = 'upgrades';
   /** Rows that fit on screen (set each frame by drawShop). */
@@ -176,7 +187,7 @@ export class UI {
 
   /** True when the pointer is over interactive UI (so the world should not dig underneath). */
   blocks(x: number, y: number): boolean {
-    return this.hit(x, y) !== null || this.screen === 'title' || this.shopOpen;
+    return this.hit(x, y) !== null || this.screen === 'title' || this.shopOpen || this.dronesOpen;
   }
 
   private text(ctx: CanvasRenderingContext2D, s: string, x: number, y: number, size: number, color = '#fff', align: CanvasTextAlign = 'left', maxW = 0): void {
@@ -201,7 +212,7 @@ export class UI {
     ctx.strokeStyle = enabled ? '#36e0e8' : '#454a5c';
     ctx.lineWidth = opts.pulse ? 3 : 2;
     ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
-    this.text(ctx, label, x + w / 2, y + h / 2, Math.round(u * 0.95), enabled ? '#ffffff' : '#8a90a2', 'center');
+    this.text(ctx, label, x + w / 2, y + h / 2, Math.round(u * 0.95), enabled ? '#ffffff' : '#8a90a2', 'center', w - 6);
     if (enabled) this.rects.push({ x, y, w, h, a });
   }
 
@@ -240,6 +251,70 @@ export class UI {
     if (game.boss) this.drawBossBar(ctx, game, w, u);
     else if (game.weather !== 'clear') this.text(ctx, WEATHER[game.weather].name.toUpperCase(), w / 2, u * 4.6, Math.round(u * 0.8), game.weather === 'eclipse' ? '#ff5aff' : '#ffcf4a', 'center');
     if (game.chestOpen) this.drawChest(ctx, game, w, h, u);
+    if (this.dronesOpen) this.drawDrones(ctx, game, w, h, u);
+  }
+
+  /** Drone panel: one bay at a time; role button, then up to RULE_MAX "IF x THEN y" rows (tap to cycle). */
+  private drawDrones(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number): void {
+    const bays = game.bays();
+    if (bays.length === 0) {
+      this.dronesOpen = false;
+      return;
+    }
+    this.bayIdx = ((this.bayIdx % bays.length) + bays.length) % bays.length;
+    const bay = bays[this.bayIdx];
+    const role = game.droneRole(bay.key);
+    const rules = game.droneRules(bay.key);
+    const pw = Math.min(w - u * 2, u * 32);
+    const rowH = u * 2.4;
+    const ph = u * 11.5 + rowH * RULE_MAX;
+    const px = (w - pw) / 2;
+    const py = Math.max(u * 4, (h - ph) / 2 - u * 2);
+    this.panel(ctx, px, py, pw, ph);
+    this.text(ctx, `DRONE BAY ${this.bayIdx + 1}/${bays.length}`, px + u, py + u * 1.5, Math.round(u * 1.1), '#ffcf4a');
+    this.button(ctx, px + pw - u * 5.5, py + u * 0.4, u * 5, u * 2.1, 'CLOSE', { k: 'drones' }, u * 0.8);
+    if (bays.length > 1) {
+      this.button(ctx, px + pw - u * 11, py + u * 0.4, u * 2.4, u * 2.1, '<', { k: 'baynext', d: -1 }, u);
+      this.button(ctx, px + pw - u * 8.3, py + u * 0.4, u * 2.4, u * 2.1, '>', { k: 'baynext', d: 1 }, u);
+    }
+    let y = py + u * 3.2;
+    const ri = ROLE_INFO[role];
+    this.button(ctx, px + u, y, pw * 0.42, rowH, `ROLE: ${ri.name.toUpperCase()}`, { k: 'bayrole' }, u * 0.8, { color: '#2a3550' });
+    ctx.fillStyle = ri.color;
+    ctx.fillRect(px + u + 4, y + 4, u * 0.5, rowH - 8);
+    this.text(ctx, ri.desc, px + u * 2 + pw * 0.42, y + rowH / 2, Math.round(u * 0.7), '#c9d0e4', 'left', pw * 0.58 - u * 3);
+    y += rowH + u * 1.2;
+    if (role === 'survey') {
+      this.text(ctx, 'Survey drones work off-map. Pick another role to use rules.', px + u, y + u * 0.6, Math.round(u * 0.72), '#8a90a2', 'left', pw - u * 2);
+      return;
+    }
+    this.text(ctx, 'RULES (top to bottom, first true one wins)', px + u, y, Math.round(u * 0.72), '#8a90a2', 'left', pw - u * 2);
+    y += u * 0.9;
+    const condW = pw * 0.42;
+    const actW = pw * 0.26;
+    for (let i = 0; i < RULE_MAX; i++) {
+      const r = rules[i];
+      const ry = y + i * (rowH + u * 0.4);
+      if (!r) {
+        if (i === rules.length) this.button(ctx, px + u, ry, pw - u * 2, rowH, '+ ADD RULE', { k: 'ruleadd' }, u * 0.8, { color: '#1f4a3a' });
+        continue;
+      }
+      let x = px + u;
+      this.text(ctx, 'IF', x, ry + rowH / 2, Math.round(u * 0.8), '#ffcf4a');
+      x += u * 1.6;
+      this.button(ctx, x, ry, condW, rowH, COND_INFO[r.when], { k: 'rulecond', i }, u * 0.68, { color: '#2a3550' });
+      x += condW + u * 0.4;
+      this.text(ctx, 'THEN', x, ry + rowH / 2, Math.round(u * 0.7), '#ffcf4a');
+      x += u * 2.6;
+      this.button(ctx, x, ry, actW, rowH, ACT_INFO[r.then].name.toUpperCase(), { k: 'ruleact', i }, u * 0.72, { color: '#2a3550' });
+      ctx.fillStyle = ACT_INFO[r.then].color;
+      ctx.fillRect(x + 3, ry + rowH - 6, actW - 6, 3);
+      this.button(ctx, px + pw - u * 3.2, ry, u * 2.2, rowH, 'X', { k: 'ruledel', i }, u * 0.8, { color: '#7a2a2a' });
+    }
+    y += RULE_MAX * (rowH + u * 0.4) + u * 0.6;
+    const d = game.drones.find((f) => f.key === bay.key);
+    const now = d ? `Now: ${ACT_INFO[d.act].name}${d.mode === 'dock' ? ' (docked)' : ''}` : 'Now: docked';
+    this.text(ctx, `${now}. Otherwise it does its role.`, px + u, y + u * 0.4, Math.round(u * 0.72), '#7dff9a', 'left', pw - u * 2);
   }
 
   /** Shown once after beating the Hollow AI. */
@@ -524,6 +599,10 @@ export class UI {
       by += bhgt + u * 0.5;
     } else if (game.canRecall()) {
       this.button(ctx, bx, by, bwid, bhgt, 'HOME', { k: 'recall' }, u * 0.9);
+      by += bhgt + u * 0.5;
+    }
+    if (game.isAtBase() && game.bays().length > 0) {
+      this.button(ctx, bx, by, bwid, bhgt, 'DRONES', { k: 'drones' }, u * 0.85, { color: '#2a3550' });
       by += bhgt + u * 0.5;
     }
     if (game.isAtBase()) {

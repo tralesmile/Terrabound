@@ -843,6 +843,53 @@ try {
   }, [site.x, site.y]);
   check('miner and guard drones fly out to the player', drones.modes.length === 2 && drones.near && !drones.modes.some((m) => m.endsWith(':dock')), JSON.stringify(drones));
   check('the miner drone drills ore near the player', drones.ores < 4, JSON.stringify(drones));
+  // Drone rules panel: DRONES at the base, add a rule and cycle its condition and action by clicking.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.body.x = g.world.padX + 3.5;
+    g.body.y = g.world.padY;
+    g.body.vx = g.body.vy = 0;
+    g.enemies = [];
+  });
+  await page.waitForTimeout(500);
+  const clickUi = async (k) => {
+    const r = await page.evaluate((kk) => window.__terrabound.ui.rects.find((x) => x.a.k === kk), k);
+    if (r) await page.mouse.click(r.x + r.w / 2, r.y + r.h / 2);
+    await page.waitForTimeout(120);
+    return !!r;
+  };
+  const sawDronesBtn = await clickUi('drones');
+  await clickUi('ruleadd');
+  await clickUi('rulecond');
+  await clickUi('ruleact');
+  await page.screenshot({ path: path.join(out, '33b-drone-rules.png') });
+  const panel = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const ui = window.__terrabound.ui;
+    const key = g.bays()[ui.bayIdx].key;
+    return { open: ui.dronesOpen, key, rules: g.droneRules(key), saved: JSON.stringify(g.toSave().droneRules) };
+  });
+  check('DRONES opens the rule panel at the base', sawDronesBtn && panel.open, JSON.stringify(panel));
+  check('clicking adds a rule and cycles IF and THEN', panel.rules.length === 1 && panel.rules[0].when === 'pack_half' && panel.rules[0].then === 'repair' && panel.saved.includes('pack_half'), JSON.stringify(panel));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(100);
+  check('Escape closes the drone panel', !(await page.evaluate(() => window.__terrabound.ui.dronesOpen)));
+  // Repair drone: heals a hurt player out in the field (beam screenshot).
+  const healed = await page.evaluate(([x, y]) => {
+    const g = window.__terrabound.game;
+    g.setDroneRules(g.bays()[0].key, []);
+    g.setDroneRole(g.bays()[0].key, 'repair');
+    g.body.x = x + 0.5;
+    g.body.y = y;
+    g.body.vx = g.body.vy = 0;
+    g.enemies = [];
+    g.hp = 40;
+    return g.hp;
+  }, [site.x, site.y]);
+  await page.waitForTimeout(3500);
+  await page.screenshot({ path: path.join(out, '33c-repair-drone.png') });
+  const hpNow = await page.evaluate(() => window.__terrabound.game.hp);
+  check('a repair drone heals the player in the field', hpNow > healed + 1, JSON.stringify({ healed, hpNow }));
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     const w = g.world;
@@ -1064,6 +1111,29 @@ try {
   check('tapping MAP opens the map on mobile', await page.evaluate(() => window.__terrabound.ui.mapOpen), JSON.stringify(mapBtn));
   await page.screenshot({ path: path.join(out, '14-mobile-map.png') });
   await page.evaluate(() => { window.__terrabound.ui.mapOpen = false; });
+  // Drone rule panel fits a phone: build two bays, open it, add three rules, every button on screen.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    w.set(w.padX + 2, w.padY - 1, 31);
+    w.set(w.padX + 3, w.padY - 1, 31);
+    g.body.x = w.padX + 0.5;
+    g.body.y = w.padY;
+    g.setDroneRole('2,1', 'guard');
+    g.setDroneRules('2,1', [{ when: 'enemy', then: 'guard' }, { when: 'hp_low', then: 'repair' }, { when: 'night', then: 'home' }]);
+  });
+  await page.waitForTimeout(300);
+  const dronesBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'drones'));
+  if (dronesBtn) await page.touchscreen.tap(dronesBtn.x + dronesBtn.w / 2, dronesBtn.y + dronesBtn.h / 2);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(out, '33d-mobile-drones.png') });
+  const mpanel = await page.evaluate(() => {
+    const ui = window.__terrabound.ui;
+    const rs = ui.rects.filter((r) => ['ruledel', 'ruleact', 'rulecond', 'bayrole', 'baynext'].includes(r.a.k));
+    return { open: ui.dronesOpen, n: rs.length, inside: rs.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= innerWidth && r.y + r.h <= innerHeight) };
+  });
+  check('drone rule panel fits a phone with three rules', !!dronesBtn && mpanel.open && mpanel.n === 3 * 3 + 3 && mpanel.inside, JSON.stringify(mpanel));
+  await page.evaluate(() => { window.__terrabound.ui.dronesOpen = false; });
   check('no console or page errors on mobile', merrors.length === 0, merrors.join(' | '));
   await mctx.close();
   const gctx = await browser.newContext({ viewport: { width: 1100, height: 1040 } });

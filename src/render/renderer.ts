@@ -11,13 +11,13 @@ import { ICON, drawIcon } from './icons';
 import { GEAR } from '../sim/gear';
 import { BOSSES, phase as bossPhase } from '../sim/bosses';
 import { drawBossArt } from './bossart';
-import { ROLE_INFO } from '../sim/drones';
+import { ACT_INFO } from '../sim/drones';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, leafMask } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape } from './decor';
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
-import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, drawEnemySprite, drawPlayer, makeCanvas } from './sprites';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 
 /** Chunk size in tiles for the render cache. */
@@ -737,25 +737,35 @@ export class Renderer {
       if (d.mode === 'dock') continue;
       const x = this.sx(d.x, shakeX);
       const y = this.sy(d.y + Math.sin(time * 4 + d.bayX) * 0.08, shakeY);
-      const col = ROLE_INFO[d.role].color;
+      const col = ACT_INFO[d.act].color;
       // Inside rock the drone phases through: draw it faint.
       ctx.globalAlpha = game.world.isSolid(Math.floor(d.x), Math.floor(d.y)) ? 0.45 : 1;
+      const s = u * 0.6;
+      const rows = droneRows(d.act, time + d.bayX * 0.013);
       if (d.mode === 'drill' && d.target && Math.hypot(d.target.x + 0.5 - d.x, d.target.y - 0.2 - d.y) < 0.2) {
         ctx.fillStyle = `rgba(255,190,80,${0.6 + 0.4 * Math.sin(time * 30)})`;
-        ctx.fillRect(x - u, y + u * 2, u * 2, u * 5);
+        ctx.fillRect(x - u, y + u * 5, u * 2, u * 4);
       }
-      ctx.fillStyle = '#14181f';
-      ctx.fillRect(x - u * 4, y - u * 2, u * 8, u * 5);
-      ctx.fillStyle = '#5c6478';
-      ctx.fillRect(x - u * 3, y - u, u * 6, u * 3);
-      ctx.fillStyle = col;
-      ctx.fillRect(x - u, y - u * 0.5, u * 2, u * 1.5);
-      ctx.fillStyle = '#c9d0e4';
-      const r = Math.floor(time * 24 + d.bayX) % 2 ? 5 : 2;
-      ctx.fillRect(x - u * r, y - u * 3.5, u * r * 2, u);
+      if (d.act === 'repair' && game.hp < game.derived.maxHp && d.mode === 'follow') {
+        // Repair beam: a pulsing line to the player's chest with a few motes.
+        const px = this.sx(game.body.x, shakeX);
+        const py = this.sy(game.body.y - BODY_H * 0.6, shakeY);
+        ctx.strokeStyle = `rgba(90,255,216,${0.45 + 0.3 * Math.sin(time * 14)})`;
+        ctx.lineWidth = Math.max(1, u * 1.2);
+        ctx.beginPath();
+        ctx.moveTo(x, y + u * 4);
+        ctx.lineTo(px, py);
+        ctx.stroke();
+        const k = (time * 2) % 1;
+        ctx.fillStyle = '#c8fff0';
+        ctx.fillRect(x + (px - x) * k - u, y + u * 4 + (py - y - u * 4) * k - u, u * 2, u * 2);
+      }
+      drawRows(ctx, rows, x - (DRONE_W / 2) * s, y - u * 3, s, d.x > game.body.x, DRONE_W, undefined, { e: col });
       if (Object.keys(d.cargo).length > 0) {
         ctx.fillStyle = '#ffcf4a';
         ctx.fillRect(x - u * 1.5, y + u * 3, u * 3, u * 2);
+        ctx.fillStyle = '#14181f';
+        ctx.fillRect(x - u * 1.5, y + u * 3, u * 3, Math.max(1, u * 0.5));
       }
       ctx.globalAlpha = 1;
     }

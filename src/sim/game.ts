@@ -31,7 +31,7 @@ import { FOOD, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_
 import { daylight } from './daynight';
 import { awaySeconds, simulateOffline, OFFLINE_MIN, type OfflineResult } from './offline';
 import { automationHint, stepGrid, newPower, scanMachines, stepSmelting, stepMining, stepDrones, SMELT_RUST, type PowerState } from './power';
-import { DRONE_ROLES, ROLE_INFO, listBays, nextRole, roleOf, stepFieldDrones, surveyBays, syncDrones, type DroneEvent, type DroneRole, type FieldDrone, GUARD_DMG } from './drones';
+import { DRONE_ROLES, ENEMY_NEAR, HP_LOW, DEEP_AT, RULE_MAX, ROLE_INFO, sanitizeRules, type DroneRule, listBays, nextRole, roleOf, stepFieldDrones, surveyBays, syncDrones, type DroneEvent, type DroneRole, type FieldDrone, GUARD_DMG } from './drones';
 import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight } from './daynight';
 import { applyDiff, captureDiff } from './persist';
@@ -287,6 +287,7 @@ export class Game {
     this.save.gear = sanitizeGear(this.save.gear);
     if (!Array.isArray(this.save.bosses)) this.save.bosses = [];
     if (!this.save.drones || typeof this.save.drones !== 'object') this.save.drones = {};
+    if (!this.save.droneRules || typeof this.save.droneRules !== 'object') this.save.droneRules = {};
     this.stash = { ...save.stash };
     this.upgrades = { ...save.upgrades };
     // Crash/refresh safety: loot carried at last save is banked, never lost.
@@ -787,8 +788,16 @@ export class Game {
       enemies: this.enemies,
       carried: this.carried,
       stash: this.stash,
+      rules: this.save.droneRules,
+      facts: this.ruleFacts(),
+      hp: this.hp,
+      maxHp: this.derived.maxHp,
     }, dt);
     for (const e of ev) {
+      if (e.t === 'dronerepair') {
+        this.hp = Math.min(this.derived.maxHp, this.hp + e.hp);
+        continue;
+      }
       if (e.t === 'droneshot') {
         const en = this.enemies.find((x) => x.id === e.id);
         if (en) this.damageEnemy(en, GUARD_DMG, Math.sign(en.x - e.x) || 1);
@@ -808,6 +817,37 @@ export class Game {
       if (d <= REACH && (!best || d < best.d)) best = { ...bay, d };
     }
     return best;
+  }
+
+  /** What drone rule conditions see this frame. */
+  ruleFacts(): { night: boolean; enemy: boolean; packHalf: boolean; hpLow: boolean; deep: boolean } {
+    const b = this.body;
+    let haul = 0;
+    for (const k in this.carried) if (!ITEMS[k as ItemId].kit) haul += this.carried[k as ItemId] ?? 0;
+    return {
+      night: isNight(this.time),
+      enemy: this.enemies.some((e) => e.hp > 0 && Math.hypot(e.x - b.x, e.y - b.y) <= ENEMY_NEAR) || this.boss !== null,
+      packHalf: haul * 2 >= this.derived.packCap,
+      hpLow: this.hp < this.derived.maxHp * HP_LOW,
+      deep: this.depth >= DEEP_AT,
+    };
+  }
+
+  /** Drone bays in the base (scan order). */
+  bays(): { key: string; x: number; y: number }[] {
+    return listBays(this.world);
+  }
+
+  droneRules(key: string): DroneRule[] {
+    return this.save.droneRules[key] ?? [];
+  }
+
+  /** Replace a bay's rules (sanitized, max RULE_MAX); an empty list removes the entry. */
+  setDroneRules(key: string, rules: readonly DroneRule[]): DroneRule[] {
+    const clean = sanitizeRules(rules).slice(0, RULE_MAX);
+    if (clean.length === 0) delete this.save.droneRules[key];
+    else this.save.droneRules[key] = clean;
+    return clean;
   }
 
   droneRole(key: string): DroneRole {
@@ -1776,7 +1816,7 @@ export class Game {
     const bay = this.bayNear();
     if (bay) {
       const r = this.droneRole(bay.key);
-      return `Drone bay: ${ROLE_INFO[r].name} (${ROLE_INFO[r].desc}). ${touch ? 'Tap the bay' : 'Press E'} to change role`;
+      return `Drone bay: ${ROLE_INFO[r].name} (${ROLE_INFO[r].desc}). ${touch ? 'Tap the bay' : 'Press E'} to change role, DRONES for rules`;
     }
     return automationHint(this.machineCounts, this.stash, this.power.ratio, touch, this.upgrades.fab ?? 0);
   }
