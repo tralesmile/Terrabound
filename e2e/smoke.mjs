@@ -40,6 +40,29 @@ const check = (name, ok, extra = '') => {
   if (!ok) failures.push(name);
 };
 
+/** Shows two toasts (one long) and checks the pills sit left of every HUD button and below the bars. */
+async function toastCheck(page, label, shot) {
+  await page.evaluate(() => {
+    const ui = window.__terrabound.ui;
+    ui.toasts = [];
+    ui.toast('Discovered: Overgrown Ruins', '#ffcf4a', 6);
+    ui.toast('Codex reward: 2 Crystal, 3 Iron scrap, 1 Plasma cell and a long tail of other loot', '#9ff6a0', 6);
+  });
+  await page.waitForTimeout(450);
+  const r = await page.evaluate(() => {
+    const ui = window.__terrabound.ui;
+    const pills = ui.toastRects;
+    const btns = ui.rects.filter((b) => ['mute', 'map', 'recall', 'settings'].includes(b.a.k));
+    const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+    const overlap = pills.some((p) => btns.some((b) => hit(p, b)));
+    const overlapEach = pills.length === 2 && !hit(pills[0], pills[1]);
+    return { n: pills.length, overlap, apart: overlapEach, left: pills.every((p) => p.x >= 0), top: Math.min(...pills.map((p) => p.y)), btns: btns.length };
+  });
+  check(`${label}: two toast pills, left-aligned, clear of the buttons and of each other`, r.n === 2 && !r.overlap && r.apart && r.left && r.btns >= 2 && r.top > 40, JSON.stringify(r));
+  await page.screenshot({ path: path.join(out, shot) });
+  await page.evaluate(() => (window.__terrabound.ui.toasts = []));
+}
+
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
 
 /** A click the sim cannot miss: it only samples held state once per frame, so hold for ~4 frames. */
@@ -363,6 +386,7 @@ try {
     await page.screenshot({ path: path.join(out, `11-biome-${biomeNames[b]}.png`) });
   }
   check('every biome can be visited and renders', seen.length === biomeNames.length, seen.join(','));
+  await toastCheck(page, 'desktop', '46-toasts.png');
   // Underground points of interest: stand beside a data shrine and check that its terminal glows.
   const shrine = await page.evaluate(() => {
     const g = window.__terrabound.game;
@@ -1913,7 +1937,9 @@ try {
     }, t);
     await page.waitForTimeout(400);
     return page.evaluate(() => {
-      const d = document.getElementById('game').getContext('2d').getImageData(20, 140, 1, 1).data;
+      // Sample right of centre: the top-left corner holds the HUD and the toast column.
+      const c = document.getElementById('game');
+      const d = c.getContext('2d').getImageData(Math.round(c.width * 0.62), 140, 1, 1).data;
       return d[0] + d[1] + d[2];
     });
   };
@@ -2016,6 +2042,7 @@ try {
   check('tap starts the game on mobile', (await page.evaluate(() => window.__terrabound.ui.screen)) === 'play');
   check('touch mode detected', await page.evaluate(() => window.__terrabound.ui.touch));
   await page.screenshot({ path: path.join(out, '06-mobile-play.png') });
+  await toastCheck(page, 'mobile', '46b-mobile-toasts.png');
   const canvasOk = await page.evaluate(() => {
     const c = document.getElementById('game');
     return c.width >= 700 && c.height >= 1600;

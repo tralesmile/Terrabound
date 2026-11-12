@@ -23,6 +23,7 @@ import { MERCHANT_STOCK } from '../sim/merchant';
 import { MODS, MOD_IDS, type ModId } from '../sim/mods';
 import { RESEARCH, RESEARCH_IDS, type ResearchId } from '../sim/research';
 import type { Trade } from '../sim/npcs';
+import { toastColumn, toastParts, toastSlide, wrapText, type ToastKind } from './toastfx';
 
 /** Base UI unit in canvas px for a screen size, times the settings-screen UI scale. */
 export function uiUnit(w: number, h: number, scale = 1): number {
@@ -108,10 +109,12 @@ interface Toast {
   life: number;
   /** Toasts in the same group replace each other (a raid shows one line, not a stale stack). */
   group?: string;
+  /** Seconds since it appeared (drives the slide-in). */
+  age: number;
 }
 
-/** Most toast lines on screen at once; older lines drop first. */
-export const TOAST_MAX = 3;
+/** Most toasts on screen at once; older ones drop first. */
+export const TOAST_MAX = 2;
 
 const TOOL_SLOTS: { tool: Tool; label: string; key: string }[] = [
   { tool: 'drill', label: 'Drill', key: '1' },
@@ -124,17 +127,6 @@ const TOOL_SLOTS: { tool: Tool; label: string; key: string }[] = [
 const FONT = 'ui-monospace, Menlo, Consolas, "Courier New", monospace';
 /** Short cost labels; any item without one falls back to its lower-cased display name. */
 const SHORT: Partial<Record<ItemId, string>> = { rust: 'rust', metal: 'metal', iron_scrap: 'iron', copper_wire: 'copper' };
-
-/**
- * Where toasts go: centred under the HUD bars when the gap left of the right-hand
- * button column is wide enough, otherwise below the button column at full width
- * (phones), so a toast never draws over a button.
- */
-export function toastLayout(w: number, u: number, buttonsX: number, buttonsBottom: number, top: number): { y: number; maxW: number } {
-  const free = 2 * (buttonsX - u * 0.5 - w / 2);
-  if (free >= u * 24) return { y: top, maxW: free };
-  return { y: Math.max(top, buttonsBottom + u * 1.2), maxW: w - u * 2 };
-}
 
 export function costText(cost: Inventory): string {
   const parts: string[] = [];
@@ -199,6 +191,8 @@ export class UI {
   /** Settings: touch move stick on the left (0) or right (1); the hint follows it. */
   stickSide = 0;
   toasts: Toast[] = [];
+  /** Where each toast pill was drawn last frame (e2e layout checks). */
+  toastRects: { x: number; y: number; w: number; h: number }[] = [];
   private rects: Rect[] = [];
   /** Pickup icons arcing into the hotbar or bag. */
   flyers = new Flyers();
@@ -214,13 +208,16 @@ export class UI {
     }
     if (group) this.toasts = this.toasts.filter((t) => t.group !== group);
     while (this.toasts.length >= TOAST_MAX) this.toasts.shift();
-    this.toasts.push({ text, color, life, group });
+    this.toasts.push({ text, color, life, group, age: 0 });
   }
 
   update(dt: number): void {
     this.newWorldArmed = Math.max(0, this.newWorldArmed - dt);
     this.dailyArmed = Math.max(0, this.dailyArmed - dt);
-    for (const t of this.toasts) t.life -= dt;
+    for (const t of this.toasts) {
+      t.life -= dt;
+      t.age += dt;
+    }
     this.toasts = this.toasts.filter((t) => t.life > 0);
     this.flyers.update(dt, (i) => (this.slotPos.has(i) ? i : 'inv'));
   }
@@ -761,6 +758,8 @@ export class UI {
     const carried = invTotal(game.carried);
     this.text(ctx, `Depth ${Math.floor(game.depth)}m ${game.depth > 2 ? `(${LAYERS[game.layer].name})` : ''}  Pack ${carried}/${d.packCap}`, x, y, Math.round(u * 0.95), carried >= d.packCap ? '#ff9a3c' : '#ffffff');
 
+    // The toast column starts below whatever HUD text is showing.
+    let hudLow = y + u * 0.9;
     // Meal buffs: a chip per active buff with its time left.
     let bxp = x;
     for (const id of BUFF_IDS) {
@@ -777,12 +776,14 @@ export class UI {
       ctx.fillRect(bxp, cy, u * 0.2, u * 1.2);
       this.text(ctx, label, bxp + u * 0.45, cy + u * 0.62, fs, left < 15 && Math.floor(time * 4) % 2 === 0 ? '#ffffff' : BUFFS[id].color);
       bxp += tw + u * 0.4;
+      hudLow = Math.max(hudLow, cy + u * 1.6);
     }
 
     if (game.isAtBase() && (game.power.solars > 0 || game.power.smelters > 0 || game.power.batteries > 0 || game.power.miners > 0 || game.power.drones > 0)) {
       const pw = game.power;
       const bat = pw.cap > 0 ? `  Batt ${Math.round((pw.charge / pw.cap) * 100)}%` : '';
       this.text(ctx, `Power ${pw.supply.toFixed(0)}/${pw.demand.toFixed(0)}${bat}`, x, y + u * 1.3, Math.round(u * 0.85), pw.working || pw.supply > 0 ? '#7dff9a' : '#ff9a3c');
+      hudLow = Math.max(hudLow, y + u * 2.1);
     }
 
     // Right-side buttons.
@@ -872,15 +873,11 @@ export class UI {
     const heldName = TOOL_SLOTS.find((t) => t.tool === game.tool)?.label ?? '';
     this.text(ctx, game.tool === 'rod' && game.fishing ? (game.fishing.bite > 0 ? 'BITE! Click now!' : 'Waiting for a bite...') : heldName, w / 2, sy - u * 0.5, Math.round(u * 0.85), game.fishing && game.fishing.bite > 0 ? '#ffcf4a' : '#c9d0e4', 'center');
 
-    // Toasts.
-    const tl = toastLayout(w, u, bx, by, y + u * 2.2);
+    // Toasts: newest on top, left-aligned under the HUD text.
+    const tl = toastColumn(u, x, bx, hudLow);
+    this.toastRects = [];
     let ty = tl.y;
-    for (const t of this.toasts) {
-      ctx.globalAlpha = Math.min(1, t.life / 0.6);
-      this.text(ctx, t.text, w / 2, ty, Math.round(u * 1.1), t.color, 'center', tl.maxW);
-      ctx.globalAlpha = 1;
-      ty += u * 1.5;
-    }
+    for (let i = this.toasts.length - 1; i >= 0; i--) ty += this.drawToast(ctx, this.toasts[i], tl.x, ty, tl.maxW, u) + u * 0.35;
 
     // Contextual warnings and first-minute hints.
     if (low && !game.isAtBase() && Math.floor(time * 2.5) % 2 === 0) this.text(ctx, 'BATTERY LOW - RETURN TO THE PAD', w / 2, h * 0.2, Math.round(u * 1.2), '#ff9a3c', 'center', w - u * 2);
@@ -889,6 +886,106 @@ export class UI {
     if (game.stats.playTime < 40) {
       const hint = this.touch ? (this.stickSide === 1 ? 'Right thumb: move, drag up to jump. Left side: dig.' : 'Left thumb: move, drag up to jump. Right side: dig.') : 'A/D move, W jump. Click: dig / open chests. Right click: build. 1-4 or wheel: tools. I: inventory. E: open chest.';
       this.text(ctx, hint, w / 2, h - u * 0.7, Math.round(u * 0.75), '#c9d0e4', 'center', w - u * 2);
+    }
+  }
+
+  /** One toast pill: accent bar, kind icon, optional small head label, body wrapped to 2 lines. Returns its height. */
+  private drawToast(ctx: CanvasRenderingContext2D, t: Toast, x: number, y: number, maxW: number, u: number): number {
+    const p = toastParts(t.text);
+    const icon = u * 1.5;
+    const pad = u * 0.45;
+    const bodyFs = Math.round(u * 0.82);
+    const headFs = Math.round(u * 0.58);
+    const textW = maxW - icon - pad * 3;
+    ctx.font = `bold ${bodyFs}px ${FONT}`;
+    const lines = wrapText(p.body, textW, (s) => ctx.measureText(s).width);
+    let wide = 0;
+    for (const l of lines) wide = Math.max(wide, Math.min(textW, ctx.measureText(l).width));
+    if (p.head) {
+      ctx.font = `bold ${headFs}px ${FONT}`;
+      wide = Math.max(wide, Math.min(textW, ctx.measureText(p.head).width));
+    }
+    const textH = lines.length * bodyFs * 1.2 + (p.head ? headFs * 1.25 : 0);
+    const ph = Math.max(icon + pad * 2 - u * 0.3, textH + pad * 1.4);
+    const pw = icon + pad * 3 + wide;
+    const sx = x - toastSlide(t.age) * (pw + x);
+    ctx.globalAlpha = Math.min(1, t.life / 0.5);
+    ctx.fillStyle = 'rgba(8,10,18,0.72)';
+    ctx.fillRect(sx, y, pw, ph);
+    ctx.fillStyle = t.color;
+    ctx.fillRect(sx, y, Math.max(2, u * 0.18), ph);
+    this.toastIcon(ctx, p.kind, sx + pad, y + (ph - icon) / 2, icon, t.color);
+    let ly = y + pad * 0.7;
+    const tx = sx + icon + pad * 2;
+    if (p.head) {
+      this.text(ctx, p.head, tx, ly + headFs * 0.6, headFs, t.color, 'left', textW);
+      ly += headFs * 1.25;
+    }
+    for (const l of lines) {
+      this.text(ctx, l, tx, ly + bodyFs * 0.6, bodyFs, p.head ? '#eef1f8' : t.color, 'left', textW);
+      ly += bodyFs * 1.2;
+    }
+    ctx.globalAlpha = 1;
+    this.toastRects.push({ x: sx, y, w: pw, h: ph });
+    return ph;
+  }
+
+  /** Small vector icon per toast kind (no font glyphs: they differ per platform). */
+  private toastIcon(ctx: CanvasRenderingContext2D, kind: ToastKind, x: number, y: number, s: number, color: string): void {
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(x, y, s, s);
+    const c = s / 2;
+    const k = s / 10;
+    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1.5, k * 1.1);
+    ctx.beginPath();
+    switch (kind) {
+      case 'discover': // map pin
+        ctx.arc(x + c, y + k * 4, k * 2.6, Math.PI * 0.85, Math.PI * 2.15);
+        ctx.lineTo(x + c, y + k * 8.6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#14181f';
+        ctx.fillRect(x + c - k, y + k * 3, k * 2, k * 2);
+        return;
+      case 'reward': // plus
+        ctx.fillRect(x + k * 4, y + k * 2, k * 2, k * 6);
+        ctx.fillRect(x + k * 2, y + k * 4, k * 6, k * 2);
+        return;
+      case 'record': // star
+        for (let i = 0; i < 10; i++) {
+          const r = i % 2 === 0 ? k * 3.8 : k * 1.6;
+          const a = -Math.PI / 2 + (i * Math.PI) / 5;
+          ctx.lineTo(x + c + Math.cos(a) * r, y + c + 0.3 * k + Math.sin(a) * r);
+        }
+        ctx.closePath();
+        ctx.fill();
+        return;
+      case 'warn': // triangle with a bang
+      case 'danger':
+        ctx.moveTo(x + c, y + k * 1.5);
+        ctx.lineTo(x + k * 8.6, y + k * 8.4);
+        ctx.lineTo(x + k * 1.4, y + k * 8.4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#14181f';
+        ctx.fillRect(x + c - k * 0.6, y + k * 4, k * 1.2, k * 2.2);
+        ctx.fillRect(x + c - k * 0.6, y + k * 6.8, k * 1.2, k * 1);
+        return;
+      case 'home': // house
+        ctx.moveTo(x + c, y + k * 1.8);
+        ctx.lineTo(x + k * 8.4, y + k * 5);
+        ctx.lineTo(x + k * 1.6, y + k * 5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillRect(x + k * 2.6, y + k * 5, k * 4.8, k * 3.4);
+        return;
+      default: // info dot
+        ctx.arc(x + c, y + c, k * 3, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillRect(x + c - k * 0.6, y + k * 4.4, k * 1.2, k * 2.6);
+        ctx.fillRect(x + c - k * 0.6, y + k * 3, k * 1.2, k * 0.9);
     }
   }
 
