@@ -36,7 +36,7 @@ import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight, DAY_LENGTH } from './daynight';
 import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
 import { findRooms, mountOk, roomHint, type Room } from './rooms';
-import { NPC_INFO, deathKeep, doTrade, npcLine, roomFloor, stepNpc, syncNpcs, tradeById, tradeOpen, type Npc, type NpcKind } from './npcs';
+import { NPC_INFO, deathKeep, doTrade, npcLine, npcSpots, roomFloor, stepNpc, syncNpcs, tradeById, tradeOpen, type Npc, type NpcKind } from './npcs';
 import { placement, removeTile } from './wide';
 import { blueprintDrop, RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
 import { applyDiff, captureDiff } from './persist';
@@ -2019,7 +2019,9 @@ export class Game {
     const npc = this.npcNear();
     if (npc) {
       const info = NPC_INFO[npc.kind];
-      return `${info.name} the ${info.title}: "${npcLine(npc.kind, this.time)}"  ${touch ? 'Tap' : 'E'} to ${npc.kind === 'medic' ? 'get medkits' : 'trade'}`;
+      const act = `${touch ? 'Tap' : 'E'} to ${npc.kind === 'medic' ? 'get medkits' : 'trade'}`;
+      if (npc.pose === 'sleep' && this.raid) return `${info.name} hides under the covers: "Tell me when it is over!"  ${act}`;
+      return `${info.name} the ${info.title}: "${npcLine(npc.kind, this.time)}"  ${act}`;
     }
     if (!this.isAtBase()) return null;
     const room = roomHint(this.roomHere());
@@ -2072,10 +2074,11 @@ export class Game {
       this.npcSync = { v: w.version, first: false };
     }
     const near = this.npcNear();
+    const mood = { night: isNight(this.time), raid: this.raid !== null };
     for (const n of this.npcs) {
       const room = this.rooms.find((r) => r.y0 * w.w + r.x0 === n.home);
       const floor = room ? roomFloor(w, room) : null;
-      if (floor) stepNpc(n, floor, dt, n === near ? b.x : null);
+      if (room && floor) stepNpc(n, floor, dt, n === near ? b.x : null, npcSpots(w, room, floor), mood);
     }
   }
 

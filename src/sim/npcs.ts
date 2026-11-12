@@ -112,6 +112,40 @@ export interface Npc {
   n: number;
   /** Top-left cell of its room, used to notice when the room changes. */
   home: number;
+  /** What the robot is doing in place: standing (default), sitting on a chair, or asleep in bed. */
+  pose?: NpcPose;
+}
+
+export type NpcPose = 'stand' | 'sit' | 'sleep';
+
+/** Furniture a robot uses in its room: tile x of the bed head and of a chair on the floor row (null when missing). */
+export interface NpcSpots {
+  bed: number | null;
+  chair: number | null;
+}
+
+/** What the world asks of the robots now. */
+export interface NpcMood {
+  night: boolean;
+  raid: boolean;
+}
+
+/** Chance (0..1) that a robot picks the chair as its next spot when it has one. */
+export const SIT_CHANCE = 0.4;
+/** Robots hurry to bed this much faster when a raid starts. */
+export const HIDE_MUL = 2.2;
+
+/** The bed (left half or single) and chair standing on the floor row of a room. Pure. */
+export function npcSpots(world: World, room: Room, floor: { y: number; x0: number; x1: number }): NpcSpots {
+  let bed: number | null = null;
+  let chair: number | null = null;
+  for (let x = floor.x0; x <= floor.x1; x++) {
+    const t = world.get(x, floor.y);
+    if (t === T.BED && bed === null) bed = x;
+    else if (t === T.CHAIR && chair === null) chair = x;
+  }
+  void room;
+  return { bed, chair };
 }
 
 export const NPC_SPEED = 1.6;
@@ -173,36 +207,84 @@ export function syncNpcs(world: World, rooms: readonly Room[], npcs: readonly Np
       continue;
     }
     if (!prev) arrived.push(kind);
-    out.push({ kind, x: (floor.x0 + floor.x1 + 1) / 2, y: floor.y + 1, face: 1, to: null, wait: 1.5, n: 0, home: homeKey(world, room) });
+    out.push({ kind, x: (floor.x0 + floor.x1 + 1) / 2, y: floor.y + 1, face: 1, to: null, wait: 1.5, n: 0, home: homeKey(world, room), pose: 'stand' });
   }
   return { npcs: out, arrived, left };
 }
 
-/** Pace along the floor: stand 1.5-4 s, walk to a fresh spot, repeat. Stands still to face a nearby player. Pure. */
-export function stepNpc(npc: Npc, floor: { x0: number; x1: number }, dt: number, playerX: number | null): void {
+/**
+ * Pace along the floor: stand 1.5-4 s, walk to a fresh spot (sometimes the chair, where it sits a
+ * while), repeat. At night it sleeps in its bed; in a raid it hurries there and hides. A nearby
+ * player wakes it (it stands and faces you) unless a raid is on. Pure.
+ */
+export function stepNpc(
+  npc: Npc,
+  floor: { x0: number; x1: number },
+  dt: number,
+  playerX: number | null,
+  spots: NpcSpots = { bed: null, chair: null },
+  mood: NpcMood = { night: false, raid: false },
+): void {
   const lo = floor.x0 + 0.5;
   const hi = floor.x1 + 0.5;
-  if (playerX !== null) {
+  const rest = (mood.raid || mood.night) && spots.bed !== null;
+  if (playerX !== null && !(mood.raid && rest)) {
+    if (npc.pose === 'sit') return;
+    npc.pose = 'stand';
     npc.to = null;
     npc.face = playerX >= npc.x ? 1 : -1;
     return;
   }
+  if (rest && spots.bed !== null) {
+    if (npc.pose === 'sleep') return;
+    const bx = spots.bed + 0.5;
+    npc.pose = 'stand';
+    npc.to = bx;
+    if (walk(npc, bx, NPC_SPEED * (mood.raid ? HIDE_MUL : 1) * dt)) {
+      npc.to = null;
+      npc.pose = 'sleep';
+    }
+    return;
+  }
+  if (npc.pose === 'sleep') {
+    // Morning (or the raid is over): get up and stretch a moment.
+    npc.pose = 'stand';
+    npc.to = null;
+    npc.wait = 1;
+  }
   if (npc.to === null) {
     npc.wait -= dt;
     if (npc.wait > 0) return;
+    if (npc.pose === 'sit') npc.pose = 'stand';
     npc.n++;
-    npc.to = hi > lo ? lo + hash2(npc.n, 17, 0x7a3e) * (hi - lo) : null;
+    if (spots.chair !== null && hash2(npc.n, 53, 0x7a3e) < SIT_CHANCE && Math.abs(npc.x - (spots.chair + 0.5)) > 0.01) {
+      npc.to = spots.chair + 0.5;
+    } else npc.to = hi > lo ? lo + hash2(npc.n, 17, 0x7a3e) * (hi - lo) : null;
     if (npc.to === null) npc.wait = 2;
     return;
   }
-  const d = npc.to - npc.x;
-  npc.face = d >= 0 ? 1 : -1;
-  const s = NPC_SPEED * dt;
-  if (Math.abs(d) <= s) {
-    npc.x = npc.to;
+  const target = npc.to;
+  if (walk(npc, target, NPC_SPEED * dt)) {
     npc.to = null;
-    npc.wait = 1.5 + hash2(npc.n, 31, 0x7a3e) * 2.5;
-  } else npc.x += Math.sign(d) * s;
+    if (spots.chair !== null && Math.abs(target - (spots.chair + 0.5)) < 0.01) {
+      // Sit facing the way the chair faces (its back is on the left).
+      npc.pose = 'sit';
+      npc.face = 1;
+      npc.wait = 4 + hash2(npc.n, 71, 0x7a3e) * 4;
+    } else npc.wait = 1.5 + hash2(npc.n, 31, 0x7a3e) * 2.5;
+  }
+}
+
+/** Step towards x by at most `step`; true once there. */
+function walk(npc: Npc, x: number, step: number): boolean {
+  const d = x - npc.x;
+  if (Math.abs(d) <= step) {
+    npc.x = x;
+    return true;
+  }
+  npc.face = d >= 0 ? 1 : -1;
+  npc.x += Math.sign(d) * step;
+  return false;
 }
 
 /** The line a robot says now (changes every 6 s of game time). Pure. */

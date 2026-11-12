@@ -588,6 +588,32 @@ export function medicRows(t: number, walking: boolean): string[] {
   return rows;
 }
 
+/** Bent legs for a robot sitting on a chair (thighs forward over the seat, shins down to the floor). */
+const SIT_LEGS = ['    oLLLLLLLLLo', '    ooooooooLLo', '           oLLo', '           oLLo', '          ooooo'];
+/** Rows of a robot sitting (facing right): top half of its standing rig over bent legs. Pure. */
+export function npcSitRows(kind: 'trader' | 'medic', t: number): string[] {
+  const rows = (kind === 'medic' ? medicRows : traderRows)(t, false);
+  return [...rows.slice(0, TRADER_TOP.length), ...SIT_LEGS];
+}
+
+/** Rows of a robot's head peeking out of bed: eyes shut and antenna dimmed, or wide awake in a raid. Pure. */
+export function npcBedHeadRows(awake: boolean): string[] {
+  // Shut eyes are dim slits ('q', remapped by the renderer to a dark teal).
+  return TRADER_TOP.slice(0, 10).map((r, i) => (i === 5 && !awake ? r.replace(/b/g, 'q') : i === 0 && !awake ? r.replace('y', 'o') : r));
+}
+
+/** Blanket mound over a sleeping robot, `w` px wide (palette chars a/b/e, remapped by the renderer). Pure. */
+export function blanketRows(w: number): string[] {
+  const n = Math.max(6, w);
+  return [
+    '  ' + 'o'.repeat(n - 4) + '  ',
+    ' o' + 'b'.repeat(n - 4) + 'o ',
+    'o' + 'a'.repeat(n - 3) + 'bo',
+    'o' + 'a'.repeat(n - 2) + 'o',
+    'o' + 'e'.repeat(n - 2) + 'o',
+  ];
+}
+
 /**
  * Vehicle sprite maps, nose/handlebar facing right (flip for left). Rows are top-down; the
  * renderer puts row 0 `VEHICLES[id].top` art px above the player's feet.

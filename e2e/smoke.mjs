@@ -42,6 +42,14 @@ const check = (name, ok, extra = '') => {
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
 
+/** A click the sim cannot miss: it only samples held state once per frame, so hold for ~4 frames. */
+async function holdClick(page, x, y, ms = 70) {
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.waitForTimeout(ms);
+  await page.mouse.up();
+}
+
 async function tileToCss(page, tx, ty) {
   return page.evaluate(
     ([tx, ty]) => {
@@ -465,11 +473,11 @@ try {
   let caught = false;
   if (pond) {
     const wp = await tileToCss(page, pond.x, pond.y);
-    await page.mouse.click(wp.x, wp.y);
+    await holdClick(page, wp.x, wp.y);
     await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(out, '19-fishing.png') });
-    await page.waitForFunction(() => (window.__terrabound.game.fishing?.bite ?? 0) > 0, null, { timeout: 9000 }).catch(() => {});
-    await page.mouse.click(wp.x, wp.y);
+    await page.waitForFunction(() => (window.__terrabound.game.fishing?.bite ?? 0) > 0.5, null, { timeout: 9000 }).catch(() => {});
+    await holdClick(page, wp.x, wp.y);
     await page.waitForTimeout(150);
     caught = await page.evaluate(() => window.__terrabound.game.fishing === null);
   }
@@ -1291,6 +1299,34 @@ try {
   });
   await page.waitForTimeout(400);
   await page.screenshot({ path: path.join(out, '38c-windows-night.png') });
+  // Robots go to bed at night (head on the pillow, z's) and sit on the chair by day.
+  await page.waitForFunction(() => {
+    const g = window.__terrabound.game;
+    return g.npcs.length >= 2 && g.npcs.every((n) => n.pose === 'sleep');
+  }, null, { timeout: 8000 }).catch(() => {});
+  const asleep = await page.evaluate(() => window.__terrabound.game.npcs.map((n) => `${n.kind}:${n.pose}`));
+  await page.screenshot({ path: path.join(out, '39-robots-asleep.png') });
+  check('robots sleep in their beds at night', asleep.length >= 2 && asleep.every((a) => a.endsWith(':sleep')), JSON.stringify(asleep));
+  const sat = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.time = 30;
+    g.body.x = g.world.padX + 0.5;
+    g.body.y = g.world.padY;
+    g.body.vx = g.body.vy = 0;
+    const n = g.npcs.find((k) => k.kind === 'trader');
+    const chair = g.world.padX;
+    if (!n || g.world.get(chair, g.world.padY - 1) !== 54) return { ok: false };
+    g.body.x = g.world.padX + 8.5;
+    n.pose = 'stand';
+    n.x = chair + 0.6;
+    n.to = chair + 0.5;
+    n.wait = 0;
+    return { ok: true };
+  });
+  await page.waitForFunction(() => window.__terrabound.game.npcs.find((k) => k.kind === 'trader')?.pose === 'sit', null, { timeout: 2000 }).catch(() => {});
+  const sitPose = await page.evaluate(() => window.__terrabound.game.npcs.find((k) => k.kind === 'trader')?.pose ?? null);
+  await page.screenshot({ path: path.join(out, '39b-robot-sits.png') });
+  check('by day the Trader sits on the chair', sat.ok && sitPose === 'sit', JSON.stringify({ sat, sitPose }));
   await page.evaluate((raids) => {
     const g = window.__terrabound.game;
     g.time = 30;

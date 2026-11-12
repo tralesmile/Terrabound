@@ -1,5 +1,5 @@
 import type { Game } from '../sim/game';
-import { NPC_INFO } from '../sim/npcs';
+import { NPC_INFO, type Npc } from '../sim/npcs';
 import { roomEdges } from '../sim/rooms';
 import { furnitureArt, screenLines } from './furniture';
 import { wideSide } from '../sim/wide';
@@ -21,7 +21,7 @@ import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
-import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, traderRows, medicRows, MEDIC_REMAP, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, traderRows, medicRows, MEDIC_REMAP, npcSitRows, npcBedHeadRows, blanketRows, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 
 /** Chunk size in tiles for the render cache. */
@@ -892,8 +892,16 @@ export class Renderer {
       const y = this.sy(n.y, shakeY);
       const info = NPC_INFO[n.kind];
       const medic = n.kind === 'medic';
-      const rows = (medic ? medicRows : traderRows)(time + n.home * 0.01, n.to !== null);
-      drawRows(ctx, rows, Math.round(x - (TRADER_W / 2) * s), Math.round(y - 20 * s), s, n.face < 0, TRADER_W, undefined, medic ? MEDIC_REMAP : undefined);
+      const remap = medic ? MEDIC_REMAP : undefined;
+      const t = time + n.home * 0.01;
+      if (n.pose === 'sleep') this.drawNpcAsleep(ctx, game, n, x, y, t, medic, game.raid !== null);
+      else if (n.pose === 'sit') {
+        // On the chair seat, shifted forward so the chair back shows behind; legs bend towards the table.
+        drawRows(ctx, npcSitRows(n.kind, t), Math.round(x - (TRADER_W / 2 - 4) * s), Math.round(y - 21 * s), s, false, TRADER_W, undefined, remap);
+      } else {
+        const rows = (medic ? medicRows : traderRows)(t, n.to !== null);
+        drawRows(ctx, rows, Math.round(x - (TRADER_W / 2) * s), Math.round(y - 20 * s), s, n.face < 0, TRADER_W, undefined, remap);
+      }
       if (n === near) {
         const label = `${info.name.toUpperCase()}  ${info.title}`;
         ctx.font = `bold ${Math.round(s * 4)}px monospace`;
@@ -910,6 +918,42 @@ export class Renderer {
         ctx.fillText(label, x, ty - s);
       }
     }
+  }
+
+  /**
+   * A robot in bed: its head on the pillow under a blanket mound that runs to the foot of the bed,
+   * with drifting z's. In a raid it is wide awake and trembling under the covers, with a "!" over it.
+   */
+  private drawNpcAsleep(ctx: CanvasRenderingContext2D, game: Game, n: Npc, x: number, y: number, t: number, medic: boolean, raid: boolean): void {
+    const s = this.scale;
+    const bed = Math.floor(n.x);
+    const left = x - 8 * s;
+    const top = y - 16 * s;
+    const jit = raid ? Math.round(Math.sin(t * 40)) * s * 0.5 : 0;
+    const remap = medic ? MEDIC_REMAP : undefined;
+    drawRows(ctx, npcBedHeadRows(raid), Math.round(left + s + jit), Math.round(top - 1 * s), s, false, TRADER_W, undefined, { ...remap, q: '#2a6878' });
+    // The blanket covers the body from the pillow's edge to the foot (one cell for an old 1-tile bed).
+    const wide = game.world.get(bed + 1, Math.floor(n.y) - 1) === T.BED_FOOT;
+    const bw = wide ? 18 : 6;
+    const bx = wide ? 11 : 10;
+    const pal = medic ? { a: '#d8dee8', b: '#ffffff', e: '#9aa4b4' } : { a: '#4a6ab8', b: '#a8c0ff', e: '#34508f' };
+    drawRows(ctx, blanketRows(bw), Math.round(left + bx * s + jit), Math.round(top + 5 * s), s, false, bw, undefined, pal);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (raid) {
+      ctx.font = `bold ${Math.round(s * 7)}px monospace`;
+      ctx.fillStyle = '#ff5a4a';
+      ctx.fillText('!', left + 8 * s, top - 6 * s + Math.sin(t * 12) * s);
+      return;
+    }
+    for (let i = 0; i < 3; i++) {
+      const k = (t * 0.5 + i / 3) % 1;
+      ctx.globalAlpha = Math.min(1, (1 - k) * 1.6);
+      ctx.font = `bold ${Math.round(s * (3 + k * 3))}px monospace`;
+      ctx.fillStyle = '#bcd4ff';
+      ctx.fillText('z', left + (10 + k * 6 + Math.sin((k + i) * 6) * 1.5) * s, top - (2 + k * 12) * s);
+    }
+    ctx.globalAlpha = 1;
   }
 
   private drawFieldDrones(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
