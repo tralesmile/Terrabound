@@ -47,6 +47,8 @@ export interface GearDef {
   mod: Partial<GearStats>;
   /** Only won from a boss (never crafted). */
   bossOnly?: boolean;
+  /** Built in a garage, not in the workshop. */
+  garage?: boolean;
   /** Hand-tuned colours for the character (helmet, suit, boots, back item, vehicle body). */
   color: string;
   accent: string;
@@ -70,6 +72,8 @@ export type GearId =
   | 'glider'
   | 'hoverbike'
   | 'sky_jet'
+  | 'buggy'
+  | 'drill_tank'
   | 'junk_hammer'
   | 'thorn_whip'
   | 'prism_lance'
@@ -98,7 +102,9 @@ export const GEAR: Record<GearId, GearDef> = {
   dash_boots: { name: 'Dash boots', slot: 'feet', desc: 'Dash with Shift (or DASH)', cost: { iron_scrap: 6, crystal: 2 }, mod: { dash: true }, color: '#ff5a5a', accent: '#ffb0b0' },
   jetpack: { name: 'Jetpack', slot: 'back', desc: 'Hold jump in the air to fly (uses battery)', cost: { metal: 10, copper_wire: 8, crystal: 3 }, mod: { jetpack: true }, color: '#5d6a80', accent: '#ff9a3c' },
   glider: { name: 'Glider wings', slot: 'back', desc: 'Hold jump while falling to glide', cost: { biomass: 10, copper_wire: 4 }, mod: { glider: true }, color: '#c9a35a', accent: '#f0d08a' },
-  hoverbike: { name: 'Hoverbike', slot: 'vehicle', desc: 'Ride with V: twice as fast, higher jumps, no fall damage', cost: { metal: 14, copper_wire: 8, crystal: 4 }, mod: {}, color: '#e8a33d', accent: '#36e0e8' },
+  buggy: { name: 'Dune buggy', slot: 'vehicle', desc: 'Garage: fast ground car that rams enemies', cost: { metal: 12, iron_scrap: 10, copper_wire: 6 }, mod: {}, garage: true, color: '#e85a3a', accent: '#ffcf4a' },
+  drill_tank: { name: 'Drill tank', slot: 'vehicle', desc: 'Garage: armored digger that tunnels as it drives', cost: { metal: 18, iron_scrap: 14, copper_wire: 8, crystal: 4 }, mod: {}, garage: true, color: '#7a8a5a', accent: '#d6dde8' },
+  hoverbike: { name: 'Hoverbike', slot: 'vehicle', desc: 'Garage: twice as fast, higher jumps, no fall damage', cost: { metal: 14, copper_wire: 8, crystal: 4 }, mod: {}, garage: true, color: '#e8a33d', accent: '#36e0e8' },
   junk_hammer: { name: 'Junk hammer', slot: 'melee', desc: 'Colossus trophy: 34 damage, huge knockback', cost: {}, mod: { meleeDmg: 34, meleeRange: 2.8, meleeCd: 0.5 }, bossOnly: true, color: '#c77a5e', accent: '#ff5a2a' },
   thorn_whip: { name: 'Thorn whip', slot: 'melee', desc: 'Vine Queen trophy: 4.5 tile reach, 20 damage', cost: {}, mod: { meleeDmg: 20, meleeRange: 4.5, meleeCd: 0.32 }, bossOnly: true, color: '#7fcf5a', accent: '#ff7ab8' },
   prism_lance: { name: 'Prism lance', slot: 'ranged', desc: 'Golem trophy: piercing beam, 26 damage', cost: {}, mod: { ranged: 'rail', rangedDmg: 26, rangedCd: 0.4 }, bossOnly: true, color: '#d8b8ff', accent: '#8ff4ff' },
@@ -110,7 +116,7 @@ export const GEAR: Record<GearId, GearDef> = {
   scout_bot: { name: 'Scout bot', slot: 'pet', desc: 'Pet: pulls in loot from 7 tiles, +1 light', cost: { metal: 6, copper_wire: 6, crystal: 2 }, mod: { magnet: 7, light: 1 }, color: '#9aa3b8', accent: '#36e0e8' },
   glow_moth: { name: 'Glow moth', slot: 'pet', desc: 'Pet: lights the way (+4 light)', cost: { biomass: 12, crystal: 3 }, mod: { light: 4 }, color: '#c8ffd8', accent: '#7dffb0' },
   spark_pup: { name: 'Spark pup', slot: 'pet', desc: 'Pet: zaps enemies near you (6 damage)', cost: { iron_scrap: 10, copper_wire: 8, crystal: 3 }, mod: { petZap: 6 }, color: '#ffcf4a', accent: '#ff9a3c' },
-  sky_jet: { name: 'Sky Jet', slot: 'vehicle', desc: 'Ride with V and fly anywhere: jump climbs, S dives (uses battery)', cost: { metal: 20, copper_wire: 12, crystal: 8 }, mod: {}, color: '#5aa6ff', accent: '#ffffff' },
+  sky_jet: { name: 'Sky Jet', slot: 'vehicle', desc: 'Garage: a small plane, fly anywhere (uses battery)', cost: { metal: 20, copper_wire: 12, crystal: 8 }, mod: {}, garage: true, color: '#5aa6ff', accent: '#ffffff' },
 };
 
 export const GEAR_IDS = Object.keys(GEAR) as GearId[];

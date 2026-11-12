@@ -497,3 +497,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** codex screen (lore logs, enemy entries); cosmetic suit colours for gold awards; mobile polish (thumb hotbar, hold-to-reel, safe-area insets).
 
 **Known issues:** drone mining counts toward the "mined" awards; awards have no reward yet beyond the star; caustic bands are vertical stripes (could wave); digits 1-0 not remappable; toast kinds guessed from text; ore marks 5 px; strata subtle in caves; offline crop growth ignores robot gardeners; crops restart their stage when the base moves; upgrade BUY refuses upstairs off the pad; turrets draw 1 power idle; e2e farm uses raw tile ids (57-67).
+
+## 2026-11-12 Interactive session: garage and buildable vehicles (save v24)
+
+**Done:** Garage kit (fabricator recipe) places a bay tile with a carport frame (plate back wall, metal roof). E opens the GARAGE panel: BUILD buggy, hoverbike, drill tank and Sky Jet from base storage, DEPLOY one beside the bay, and fit ENGINE / ARMOR / BATTERY parts (3 levels each). Vehicles are parked world objects: walk up (RIDE hint, RIDE button) and press V to enter; getting out parks it where you stop. New buggy (fast, rams enemies) and drill tank (digs two tiles ahead while driving) with string-row sprite art drawn at 1.5x; the GARAGE tile has door art. Garage vehicles were removed from the workshop GEAR tab. Save v24 migrates old owned vehicles to park beside the pad.
+
+**Numbers:** 586 unit tests (new: garage 7), e2e adds 9 garage checks (place, open, build, part, walk up + ride, park, Sky Jet build + flight, drill tank and hoverbike sprites), all green; bundle 344 kB (118.4 kB gzip).
+
+**Next:** the follow-ups at the end of BACKLOG P1.9.
+
+**Known issues:** the drill tank is drawn behind the pilot; the e2e water-crest check failed twice and then passed, so it looks flaky (watch it).

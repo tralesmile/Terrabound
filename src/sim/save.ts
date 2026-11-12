@@ -5,6 +5,7 @@ import { legacyWalls, sanitizeBase, sanitizeWalls, type BaseTiles } from './base
 import { UPGRADES, type Levels } from './upgrades';
 import { CODEX_IDS } from './explore';
 import { defaultGear, sanitizeGear, type GearSave } from './gear';
+import { defaultGarage, sanitizeGarage, type GarageSave } from './garage';
 import { defaultMods, sanitizeMods, type ModSave } from './mods';
 import { BUFF_IDS, BUFF_TIME, type Buffs } from './farming';
 import { legacyAwards, sanitizeAwards, type Awards } from './achievements';
@@ -14,7 +15,7 @@ import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 23;
+export const SAVE_VERSION = 24;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -61,6 +62,8 @@ export interface SaveData {
   records: WorldRecord[];
   /** v23: award counters and unlocked ids (achievements.ts); v22 saves are seeded from stats, bosses, codex and research. */
   awards: Awards;
+  /** v24: vehicle parts and the parked vehicle (garage.ts); older saves park an owned vehicle beside the pad. */
+  garage: GarageSave;
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -88,6 +91,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     buffs: {},
     records: [],
     awards: { n: {}, done: [] },
+    garage: defaultGarage(),
   };
 }
 
@@ -178,6 +182,8 @@ export function parseSave(raw: string | null | undefined): SaveData {
     records: sanitizeRecords(r.records),
     // v22 -> v23: no awards yet; counters are seeded from what the old save already proves.
     awards: r.awards !== undefined ? sanitizeAwards(r.awards) : legacyAwards(r),
+    // v23 -> v24: no garage yet; an owned vehicle is parked beside the pad.
+    garage: sanitizeGarage(r.garage, sanitizeGear(r.gear).owned, r.garage === undefined),
   };
 }
 

@@ -15,6 +15,7 @@ import { GEAR, GEAR_IDS, GEAR_SLOTS, type GearId } from '../sim/gear';
 import { BOSSES, bossForBeacon } from '../sim/bosses';
 import { BIOMES, type BiomeId } from '../sim/biomes';
 import { LAYERS } from '../sim/layers';
+import { MAX_PART, PART_IDS, VEHICLES, VEHICLE_IDS, partCost, vehicleStats, type PartId, type VehicleId } from '../sim/garage';
 import { WEATHER } from '../sim/weather';
 import { CODEX, RECALL_TIME } from '../sim/explore';
 import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type Inventory, type ItemId } from '../sim/tiles';
@@ -79,6 +80,9 @@ export type UiAction =
   | { k: 'put'; id: ItemId }
   | { k: 'breakchest' }
   | { k: 'ride' }
+  | { k: 'buildveh'; id: VehicleId }
+  | { k: 'deploy'; id: VehicleId }
+  | { k: 'part'; id: VehicleId; part: PartId }
   | { k: 'heal' }
   | { k: 'dash' }
   | { k: 'craftgear'; id: GearId }
@@ -373,6 +377,7 @@ export class UI {
     else if (game.raidWarn) this.drawRaidWarn(ctx, game, w, h, u, time);
     else if (game.weather !== 'clear') this.text(ctx, WEATHER[game.weather].name.toUpperCase(), w / 2, u * 4.6, Math.round(u * 0.8), game.weather === 'eclipse' ? '#ff5aff' : '#ffcf4a', 'center');
     if (game.chestOpen) this.drawChest(ctx, game, w, h, u);
+    if (game.garageOpen) this.drawGarage(ctx, game, w, h, u);
     if (this.dronesOpen) this.drawDrones(ctx, game, w, h, u);
   }
 
@@ -945,6 +950,59 @@ export class UI {
     this.grid(ctx, px + u, y + u * 0.5, pw - u * 2, mine, game.carried, cs * 0.8, null, (id) => ({ k: 'put', id }));
   }
 
+  /** Garage: build vehicles from base storage, deploy one beside the bay, fit engine / armor / battery parts. */
+  private drawGarage(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number): void {
+    const pw = Math.min(w - u * 2, u * 40);
+    const rowH = u * 5.2;
+    const ph = Math.min(h - u * 6, u * 4.2 + rowH * VEHICLE_IDS.length);
+    const px = (w - pw) / 2;
+    const py = Math.max(u * 4, (h - ph) / 2);
+    this.panel(ctx, px, py, pw, ph);
+    this.text(ctx, 'GARAGE', px + u, py + u * 1.5, Math.round(u * 1.2), '#ffcf4a');
+    this.text(ctx, 'Paid from base storage', px + u * 8, py + u * 1.5, Math.round(u * 0.7), '#8a90a2', 'left', pw - u * 15);
+    this.button(ctx, px + pw - u * 5.5, py + u * 0.5, u * 5, u * 2, 'CLOSE', { k: 'interact' }, u * 0.8);
+    const deployed = game.riding ? game.equipped('vehicle') : game.parkedVehicle()?.id;
+    let ry = py + u * 3;
+    for (const id of VEHICLE_IDS) {
+      if (ry + rowH > py + ph + 1) break;
+      const v = VEHICLES[id];
+      const owned = game.ownsGear(id);
+      const here = deployed === id;
+      ctx.fillStyle = here ? 'rgba(54,224,232,0.12)' : 'rgba(255,255,255,0.05)';
+      ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
+      const isz = u * 3;
+      this.cell(ctx, px + u * 0.8, ry + u * 0.4, isz, id, null, here, null);
+      const tx = px + u * 1.4 + isz;
+      const tw = pw - isz - u * 9;
+      this.text(ctx, v.name, tx, ry + u * 1.1, Math.round(u * 0.95), '#fff', 'left', tw);
+      const st = vehicleStats(id, game.vehicleParts(id));
+      const line = `${v.desc}  Speed x${st.speed.toFixed(1)}${st.flying ? `  Drain ${st.drain.toFixed(1)}/s` : ''}${st.armor > 0 ? `  Armor ${Math.round(st.armor * 100)}%` : ''}`;
+      const bw = u * 5.5;
+      const bxr = px + pw - bw - u * 0.8;
+      if (!owned) {
+        const can = game.canBuildVehicle(id);
+        this.text(ctx, `${line}`, tx, ry + u * 2.2, Math.round(u * 0.66), '#9aa3b8', 'left', tw);
+        this.text(ctx, `Cost: ${costText(v.cost)}`, tx, ry + u * 3.3, Math.round(u * 0.66), can ? '#9ff6a0' : '#ff8a8a', 'left', tw);
+        this.button(ctx, bxr, ry + u * 0.4, bw, u * 2.2, 'BUILD', { k: 'buildveh', id }, u * 0.85, { enabled: can });
+      } else {
+        this.text(ctx, line, tx, ry + u * 2.2, Math.round(u * 0.66), '#9aa3b8', 'left', tw);
+        this.button(ctx, bxr, ry + u * 0.4, bw, u * 2.2, here ? 'PARKED' : 'DEPLOY', { k: 'deploy', id }, u * 0.85, { color: here ? '#2a6a3a' : '#1f6f78', enabled: !here });
+        const lv = game.vehicleParts(id);
+        const pbw = Math.min(u * 7.5, (pw - isz - u * 3) / 3 - u * 0.4);
+        let bx = tx;
+        for (const part of PART_IDS) {
+          const max = lv[part] >= MAX_PART;
+          const label = `${part.toUpperCase()} ${lv[part]}/${MAX_PART}`;
+          this.button(ctx, bx, ry + u * 2.9, pbw, u * 1.8, label, { k: 'part', id, part }, u * 0.62, { enabled: !max && game.canUpgradePart(id, part), color: max ? '#2a6a3a' : '#2a3550' });
+          bx += pbw + u * 0.4;
+        }
+        const next = PART_IDS.map((part) => (lv[part] < MAX_PART ? `${part}: ${costText(partCost(part, lv[part]))}` : '')).filter(Boolean)[0];
+        if (next && bx + u * 2 < px + pw) this.text(ctx, next, bx + u * 0.2, ry + u * 3.9, Math.round(u * 0.55), '#8a90a2', 'left', px + pw - bx - u);
+      }
+      ry += rowH;
+    }
+  }
+
   private drawMapScreen(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, time: number): void {
     ctx.fillStyle = 'rgba(6,5,12,0.92)';
     ctx.fillRect(0, 0, w, h);
@@ -1073,7 +1131,7 @@ export class UI {
     }
     if (this.touch) this.button(ctx, bx, by, bwid, bhgt, this.placeMode ? 'MODE BUILD' : 'MODE DIG', { k: 'mode' }, u * 0.8, { color: this.placeMode ? '#7a5a1f' : '#1f6f78' });
     if (this.touch) by += bhgt + u * 0.5;
-    if (game.equipped('vehicle')) {
+    if (game.canMount()) {
       this.button(ctx, bx, by, bwid, bhgt, game.riding ? 'GET OFF' : 'RIDE', { k: 'ride' }, u * 0.85, { color: game.riding ? '#7a5a1f' : '#1f6f78' });
       by += bhgt + u * 0.5;
     }

@@ -461,7 +461,7 @@ try {
       r.draw(g, t.fx, null, time);
       frames.push(strip());
     }
-    return { shown: r.liquidShown, top, changed: new Set(frames).size > 1 };
+    return { shown: r.liquidShown, top, changed: new Set(frames).size > 1, parked: g.parkedVehicle(), x, px, py, owned: g.save.gear.owned };
   }, poolAt) : null;
   check('water surface crest rolls over time and liquid cells draw per frame', !!waves && waves.changed && waves.shown > 0, JSON.stringify(waves));
   await page.keyboard.down('KeyW');
@@ -640,30 +640,100 @@ try {
   });
   await page.waitForTimeout(600);
   await page.screenshot({ path: path.join(out, '20-sky-island.png') });
-  // Workshop GEAR tab: build the Sky Jet with real clicks, then ride it with V and fly.
-  await page.evaluate(() => {
+  // Garage: craft a kit, place it with a right click, open it with E, BUILD with real clicks, walk up, ride with V.
+  const bay = await page.evaluate(() => {
     const g = window.__terrabound.game;
-    g.stash = { metal: 200, iron_scrap: 200, copper_wire: 200, crystal: 200, biomass: 200 };
-    g.body.x = g.world.padX + 0.5;
-    g.body.y = g.world.padY;
+    const w = g.world;
+    g.stash = { metal: 400, iron_scrap: 400, copper_wire: 400, crystal: 400, biomass: 400 };
+    let x = w.padX + 40;
+    while (!(w.isSolid(x, w.surface[x]) && w.get(x, w.surface[x] - 1) === 0)) x++;
+    const y = w.surface[x];
+    for (let xx = x - 14; xx <= x + 14; xx++) {
+      for (let yy = y - 9; yy < y; yy++) { w.set(xx, yy, 0); w.setWall?.(xx, yy, 0); }
+      w.set(xx, y, 1);
+    }
+    g.body.x = x + 0.5;
+    g.body.y = y;
     g.body.vx = g.body.vy = 0;
     g.enemies = [];
+    g.carried.garage_kit = 1;
+    g.selected = 'garage_kit';
+    return { tx: x + 2, ty: y - 1 };
   });
-  await page.waitForTimeout(300);
-  await page.keyboard.press('KeyB');
-  await page.waitForTimeout(200);
-  const gearTab = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'tab' && r.a.t === 'gear'));
-  if (gearTab) await page.mouse.click(gearTab.x + gearTab.w / 2, gearTab.y + gearTab.h / 2);
-  await page.waitForTimeout(150);
-  await page.evaluate(() => { window.__terrabound.ui.shopScroll = 99; });
-  await page.waitForTimeout(150);
-  await page.screenshot({ path: path.join(out, '21-gear-tab.png') });
-  const jetBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'craftgear' && r.a.id === 'sky_jet'));
-  if (jetBtn) await page.mouse.click(jetBtn.x + jetBtn.w / 2, jetBtn.y + jetBtn.h / 2);
+  await page.waitForTimeout(500);
+  const bayPos = await tileToCss(page, bay.tx, bay.ty);
+  await page.mouse.move(bayPos.x, bayPos.y);
+  await page.mouse.down({ button: 'right' });
+  await page.waitForTimeout(120);
+  await page.mouse.up({ button: 'right' });
   await page.waitForTimeout(100);
-  check('the GEAR tab builds a Sky Jet', await page.evaluate(() => window.__terrabound.game.ownsGear('sky_jet')), JSON.stringify(jetBtn));
+  const placedBay = await page.evaluate(({ tx, ty }) => ({ found: (() => { const w = window.__terrabound.game.world; for (let y = ty - 4; y <= ty + 4; y++) for (let x = tx - 6; x <= tx + 6; x++) if (w.get(x, y) === 68) return { x, y }; return null; })(), bay: window.__terrabound.game.world.get(tx, ty), roof: window.__terrabound.game.world.get(tx, ty - 4), open: window.__terrabound.game.garageOpen }), bay);
+  check('a garage kit right-click places a bay with a roof frame', !!placedBay.found && (await page.evaluate(({ x, y }) => window.__terrabound.game.world.get(x, y - 4), placedBay.found ?? { x: 0, y: 0 })) === 2, JSON.stringify({ bay, ...placedBay }));
+  await page.keyboard.down('KeyE');
+  await page.waitForTimeout(80);
+  await page.keyboard.up('KeyE');
+  await page.waitForTimeout(150);
+  check('E opens the garage panel', await page.evaluate(() => !!window.__terrabound.game.garageOpen));
+  await page.screenshot({ path: path.join(out, '21-garage.png') });
+  const buildBtn = async (id) => {
+    const r = await page.evaluate((v) => window.__terrabound.ui.rects.find((q) => q.a.k === 'buildveh' && q.a.id === v), id);
+    if (r) await page.mouse.click(r.x + r.w / 2, r.y + r.h / 2);
+    await page.waitForTimeout(120);
+    return r;
+  };
+  const buggyBtn = await buildBtn('buggy');
+  const built = await page.evaluate(() => ({ owned: window.__terrabound.game.ownsGear('buggy'), parked: window.__terrabound.game.parkedVehicle() }));
+  check('BUILD in the garage makes a buggy and parks it by the bay', built.owned && built.parked?.id === 'buggy', JSON.stringify({ buggyBtn, ...built }));
+  const partBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((q) => q.a.k === 'part' && q.a.id === 'buggy' && q.a.part === 'engine'));
+  if (partBtn) await page.mouse.click(partBtn.x + partBtn.w / 2, partBtn.y + partBtn.h / 2);
+  await page.waitForTimeout(120);
+  check('a garage part upgrade fits a buggy engine', (await page.evaluate(() => window.__terrabound.game.vehicleParts('buggy').engine)) === 1, JSON.stringify(partBtn));
+  await page.screenshot({ path: path.join(out, '21b-garage-built.png') });
   await page.keyboard.press('Escape');
   await page.waitForTimeout(100);
+  // Walk right to the parked buggy, then ride it.
+  await page.keyboard.down('KeyD');
+  for (let i = 0; i < 40; i++) {
+    await page.waitForTimeout(50);
+    if (await page.evaluate(() => window.__terrabound.game.canMount())) break;
+  }
+  await page.keyboard.up('KeyD');
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: path.join(out, '22a-buggy-parked.png') });
+  await page.keyboard.down('KeyV');
+  await page.waitForTimeout(80);
+  await page.keyboard.up('KeyV');
+  await page.waitForTimeout(100);
+  const bx0 = await page.evaluate(() => window.__terrabound.game.body.x);
+  await page.keyboard.down('KeyD');
+  await page.waitForTimeout(700);
+  await page.keyboard.up('KeyD');
+  const drive = await page.evaluate(() => ({ riding: window.__terrabound.game.riding, veh: window.__terrabound.game.vehicle, x: window.__terrabound.game.body.x }));
+  await page.screenshot({ path: path.join(out, '22c-buggy.png') });
+  check('walk up + V rides the buggy and it drives fast', drive.riding && drive.veh === 'buggy' && drive.x > bx0 + 4, JSON.stringify({ bx0, ...drive }));
+  await page.keyboard.press('KeyV');
+  await page.waitForTimeout(100);
+  check('V gets out and parks the buggy where you stopped', await page.evaluate(() => !window.__terrabound.game.riding && window.__terrabound.game.parkedVehicle()?.id === 'buggy'));
+  // Sky Jet: build it in the same garage (it deploys by the bay), teleport beside it, ride and fly.
+  await page.evaluate(({ tx, ty }) => {
+    const g = window.__terrabound.game;
+    g.body.x = tx + 0.5;
+    g.body.y = ty + 1;
+    g.body.vx = g.body.vy = 0;
+  }, bay);
+  await page.waitForTimeout(200);
+  await page.keyboard.press('KeyE');
+  await page.waitForTimeout(150);
+  await buildBtn('sky_jet');
+  check('the garage builds a Sky Jet', await page.evaluate(() => window.__terrabound.game.ownsGear('sky_jet')));
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const p = g.parkedVehicle();
+    g.body.x = p.x;
+    g.body.y = p.y;
+  });
+  await page.waitForTimeout(150);
   await page.keyboard.press('KeyV');
   const jetY0 = await page.evaluate(() => window.__terrabound.game.body.y);
   await page.keyboard.down('KeyW');
@@ -673,23 +743,27 @@ try {
   await page.screenshot({ path: path.join(out, '22-sky-jet.png') });
   check('V rides the Sky Jet and W flies up', flight.riding && flight.y < jetY0 - 5, JSON.stringify({ jetY0, ...flight }));
   await page.keyboard.press('KeyV');
-  // Hoverbike art check: ride it on the pad and screenshot (sprite map, not rectangles).
-  const bike = await page.evaluate(() => {
-    const g = window.__terrabound.game;
-    g.save.gear.equip.vehicle = 'hoverbike';
-    g.gearCache = null;
-    g.body.x = g.world.padX + 0.5;
-    g.body.y = g.world.padY;
-    g.body.vx = g.body.vy = 0;
-    if (!g.riding) g.toggleRide();
-    return g.vehicle;
-  });
-  await page.waitForTimeout(500);
-  await page.screenshot({ path: path.join(out, '22b-hoverbike.png') });
-  check('the hoverbike rides as a sprite', bike === 'hoverbike', String(bike));
+  // Hoverbike and drill tank art checks: park each on the pad, ride, screenshot (sprite map, not rectangles).
+  for (const id of ['hoverbike', 'drill_tank']) {
+    const v = await page.evaluate((vid) => {
+      const g = window.__terrabound.game;
+      if (g.riding) g.toggleRide();
+      if (!g.ownsGear(vid)) g.save.gear.owned.push(vid);
+      g.body.x = g.world.padX + 0.5;
+      g.body.y = g.world.padY;
+      g.body.vx = g.body.vy = 0;
+      g.save.garage.parked = { id: vid, x: g.body.x, y: g.body.y };
+      g.toggleRide();
+      return g.vehicle;
+    }, id);
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: path.join(out, `22b-${id}.png`) });
+    check(`the ${id} rides as a sprite`, v === id, String(v));
+  }
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     if (g.riding) g.toggleRide();
+    g.save.garage.parked = { id: 'sky_jet', x: g.body.x, y: g.body.y };
     g.save.gear.equip.vehicle = 'sky_jet';
     g.gearCache = null;
   });

@@ -124,3 +124,6 @@
 - **Pinned `SAVE_VERSION` in settings.test broke again on a bump.** It now asserts `>= 22`; the exact pin lives only in the newest migration test (achievements.test.ts). Next bump: update that one test.
 - **New systems that only listen to events stay cheap:** awards and goals hook `Game.emit` (countEvent) plus one depth high-water mark, so no other system changed. Prefer that over sprinkling counters through game.ts.
 - **Retro:** three slices, three ships (~4-5 min each). Writing the phone-fit e2e with the first UI draft caught nothing this time but cost little; keep doing it.
+- **Deployed vehicles must not spawn under a roof:** the Sky Jet parked inside the carport frame and hit the metal roof on take-off. Vehicles now deploy 4.5 tiles out (the frame spans +-3). Any new structure that spawns things checks the spawn spot against its own frame.
+- **Right-click placement in e2e can land one tile off** after the camera moves. Find the placed tile near the aim instead of asserting the exact aimed tile.
+- **The e2e water-crest check is flaky:** it failed in two runs and passed in the next two with no related change. If it fails again, make the strip sample deterministic (fixed pool, fixed camera).

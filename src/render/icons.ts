@@ -887,6 +887,7 @@ const SHAPES: Record<string, string[]> = {
   bike: ['            ', '            ', '        oo  ', '  ooooooobo ', ' oaaaaaaaaao', 'oaaaaaaaaaao', ' oooooooooo ', ' obo    obo ', '  b      b  ', '            ', '            ', '            '],
   jet: ['            ', '     oo     ', '    oaao    ', '   oaaaao   ', 'ooooabbaoooo', 'oaaaaaaaaaao', 'ooooaaaaoooo', '    oaao    ', '   oaooao   ', '   oo  oo   ', '            ', '            '],
   beacon: ['     bb     ', '    bwwb    ', '     bb     ', '    oooo    ', '   oaaaao   ', '   oabbao   ', '   oaaaao   ', '   oabbao   ', '  oaaaaaao  ', '  oaaaaaao  ', ' oooooooooo ', '            '],
+  garage: ['            ', '     oo     ', '   oobboo   ', ' oobbbbbboo ', 'obbbbbbbbbbo', 'oaoaaaaaaoao', 'oaoccccccoao', 'oaoaaaaaaoao', 'oaoccccccoao', 'oaoaaaaaaoao', 'oooooooooooo', '            '],
   pet: ['            ', '  o      o  ', ' oao    oao ', ' oaaooooaao ', ' oaaaaaaaao ', ' oabwaabwao ', ' oaaaaaaaao ', '  oaabbaao  ', '   oaaaao   ', '   oo  oo   ', '            ', '            '],
   // Mod chip: a square die with gold pins on every side and a coloured core (a) with a bright pip (b).
   chip: ['            ', '   h h h h  ', '  oooooooo  ', ' hoddddddoh ', '  odaaaado  ', ' hodabbadoh ', '  odabaado  ', ' hodaaaadoh ', '  oddddddo  ', '  oooooooo  ', '   h h h h  ', '            '],
@@ -920,6 +921,7 @@ export function iconDef(id: ItemId | Tool | string): IconDef {
     const r = RESEARCH[id.slice(4) as ResearchId];
     return { pal: { a: r.color, b: '#cfe8f0', h: '#ffffff' }, rows: SHAPES.flask };
   }
+  if (id === 'garage_kit') return { pal: { a: '#5d6a80', b: '#e8a33d', c: '#9aa3b8' }, rows: SHAPES.garage };
   if (id === 'hook') return { pal: { a: '#e6f6ff', b: '#9aa3b8' }, rows: SHAPES.hook };
   return FALLBACK;
 }

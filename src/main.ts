@@ -1,3 +1,4 @@
+import { VEHICLES } from './sim/garage';
 import { FTUE_STEPS } from './sim/ftue';
 import { audioGains, shakeMul, uiScale } from './sim/settings';
 import { CROPS } from './sim/farming';
@@ -190,7 +191,7 @@ function boot(): void {
         ui.mapOpen = false;
         ui.invOpen = false;
         ui.dronesOpen = false;
-        if (game.chestOpen) game.interact();
+        if (game.chestOpen || game.garageOpen) game.interact();
         break;
       case 'map':
         if (ui.screen === 'play' && !ui.shopOpen) ui.mapOpen = !ui.mapOpen;
@@ -318,7 +319,16 @@ function boot(): void {
         break;
       }
       case 'ride':
-        if (!game.toggleRide()) ui.toast('Craft a vehicle in the workshop GEAR tab first', '#ff9a3c');
+        game.toggleRide();
+        break;
+      case 'buildveh':
+        if (game.buildVehicle(a.id)) saveNow();
+        break;
+      case 'deploy':
+        if (game.deployVehicle(a.id)) saveNow();
+        break;
+      case 'part':
+        if (game.upgradePart(a.id, a.part)) saveNow();
         break;
       case 'dash':
         input.dashTap = true;
@@ -496,6 +506,15 @@ function boot(): void {
         break;
       case 'chest':
         fx.burst(e.x + 0.5, e.y + 0.5, '#ffcf4a', 12, 4);
+        break;
+      case 'deploy':
+        ui.toast(`${VEHICLES[e.id].name} is parked by the bay: walk up and ride`, '#36e0e8', 2.5);
+        break;
+      case 'part':
+        ui.toast(`${VEHICLES[e.id].name}: ${e.part} Lv ${e.level}`, '#9ff6a0');
+        break;
+      case 'novehicle':
+        ui.toast(e.reason, '#ff9a3c', 2);
         break;
       case 'eat':
         ui.toast(`Ate ${ITEMS[e.item].name}`, '#9ff6a0');

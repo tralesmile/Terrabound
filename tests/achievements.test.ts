@@ -74,7 +74,7 @@ describe('awards (achievements)', () => {
     delete v22.awards;
     const s = parseSave(JSON.stringify(v22));
     expect(s.v).toBe(SAVE_VERSION);
-    expect(SAVE_VERSION).toBe(23);
+    expect(SAVE_VERSION).toBe(24);
     expect(s.awards.n.depth).toBe(160);
     expect(s.awards.n.bossKinds).toBe(2);
     expect(s.awards.n.victory).toBe(1);

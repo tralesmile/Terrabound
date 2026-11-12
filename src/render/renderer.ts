@@ -17,6 +17,9 @@ import { BODY_H } from '../sim/physics';
 import { HIT_SQUASH_TIME, hitSquash, hurtSquash, hurtVignette, softFlash, magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx } from './fx';
 import type { PlayerGear } from './sprites';
 import { ICON, drawIcon } from './icons';
+import { VEHICLE_REMAP } from './sprites';
+/** Pixel-art scale of ground vehicles relative to the player sprite. */
+const VEHICLE_ART_SCALE = 1.5;
 import { GEAR, type RangedKind } from '../sim/gear';
 import { BOSSES, phase as bossPhase } from '../sim/bosses';
 import { drawBossArt } from './bossart';
@@ -422,7 +425,7 @@ export class Renderer {
         ctx.fillRect(px - game.facing * 7 * scale - 1.5 * scale, py - 8 * scale, 3 * scale, (3 + (Math.floor(time * 40) % 3)) * scale);
       }
     }
-    if (veh === 'hoverbike' || veh === 'sky_jet') {
+    if (veh === 'hoverbike' || veh === 'sky_jet' || veh === 'buggy' || veh === 'drill_tank') {
       const vd = VEHICLES[veh];
       if (veh === 'hoverbike') {
         // Soft hover field on the ground under the pads.
@@ -430,7 +433,26 @@ export class Renderer {
         ctx.fillRect(px - 11 * scale, py + 2 * scale, 22 * scale, 2 * scale);
       }
       const bob = veh === 'sky_jet' ? Math.round(Math.sin(time * 5)) * 0.5 : 0;
-      drawRows(ctx, vehicleRows(veh, time, game.jetting), px - (vd.w / 2) * scale, py - (vd.top - bob) * scale, scale, game.facing < 0, vd.w);
+      const ground = veh === 'buggy' || veh === 'drill_tank';
+      const moving = Math.abs(b.vx) > 0.5 ? time : 0;
+      // Ground vehicles are drawn larger so the pilot sits inside, not on top of a toy.
+      const vs = ground ? scale * VEHICLE_ART_SCALE : scale;
+      drawRows(ctx, vehicleRows(veh, ground ? moving : time, game.jetting), px - (vd.w / 2) * vs, py - (vd.top - bob) * vs, vs, game.facing < 0, vd.w, undefined, VEHICLE_REMAP[veh]);
+    }
+    // The parked vehicle waits where you left it, with a hint when you are close.
+    const parked = game.riding ? null : game.parkedVehicle();
+    if (parked) {
+      const vd = VEHICLES[parked.id];
+      const vx = this.sx(parked.x, shakeX);
+      const vy = this.sy(parked.y, shakeY);
+      const vs = parked.id === 'buggy' || parked.id === 'drill_tank' ? scale * VEHICLE_ART_SCALE : scale;
+      drawRows(ctx, vehicleRows(parked.id, 0, false), vx - (vd.w / 2) * vs, vy - vd.top * vs, vs, false, vd.w, undefined, VEHICLE_REMAP[parked.id]);
+      if (Math.hypot(parked.x - b.x, parked.y - b.y) < 2.5) {
+        ctx.fillStyle = '#ffcf4a';
+        ctx.font = `bold ${Math.round(scale * 6)}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText('RIDE', vx, vy - (vd.top + 4) * vs);
+      }
     }
     // Grappling rope.
     if (game.hook) {
@@ -751,6 +773,22 @@ export class Renderer {
       ctx.fillRect(dx + 6 * u, dy + 2 * u, 4 * u, 4 * u);
       ctx.fillStyle = '#14181f';
       ctx.fillRect(dx + 5 * u, dy + 15 * u, 6 * u, u);
+      return;
+    }
+    if (t === T.GARAGE) {
+      // Garage bay: a roll-up door panel with a glowing control light.
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      const u = ts / 16;
+      ctx.fillStyle = '#14181f';
+      ctx.fillRect(dx, dy, ts, ts);
+      ctx.fillStyle = '#5d6a80';
+      ctx.fillRect(dx + u, dy + u, ts - 2 * u, ts - 2 * u);
+      ctx.fillStyle = '#3a4356';
+      for (let r = 0; r < 4; r++) ctx.fillRect(dx + u, dy + (3 + r * 3) * u, ts - 2 * u, u);
+      ctx.fillStyle = '#e8a33d';
+      ctx.fillRect(dx + u, dy + u, ts - 2 * u, 2 * u);
+      ctx.fillStyle = '#36e0e8';
+      ctx.fillRect(dx + 12 * u, dy + 5 * u, 2 * u, 2 * u);
       return;
     }
     if (t === T.TERMINAL) {

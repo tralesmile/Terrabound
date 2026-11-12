@@ -1,3 +1,4 @@
+import type { SaveData } from '../src/sim/save';
 import { describe, expect, it } from 'vitest';
 import { FIXED_DT, Game, NO_CONTROLS, type Controls } from '../src/sim/game';
 import { SAVE_VERSION, defaultSave, parseSave, serializeSave } from '../src/sim/save';
@@ -222,10 +223,17 @@ describe('weapons', () => {
 });
 
 describe('vehicles', () => {
-  it('the hoverbike doubles speed; the Sky Jet flies', () => {
+  /** Own a vehicle and have it parked next to the player (garage flow is tested in garage.test.ts). */
+  const own = (g: Game, id: 'hoverbike' | 'sky_jet'): void => {
+    const sv = (g as unknown as { save: SaveData }).save;
+    sv.gear.owned.push(id);
+    sv.gear.equip.vehicle = id;
+    sv.garage.parked = { id, x: g.body.x, y: g.body.y };
+  };
+  it('the hoverbike is much faster than walking; the Sky Jet flies', () => {
     const g = rich();
-    g.craftGear('hoverbike');
     const s = sky(g);
+    own(g, 'hoverbike');
     expect(g.toggleRide()).toBe(true);
     run(g, 1, { moveX: 1 });
     const bike = g.body.x - s.x;
@@ -234,8 +242,8 @@ describe('vehicles', () => {
     run(p, 1, { moveX: 1 });
     expect(bike).toBeGreaterThan((p.body.x - s2.x) * 1.6);
     const j = rich();
-    j.craftGear('sky_jet');
     const s3 = sky(j);
+    own(j, 'sky_jet');
     j.toggleRide();
     run(j, 1.5, { jump: true });
     expect(j.body.y).toBeLessThan(s3.y - 8);

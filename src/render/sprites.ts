@@ -743,10 +743,44 @@ const JET_FLAME = [
   ['Yy', 'YyyY'],
 ];
 
-export type VehicleSpriteId = 'hoverbike' | 'sky_jet';
+/** Dune buggy: roll cage, red body, two big wheels (spokes turn with time). */
+const BUGGY = [
+  '       oooooooooo',
+  '      oL        Lo',
+  '     oL          Lo',
+  '  oooLoooooooooooLoooooo',
+  ' oaaaaaaaaaaaaaaaaaaaaaaoo',
+  'oAaaaaaaaaaaaaaaaaaaaaaaawo',
+  'oAAAAAAAAAAAAAAAAAAAAAAAAAo',
+  ' ooooooooooooooooooooooooo',
+];
+const WHEEL_A = [' oooo ', 'oLnnLo', 'onLLno', 'onLLno', 'oLnnLo', ' oooo '];
+const WHEEL_B = [' oooo ', 'onLLno', 'oLnnLo', 'oLnnLo', 'onLLno', ' oooo '];
+/** Drill tank: armored hull, tread band and a striped drill cone at the front. */
+const DRILL_TANK = [
+  '      oooooooooo',
+  '     oaaaaaaaaaao',
+  '    oaaVVVVaaaaaAo',
+  '  ooaaaaaaaaaaaaAoooo',
+  ' oaaaaaaaaaaaaaaaAoLLoo',
+  'oAaaaaaaaaaaaaaaaaoLnLLoo',
+  'oAAAAAAAAAAAAAAAAAoLLnLLLo',
+  'onLnLnLnLnLnLnLnLnooLLnoo',
+  'oLnLnLnLnLnLnLnLnLo ooo',
+  ' oooooooooooooooooo',
+];
+
+export type VehicleSpriteId = 'hoverbike' | 'sky_jet' | 'buggy' | 'drill_tank';
 export const VEHICLES: Record<VehicleSpriteId, { w: number; top: number }> = {
   hoverbike: { w: 26, top: 6 },
   sky_jet: { w: 37, top: 13 },
+  buggy: { w: 27, top: 13 },
+  drill_tank: { w: 26, top: 11 },
+};
+/** Body colours per vehicle (a = body, A = shade). */
+export const VEHICLE_REMAP: Partial<Record<VehicleSpriteId, Record<string, string>>> = {
+  buggy: { a: '#e85a3a', A: '#a8361f', L: '#c9d0e4', n: '#2b2f3a' },
+  drill_tank: { a: '#7a8a5a', A: '#4e5a38', L: '#d6dde8', n: '#2b2f3a' },
 };
 
 /**
@@ -755,6 +789,21 @@ export const VEHICLES: Record<VehicleSpriteId, { w: number; top: number }> = {
  */
 export function vehicleRows(id: VehicleSpriteId, t: number, boost: boolean): string[] {
   const f = Math.floor(Math.max(0, t) * 20);
+  if (id === 'buggy') {
+    const wh = f % 2 ? WHEEL_A : WHEEL_B;
+    // Wheels hang below the body under the rear and front axles.
+    const rows = BUGGY.map((r) => r.padEnd(27));
+    for (let i = 0; i < wh.length; i++) {
+      const line = ' '.repeat(2) + wh[i] + ' '.repeat(11) + wh[i];
+      if (i < 2) rows[rows.length - 2 + i] = overlay(rows[rows.length - 2 + i], line);
+      else rows.push(line);
+    }
+    return rows;
+  }
+  if (id === 'drill_tank') {
+    // The drill's stripes scroll; the tread band shifts every other frame.
+    return DRILL_TANK.map((r, i) => (i >= 4 && i <= 6 && f % 2 ? r.replace(/Ln/g, 'nL') : i >= 7 && f % 2 ? r.replace(/Ln/g, 'nL') : r));
+  }
   if (id === 'hoverbike') {
     const glow = HOVER_GLOW.slice(0, 1 + (f % 3));
     return [...HOVERBIKE, ...glow];
@@ -767,6 +816,14 @@ export function vehicleRows(id: VehicleSpriteId, t: number, boost: boolean): str
     const fl = i === 6 && flick ? flame[0] : i === 7 && flick ? flame[1] : '';
     return fl.slice(-3).padStart(3) + r;
   });
+}
+
+/** Paint `top` over `base` wherever `top` is not a space. */
+function overlay(base: string, top: string): string {
+  const n = Math.max(base.length, top.length);
+  let out = '';
+  for (let i = 0; i < n; i++) out += top[i] && top[i] !== ' ' ? top[i] : base[i] ?? ' ';
+  return out;
 }
 
 export type EnemySpriteKind = 'crawler' | 'flyer';

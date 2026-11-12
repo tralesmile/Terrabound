@@ -192,6 +192,16 @@ export class Sfx {
       case 'discover':
         [523, 784, 1047, 1319].forEach((f, i) => this.tone(f, 0.18, 'triangle', 0.12, undefined, i * 0.09));
         break;
+      case 'garage':
+        this.tone(147, 0.18, 'sawtooth', 0.06, 110);
+        break;
+      case 'deploy':
+        this.tone(110, 0.25, 'sawtooth', 0.08, 220);
+        [330, 440].forEach((f, i) => this.tone(f, 0.08, 'square', 0.05, undefined, 0.2 + i * 0.07));
+        break;
+      case 'part':
+        [392, 523, 659].forEach((f, i) => this.tone(f, 0.08, 'triangle', 0.08, undefined, i * 0.05));
+        break;
       case 'chest':
         this.tone(220, 0.08, 'square', 0.1, 440);
         [659, 880, 1175].forEach((f, i) => this.tone(f, 0.1, 'square', 0.07, undefined, 0.08 + i * 0.05));

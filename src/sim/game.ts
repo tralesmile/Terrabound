@@ -32,6 +32,7 @@ import { BIOME_BOSSES, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SL
 import { BIOMES, type BiomeId } from './biomes';
 import { LAYERS, layerAt, openGates } from './layers';
 import { METEOR_RATE, weatherAt, weatherEnemy, type WeatherKind } from './weather';
+import { MAX_PART, VEHICLES, defaultGarage, isVehicle, partCost, partsOf, vehicleStats, type PartId, type PartLevels, type VehicleId } from './garage';
 import { GEAR, gearStats, sanitizeGear, type GearId, type GearSlot, type GearStats } from './gear';
 import { FOOD, bestHeal, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE } from './fishing';
 import { daylight } from './daynight';
@@ -129,6 +130,10 @@ export type GameEvent =
   | { t: 'nomount' }
   | { t: 'craftgear'; id: GearId }
   | { t: 'mount' }
+  | { t: 'garage' }
+  | { t: 'deploy'; id: VehicleId }
+  | { t: 'part'; id: VehicleId; part: PartId; level: number }
+  | { t: 'novehicle'; reason: string }
   | { t: 'dismount' }
   | { t: 'hook'; x: number; y: number }
   | { t: 'unhook' }
@@ -215,6 +220,8 @@ export const JET_THRUST = 95;
 export const JET_MAX = 9;
 export const JET_DRAIN = 6;
 export const GLIDE_FALL = 2.5;
+/** How close you must stand to a parked vehicle to get in. */
+export const MOUNT_RANGE = 2.5;
 export const BLADE_DMG = 12;
 export const BLADE_RANGE = 2.1;
 export const BLADE_CD = 0.32;
@@ -268,6 +275,9 @@ export class Game {
   /** Tonight's raid is coming: which side, how many, and the game time it should start (HUD countdown, map arrow). */
   raidWarn: { side: number; n: number; at: number } | null = null;
   private gearCache: GearStats | null = null;
+  /** Garage whose panel is open (closes when out of reach). */
+  garageOpen: { x: number; y: number } | null = null;
+  private drillT = 0;
   /** The pet's position (render) and zap cooldown. */
   pet = { x: 0, y: 0, cd: 0 };
   /** Robot NPCs living in base rooms (npcs.ts); derived from the world, never saved. */
@@ -345,6 +355,7 @@ export class Game {
     this.goalAt = goalIndex(this.save.awards);
     if (!Array.isArray(this.save.codex)) this.save.codex = [];
     this.save.gear = sanitizeGear(this.save.gear);
+    if (!this.save.garage) this.save.garage = defaultGarage();
     if (!Array.isArray(this.save.bosses)) this.save.bosses = [];
     if (!this.save.drones || typeof this.save.drones !== 'object') this.save.drones = {};
     if (!this.save.droneRules || typeof this.save.droneRules !== 'object') this.save.droneRules = {};
@@ -485,7 +496,7 @@ export class Game {
   }
 
   canCraftGear(id: GearId): boolean {
-    return !GEAR[id].bossOnly && !this.ownsGear(id) && this.isAtBase() && canAfford(this.stash, GEAR[id].cost);
+    return !GEAR[id].bossOnly && !GEAR[id].garage && !this.ownsGear(id) && this.isAtBase() && canAfford(this.stash, GEAR[id].cost);
   }
 
   /** Build gear at the workshop from stashed materials; it is equipped right away. */
@@ -510,17 +521,171 @@ export class Game {
     return true;
   }
 
-  /** Mount or leave the equipped vehicle (V). */
+  /**
+   * V: get in the parked vehicle when standing next to it, or get out (it stays parked where you leave it).
+   * Vehicles come from a garage (DEPLOY); there is one deployed vehicle at a time.
+   */
   toggleRide(): boolean {
-    if (!this.save.gear.equip.vehicle) return false;
-    this.riding = !this.riding;
+    const g = this.save.garage;
+    const b = this.body;
+    if (this.riding) {
+      const id = this.save.gear.equip.vehicle;
+      this.riding = false;
+      if (id && isVehicle(id)) g.parked = { id, x: b.x, y: b.y };
+      this.emit({ t: 'dismount' });
+      return true;
+    }
+    const p = this.parkedVehicle();
+    if (!p) {
+      this.emit({ t: 'novehicle', reason: this.save.gear.owned.some((x) => isVehicle(x)) ? 'Deploy a vehicle from your garage first' : 'Build a garage (fabricator) to make vehicles' });
+      return false;
+    }
+    if (Math.hypot(p.x - b.x, p.y - b.y) > MOUNT_RANGE) {
+      this.emit({ t: 'novehicle', reason: 'Walk up to your vehicle to get in' });
+      return false;
+    }
+    this.save.gear.equip.vehicle = p.id;
+    this.gearCache = null;
+    g.parked = null;
+    this.riding = true;
     this.hook = null;
-    this.emit({ t: this.riding ? 'mount' : 'dismount' });
+    b.x = p.x;
+    this.emit({ t: 'mount' });
     return true;
+  }
+
+  /** The parked vehicle, resolving the "beside the pad" placeholder from old saves. */
+  parkedVehicle(): { id: VehicleId; x: number; y: number } | null {
+    const p = this.save.garage.parked;
+    if (!p) return null;
+    if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) {
+      p.x = this.world.padX + 3.5;
+      p.y = this.world.padY;
+    }
+    return p;
   }
 
   get vehicle(): GearId | null {
     return this.riding ? (this.save.gear.equip.vehicle ?? null) : null;
+  }
+
+  /** Stats of the vehicle being ridden (with its parts), or null on foot. */
+  get vstats(): ReturnType<typeof vehicleStats> | null {
+    const v = this.vehicle;
+    return v && isVehicle(v) ? vehicleStats(v, partsOf(this.save.garage, v)) : null;
+  }
+
+  /** A garage bay within reach (E). */
+  garageNear(): { x: number; y: number } | null {
+    const b = this.body;
+    for (let y = Math.floor(b.y - 4); y <= Math.floor(b.y + 2); y++)
+      for (let x = Math.floor(b.x - 4); x <= Math.floor(b.x + 4); x++) if (this.world.get(x, y) === T.GARAGE && this.reachable(x, y)) return { x, y };
+    return null;
+  }
+
+  /** A carport around the bay: plate back wall and a metal roof, only where there is open air. */
+  private buildGarageFrame(tx: number, ty: number): void {
+    const w = this.world;
+    for (let dx = -3; dx <= 3; dx++) {
+      for (let dy = -3; dy <= 0; dy++) if (w.wall(tx + dx, ty + dy) === W.NONE) w.setWall(tx + dx, ty + dy, W.PLATE);
+      if (w.get(tx + dx, ty - 4) === T.AIR) w.set(tx + dx, ty - 4, T.METAL);
+    }
+  }
+
+  private garageOk(): boolean {
+    return !!this.garageOpen && this.world.get(this.garageOpen.x, this.garageOpen.y) === T.GARAGE;
+  }
+
+  canBuildVehicle(id: VehicleId): boolean {
+    return this.garageOk() && !this.ownsGear(id) && canAfford(this.stash, VEHICLES[id].cost);
+  }
+
+  /** Build a vehicle in the open garage (paid from the stash) and park it beside the bay. */
+  buildVehicle(id: VehicleId): boolean {
+    if (!this.canBuildVehicle(id)) return false;
+    pay(this.stash, VEHICLES[id].cost);
+    this.save.gear.owned.push(id);
+    this.deployVehicle(id);
+    this.emit({ t: 'craftgear', id });
+    return true;
+  }
+
+  /** Park an owned vehicle beside the open garage's bay (it replaces the deployed one). */
+  deployVehicle(id: VehicleId): boolean {
+    const at = this.garageOpen;
+    if (!at || !this.garageOk() || !this.ownsGear(id)) return false;
+    if (this.riding) this.riding = false;
+    this.save.gear.equip.vehicle = id;
+    this.gearCache = null;
+    // Just outside the carport frame (it spans 3 tiles each side), so jets can take off.
+    this.save.garage.parked = { id, x: at.x + 4.5, y: at.y + 1 };
+    this.emit({ t: 'deploy', id });
+    return true;
+  }
+
+  /** Installed part levels of a vehicle (for the garage panel). */
+  vehicleParts(id: VehicleId): Readonly<PartLevels> {
+    return partsOf(this.save.garage, id);
+  }
+
+  /** True when the RIDE button should show: riding, or standing by the parked vehicle. */
+  canMount(): boolean {
+    if (this.riding) return true;
+    const p = this.parkedVehicle();
+    return !!p && Math.hypot(p.x - this.body.x, p.y - this.body.y) <= MOUNT_RANGE;
+  }
+
+  canUpgradePart(id: VehicleId, part: PartId): boolean {
+    const lv = partsOf(this.save.garage, id)[part];
+    return this.garageOk() && this.ownsGear(id) && lv < MAX_PART && canAfford(this.stash, partCost(part, lv));
+  }
+
+  upgradePart(id: VehicleId, part: PartId): boolean {
+    if (!this.canUpgradePart(id, part)) return false;
+    const levels = { ...partsOf(this.save.garage, id) };
+    pay(this.stash, partCost(part, levels[part]));
+    levels[part]++;
+    this.save.garage.parts[id] = levels;
+    this.emit({ t: 'part', id, part, level: levels[part] });
+    return true;
+  }
+
+  /** Vehicle extras each frame: battery drain, ramming enemies, the drill tank's tunnelling. */
+  private stepVehicle(dt: number): void {
+    const vs = this.vstats;
+    if (!vs) return;
+    const b = this.body;
+    if (!this.isAtBase() && !vs.flying) this.battery = Math.max(0, this.battery - vs.drain * dt);
+    if (this.battery === 0 && !this.isAtBase()) {
+      this.toggleRide();
+      return;
+    }
+    if (vs.ram > 0 && Math.abs(b.vx) > 5) {
+      for (const e of this.enemies) {
+        if (e.hp <= 0 || e.iframes > 0 || !enemyOverlapsBox(e, b.x + Math.sign(b.vx) * 0.6, b.y - 0.6, 0.7, 0.6)) continue;
+        this.damageEnemy(e, vs.ram, Math.sign(b.vx));
+      }
+    }
+    if (vs.drill) {
+      this.drillT -= dt;
+      if (this.drillT <= 0) {
+        this.drillT = 0.18;
+        const fx = Math.floor(b.x + this.facing * 1.1);
+        for (const fy of [Math.floor(b.y - 0.5), Math.floor(b.y - 1.5)]) {
+          const t = this.world.get(fx, fy);
+          if (!TILES[t].solid || !isMinable(t) || t === T.PAD || t === T.CHEST) continue;
+          if (Math.abs(fx - this.world.padX) <= 8 && Math.abs(fy - this.world.padY) <= 10) continue;
+          const drop = TILES[t].drop;
+          if (drop && invTotal(this.carried) >= this.derived.packCap) continue;
+          this.world.set(fx, fy, T.AIR);
+          if (drop) {
+            invAdd(this.carried, drop, 1);
+            this.emit({ t: 'pickup', item: drop, x: fx, y: fy });
+          }
+          this.emit({ t: 'break', x: fx, y: fy, tile: t });
+        }
+      }
+    }
   }
 
   get depth(): number {
@@ -709,6 +874,10 @@ export class Game {
     this.save.worldSeed = worldSeed;
     this.world = generateWorld(this.diveSeed());
     this.save.world = null;
+    // A new world: the deployed vehicle waits beside the new pad.
+    const vid = this.save.gear.equip.vehicle;
+    if (this.riding || this.save.garage.parked) this.save.garage.parked = vid && isVehicle(vid) ? { id: vid, x: Number.NaN, y: Number.NaN } : null;
+    this.riding = false;
     stampBase(this.world, this.save.base);
     stampWalls(this.world, this.save.walls);
     openGates(this.world, this.biomeBossesBeaten());
@@ -965,6 +1134,8 @@ export class Game {
   private hurt(amount: number): void {
     this.cancelRecall();
     amount *= 1 - this.gear.armor;
+    const vs = this.vstats;
+    if (vs) amount *= 1 - vs.armor;
     if (this.buffs.sturdy) amount *= STURDY_TAKEN;
     this.hp -= amount;
     this.emit({ t: 'hurt', amount });
@@ -1113,7 +1284,8 @@ export class Game {
     const mx = Math.max(-1, Math.min(1, c.moveX));
     const veh = this.vehicle;
     const g = this.gear;
-    const speed = d.speed * (veh === 'hoverbike' ? 1.9 : veh === 'sky_jet' ? 2.2 : 1) * (this.buffs.swift && !veh ? SWIFT_SPEED : 1);
+    const vst = this.vstats;
+    const speed = d.speed * (vst ? vst.speed : 1) * (this.buffs.swift && !veh ? SWIFT_SPEED : 1);
     if (this.hook) b.vx += mx * 22 * dt;
     else if (this.dashT <= 0) b.vx += (mx * speed - b.vx) * Math.min(1, 20 * dt);
     if (Math.abs(mx) > 0.1) this.facing = mx > 0 ? 1 : -1;
@@ -1138,7 +1310,7 @@ export class Game {
     this.coyote = grounded ? 0.1 : this.coyote - dt;
     const jumpPress = c.jump && !this.prevJump;
     this.jumpBuf = jumpPress ? 0.12 : this.jumpBuf - dt;
-    const jumpV = JUMP_V * (veh === 'hoverbike' ? 1.25 : 1);
+    const jumpV = JUMP_V * (vst ? vst.jump : 1);
     if (this.hook && jumpPress) {
       // Let go of the rope with a little hop, keeping the swing's speed.
       this.hook = null;
@@ -1172,8 +1344,7 @@ export class Game {
       b.vy += (target - b.vy) * Math.min(1, 6 * dt);
       this.jetting = c.jump;
       this.wasGround = true;
-      if (!this.isAtBase()) this.battery = Math.max(0, this.battery - JET_DRAIN * 0.8 * dt);
-      if (this.battery === 0 && !this.isAtBase()) this.riding = false;
+      if (!this.isAtBase()) this.battery = Math.max(0, this.battery - (vst?.drain ?? JET_DRAIN * 0.8) * dt);
     } else if (this.inLiquid) {
       // Swimming: slow sink, jump strokes upward, no fall damage, drag on both axes.
       b.vx *= 1 - Math.min(1, 6 * dt);
@@ -1217,9 +1388,11 @@ export class Game {
     const impact = b.vy;
     moveY(this.world, b, b.vy * dt, c.down);
     if (this.hook) this.stepRope(dt, c);
+    this.stepVehicle(dt);
+    if (this.garageOpen && (!this.reachable(this.garageOpen.x, this.garageOpen.y) || this.world.get(this.garageOpen.x, this.garageOpen.y) !== T.GARAGE)) this.garageOpen = null;
     if (b.onGround && !this.wasGround) {
       this.emit({ t: 'land', speed: impact });
-      if (impact > FALL_SAFE && veh !== 'hoverbike') this.hurt((impact - FALL_SAFE) * 6);
+      if (impact > FALL_SAFE && !vst?.soft) this.hurt((impact - FALL_SAFE) * 6);
     }
     this.wasGround = b.onGround;
 
@@ -1348,6 +1521,7 @@ export class Game {
             this.emit({ t: 'plant', crop, secs: Math.round(ripeIn(this.world, tx, ty, this.wetFn)), wet: this.cropWatered(tx, ty) });
           }
           if (item.places === T.CHEST) this.world.chests.set(i, {});
+          if (item.places === T.GARAGE) this.buildGarageFrame(tx, ty);
           invAdd(this.carried, this.selected, -1);
           this.placeCd = 0.12;
           this.emit({ t: 'place', x: tx, y: ty });
@@ -1901,6 +2075,16 @@ export class Game {
       this.chestOpen = null;
       return true;
     }
+    if (this.garageOpen) {
+      this.garageOpen = null;
+      return true;
+    }
+    const gar = this.garageNear();
+    if (gar && (!best || Math.hypot(gar.x + 0.5 - b.x, gar.y + 0.5 - (b.y - 0.9)) < best.d)) {
+      this.garageOpen = gar;
+      this.emit({ t: 'garage' });
+      return true;
+    }
     const npc = this.npcNear();
     if (npc) {
       this.emit({ t: 'npctalk', kind: npc.kind });
@@ -2275,6 +2459,11 @@ export class Game {
       buffs: { ...this.buffs },
       records: this.save.records.map((r) => ({ ...r })),
       world: captureDiff(this.world, this.fog),
+      // While riding, the vehicle is saved parked where the player is.
+      garage: {
+        parts: { ...this.save.garage.parts },
+        parked: this.riding && this.save.gear.equip.vehicle && isVehicle(this.save.gear.equip.vehicle) ? { id: this.save.gear.equip.vehicle, x: this.body.x, y: this.body.y } : this.save.garage.parked ? { ...this.save.garage.parked } : null,
+      },
     };
   }
 
