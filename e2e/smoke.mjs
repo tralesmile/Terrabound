@@ -1133,6 +1133,22 @@ try {
     return { metal: game.stash.metal ?? 0, rust: game.stash.rust ?? 0 };
   });
   check('clicking TRADE swaps 8 rust for 1 metal', !!tradeBtn && tradeAfter.rust === tradeUi.rust - 8 && tradeAfter.metal === tradeUi.metal + 1, JSON.stringify({ tradeBtn: !!tradeBtn, tradeUi, tradeAfter }));
+  // Comfort pays: the furnished room is comfort 4, so Bolt posts the cozy fish -> crystal rate.
+  await page.evaluate(() => {
+    const { ui, game } = window.__terrabound;
+    game.stash.fish = (game.stash.fish ?? 0) + 2;
+    ui.shopScroll = 4;
+  });
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: path.join(out, '36c-cozy-trade.png') });
+  const cozyBtn = await page.evaluate(() => {
+    const { ui, game } = window.__terrabound;
+    return { btn: !!ui.rects.find((r) => r.a.k === 'trade' && r.a.id === 'cozy_crystal'), comfort: game.npcComfort('trader') };
+  });
+  check('a comfort-4 home posts the Trader\'s cozy rate', cozyBtn.btn && cozyBtn.comfort >= 3, JSON.stringify(cozyBtn));
+  await page.evaluate(() => {
+    window.__terrabound.ui.shopScroll = 0;
+  });
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
   // Patch the Medic moves into a second home upstairs (on the first room's roof) and sells medkits into the pack.

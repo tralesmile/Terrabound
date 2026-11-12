@@ -36,7 +36,7 @@ import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight, DAY_LENGTH } from './daynight';
 import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
 import { findRooms, mountOk, roomHint, type Room } from './rooms';
-import { NPC_INFO, deathKeep, doTrade, npcLine, roomFloor, stepNpc, syncNpcs, tradeById, type Npc, type NpcKind } from './npcs';
+import { NPC_INFO, deathKeep, doTrade, npcLine, roomFloor, stepNpc, syncNpcs, tradeById, tradeOpen, type Npc, type NpcKind } from './npcs';
 import { placement, removeTile } from './wide';
 import { blueprintDrop, RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
 import { applyDiff, captureDiff } from './persist';
@@ -2109,10 +2109,17 @@ export class Game {
     return this.npcs.some((n) => n.kind === kind);
   }
 
+  /** Comfort (0..4) of the room a robot lives in, 0 when it is not home. */
+  npcComfort(kind: NpcKind): number {
+    const n = this.npcs.find((k) => k.kind === kind);
+    if (!n) return 0;
+    return this.rooms.find((r) => r.y0 * this.world.w + r.x0 === n.home)?.comfort ?? 0;
+  }
+
   /** Swap with the Trader at a posted rate (base only, Trader must live here). Stash to stash. */
   trade(id: string): boolean {
     const t = tradeById(id);
-    if (!t || !this.canShop() || !this.hasNpc(t.npc) || !doTrade(this.stash, t, this.carried)) return false;
+    if (!t || !this.canShop() || !tradeOpen(t, this.hasNpc(t.npc), this.npcComfort(t.npc)) || !doTrade(this.stash, t, this.carried)) return false;
     this.emit({ t: 'trade', id });
     return true;
   }

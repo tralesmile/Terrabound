@@ -52,7 +52,12 @@ export interface Trade {
   get: Inventory;
   /** Goods go into the pack (field kit like medkits) instead of the stash. */
   toPack?: boolean;
+  /** Cozy rate: only posted while the robot's room has at least this comfort (rooms.ts). */
+  cozy?: number;
 }
+
+/** Comfort a robot's room needs before it posts its cozy rate. */
+export const COZY = 3;
 
 /** The Trader's posted rates. Fixed forever, so the player can plan; worse than a powered smelter. */
 export const TRADES: readonly Trade[] = [
@@ -63,13 +68,20 @@ export const TRADES: readonly Trade[] = [
   { id: 'glow_crystal', npc: 'trader', give: { glowfish: 1 }, get: { crystal: 2 } },
   { id: 'metal_circuit', npc: 'trader', give: { metal: 6 }, get: { circuit: 1 } },
   { id: 'crystal_plasma', npc: 'trader', give: { crystal: 5 }, get: { plasma: 1 } },
+  { id: 'cozy_crystal', npc: 'trader', give: { fish: 2 }, get: { crystal: 1 }, cozy: COZY },
   { id: 'med_fish', npc: 'medic', give: { biomass: 4, fish: 1 }, get: { medkit: 1 }, toPack: true },
   { id: 'med_crystal', npc: 'medic', give: { biomass: 3, crystal: 2 }, get: { medkit: 1 }, toPack: true },
+  { id: 'cozy_med', npc: 'medic', give: { biomass: 2, fish: 1 }, get: { medkit: 1 }, toPack: true, cozy: COZY },
 ];
 
 /** Share of each pack stack kept on death: half normally, three quarters while the Medic lives in the base. */
 export function deathKeep(n: number, medic: boolean): number {
   return medic ? Math.floor((n * 3) / 4) : Math.floor(n / 2);
+}
+
+/** Whether a posted rate works now: its robot lives here and, for cozy rates, its room is comfy enough. Pure. */
+export function tradeOpen(trade: Trade, home: boolean, comfort: number): boolean {
+  return home && comfort >= (trade.cozy ?? 0);
 }
 
 export function tradeById(id: string): Trade | undefined {

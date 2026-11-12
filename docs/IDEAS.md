@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-12 run 22
+
+- Done this run: windows (live sky by day, warm glow at night, +1 comfort), lift shafts, wall-mount rules, cozy trade rates (comfort pays).
+- Weakest gameplay feel: robots still pace silently; sit on the chair, sleep in the bed at night, wave when you land (backlog NPC line).
+- Weakest graphics: the tower's outer walls are one stone texture; a metal-frame trim on built blocks that border air would read as architecture (backlog window follow-ups).
+- Weakest controls: a lift needs jump held the whole way; tap-to-ride (one press carries you to the next floor) would feel like Core Keeper's minecarts.
+- Weakest UI: TRADE needs scrolling to find cozy rows on a phone; group rows per robot with a small portrait header.
+
 ## 2026-11-12 run 21
 
 - Done this run: 2-tile bed and long table with props, chairs, quick heal (H / HUD button).
@@ -15,12 +23,3 @@
 - Weakest gameplay feel: robots still only pace; reactions (wave, hide during raids, cheer after) - merged into the NPC backlog line.
 - Weakest progression: stacked homes upstairs are off the pad, so the base wants to grow up; a lift/elevator block would make multi-storey bases pleasant.
 - Weakest graphics: the base tower is one grey stone texture; per-material wall trims (metal frame vs. stone) would read as architecture.
-
-## 2026-11-12 run 19
-
-- Done this run: Bolt the Trader (rooms now pay off), room outline overlay.
-- Weakest UI: trade rows are plain text; draw item icons on both sides of the arrow (Core Keeper's merchant reads at a glance).
-- Weakest gameplay feel: robots only stand around; let them react (wave when you land, hide in bed during raids, cheer when a raid is cleared).
-- Progression: comfort should matter: comfort 3-4 gives the Trader one extra "cozy" rate (e.g. 2 fish -> 1 crystal).
-- Weakest graphics: interiors are flat back walls; window tiles that show the sky colour would make homes glow at night.
-

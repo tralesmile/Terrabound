@@ -80,3 +80,6 @@
 - **Loose pack items vanish in e2e when an earlier check left a hauler drone running** (fish got banked, so a quick-heal check looked like a double eat). Guard: e2e fixtures that need pack items use kit items (medkit), or remove drone bays first.
 - **Base HP regen (40/s on the pad) and repair drones hide heal amounts in e2e.** Guard: assert which item was consumed, not the exact HP.
 - **Multi-cell tiles need every removal path to clear the partner.** Mining and raid chewing go through `removeTile` (wide.ts); explosions skip non-solid tiles. Any new removal path must call it too.
+
+- **`Game` has no event subscription; tests read `g.drainEvents()`** after the steps (run 22 wrote `g.on(...)`). Also placing a tile in the player's own column is refused (`overlapsPlayer`), so placement tests stand the player off to the side.
+- **Light tests need a source bright enough to reach the probe** (AIR_COST 4, SOLID_COST 8 per tile; TORCH_LEVEL 40). A level-24 source 6 tiles away reads 0 either way and the comparison is meaningless.

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { World } from '../src/sim/world';
 import { ITEMS, ITEM_IDS, T } from '../src/sim/tiles';
 import { findRooms } from '../src/sim/rooms';
-import { NPC_INFO, NPC_ORDER, NPC_SPEED, TRADES, deathKeep, doTrade, npcLine, roomFloor, stepNpc, syncNpcs, tradeById, type Npc } from '../src/sim/npcs';
+import { COZY, NPC_INFO, NPC_ORDER, NPC_SPEED, TRADES, deathKeep, doTrade, npcLine, roomFloor, stepNpc, syncNpcs, tradeById, tradeOpen, type Npc } from '../src/sim/npcs';
 import { defaultSave } from '../src/sim/save';
 import { Game, NO_CONTROLS } from '../src/sim/game';
 import { FOOD } from '../src/sim/fishing';
@@ -296,5 +296,40 @@ describe('Patch the Medic', () => {
     expect(g.hintAutomation(false)).toContain('Patch the Medic');
     expect(g.hintAutomation(false)).toContain('medkits');
     expect(g.canShop()).toBe(true);
+  });
+});
+
+describe('cozy rates (comfort pays)', () => {
+  it('each robot posts one cozy rate that beats its plain one', () => {
+    const cozy = TRADES.filter((t) => t.cozy);
+    expect(cozy.map((t) => t.npc).sort()).toEqual(['medic', 'trader']);
+    expect(tradeById('cozy_crystal')?.give.fish).toBeLessThan(tradeById('fish_crystal')?.give.fish ?? 0);
+    expect(tradeOpen(tradeById('cozy_crystal')!, true, COZY - 1)).toBe(false);
+    expect(tradeOpen(tradeById('cozy_crystal')!, true, COZY)).toBe(true);
+    expect(tradeOpen(tradeById('cozy_crystal')!, false, 4)).toBe(false);
+    expect(tradeOpen(tradeById('rust_metal')!, true, 0)).toBe(true);
+  });
+
+  it('in the game: the cozy rate opens once the Trader\'s room reaches comfort 3', () => {
+    const g = new Game(defaultSave());
+    const w = g.world;
+    g.body.x = w.padX + 0.5;
+    g.body.y = w.padY;
+    home(w);
+    g.step(1 / 30, NO_CONTROLS);
+    expect(g.hasNpc('trader')).toBe(true);
+    g.stash.fish = 4;
+    expect(g.npcComfort('trader')).toBeLessThan(COZY);
+    expect(g.trade('cozy_crystal')).toBe(false);
+    // Decor: screen (hung on the side wall), plant and a window in the wall.
+    w.set(w.padX - 2, w.padY - 3, T.SCREEN);
+    w.set(w.padX - 1, w.padY - 1, T.POT_PLANT);
+    w.set(w.padX + 3, w.padY - 3, T.WINDOW);
+    g.step(1 / 30, NO_CONTROLS);
+    expect(g.npcComfort('trader')).toBeGreaterThanOrEqual(COZY);
+    const c0 = g.stash.crystal ?? 0;
+    expect(g.trade('cozy_crystal')).toBe(true);
+    expect(g.stash.fish).toBe(2);
+    expect(g.stash.crystal).toBe(c0 + 1);
   });
 });

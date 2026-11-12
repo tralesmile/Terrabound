@@ -14,7 +14,7 @@ import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type
 import { UPGRADES } from '../sim/upgrades';
 import { RECIPES } from '../sim/recipes';
 import { ACT_INFO, COND_INFO, RULE_MAX, ROLE_INFO } from '../sim/drones';
-import { NPC_INFO, TRADES } from '../sim/npcs';
+import { NPC_INFO, TRADES, tradeOpen } from '../sim/npcs';
 
 export type UiAction =
   | { k: 'start' }
@@ -830,9 +830,10 @@ export class UI {
     }
 
     for (const tr of this.shopTab === 'trade' ? TRADES.slice(this.shopScroll, this.shopScroll + vis) : []) {
-      const home = game.hasNpc(tr.npc);
+      const comfort = game.npcComfort(tr.npc);
+      const home = tradeOpen(tr, game.hasNpc(tr.npc), comfort);
       const afford = home && ITEM_IDS.every((k) => (game.stash[k] ?? 0) >= (tr.give[k] ?? 0));
-      ctx.fillStyle = tr.npc === 'medic' ? 'rgba(255,90,90,0.07)' : 'rgba(255,255,255,0.05)';
+      ctx.fillStyle = tr.cozy ? 'rgba(255,196,110,0.09)' : tr.npc === 'medic' ? 'rgba(255,90,90,0.07)' : 'rgba(255,255,255,0.05)';
       ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
       // Icons read at a glance: what you give (count), an arrow, what you get.
       const isz = rowH - u * 0.8;
@@ -853,7 +854,12 @@ export class UI {
       const info = NPC_INFO[tr.npc];
       this.text(ctx, `${costText(tr.give)}  ->  ${costText(tr.get)}`, tx2, ry + rowH * 0.3, Math.round(u * 0.8), '#fff', 'left', tw2);
       const have = tradeParts(tr.give).map(([k]) => `${game.stash[k] ?? 0} ${ITEMS[k].name.toLowerCase()}`).join(', ');
-      const sub = home ? `${info.name}${tr.toPack ? ' (into your pack)' : ''}: you have ${have}` : `No ${info.title.toLowerCase()} yet: furnish ${tr.npc === 'medic' ? 'a second' : 'a'} room (light, table, bed)`;
+      const cozy = tr.cozy ? 'Cozy rate. ' : '';
+      const sub = home
+        ? `${cozy}${info.name}${tr.toPack ? ' (into your pack)' : ''}: you have ${have}`
+        : !game.hasNpc(tr.npc)
+          ? `No ${info.title.toLowerCase()} yet: furnish ${tr.npc === 'medic' ? 'a second' : 'a'} room (light, table, bed)`
+          : `Cozy rate: ${info.name}'s room needs comfort ${tr.cozy}/4 (now ${comfort}): decor, back wall, window`;
       this.text(ctx, sub, tx2, ry + rowH * 0.68, Math.round(u * 0.64), afford ? '#9ff6a0' : '#ff8a8a', 'left', tw2);
       const bw = u * 5.5;
       this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, 'TRADE', { k: 'trade', id: tr.id }, u * 0.85, { enabled: afford });

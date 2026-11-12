@@ -396,3 +396,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** wall-mounted placement rules + lift block, then more robot NPCs (comfort pays, robots react), then wandering merchant drone.
 
 **Known issues:** upgrade BUY rows refuse while you shop upstairs off the pad; trade rows on a phone are tight; DAILY still replaces the world without a confirm; turrets draw 1 power even when idle; a chair has no flip (always faces right).
+
+## 2026-11-12 Scheduled run 22
+
+**Done:** baseline green (410 tests). Creative review: base interiors and the tower read as one flat grey slab (35c-medic). Window tile 55: solid glass that lets light through (`TileDef.clear`, lightmap), drawn per frame so the pane shows the live sky by day and glows warm amber at night like a lit home; a window in a room's wall adds +1 comfort (a view, `Room.view`). Backlog: wall-mounted rules (screen/banner need a back wall or a block above/beside, toast otherwise; `mountOk`), lift shaft tile 56 (climb tile, 3x ladder speed `LIFT_MUL`, hangs from the shaft below, closes rooms like a door, rails + drifting cyan chevrons). Comfort pays: each robot posts one cozy rate at comfort 3+ (Bolt 2 fish -> 1 crystal, Patch 2 biomass + 1 fish -> medkit), warm-tinted rows that say what the room needs. Screenshots 38-windows, 38b-lift, 38c-windows-night, 36c-cozy-trade reviewed.
+
+**Numbers:** 419 unit tests (new tests/windowlift.test.ts: 7, cozy: 2), e2e all green (new: window view keeps a valid comfort-4 home, lift ride > 4 tiles in 0.45 s, cozy row enabled), bundle 260 kB (89.4 kB gzip).
+
+**Next:** robots react / sit / sleep, Gunsmith and Scientist, then wandering merchant drone.
+
+**Known issues:** upgrade BUY rows refuse while you shop upstairs off the pad; trade rows on a phone are tight; DAILY still replaces the world without a confirm; turrets draw 1 power even when idle; a chair has no flip; windows underground do not bring in daylight; mounted screens stay up if their wall is later removed.

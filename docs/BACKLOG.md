@@ -96,12 +96,14 @@ Living base and drones
 - [x] Furniture and decoration set + room detection (run 18, src/sim/rooms.ts, tiles 46-51): light + table + bed in an enclosed 12-80 cell pocket = robot home; comfort 0-4 from decor kinds and back walls
 - [x] Room outline overlay (run 19): dashed outline of the room you stand in or point at, green home / amber incomplete (`roomEdges`)
 - [x] Furniture follow-ups (run 21, src/sim/wide.ts): 2-tile bed and table (tiles 52-53, one item, either half breaks both), chair (tile 54, comfort, capped 4)
-- [ ] Wall-mounted placement rules (screen/banner need a wall or back wall behind); lift/elevator block for multi-storey bases
+- [x] Wall-mounted placement rules + lift shaft (run 22): screens/banners need a back wall or a block above/beside (`mountOk`); lift shaft tile 56 rides 3x ladder speed, stacks from the shaft below, closes rooms; window tile 55 (glass, lets light through, shows the sky, warm at night, +1 comfort for a view)
+- [ ] Window follow-ups: windows let daylight into underground rooms (lightmap sky sources), per-material wall trims (metal frame vs stone)
 
 Characters
 - [x] Robot NPC slice 1 (run 19, src/sim/npcs.ts): Bolt the Trader moves into the first valid room (derived, no save change), paces, greets, E/tap opens the TRADE tab with 7 fixed barter rates from the stash
 - [x] Medic robot (run 20): Patch moves into the second valid room; medkit trades into the pack (+60 HP, eat from inventory); while home you keep 3/4 of the pack on death; robots never move house when a new room appears; trade rows show item icons
-- [ ] More robot NPCs: Gunsmith (weapon mods), Scientist (research tree); comfort-based happiness (cozier room = better rates or bonus); robots react (wave, hide in bed during raids, cheer)
+- [x] Comfort pays (run 22): each robot posts one cozy rate while its room has comfort 3+ (`COZY`, `tradeOpen`, `game.npcComfort`); locked rows say what the room needs
+- [ ] More robot NPCs: Gunsmith (weapon mods), Scientist (research tree); robots react (wave, hide in bed during raids, cheer), sit on chairs / sleep in beds at night
 - [x] Quick heal (run 21): H or the HUD heal button beside the bars eats the smallest healing item that covers the missing HP (`bestHeal`); pulses red under 35% HP
 - [ ] Wandering merchant drone with rotating, fully visible stock (seeded per day; no paid randomness)
 
