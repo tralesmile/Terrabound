@@ -363,6 +363,12 @@ function boot(): void {
       case 'codexpage':
         ui.codexPage(a.d);
         break;
+      case 'paint': {
+        const pt = game.cyclePaint();
+        ui.toast(pt ? `Suit paint: ${pt.name}` : 'Suit paint: default', pt ? pt.c1 : '#c9d0e4', 1.6);
+        saveNow();
+        break;
+      }
       case 'raids':
         game.setRaids(!game.raidsOn);
         ui.toast(game.raidsOn ? 'Night raids on: defend the base for rewards' : 'Night raids off', '#c9d0e4', 2);

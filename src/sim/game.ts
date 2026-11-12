@@ -1,3 +1,4 @@
+import { activePaint, nextPaint, type PaintDef } from './paints';
 import { codexRows, noteCodexEvent, type CodexRow } from './codex';
 import { currentGoal, FTUE_STEPS, goalIndex } from './ftue';
 import { checkAwards, countEvent, newAwards, noteMax, sanitizeAwards, type Awards, type Tier } from './achievements';
@@ -814,6 +815,17 @@ export class Game {
   /** The current guided goal with progress, or null once the chain is done. */
   get goal(): ReturnType<typeof currentGoal> {
     return currentGoal(this.save.awards);
+  }
+
+  /** Suit paint worn now (earned and chosen), or null for the default look. */
+  get paint(): PaintDef | null {
+    return activePaint(this.save.awards, this.save.paint);
+  }
+
+  /** Cycle the suit paint: default -> each earned paint -> default. Returns the new paint (or null). */
+  cyclePaint(): PaintDef | null {
+    this.save.paint = nextPaint(this.save.awards, this.paint?.id ?? null);
+    return this.paint;
   }
 
   /** Codex screen rows (places, creatures, logs) from what this save knows. */

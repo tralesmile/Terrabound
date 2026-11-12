@@ -593,6 +593,23 @@ try {
   check('LOGS tab shows read logs in full and missing ones as gaps', codex3.sec === 'logs' && codex3.shown >= 6 && codex3.log === true, JSON.stringify(codex3));
   await clickAct("r.a.k === 'codex' && r.a.open === false");
   check('< ITEMS leaves the codex', (await page.evaluate(() => window.__terrabound.ui.invPage)) === 'items');
+  // Suit paint: locked until a gold award; earning one lets PAINT cycle it on, the preview and the save follow.
+  const paintLocked = await page.evaluate(() => window.__terrabound.ui.rects.some((r) => r.a.k === 'paint'));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.awards.n.upgrades = 25;
+    g.awardCheck();
+  });
+  await page.waitForTimeout(150);
+  const painted = await clickAct("r.a.k === 'paint'");
+  const paint = await page.evaluate(() => {
+    const { game, ui } = window.__terrabound;
+    return { id: game.paint?.id ?? null, saved: game.toSave().paint, toast: ui.toasts.some((t) => t.text === 'Suit paint: Gilded') };
+  });
+  await page.screenshot({ path: path.join(out, '52-suit-paint.png') });
+  check('PAINT is locked until a gold award, then cycles the earned paint on (saved)', !paintLocked && painted && paint.id === 'gilded' && paint.saved === 'gilded' && paint.toast, JSON.stringify({ paintLocked, painted, paint }));
+  await clickAct("r.a.k === 'paint'");
+  check('PAINT cycles back to the default look', (await page.evaluate(() => window.__terrabound.game.paint)) === null);
   await page.keyboard.press('KeyI');
   check('I closes the inventory', !(await page.evaluate(() => window.__terrabound.ui.invOpen)));
   // Tools: mouse wheel cycles to the fishing rod; casting at a pond and clicking on the bite lands a catch.
@@ -2392,6 +2409,7 @@ try {
   await page.screenshot({ path: path.join(out, '51d-mobile-codex.png') });
   await page.evaluate(() => { window.__terrabound.ui.invPage = 'items'; });
   await page.waitForTimeout(200);
+  await page.screenshot({ path: path.join(out, '51e-mobile-inventory.png') });
   const mHead = await page.evaluate(() => {
     const { ui } = window.__terrabound;
     const hdr = ui.rects.filter((r) => (r.a.k === 'awards' || r.a.k === 'codex' || r.a.k === 'inv'));

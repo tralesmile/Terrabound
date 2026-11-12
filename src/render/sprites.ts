@@ -910,6 +910,8 @@ export interface PlayerPose {
   wear?: { head?: [string, string]; body?: [string, string]; feet?: [string, string] };
   /** Landing squash scale about the feet (1, 1 = none). */
   squash?: { sx: number; sy: number };
+  /** Earned suit paint (main, shade): vanity, drawn over the armour tier and crafted body armour. */
+  paint?: [string, string];
 }
 
 export interface PlayerGear {
@@ -976,6 +978,7 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, 
   if (wr?.head) [remap.h, remap.H] = wr.head;
   if (wr?.body) [remap.s, remap.S] = wr.body;
   if (wr?.feet) [remap.l, remap.L] = wr.feet;
+  if (pose.paint) [remap.s, remap.S] = pose.paint;
   drawRows(ctx, rows, ox, oy, s, flip, PLAYER_W, pose.hurt ? '#ffffff' : undefined, remap);
   // Held tool at the front hand (art col ~11, row ~10), drawn at 3/4 scale.
   if (pose.held && !pose.hurt && !pose.climbing) {

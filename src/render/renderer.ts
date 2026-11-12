@@ -465,8 +465,10 @@ export class Renderer {
       ctx.fillStyle = '#9aa3b8';
       ctx.fillRect(this.sx(game.hook.ax, shakeX) - scale * 1.5, this.sy(game.hook.ay, shakeY) - scale * 1.5, scale * 3, scale * 3);
     }
+    const paint = game.paint;
     drawPlayer(ctx, px, py, scale, {
       wear: { head: eq('head'), body: eq('body'), feet: eq('feet') },
+      paint: paint ? [paint.c1, paint.c2] : undefined,
       facing: game.facing,
       walking: Math.abs(b.vx) > 1,
       t: time,

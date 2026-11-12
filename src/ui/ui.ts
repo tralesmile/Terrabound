@@ -1,3 +1,4 @@
+import { PAINTS, unlockedPaints } from '../sim/paints';
 import { codexCounts, type CodexSection } from '../sim/codex';
 import { AWARDS, awardProgress } from '../sim/achievements';
 import { FTUE_STEPS } from '../sim/ftue';
@@ -72,6 +73,7 @@ export type UiAction =
   | { k: 'codex'; open: boolean }
   | { k: 'codexsec'; sec: CodexSection }
   | { k: 'codexpage'; d: number }
+  | { k: 'paint' }
   | { k: 'interact' }
   | { k: 'invsel'; id: ItemId }
   | { k: 'use'; id: ItemId }
@@ -834,14 +836,15 @@ export class UI {
     const narrow = pw < u * 30;
     // Character preview with gear.
     const cw = narrow ? pw - u * 2 : pw * 0.36;
-    const ch = narrow ? u * 9.5 : ph - u * 4.5;
+    // Phones: a little taller so the PAINT button fits under the gear lines, clear of the helmet.
+    const ch = narrow ? u * 11.6 : ph - u * 4.5;
     const cx = px + u;
     const cy = py + u * 3;
     ctx.fillStyle = 'rgba(20,26,40,0.9)';
     ctx.fillRect(cx, cy, cw, ch);
     const scale = Math.max(2, Math.floor(Math.min((ch * (narrow ? 0.9 : 0.55)) / 24, (cw * 0.45) / 16)));
     const fx = narrow ? cx + cw * 0.22 : cx + cw / 2;
-    const fy = narrow ? cy + ch - u * 0.6 : cy + 24 * scale + u * 1.2;
+    const fy = narrow ? cy + ch - u * 0.6 : cy + 24 * scale + u * 2.8;
     ctx.fillStyle = 'rgba(54,224,232,0.15)';
     ctx.beginPath();
     ctx.ellipse(fx, fy, 9 * scale, 2 * scale, 0, 0, Math.PI * 2);
@@ -850,7 +853,22 @@ export class UI {
       const id = game.equipped(slot);
       return id ? [GEAR[id].color, GEAR[id].accent] : undefined;
     };
-    drawPlayer(ctx, fx, fy, scale, { facing: 1, walking: false, t: time, airborne: false, tier: game.upgrades.armor ?? 0, gear: playerGear(game), held: game.tool, wear: { head: wearOf('head'), body: wearOf('body'), feet: wearOf('feet') } });
+    const paint = game.paint;
+    drawPlayer(ctx, fx, fy, scale, { facing: 1, walking: false, t: time, airborne: false, tier: game.upgrades.armor ?? 0, gear: playerGear(game), held: game.tool, wear: { head: wearOf('head'), body: wearOf('body'), feet: wearOf('feet') }, paint: paint ? [paint.c1, paint.c2] : undefined });
+    // Suit paint: earned from gold awards; the button cycles default -> each earned paint.
+    const earned = unlockedPaints(game.awards).length;
+    const pbw = narrow ? cw * 0.5 : Math.min(cw - u * 1.6, u * 11);
+    const pbx = narrow ? cx + cw * 0.45 : cx + (cw - pbw) / 2;
+    const pby = narrow ? cy + ch - u * 2.2 : cy + u * 0.5;
+    const plabel = earned === 0 ? `PAINT 0/${PAINTS.length}` : `PAINT: ${paint ? paint.name.toUpperCase() : 'DEFAULT'}`;
+    this.button(ctx, pbx, pby, pbw, u * 1.7, plabel, { k: 'paint' }, u * 0.62, { enabled: earned > 0, color: paint ? '#4a3a6a' : '#2a3550' });
+    if (paint) {
+      ctx.fillStyle = paint.c1;
+      ctx.fillRect(pbx + u * 0.35, pby + u * 0.45, u * 0.8, u * 0.8);
+      ctx.fillStyle = paint.c2;
+      ctx.fillRect(pbx + u * 0.35, pby + u * 1.05, u * 0.8, u * 0.2);
+    }
+    if (earned === 0 && !narrow) this.text(ctx, 'Earn gold awards to unlock paints', cx + cw / 2, pby + u * 2.4, Math.round(u * 0.55), '#6c7388', 'center', cw - u);
     const up = game.upgrades;
     const gearLines: [string, number][] = [
       ['Helmet lamp', up.lamp ?? 0],
@@ -871,11 +889,12 @@ export class UI {
     const rx = narrow ? px + u : cx + cw + u;
     const rw = narrow ? pw - u * 2 : pw - cw - u * 3;
     let ry = narrow ? cy + ch + u * 0.8 : cy;
-    this.text(ctx, 'TOOLS  (1-4, Q, mouse wheel)', rx, ry + u * 0.6, Math.round(u * 0.75), '#8a90a2', 'left', rw);
+    // Header names the held tool on the right (it used to sit in the 5th slot and overprint the hook).
+    this.text(ctx, `TOOLS  (1-${TOOL_SLOTS.length}, Q, wheel)`, rx, ry + u * 0.6, Math.round(u * 0.75), '#8a90a2', 'left', rw * 0.62);
+    this.text(ctx, TOOL_SLOTS.find((t) => t.tool === game.tool)?.label ?? '', rx + rw, ry + u * 0.6, Math.round(u * 0.75), '#36e0e8', 'right', rw * 0.36);
     ry += u * 1.2;
     const cs = Math.min(u * 3.4, (rw - u * 1.5) / 6);
     TOOL_SLOTS.forEach((t, i) => this.cell(ctx, rx + i * (cs + u * 0.4), ry, cs, t.tool, null, game.tool === t.tool, { k: 'settool', t: t.tool }));
-    this.text(ctx, TOOL_SLOTS.find((t) => t.tool === game.tool)?.label ?? '', rx + 4 * (cs + u * 0.4) + u * 0.3, ry + cs * 0.6, Math.round(u * 0.8), '#36e0e8', 'left', rw - 4 * (cs + u * 0.4));
     ry += cs + u * 1.2;
     const total = invTotal(game.carried);
     this.text(ctx, `PACK  ${total}/${game.derived.packCap}`, rx, ry, Math.round(u * 0.8), total >= game.derived.packCap ? '#ff9a3c' : '#8a90a2');

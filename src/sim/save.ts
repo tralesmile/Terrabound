@@ -1,3 +1,4 @@
+import { sanitizePaint } from './paints';
 import { cleanPrefs, DEFAULT_PREFS, type Prefs } from './settings';
 import { cleanKeys, DEFAULT_KEYS, type KeyMap } from './keys';
 import { ITEM_IDS, type Inventory } from './tiles';
@@ -15,7 +16,7 @@ import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 24;
+export const SAVE_VERSION = 25;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -64,6 +65,8 @@ export interface SaveData {
   awards: Awards;
   /** v24: vehicle parts and the parked vehicle (garage.ts); older saves park an owned vehicle beside the pad. */
   garage: GarageSave;
+  /** v25: chosen suit paint id (paints.ts), null = default look; v24 saves load with null. */
+  paint: string | null;
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -92,6 +95,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     records: [],
     awards: { n: {}, done: [] },
     garage: defaultGarage(),
+    paint: null,
   };
 }
 
@@ -184,6 +188,8 @@ export function parseSave(raw: string | null | undefined): SaveData {
     awards: r.awards !== undefined ? sanitizeAwards(r.awards) : legacyAwards(r),
     // v23 -> v24: no garage yet; an owned vehicle is parked beside the pad.
     garage: sanitizeGarage(r.garage, sanitizeGear(r.gear).owned, r.garage === undefined),
+    // v24 -> v25: no paint chosen (default look); unknown ids drop to null.
+    paint: sanitizePaint(r.paint),
   };
 }
 
