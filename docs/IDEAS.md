@@ -1,5 +1,14 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-12 run 26
+
+- Done this run: hurt vignette + recoil + damage numbers, robot happiness with hearts and discounts, farming (3 crops, sprinklers), cooking pot and meal buffs.
+- Weakest gameplay feel: crops are static tiles; a gentle sway on ripe crops and a mist arc from sprinklers (renderer-only, cosmetic random) would make the farm feel alive.
+- Weakest progression: crops do not tie into the robots yet; happy robots watering crops, and the Medic turning produce into better medkits, would connect farming to the town.
+- Weakest graphics: surface dirt is one flat noise texture; darker strata bands and occasional buried bones/pipes in the top 10 rows would add depth for free.
+- Weakest UI: toasts stack three long lines over the play area; shorter toasts with an icon, and the plant timer shown on aim instead of in a toast.
+- Weakest controls: seeds go one per right click; hold right click to sow a row (Stardew style) would make planting a field quick.
+
 ## 2026-11-12 run 25
 
 - Done this run: hit squash and stretch on enemies, wide base strip, Nova the Scientist + research tree, TRADE grouped per robot.
@@ -26,11 +35,3 @@
 - Weakest controls: lifts still need jump held; tap-to-ride to the next floor (carried over from run 22).
 - Weakest UI: TRADE is now 14 rows; group by robot with a portrait header and collapse locked rows (carried over, now more urgent).
 - New: a light-pipe block (carries daylight down a shaft) to make underground rooms bright; robots sometimes eat at the table at noon.
-
-## 2026-11-12 run 22
-
-- Done this run: windows (live sky by day, warm glow at night, +1 comfort), lift shafts, wall-mount rules, cozy trade rates (comfort pays).
-- Weakest gameplay feel: robots still pace silently; sit on the chair, sleep in the bed at night, wave when you land (backlog NPC line).
-- Weakest graphics: the tower's outer walls are one stone texture; a metal-frame trim on built blocks that border air would read as architecture (backlog window follow-ups).
-- Weakest controls: a lift needs jump held the whole way; tap-to-ride (one press carries you to the next floor) would feel like Core Keeper's minecarts.
-- Weakest UI: TRADE needs scrolling to find cozy rows on a phone; group rows per robot with a small portrait header.

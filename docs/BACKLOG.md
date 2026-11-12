@@ -107,14 +107,15 @@ Characters
 - [x] Gunsmith (run 24, src/sim/mods.ts): Rook moves into the third valid room and builds 7 mod chips (overcharge, hair trigger, piercer, ricochet, keen edge, leech, quick grip); one per weapon slot, owned forever, free swap at the base; save v15
 - [x] Scientist (run 25, src/sim/research.ts): Nova moves into the fourth valid room and studies 7 permanent perks (battery, dig, pack, lamp, HP, speed) at fixed prices, some gated by an earlier perk; save v16 `research`
 - [x] TRADE tab grouping (run 25): one header per robot with its sprite portrait; robots not moved in fold to their header (`tradeEntries`)
-- [ ] Robot happiness: comfort and neighbours change a robot's mood line and give a small discount at high comfort (visible, never a penalty below today's prices)
+- [x] Robot happiness (run 26): mood lonely/content/happy/delighted from comfort + up to 2 neighbours; happy -1, delighted -2 off the biggest stack of trades, chips and perks (never above posted); mood lines, TRADE header mood, "was" prices, floating hearts
 - [x] Quick heal (run 21): H or the HUD heal button beside the bars eats the smallest healing item that covers the missing HP (`bestHeal`); pulses red under 35% HP
 - [x] Wandering merchant drone (run 23, src/sim/merchant.ts): Dex parks over the pad sunrise to mid-afternoon, 3 offers/day from a 10-offer pool by seed+day, shown in full even while away; no-loop test over all rates
 
 World
 - [x] Weather and events (src/sim/weather.ts): seeded per in-game day; dust storms (haze), meteor showers (craters, crystal and plasma drops), eclipses (dark noon, surface spawns, 1.5x enemy health, bonus crystals)
 - [x] Pets (gear slot "pet"): scout bot (7-tile loot magnet), glow moth (+4 light), spark pup (zaps enemies); they follow the player
-- [ ] Farming: crops on soil (3-4 kinds), watering, harvest; cooking pot recipes; food buffs with timers
+- [x] Farming slice 1 (run 26, src/sim/farming.ts): glowcorn / rustroot / frostberry seeds from wild grass by biome, 2 growth stages on soil, 2x near a pond or sprinkler, ripe gives produce + seeds; cooking pot + 3 meals with 3-minute buffs (Charged, Sturdy, Swift)
+- [ ] Farming follow-ups: happy robots water crops in the base; sprinkler spray fx; save buffs across reload; crops kept with the base across worlds; a seed offer in the merchant pool; offline crop growth
 
 Together
 - [ ] Daily world leaderboard (local first, then free-tier backend behind the Leaderboard interface): deepest, most loot, fastest boss

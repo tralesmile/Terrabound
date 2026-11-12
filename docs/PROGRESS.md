@@ -437,3 +437,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** farming (crops, watering, cooking, food buffs); robot happiness (mood lines, small comfort discount); P1.6/P1.7 follow-ups.
 
 **Known issues:** upgrade BUY rows refuse while you shop upstairs off the pad; DAILY still replaces the world without a confirm; turrets draw 1 power even when idle; mounted screens stay up if their wall is removed; the merchant hovers inside whatever is built over the right end of the pad; piercer chip does nothing extra on the rail rifle; research rows only show while the Scientist is home (folded header says what to build).
+
+## 2026-11-12 Scheduled run 26
+
+**Done:** baseline green (469 tests). Creative review: damage had no weight (only a blink) and robots had nothing to feel. Hurt feedback: red screen-edge vignette scaled by damage, suit recoil squash, red damage number, slow red heartbeat under 30% HP (`hurtVignette`, 37b-hurt). Backlog: robot happiness (mood from comfort + neighbours; happy/delighted knock 1/2 off the biggest stack of trades, chips and perks, never above posted; mood lines; TRADE header shows mood; "was" prices; pink/gold/grey hearts float over awake robots; 36-trade, 36i-happy-heart). Farming slice 1: three crops (glowcorn, rustroot, frostberry) with kit seeds found in wild grass by biome, 2 stages of 60 s, 2x near a pond or sprinkler (new recipe), ripe gives 2-3 produce + 1-2 seeds; stage timers saved in the sapling diff (no save shape change). Cooking pot unlocks 3 meals with 3-minute buffs (Charged, Sturdy, Swift), HUD buff chips (41-farm, 41b-harvest, 41c-meal-buff).
+
+**Numbers:** 494 unit tests (new: hurtfx 5, mood 8, farming 12), e2e all green (new: hurt vignette on/off, happy Trader trades at 7 rust, heart floats, right-click plants, drill harvests, pot unlocks chowder + buff), bundle 297 kB (101.9 kB gzip).
+
+**Next:** farming follow-ups (robots water crops, sprinkler spray, crops kept with the base), P1.8 Together/Polish items (leaderboard, settings screen), P1.6 follow-ups.
+
+**Known issues:** meal buffs end on reload; crops planted in the base are lost when the world resets on death (base tiles are kept, crops are not); the e2e farm uses raw tile ids (57-67); upgrade BUY rows refuse while you shop upstairs off the pad; DAILY still replaces the world without a confirm; turrets draw 1 power even when idle; the merchant hovers inside whatever is built over the right end of the pad.
