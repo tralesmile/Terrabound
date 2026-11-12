@@ -191,6 +191,10 @@ export class Sfx {
         // Two-tone siren.
         [0, 0.35, 0.7].forEach((d) => this.tone(520, 0.3, 'square', 0.07, 780, d));
         break;
+      case 'raidwarn':
+        // A low two-note horn: something is coming.
+        [0, 0.45].forEach((d, i) => this.tone(i ? 196 : 247, 0.4, 'sawtooth', 0.05, undefined, d));
+        break;
       case 'raidclear':
         [523, 659, 784, 1046].forEach((f, i) => this.tone(f, 0.18, 'triangle', 0.1, undefined, i * 0.09));
         break;

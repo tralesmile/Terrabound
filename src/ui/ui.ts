@@ -254,9 +254,34 @@ export class UI {
       const left = game.raid.ids.length + game.raid.plan.length - game.raid.next;
       this.text(ctx, `RAID: ${left} RAIDER${left === 1 ? '' : 'S'} LEFT`, w / 2, u * 4.6, Math.round(u * 0.85), Math.floor(time * 2) % 2 ? '#ff5a5a' : '#ff9a7a', 'center');
     }
+    else if (game.raidWarn) this.drawRaidWarn(ctx, game, w, h, u, time);
     else if (game.weather !== 'clear') this.text(ctx, WEATHER[game.weather].name.toUpperCase(), w / 2, u * 4.6, Math.round(u * 0.8), game.weather === 'eclipse' ? '#ff5aff' : '#ffcf4a', 'center');
     if (game.chestOpen) this.drawChest(ctx, game, w, h, u);
     if (this.dronesOpen) this.drawDrones(ctx, game, w, h, u);
+  }
+
+  /** Raid warning: a countdown under the HUD and a pulsing arrow on the screen edge the wave comes from. */
+  private drawRaidWarn(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, time: number): void {
+    const rw = game.raidWarn;
+    if (!rw) return;
+    const secs = Math.max(0, Math.ceil(rw.at - game.time));
+    const from = rw.side < 0 ? 'WEST' : 'EAST';
+    const hot = Math.floor(time * 3) % 2 === 0;
+    this.text(ctx, `RAID IN ${secs}s: ${rw.n} FROM THE ${from}`, w / 2, u * 4.6, Math.round(u * 0.85), hot ? '#ff9a3c' : '#ffcf4a', 'center');
+    const ax = rw.side < 0 ? u * 1.2 : w - u * 1.2;
+    const ay = h * 0.5;
+    const k = u * (1.1 + 0.25 * Math.sin(time * 8));
+    const d = rw.side < 0 ? -1 : 1;
+    ctx.fillStyle = hot ? 'rgba(255,90,60,0.9)' : 'rgba(255,154,60,0.75)';
+    for (let i = 0; i < 2; i++) {
+      const ox = ax - d * i * k * 0.9;
+      ctx.beginPath();
+      ctx.moveTo(ox + d * k * 0.6, ay);
+      ctx.lineTo(ox - d * k * 0.4, ay - k);
+      ctx.lineTo(ox - d * k * 0.4, ay + k);
+      ctx.closePath();
+      ctx.fill();
+    }
   }
 
   /** Drone panel: one bay at a time; role button, then up to RULE_MAX "IF x THEN y" rows (tap to cycle). */

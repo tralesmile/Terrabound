@@ -490,6 +490,9 @@ function boot(): void {
       case 'raidstart':
         ui.toast(`RAID! ${e.n} raiders from the ${e.side < 0 ? 'west' : 'east'}: defend the base`, '#ff5a5a', 4);
         break;
+      case 'raidwarn':
+        ui.toast(`Raid at nightfall: ${e.n} raiders from the ${e.side < 0 ? 'west' : 'east'} in ${e.secs} s`, '#ff9a3c', 4);
+        break;
       case 'raidchew':
         fx.burst(e.x + 0.5, e.y + 0.5, TILE_COLORS[e.tile] ?? '#888', 8, 4);
         ui.toast('A raider knocked a block loose', '#ff9a3c', 1.5);

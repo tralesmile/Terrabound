@@ -20,6 +20,9 @@ export const RAID_GAP = 1.6;
 export const RAID_ENTRY = 16;
 /** Seconds of chewing to knock a base block loose. */
 export const CHEW_TIME = 2.2;
+/** Seconds of warning before nightfall when a raid is coming. */
+export const RAID_WARN = 20;
+
 /** Raiders go for the player instead of the base when within this many tiles. */
 export const RAID_AGGRO = 6;
 
@@ -73,6 +76,11 @@ export function raidPlan(seed: number, day: number, n: number): RaidSpawn[] {
     out.push({ kind, side: r < 0.5 ? -1 : 1, at: i * RAID_GAP });
   }
   return out;
+}
+
+/** True on the step where nightfall comes into the warning window (time -> time + dt crosses it). Pure. */
+export function warnDue(isNight: (t: number) => boolean, time: number, dt: number): boolean {
+  return !isNight(time) && isNight(time + RAID_WARN) && !isNight(time - dt + RAID_WARN);
 }
 
 /** Bonus banked for clearing a wave of n raiders. Pure. */

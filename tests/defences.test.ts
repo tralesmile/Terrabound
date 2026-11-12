@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { World } from '../src/sim/world';
 import { T, TILES, ITEMS, PLACEABLE } from '../src/sim/tiles';
 import { makeEnemy } from '../src/sim/enemies';
-import { CHEW_TIME, baseValue, chewTarget } from '../src/sim/raids';
+import { CHEW_TIME, RAID_WARN, baseValue, chewTarget, warnDue } from '../src/sim/raids';
+import { RULE_CONDS, actingRole, condTrue } from '../src/sim/drones';
 import {
   REINFORCED_MULT, TURRET_CD, TURRET_DRAW, TURRET_RANGE, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, turretTarget,
 } from '../src/sim/defences';
@@ -160,4 +161,64 @@ describe('raid defences in the game', () => {
     expect(ev.some((e) => e.t === 'turretshot')).toBe(true);
     expect(killed).toBeGreaterThan(0);
   }, 30000);
+});
+
+describe('raid warning and the raid rule fact', () => {
+  it('warnDue fires exactly once as nightfall enters the warning window', () => {
+    let t = 0;
+    while (!isNight(t)) t += 1;
+    const night = t;
+    let fires = 0;
+    for (let x = night - 60; x < night; x += 1 / 30) if (warnDue(isNight, x, 1 / 30)) fires++;
+    expect(fires).toBe(1);
+  });
+
+  it('the game warns RAID_WARN s ahead with the side the wave will use, then the wave comes from there', () => {
+    const s = defaultSave();
+    s.settings.raids = true;
+    const g = new Game(s);
+    const w = g.world;
+    w.set(w.padX + 3, w.padY - 1, T.SOLAR);
+    w.set(w.padX + 4, w.padY - 1, T.SMELTER);
+    let t = g.time;
+    while (isNight(t)) t += 1;
+    while (!isNight(t)) t += 1;
+    g.time = t - RAID_WARN - 1;
+    g.body.x = w.padX + 0.5;
+    g.body.y = w.padY;
+    g.drainEvents();
+    const ev = [];
+    for (let i = 0; i < 30 * (RAID_WARN + 3); i++) {
+      g.step(1 / 30, NO_CONTROLS);
+      ev.push(...g.drainEvents());
+      if (g.raid) break;
+    }
+    const warn = ev.find((e) => e.t === 'raidwarn');
+    const start = ev.find((e) => e.t === 'raidstart');
+    expect(warn).toBeDefined();
+    expect(start).toBeDefined();
+    if (warn?.t === 'raidwarn' && start?.t === 'raidstart') {
+      expect(warn.side).toBe(start.side);
+      expect(warn.n).toBe(start.n);
+    }
+    expect(ev.findIndex((e) => e.t === 'raidwarn')).toBeLessThan(ev.findIndex((e) => e.t === 'raidstart'));
+    expect(g.raidWarn).toBeNull();
+    expect(g.ruleFacts().raid).toBe(true);
+  }, 30000);
+
+  it('no warning when raids are off or the base is bare', () => {
+    const g = new Game(defaultSave());
+    g.body.x = g.world.padX + 0.5;
+    expect(g.warnRaid()).toBe(false);
+    g.setRaids(false);
+    expect(g.warnRaid()).toBe(false);
+  });
+
+  it('drone rules can react to a raid', () => {
+    const f = { night: false, enemy: false, packHalf: false, hpLow: false, deep: false };
+    expect(RULE_CONDS).toContain('raid');
+    expect(condTrue('raid', f)).toBe(false);
+    expect(condTrue('raid', { ...f, raid: true })).toBe(true);
+    expect(actingRole('miner', [{ when: 'raid', then: 'guard' }], { ...f, raid: true })).toBe('guard');
+  });
 });

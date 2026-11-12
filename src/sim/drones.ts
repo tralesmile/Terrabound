@@ -27,14 +27,14 @@ export const ROLE_INFO: Record<DroneRole, { name: string; color: string; desc: s
  * Drone rules (slice 2): up to RULE_MAX "IF condition THEN action" lines per bay, checked top to
  * bottom; the first true one decides what the drone does right now, otherwise it does its role.
  */
-export type RuleCond = 'night' | 'enemy' | 'pack_half' | 'hp_low' | 'deep';
+export type RuleCond = 'night' | 'enemy' | 'pack_half' | 'hp_low' | 'deep' | 'raid';
 export type RuleAct = 'miner' | 'guard' | 'hauler' | 'repair' | 'home';
 export interface DroneRule {
   when: RuleCond;
   then: RuleAct;
 }
 export const RULE_MAX = 3;
-export const RULE_CONDS: readonly RuleCond[] = ['night', 'enemy', 'pack_half', 'hp_low', 'deep'];
+export const RULE_CONDS: readonly RuleCond[] = ['night', 'enemy', 'pack_half', 'hp_low', 'deep', 'raid'];
 export const RULE_ACTS: readonly RuleAct[] = ['guard', 'repair', 'hauler', 'miner', 'home'];
 export const COND_INFO: Record<RuleCond, string> = {
   night: 'it is night',
@@ -42,6 +42,7 @@ export const COND_INFO: Record<RuleCond, string> = {
   pack_half: 'pack half full',
   hp_low: 'my health < 40%',
   deep: 'deeper than 60 m',
+  raid: 'a raid is on',
 };
 export const ACT_INFO: Record<RuleAct, { name: string; color: string }> = {
   miner: { name: 'mine', color: '#ffb03a' },
@@ -71,6 +72,8 @@ export interface RuleFacts {
   packHalf: boolean;
   hpLow: boolean;
   deep: boolean;
+  /** A night raid is under way (raids.ts). */
+  raid?: boolean;
 }
 
 export function condTrue(c: RuleCond, f: RuleFacts): boolean {
@@ -85,6 +88,8 @@ export function condTrue(c: RuleCond, f: RuleFacts): boolean {
       return f.hpLow;
     case 'deep':
       return f.deep;
+    case 'raid':
+      return f.raid === true;
   }
 }
 

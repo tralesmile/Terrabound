@@ -1031,6 +1031,35 @@ try {
     g.drops.length = 0;
   });
 
+  // Raid warning: 20 s before nightfall at a raid-worthy base, a countdown and an edge arrow; the map shows the entry.
+  const warnSetup = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    g.body.x = w.padX + 0.5;
+    g.body.y = w.padY;
+    g.body.vx = g.body.vy = 0;
+    w.set(w.padX + 3, w.padY - 1, 27);
+    w.set(w.padX + 4, w.padY - 1, 28);
+    return { ok: g.warnRaid() };
+  });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: path.join(out, '34d-raid-warning.png') });
+  await page.keyboard.press('KeyM');
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: path.join(out, '34e-raid-map.png') });
+  await page.keyboard.press('KeyM');
+  await page.waitForTimeout(150);
+  const warnState = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const rw = g.raidWarn;
+    const w = g.world;
+    g.raidWarn = null;
+    w.set(w.padX + 3, w.padY - 1, 0);
+    w.set(w.padX + 4, w.padY - 1, 0);
+    return rw;
+  });
+  check('a raid warning names the side and count before nightfall', warnSetup.ok && !!warnState && (warnState.side === 1 || warnState.side === -1) && warnState.n > 0, JSON.stringify({ warnSetup, warnState }));
+
   // Share card: SHARE on the map downloads a PNG in a headless browser (no Web Share there).
   await page.keyboard.press('KeyM');
   await page.waitForTimeout(200);

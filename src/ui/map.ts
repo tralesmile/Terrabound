@@ -4,6 +4,8 @@
  */
 import type { Game } from '../sim/game';
 import { CELL } from '../sim/explore';
+import { BASE_HALF } from '../sim/base';
+import { RAID_ENTRY } from '../sim/raids';
 import { BIOMES, type BiomeId } from '../sim/biomes';
 import { T, TILES } from '../sim/tiles';
 import { TILE_COLORS } from '../render/sprites';
@@ -185,6 +187,23 @@ export class MapView {
           ctx.fillText(known ? BIOMES[world.biome[start] as BiomeId].name : '???', Math.min(x + w - u * 4, Math.max(x + u * 9, toX((start + bx) / 2))), y + u * 1.1);
         }
         start = bx;
+      }
+    }
+    // Raid preview: red chevrons where tonight's (or the current) wave enters.
+    const rs = game.raid ? [...new Set(game.raid.plan.map((p) => p.side))] : game.raidWarn ? [game.raidWarn.side] : [];
+    for (const side of rs) {
+      const ex = Math.max(2, Math.min(world.w - 3, world.padX + side * (BASE_HALF + RAID_ENTRY)));
+      const ey = toY(world.surface[ex] - 2);
+      const k = Math.max(4, u * 0.5);
+      ctx.fillStyle = Math.floor(time * 4) % 2 ? '#ff4a3a' : '#ff9a3c';
+      for (let i = 0; i < 2; i++) {
+        const cx = toX(ex + 0.5) + side * i * k * 1.1;
+        ctx.beginPath();
+        ctx.moveTo(cx - side * k, ey);
+        ctx.lineTo(cx + side * k * 0.2, ey - k);
+        ctx.lineTo(cx + side * k * 0.2, ey + k);
+        ctx.closePath();
+        ctx.fill();
       }
     }
     // Pad and player.

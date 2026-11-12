@@ -35,7 +35,7 @@ import { DRONE_ROLES, ENEMY_NEAR, HP_LOW, DEEP_AT, RULE_MAX, ROLE_INFO, sanitize
 import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight, DAY_LENGTH } from './daynight';
 import { SPIKE_DMG, SPIKE_TICK, TURRET_DMG, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
-import { RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
+import { RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
 import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
@@ -91,6 +91,7 @@ export type GameEvent =
   | { t: 'raidchew'; x: number; y: number; tile: number }
   | { t: 'raidclear'; n: number; reward: Inventory }
   | { t: 'raidend' }
+  | { t: 'raidwarn'; n: number; side: number; secs: number }
   | { t: 'turretshot'; x: number; y: number; tx: number; ty: number }
   | { t: 'spikehit'; x: number; y: number }
   | { t: 'lore'; text: string }
@@ -229,6 +230,8 @@ export class Game {
   private wasNight = false;
   /** Tonight's base raid, if one is under way (raids.ts). */
   raid: Raid | null = null;
+  /** Tonight's raid is coming: which side, how many, and the game time it should start (HUD countdown, map arrow). */
+  raidWarn: { side: number; n: number; at: number } | null = null;
   private gearCache: GearStats | null = null;
   /** The pet's position (render) and zap cooldown. */
   pet = { x: 0, y: 0, cd: 0 };
@@ -718,8 +721,10 @@ export class Game {
     this.stepPet(dt);
     const b = this.body;
     const night = isNight(this.time);
+    if (warnDue(isNight, this.time, dt)) this.warnRaid();
     if (night !== this.wasNight) {
       this.wasNight = night;
+      this.raidWarn = null;
       this.emit({ t: night ? 'nightfall' : 'dawn' });
       if (night) this.startRaid();
       else this.endRaid();
@@ -847,7 +852,7 @@ export class Game {
   }
 
   /** What drone rule conditions see this frame. */
-  ruleFacts(): { night: boolean; enemy: boolean; packHalf: boolean; hpLow: boolean; deep: boolean } {
+  ruleFacts(): { night: boolean; enemy: boolean; packHalf: boolean; hpLow: boolean; deep: boolean; raid: boolean } {
     const b = this.body;
     let haul = 0;
     for (const k in this.carried) if (!ITEMS[k as ItemId].kit) haul += this.carried[k as ItemId] ?? 0;
@@ -857,6 +862,7 @@ export class Game {
       packHalf: haul * 2 >= this.derived.packCap,
       hpLow: this.hp < this.derived.maxHp * HP_LOW,
       deep: this.depth >= DEEP_AT,
+      raid: this.raid !== null,
     };
   }
 
@@ -1462,12 +1468,29 @@ export class Game {
     }
   }
 
+  /** Raid size tonight if night fell now (0 = no raid): raids on, no boss, home on the surface, base worth it. */
+  raidWouldStart(): number {
+    if (!this.save.settings.raids || this.raid || this.boss || this.depth >= 8) return 0;
+    if (Math.abs(this.body.x - this.world.padX) > NIGHT_SAFE) return 0;
+    return raidSize(baseValue(this.world), this.save.stats.raids);
+  }
+
+  /** RAID_WARN seconds before nightfall: tell the player tonight's wave and its side so they can prepare. */
+  warnRaid(): boolean {
+    const n = this.raidWouldStart();
+    if (n === 0) return false;
+    const at = this.time + RAID_WARN;
+    const side = raidPlan(this.world.seed, Math.floor(at / DAY_LENGTH), 1)[0].side;
+    this.raidWarn = { side, n, at };
+    this.emit({ t: 'raidwarn', n, side, secs: RAID_WARN });
+    return true;
+  }
+
   /** Nightfall: start a raid when raids are on, the player is home on the surface and the base is worth it. */
   startRaid(): boolean {
-    if (!this.save.settings.raids || this.raid || this.boss || this.depth >= 8) return false;
-    if (Math.abs(this.body.x - this.world.padX) > NIGHT_SAFE) return false;
-    const n = raidSize(baseValue(this.world), this.save.stats.raids);
+    const n = this.raidWouldStart();
     if (n === 0) return false;
+    this.raidWarn = null;
     const plan = raidPlan(this.world.seed, Math.floor(this.time / DAY_LENGTH), n);
     this.raid = { plan, t: 0, next: 0, ids: [], total: n };
     this.emit({ t: 'raidstart', n, side: plan[0].side });
