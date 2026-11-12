@@ -1,4 +1,6 @@
 import type { Game } from '../sim/game';
+import { NPC_INFO } from '../sim/npcs';
+import { roomEdges } from '../sim/rooms';
 import { FURNITURE_ART, screenLines } from './furniture';
 import { REACH } from '../sim/game';
 import { onLadder } from '../sim/physics';
@@ -18,7 +20,7 @@ import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
-import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, traderRows, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 
 /** Chunk size in tiles for the render cache. */
@@ -165,6 +167,7 @@ export class Renderer {
       ctx.lineWidth = Math.max(1, scale / 2);
       ctx.strokeRect(this.sx(aim.tx, shakeX) + 0.5, this.sy(aim.ty, shakeY) + 0.5, ts - 1, ts - 1);
     }
+    this.drawRoomOutline(ctx, game, aim, shakeX, shakeY, time);
     if (game.mining) {
       const m = game.mining;
       const dx = this.sx(m.tx, shakeX);
@@ -331,6 +334,7 @@ export class Renderer {
       }
     }
     this.drawFieldDrones(ctx, game, shakeX, shakeY, time);
+    this.drawNpcs(ctx, game, shakeX, shakeY, time);
     // Back gear and vehicles behind / under the player.
     const veh = game.vehicle;
     const eq = (slot: 'head' | 'body' | 'feet' | 'back'): [string, string] | undefined => {
@@ -833,6 +837,66 @@ export class Renderer {
   }
 
   /** Field drones: a dark hull with a role-coloured eye, spinning rotor, drill beam or cargo pod. */
+  /**
+   * Outline of the room you stand in or point at (base only): green when it is a robot home,
+   * amber while it still needs something. Brighter when the cursor is inside it.
+   */
+  private drawRoomOutline(ctx: CanvasRenderingContext2D, game: Game, aim: Aim | null, shakeX: number, shakeY: number, time: number): void {
+    if (!game.isAtBase() && Math.abs(game.body.x - game.world.padX) > 20) return;
+    const aimed = aim ? game.roomAtTile(aim.tx, aim.ty) : null;
+    const room = aimed ?? game.roomHere();
+    if (!room) return;
+    const ts = TS * this.scale;
+    const e = roomEdges(room, game.world.w);
+    const a = (aimed ? 0.65 : 0.42) + 0.15 * Math.sin(time * 3);
+    ctx.strokeStyle = room.valid ? `rgba(125,255,176,${a.toFixed(3)})` : `rgba(255,176,58,${a.toFixed(3)})`;
+    ctx.lineWidth = Math.max(1, this.scale * 0.75);
+    ctx.setLineDash([ts / 4, ts / 6]);
+    ctx.lineDashOffset = -time * ts * 0.5;
+    ctx.beginPath();
+    for (const [x, y] of e.h) {
+      ctx.moveTo(this.sx(x, shakeX), this.sy(y, shakeY));
+      ctx.lineTo(this.sx(x + 1, shakeX), this.sy(y, shakeY));
+    }
+    for (const [x, y] of e.v) {
+      ctx.moveTo(this.sx(x, shakeX), this.sy(y, shakeY));
+      ctx.lineTo(this.sx(x, shakeX), this.sy(y + 1, shakeY));
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
+    // A faint wash inside, so the room's shape reads even with busy walls.
+    ctx.fillStyle = room.valid ? 'rgba(125,255,176,0.05)' : 'rgba(255,176,58,0.06)';
+    for (const i of room.cells) ctx.fillRect(this.sx(i % game.world.w, shakeX), this.sy(Math.floor(i / game.world.w), shakeY), ts, ts);
+  }
+
+  /** Robot NPCs in their rooms: pixel sprite, a soft glow under the antenna, a name tag when you are close. */
+  private drawNpcs(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
+    const near = game.npcNear();
+    const s = this.scale;
+    for (const n of game.npcs) {
+      const x = this.sx(n.x, shakeX);
+      const y = this.sy(n.y, shakeY);
+      const info = NPC_INFO[n.kind];
+      drawRows(ctx, traderRows(time + n.home * 0.01, n.to !== null), Math.round(x - (TRADER_W / 2) * s), Math.round(y - 20 * s), s, n.face < 0, TRADER_W);
+      if (n === near) {
+        const label = `${info.name.toUpperCase()}  ${info.title}`;
+        ctx.font = `bold ${Math.round(s * 4)}px monospace`;
+        const tw = ctx.measureText(label).width + s * 4;
+        const ty = y - 26 * s + Math.sin(time * 3) * s;
+        ctx.fillStyle = 'rgba(10,12,20,0.8)';
+        ctx.fillRect(x - tw / 2, ty - s * 3.5, tw, s * 5);
+        ctx.strokeStyle = '#ffd23a';
+        ctx.lineWidth = Math.max(1, s * 0.5);
+        ctx.strokeRect(x - tw / 2, ty - s * 3.5, tw, s * 5);
+        ctx.fillStyle = '#ffd23a';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, x, ty - s);
+      }
+    }
+  }
+
   private drawFieldDrones(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
     const u = this.scale;
     for (const d of game.drones) {

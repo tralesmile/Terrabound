@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { World } from '../src/sim/world';
 import { T, TILES, ITEMS, PLACEABLE } from '../src/sim/tiles';
-import { FURNITURE, ROOM_MAX, ROOM_MIN, findRooms, roomAt, roomHint } from '../src/sim/rooms';
+import { FURNITURE, ROOM_MAX, ROOM_MIN, findRooms, roomAt, roomEdges, roomHint } from '../src/sim/rooms';
 import { BASE_KEEP, captureBase, stampBase } from '../src/sim/base';
 import { recipeById } from '../src/sim/recipes';
 import { FURNITURE_ART, screenLines } from '../src/render/furniture';
@@ -140,6 +140,32 @@ describe('rooms', () => {
   });
 });
 
+describe('room outline', () => {
+  it('a rectangular room has a perimeter of edges, an L-shaped one follows its notch', () => {
+    const w = flat();
+    box(w, 50, 14, 56, 19);
+    const r = roomAt(w, 52, 17);
+    expect(r).not.toBeNull();
+    if (!r) return;
+    const e = roomEdges(r, w.w);
+    // Inside is 5 x 4: 2 * 5 horizontal + 2 * 4 vertical unit edges.
+    expect(e.h.length).toBe(10);
+    expect(e.v.length).toBe(8);
+    expect(e.h).toContainEqual([51, 15]);
+    expect(e.h).toContainEqual([55, 19]);
+    expect(e.v).toContainEqual([51, 15]);
+    expect(e.v).toContainEqual([56, 18]);
+    w.set(55, 15, T.METAL);
+    const l = roomAt(w, 52, 17);
+    if (!l) throw new Error('room');
+    const el = roomEdges(l, w.w);
+    // Same perimeter length for a corner notch, but the notch's inner corner edges appear.
+    expect(el.h.length + el.v.length).toBe(18);
+    expect(el.h).toContainEqual([55, 16]);
+    expect(el.v).toContainEqual([55, 15]);
+  });
+});
+
 describe('rooms in the game', () => {
   it('placing the last piece of a home emits roomready and the hint says so', () => {
     const s = defaultSave();
@@ -161,12 +187,17 @@ describe('rooms in the game', () => {
     g.body.y = py;
     expect(g.roomHere()?.missing).toEqual(['a table']);
     expect(g.hintAutomation(false)).toContain('needs a table');
+    g.step(1 / 30, NO_CONTROLS); // the game has been running before the last piece goes in
     g.carried.table = 1;
     g.selected = 'table';
     g.drainEvents();
     g.step(1 / 30, { ...NO_CONTROLS, place: true, aim: { tx: px + 1, ty: py - 1 } } as typeof NO_CONTROLS);
     expect(w.get(px + 1, py - 1)).toBe(T.TABLE);
-    expect(g.drainEvents().some((e) => e.t === 'roomready')).toBe(true);
-    expect(g.hintAutomation(false)).toContain('Room ready');
+    const ev = g.drainEvents();
+    expect(ev.some((e) => e.t === 'roomready')).toBe(true);
+    expect(g.roomHere()?.valid).toBe(true);
+    // The finished home is taken at once: the Trader moves in and greets the player standing there.
+    expect(ev.some((e) => e.t === 'npcarrive')).toBe(true);
+    expect(g.hintAutomation(false)).toContain('Bolt the Trader');
   });
 });

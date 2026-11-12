@@ -123,3 +123,22 @@ export function roomHint(r: Room | null): string | null {
   if (r.valid) return `Room ready: a robot can move in here (comfort ${r.comfort}/4)`;
   return `Room: needs ${r.missing.join(', ')} (Fabricator)`;
 }
+
+/**
+ * Outline of a room as unit edges on its border: horizontal edges (`h`) run along the top of cell
+ * (x, y), vertical edges (`v`) along its left side. The renderer strokes these. Pure.
+ */
+export function roomEdges(r: Room, w: number): { h: [number, number][]; v: [number, number][] } {
+  const set = new Set(r.cells);
+  const h: [number, number][] = [];
+  const v: [number, number][] = [];
+  for (const i of r.cells) {
+    const x = i % w;
+    const y = Math.floor(i / w);
+    if (!set.has(i - w)) h.push([x, y]);
+    if (!set.has(i + w)) h.push([x, y + 1]);
+    if (x === 0 || !set.has(i - 1)) v.push([x, y]);
+    if (x === w - 1 || !set.has(i + 1)) v.push([x + 1, y]);
+  }
+  return { h, v };
+}

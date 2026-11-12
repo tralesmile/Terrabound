@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CRAWLER_ROWS, DRONE_W, FLYER_ROWS, PAL, droneRows, PLAYER_FRAMES, PLAYER_H, PLAYER_W, playerRows } from '../src/render/sprites';
+import { CRAWLER_ROWS, DRONE_W, FLYER_ROWS, PAL, droneRows, TRADER_W, traderRows, PLAYER_FRAMES, PLAYER_H, PLAYER_W, playerRows } from '../src/render/sprites';
 
 describe('sprite maps', () => {
   it('player frames fit 16x24 and use known palette keys', () => {
@@ -60,5 +60,21 @@ describe('vehicle sprites', () => {
     // Boosting lengthens the jet's exhaust.
     const flameLen = (rows: string[]): number => rows[7].slice(0, 3).replace(/ /g, '').length;
     expect(flameLen(vehicleRows('sky_jet', 0, true))).toBeGreaterThan(flameLen(vehicleRows('sky_jet', 0, false)));
+  });
+
+  it('trader frames fit TRADER_W, use known keys, walk and blink', () => {
+    for (const walking of [false, true]) {
+      for (const t of [0, 0.07, 0.13, 0.6, 3.1]) {
+        const rows = traderRows(t, walking);
+        expect(rows.length).toBe(20);
+        for (const r of rows) {
+          expect(r.length, `"${r}"`).toBeLessThanOrEqual(TRADER_W);
+          for (const ch of r) if (ch !== ' ') expect(PAL[ch]).toBeDefined();
+        }
+      }
+    }
+    expect(traderRows(0, true).slice(17).join('|')).not.toBe(traderRows(0.13, true).slice(17).join('|'));
+    expect(traderRows(3.1, false)[5]).not.toContain('b');
+    expect(traderRows(0, false)[5]).toContain('b');
   });
 });

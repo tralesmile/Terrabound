@@ -14,6 +14,7 @@ import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type
 import { UPGRADES } from '../sim/upgrades';
 import { RECIPES } from '../sim/recipes';
 import { ACT_INFO, COND_INFO, RULE_MAX, ROLE_INFO } from '../sim/drones';
+import { NPC_INFO, TRADES } from '../sim/npcs';
 
 export type UiAction =
   | { k: 'start' }
@@ -23,6 +24,7 @@ export type UiAction =
   | { k: 'mute' }
   | { k: 'buy'; id: string }
   | { k: 'craft'; id: string }
+  | { k: 'trade'; id: string }
   | { k: 'tab'; t: ShopTab }
   | { k: 'scroll'; d: number }
   | { k: 'copyseed' }
@@ -59,7 +61,10 @@ export type UiAction =
   | { k: 'ruledel'; i: number }
   | { k: 'ruleadd' };
 
-export type ShopTab = 'upgrades' | 'fab' | 'gear';
+export type ShopTab = 'upgrades' | 'fab' | 'gear' | 'trade';
+
+export const SHOP_TABS: readonly ShopTab[] = ['upgrades', 'fab', 'gear', 'trade'];
+const TAB_LABEL: Record<ShopTab, string> = { upgrades: 'UPGRADES', fab: 'FABRICATE', gear: 'GEAR', trade: 'TRADE' };
 
 /** Most shop rows drawn at once; longer lists scroll so the panel always fits a 360 px phone. */
 export const SHOP_VISIBLE = 9;
@@ -150,7 +155,7 @@ export class UI {
 
   /** Row count of the current shop tab. */
   shopRows(): number {
-    return this.shopTab === 'upgrades' ? UPGRADES.length : this.shopTab === 'gear' ? GEAR_IDS.length : RECIPES.length;
+    return this.shopTab === 'upgrades' ? UPGRADES.length : this.shopTab === 'gear' ? GEAR_IDS.length : this.shopTab === 'trade' ? TRADES.length : RECIPES.length;
   }
 
   scrollShop(d: number): void {
@@ -750,10 +755,11 @@ export class UI {
     this.shopScroll = clampScroll(this.shopScroll, total, vis);
     const scrolls = total > vis;
     const arrow = scrolls ? u * 2.4 : 0;
-    const tw = (pw - u * 2.8 - arrow * 2 - (scrolls ? u * 0.8 : 0)) / 3;
+    const nt = SHOP_TABS.length;
+    const tw = (pw - u * 2 - u * 0.4 * (nt - 1) - arrow * 2 - (scrolls ? u * 0.8 : 0)) / nt;
     const ty = py + u * 4.3;
-    for (const [i, t] of (['upgrades', 'fab', 'gear'] as const).entries()) {
-      this.button(ctx, px + u + i * (tw + u * 0.4), ty, tw, u * 1.9, t === 'upgrades' ? 'UPGRADES' : t === 'fab' ? 'FABRICATE' : 'GEAR', { k: 'tab', t }, u * 0.8, { color: this.shopTab === t ? '#1f6f78' : '#23262f' });
+    for (const [i, t] of SHOP_TABS.entries()) {
+      this.button(ctx, px + u + i * (tw + u * 0.4), ty, tw, u * 1.9, TAB_LABEL[t], { k: 'tab', t }, u * 0.8, { color: this.shopTab === t ? '#1f6f78' : '#23262f' });
     }
     if (scrolls) {
       const ax = px + pw - u - arrow * 2 - u * 0.2;
@@ -805,6 +811,20 @@ export class UI {
       if (owned) this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, worn ? 'WORN' : 'EQUIP', { k: 'equip', id }, u * 0.85, { color: worn ? '#2a6a3a' : '#1f6f78' });
       else if (gd.bossOnly) this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, 'BOSS', { k: 'craftgear', id }, u * 0.85, { enabled: false });
       else this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, 'BUILD', { k: 'craftgear', id }, u * 0.85, { enabled: afford });
+      ry += rowH;
+    }
+
+    const trader = game.hasNpc('trader');
+    for (const tr of this.shopTab === 'trade' ? TRADES.slice(this.shopScroll, this.shopScroll + vis) : []) {
+      const afford = trader && ITEM_IDS.every((k) => (game.stash[k] ?? 0) >= (tr.give[k] ?? 0));
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
+      this.text(ctx, `${costText(tr.give)}  ->  ${costText(tr.get)}`, px + u, ry + rowH * 0.3, Math.round(u * 0.95), '#fff', 'left', pw - u * 8);
+      const info = NPC_INFO.trader;
+      const sub = trader ? `${info.name} the ${info.title}: fixed rate, from your stash` : 'No trader yet: build a room with a light, table and bed';
+      this.text(ctx, sub, px + u, ry + rowH * 0.68, Math.round(u * 0.72), afford ? '#9ff6a0' : '#ff8a8a', 'left', pw - u * 8);
+      const bw = u * 5.5;
+      this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, 'TRADE', { k: 'trade', id: tr.id }, u * 0.85, { enabled: afford });
       ry += rowH;
     }
 

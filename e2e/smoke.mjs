@@ -1094,6 +1094,43 @@ try {
   await page.waitForTimeout(400);
   await page.screenshot({ path: path.join(out, '35-room.png') });
   check('a furnished, walled room is a valid robot home', roomState.valid && roomState.comfort === 4 && /Room ready/.test(roomState.hint || ''), JSON.stringify(roomState));
+  // Robot NPCs: the Trader moves into the finished home; E opens the TRADE tab; a trade swaps from the stash.
+  const npcState = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const n = g.npcs[0];
+    if (n) {
+      g.body.x = n.x + 0.8;
+      g.body.y = n.y;
+    }
+    return { n: g.npcs.length, kind: n ? n.kind : null };
+  });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(out, '35b-trader.png') });
+  check('the Trader moves into a valid room', npcState.n === 1 && npcState.kind === 'trader', JSON.stringify(npcState));
+  const nearHint = await page.evaluate(() => window.__terrabound.game.hintAutomation(false));
+  check('walking up to the Trader shows its greeting', /Bolt the Trader/.test(nearHint || ''), String(nearHint));
+  await page.keyboard.down('KeyE');
+  await page.waitForTimeout(80);
+  await page.keyboard.up('KeyE');
+  await page.waitForTimeout(250);
+  const tradeUi = await page.evaluate(() => {
+    const { ui, game } = window.__terrabound;
+    game.stash.rust = (game.stash.rust ?? 0) + 16;
+    return { open: ui.shopOpen, tab: ui.shopTab, metal: game.stash.metal ?? 0, rust: game.stash.rust };
+  });
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: path.join(out, '36-trade.png') });
+  check('E next to the Trader opens the TRADE tab', tradeUi.open && tradeUi.tab === 'trade', JSON.stringify(tradeUi));
+  const tradeBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'trade' && r.a.id === 'rust_metal'));
+  if (tradeBtn) await page.mouse.click(tradeBtn.x + tradeBtn.w / 2, tradeBtn.y + tradeBtn.h / 2);
+  await page.waitForTimeout(150);
+  const tradeAfter = await page.evaluate(() => {
+    const { game } = window.__terrabound;
+    return { metal: game.stash.metal ?? 0, rust: game.stash.rust ?? 0 };
+  });
+  check('clicking TRADE swaps 8 rust for 1 metal', !!tradeBtn && tradeAfter.rust === tradeUi.rust - 8 && tradeAfter.metal === tradeUi.metal + 1, JSON.stringify({ tradeBtn: !!tradeBtn, tradeUi, tradeAfter }));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(150);
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     const w = g.world;

@@ -36,6 +36,7 @@ import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight, DAY_LENGTH } from './daynight';
 import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
 import { findRooms, roomHint, type Room } from './rooms';
+import { NPC_INFO, doTrade, npcLine, roomFloor, stepNpc, syncNpcs, tradeById, type Npc, type NpcKind } from './npcs';
 import { blueprintDrop, RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
 import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
@@ -93,6 +94,10 @@ export type GameEvent =
   | { t: 'raidclear'; n: number; reward: Inventory; blueprint: string | null }
   | { t: 'raidend' }
   | { t: 'roomready'; x: number; y: number }
+  | { t: 'npcarrive'; kind: NpcKind }
+  | { t: 'npcleave'; kind: NpcKind }
+  | { t: 'npctalk'; kind: NpcKind }
+  | { t: 'trade'; id: string }
   | { t: 'raidwarn'; n: number; side: number; secs: number }
   | { t: 'turretshot'; x: number; y: number; tx: number; ty: number }
   | { t: 'spikehit'; x: number; y: number }
@@ -237,6 +242,9 @@ export class Game {
   private gearCache: GearStats | null = null;
   /** The pet's position (render) and zap cooldown. */
   pet = { x: 0, y: 0, cd: 0 };
+  /** Robot NPCs living in base rooms (npcs.ts); derived from the world, never saved. */
+  npcs: Npc[] = [];
+  private npcSync: { v: number; first: boolean } = { v: -1, first: true };
   /** Current weather or world event (weather.ts). */
   weather: WeatherKind = 'clear';
   /** Falling meteors during a shower. */
@@ -510,6 +518,9 @@ export class Game {
     this.mining = null;
     this.enemies = [];
     this.raid = null;
+    // A new world rebuilds the base from the save: robots re-home silently.
+    this.npcs = [];
+    this.npcSync = { v: -1, first: true };
     this.iframes = 0;
     this.swing = 0;
     this.bladeCd = 0;
@@ -1049,6 +1060,9 @@ export class Game {
     const pressed = c.dig && !this.prevDig;
     const onChest = c.dig && c.aim && this.world.get(c.aim.tx, c.aim.ty) === T.CHEST && this.reachable(c.aim.tx, c.aim.ty);
     if (onChest && c.aim && pressed) this.openChestAt(c.aim.tx, c.aim.ty);
+    // A tap or click on a robot NPC talks to it (the UI opens its panel).
+    const npcTap = pressed && c.aim ? this.npcAtTile(c.aim.tx, c.aim.ty) : null;
+    if (npcTap) this.emit({ t: 'npctalk', kind: npcTap.kind });
     // A tap on a drone bay in the base changes its role (holding still digs it up).
     if (pressed && c.aim && this.world.get(c.aim.tx, c.aim.ty) === T.DRONE && this.reachable(c.aim.tx, c.aim.ty)) {
       const key = `${c.aim.tx - this.world.padX},${this.world.padY - c.aim.ty}`;
@@ -1445,6 +1459,7 @@ export class Game {
       }
     }
     this.stepDefences(dt);
+    this.stepNpcs(dt);
     // Deaths and drops.
     const alive: Enemy[] = [];
     for (const e of this.enemies) {
@@ -1639,6 +1654,11 @@ export class Game {
     }
     if (this.chestOpen) {
       this.chestOpen = null;
+      return true;
+    }
+    const npc = this.npcNear();
+    if (npc) {
+      this.emit({ t: 'npctalk', kind: npc.kind });
       return true;
     }
     const bay = this.bayNear();
@@ -1965,6 +1985,11 @@ export class Game {
   /** Tutorial line for the first automation, shown at the base only. */
   hintAutomation(touch: boolean): string | null {
     if (!this.isAtBase()) return null;
+    const npc = this.npcNear();
+    if (npc) {
+      const info = NPC_INFO[npc.kind];
+      return `${info.name} the ${info.title}: "${npcLine(npc.kind, this.time)}"  ${touch ? 'Tap' : 'E'} to trade`;
+    }
     const room = roomHint(this.roomHere());
     if (room) return room;
     const bay = this.bayNear();
@@ -1996,6 +2021,69 @@ export class Game {
   /** The room the player is standing in, or null. */
   roomHere(): Room | null {
     const i = Math.floor(this.body.y - 0.5) * this.world.w + Math.floor(this.body.x);
+    return this.rooms.find((r) => r.cells.includes(i)) ?? null;
+  }
+
+  /** Move robots in and out as rooms change, then let them pace. Only near the base, where rooms exist. */
+  private stepNpcs(dt: number): void {
+    const w = this.world;
+    const b = this.body;
+    if (Math.abs(b.x - w.padX) > 30) return;
+    if (this.npcSync.v !== w.version) {
+      const res = syncNpcs(w, this.rooms, this.npcs);
+      this.npcs = res.npcs;
+      // Robots already home when the game loads are not announced again.
+      if (!this.npcSync.first) {
+        for (const kind of res.arrived) this.emit({ t: 'npcarrive', kind });
+        for (const kind of res.left) this.emit({ t: 'npcleave', kind });
+      }
+      this.npcSync = { v: w.version, first: false };
+    }
+    const near = this.npcNear();
+    for (const n of this.npcs) {
+      const room = this.rooms.find((r) => r.y0 * w.w + r.x0 === n.home);
+      const floor = room ? roomFloor(w, room) : null;
+      if (floor) stepNpc(n, floor, dt, n === near ? b.x : null);
+    }
+  }
+
+  /** The robot NPC within talking range of the player, or null. */
+  npcNear(): Npc | null {
+    const b = this.body;
+    let best: Npc | null = null;
+    let bd = Infinity;
+    for (const n of this.npcs) {
+      const d = Math.abs(n.x - b.x);
+      if (d < 2.2 && Math.abs(n.y - b.y) < 2.5 && d < bd) {
+        best = n;
+        bd = d;
+      }
+    }
+    return best;
+  }
+
+  /** The robot NPC drawn over tile (tx, ty) (1 wide, 2 tall), or null. */
+  npcAtTile(tx: number, ty: number): Npc | null {
+    return this.npcs.find((n) => Math.floor(n.x) === tx && ty >= Math.floor(n.y) - 2 && ty < Math.floor(n.y)) ?? null;
+  }
+
+  /** Is a robot of this kind living in the base? */
+  hasNpc(kind: NpcKind): boolean {
+    return this.npcs.some((n) => n.kind === kind);
+  }
+
+  /** Swap with the Trader at a posted rate (base only, Trader must live here). Stash to stash. */
+  trade(id: string): boolean {
+    const t = tradeById(id);
+    if (!t || !this.isAtBase() || !this.hasNpc('trader') || !doTrade(this.stash, t)) return false;
+    this.emit({ t: 'trade', id });
+    return true;
+  }
+
+  /** The base room containing tile (tx, ty), or null. */
+  roomAtTile(tx: number, ty: number): Room | null {
+    if (Math.abs(this.body.x - this.world.padX) > 30) return null;
+    const i = ty * this.world.w + tx;
     return this.rooms.find((r) => r.cells.includes(i)) ?? null;
   }
 

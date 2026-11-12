@@ -535,6 +535,42 @@ export function droneRows(act: string, t: number): string[] {
   return [rotor, ...DRONE_HULL, ...(DRONE_TOOLS[act] ?? [])];
 }
 
+/** Trader robot (14 wide, 20 tall, facing right): antenna light, screen face, gold merchant vest, coin badge. */
+const TRADER_TOP = [
+  '      oyo',
+  '       o',
+  '   ooooooooo',
+  '  oHhhhhhhhhHo',
+  '  ohoooooooohHo',
+  '  ohobbooobbhHo',
+  '  ohoooooooohHo',
+  '  ohoooEEoooho',
+  '  oHhhhhhhhhHo',
+  '   ooooooooooo',
+  '     oPPPPo',
+  '  oooggggggooo',
+  ' oPogSSSSSSgoPo',
+  ' oPogSyyyySgoPo',
+  ' oHogSSyySSgoHo',
+  '  oogggggggoo',
+  '    oPPPPPPo',
+];
+const TRADER_LEGS = [
+  ['    oLLooLLo', '    oLLooLLo', '   ooooooooo'],
+  ['   oLLo  oLLo', '  oLLo    oLLo', ' oooo     oooo'],
+  ['    oLLooLLo', '     oLLLLo', '    oooooo'],
+];
+export const TRADER_W = 15;
+
+/** Rows for the trader at time t: legs cycle while walking, eyes blink, the antenna blinks. Pure. */
+export function traderRows(t: number, walking: boolean): string[] {
+  const k = Math.max(0, t);
+  const legs = walking ? TRADER_LEGS[1 + (Math.floor(k * 8) % 2)] : TRADER_LEGS[0];
+  const blink = k % 3.2 > 3.05;
+  const top = TRADER_TOP.map((r, i) => (i === 5 && blink ? r.replace(/b/g, 'o') : i === 0 && k % 1 > 0.5 ? r.replace('y', 'Y') : r));
+  return [...top, ...legs];
+}
+
 /**
  * Vehicle sprite maps, nose/handlebar facing right (flip for left). Rows are top-down; the
  * renderer puts row 0 `VEHICLES[id].top` art px above the player's feet.

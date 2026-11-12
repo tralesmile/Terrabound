@@ -187,6 +187,18 @@ export class Sfx {
       case 'weather':
         if (e.kind !== 'clear') [440, 554, 659].forEach((f, i) => this.tone(f, 0.25, 'sine', 0.06, undefined, i * 0.15));
         break;
+      case 'npcarrive':
+        // Robot greeting: two quick chirps then a doorbell.
+        [880, 1175, 659, 523].forEach((f, i) => this.tone(f, 0.1, 'square', 0.05, undefined, i * 0.08));
+        break;
+      case 'trade':
+        // Coin-like clink.
+        this.tone(1319, 0.06, 'square', 0.05, undefined, 0);
+        this.tone(1760, 0.12, 'triangle', 0.05, undefined, 0.05);
+        break;
+      case 'npctalk':
+        if (this.ok('npctalk', 300)) this.tone(660, 0.07, 'square', 0.04, 880);
+        break;
       case 'roomready':
         // Warm rising chime.
         [523, 659, 784].forEach((f, i) => this.tone(f, 0.18, 'triangle', 0.06, f, i * 0.09));

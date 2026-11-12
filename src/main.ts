@@ -17,6 +17,7 @@ import { shareCard } from './ui/share';
 import { BOSSES } from './sim/bosses';
 import { ROLE_INFO, nextAct, nextCond } from './sim/drones';
 import { UI, type UiAction } from './ui/ui';
+import { NPC_INFO } from './sim/npcs';
 
 const TOOL_NAMES: Record<Tool, string> = { drill: 'Mining drill', blade: 'Energy blade', pistol: 'Pulse pistol', rod: 'Fishing rod: click water to cast', hook: 'Grappling hook: click a ceiling, swing, jump to let go' };
 
@@ -187,6 +188,9 @@ function boot(): void {
         break;
       case 'craft':
         if (game.craft(a.id)) saveNow();
+        break;
+      case 'trade':
+        if (game.trade(a.id)) saveNow();
         break;
       case 'dive':
         // Abandoning a world you have explored is a big step: ask for a second tap within 3 s.
@@ -505,6 +509,21 @@ function boot(): void {
         saveNow();
         break;
       }
+      case 'npcarrive':
+        ui.toast(`${NPC_INFO[e.kind].name} the ${NPC_INFO[e.kind].title} moved in!`, '#ffd23a', 4);
+        break;
+      case 'npcleave':
+        ui.toast(`${NPC_INFO[e.kind].name} moved out: the room is no longer a home`, '#ff9a3c', 4);
+        break;
+      case 'npctalk':
+        if (ui.screen === 'play' && !ui.shopOpen) {
+          ui.invOpen = false;
+          ui.shopOpen = true;
+          ui.setShopTab('trade');
+        }
+        break;
+      case 'trade':
+        break;
       case 'roomready':
         ui.toast('Room complete! A robot can move in here soon', '#7dffb0', 4);
         fx.burst(e.x + 0.5, e.y + 0.5, '#ffe08a', 14, 4);
