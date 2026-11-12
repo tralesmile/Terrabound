@@ -5,8 +5,9 @@ import { CODEX_IDS } from './explore';
 import { defaultGear, sanitizeGear, type GearSave } from './gear';
 import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
+import { DRONE_ROLES, type DroneRole } from './drones';
 
-export const SAVE_VERSION = 11;
+export const SAVE_VERSION = 12;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -38,6 +39,8 @@ export interface SaveData {
   gear: GearSave;
   /** v10: bosses defeated (first win grants their trophy gear). */
   bosses: BossId[];
+  /** v12: role per drone bay, keyed by the bay's offset from the pad ("dx,dy"); missing = survey. */
+  drones: Record<string, DroneRole>;
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -58,6 +61,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     worldSeed: null,
     gear: defaultGear(),
     bosses: [],
+    drones: {},
   };
 }
 
@@ -129,7 +133,22 @@ export function parseSave(raw: string | null | undefined): SaveData {
     gear: sanitizeGear(r.gear),
     // v9 -> v10: no bosses beaten yet.
     bosses: Array.isArray(r.bosses) ? BOSS_IDS.filter((id) => (r.bosses as unknown[]).includes(id)) : [],
+    // v11 -> v12: every bay keeps the survey job.
+    drones: sanitizeDrones(r.drones),
   };
+}
+
+function sanitizeDrones(v: unknown): Record<string, DroneRole> {
+  const out: Record<string, DroneRole> = {};
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return out;
+  let n = 0;
+  for (const [k, role] of Object.entries(v as Record<string, unknown>)) {
+    if (n >= 200) break;
+    if (!/^-?\d{1,3},\d{1,3}$/.test(k) || typeof role !== 'string' || !(DRONE_ROLES as readonly string[]).includes(role) || role === 'survey') continue;
+    out[k] = role as DroneRole;
+    n++;
+  }
+  return out;
 }
 
 function sanitizeAway(v: unknown): SaveData['away'] {

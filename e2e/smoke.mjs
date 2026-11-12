@@ -786,6 +786,71 @@ try {
     return g.equipped('pet') === 'spark_pup' && Math.hypot(g.pet.x - g.body.x, g.pet.y - g.body.y) < 5;
   }));
 
+  // Field drones: E at a drone bay picks its role; miner and guard drones follow the player out.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    g.unequipGear?.('pet');
+    for (let dx = -4; dx <= -1; dx++) w.set(w.padX + dx, w.padY - 1, 27);
+    w.set(w.padX + 2, w.padY - 1, 29);
+    w.set(w.padX + 3, w.padY - 1, 31);
+    w.set(w.padX + 4, w.padY - 1, 31);
+    g.time = 30;
+    g.body.x = w.padX + 3.5;
+    g.body.y = w.padY;
+    g.body.vx = g.body.vy = 0;
+  });
+  await page.waitForTimeout(700);
+  await page.keyboard.down('KeyE');
+  await page.waitForTimeout(80);
+  await page.keyboard.up('KeyE');
+  await page.waitForTimeout(150);
+  const roles = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const k = g.bayNear()?.key;
+    const other = k === '3,1' ? '4,1' : '3,1';
+    g.setDroneRole(other, 'guard');
+    return { first: k ? g.droneRole(k) : null, other: g.droneRole(other) };
+  });
+  check('E at a drone bay sets its role to Miner', roles.first === 'miner', JSON.stringify(roles));
+  // Walk the player out to a dug pocket with exposed ore and watch the drones work.
+  const site = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const x = w.padX + 24;
+    const y = w.surface[x] + 6;
+    for (let xx = x - 5; xx <= x + 5; xx++) {
+      for (let yy = y - 5; yy < y; yy++) w.set(xx, yy, 0);
+      w.set(xx, y, 1);
+    }
+    for (const xx of [x - 4, x - 3, x + 3, x + 4]) w.set(xx, y, 3);
+    g.body.x = x + 0.5;
+    g.body.y = y;
+    g.body.vx = g.body.vy = 0;
+    g.enemies = [];
+    g.hp = g.derived.maxHp;
+    return { x, y };
+  });
+  await page
+    .waitForFunction(([x, y]) => [x - 4, x - 3, x + 3, x + 4].some((xx) => window.__terrabound.game.world.get(xx, y) !== 3), [site.x, site.y], { timeout: 9000 })
+    .catch(() => {});
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(out, '33-drones.png') });
+  const drones = await page.evaluate(([x, y]) => {
+    const g = window.__terrabound.game;
+    const ores = [x - 4, x - 3, x + 3, x + 4].filter((xx) => g.world.get(xx, y) === 3).length;
+    return { modes: g.drones.map((d) => `${d.role}:${d.mode}`), ores, near: g.drones.every((d) => Math.hypot(d.x - g.body.x, d.y - g.body.y) < 9) };
+  }, [site.x, site.y]);
+  check('miner and guard drones fly out to the player', drones.modes.length === 2 && drones.near && !drones.modes.some((m) => m.endsWith(':dock')), JSON.stringify(drones));
+  check('the miner drone drills ore near the player', drones.ores < 4, JSON.stringify(drones));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    g.setDroneRole('3,1', 'survey');
+    g.setDroneRole('4,1', 'survey');
+    for (let dx = -4; dx <= 4; dx++) if (dx !== 0) w.set(w.padX + dx, w.padY - 1, 0);
+  });
+
   // Share card: SHARE on the map downloads a PNG in a headless browser (no Web Share there).
   await page.keyboard.press('KeyM');
   await page.waitForTimeout(200);

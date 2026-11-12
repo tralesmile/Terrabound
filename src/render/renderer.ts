@@ -10,6 +10,7 @@ import type { PlayerGear } from './sprites';
 import { ICON, drawIcon } from './icons';
 import { GEAR } from '../sim/gear';
 import { BOSSES } from '../sim/bosses';
+import { ROLE_INFO } from '../sim/drones';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, leafMask } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape } from './decor';
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
@@ -310,6 +311,7 @@ export class Renderer {
         }
       }
     }
+    this.drawFieldDrones(ctx, game, shakeX, shakeY, time);
     // Back gear and vehicles behind / under the player.
     const veh = game.vehicle;
     const eq = (slot: 'head' | 'body' | 'feet' | 'back'): [string, string] | undefined => {
@@ -724,6 +726,37 @@ export class Renderer {
           ctx.drawImage(this.decor.chest, 0, 0, TS, TS, this.sx(tx, shakeX), this.sy(ty, shakeY) - bob, ts, ts);
         }
       }
+    }
+  }
+
+  /** Field drones: a dark hull with a role-coloured eye, spinning rotor, drill beam or cargo pod. */
+  private drawFieldDrones(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
+    const u = this.scale;
+    for (const d of game.drones) {
+      if (d.mode === 'dock') continue;
+      const x = this.sx(d.x, shakeX);
+      const y = this.sy(d.y + Math.sin(time * 4 + d.bayX) * 0.08, shakeY);
+      const col = ROLE_INFO[d.role].color;
+      // Inside rock the drone phases through: draw it faint.
+      ctx.globalAlpha = game.world.isSolid(Math.floor(d.x), Math.floor(d.y)) ? 0.45 : 1;
+      if (d.mode === 'drill' && d.target && Math.hypot(d.target.x + 0.5 - d.x, d.target.y - 0.2 - d.y) < 0.2) {
+        ctx.fillStyle = `rgba(255,190,80,${0.6 + 0.4 * Math.sin(time * 30)})`;
+        ctx.fillRect(x - u, y + u * 2, u * 2, u * 5);
+      }
+      ctx.fillStyle = '#14181f';
+      ctx.fillRect(x - u * 4, y - u * 2, u * 8, u * 5);
+      ctx.fillStyle = '#5c6478';
+      ctx.fillRect(x - u * 3, y - u, u * 6, u * 3);
+      ctx.fillStyle = col;
+      ctx.fillRect(x - u, y - u * 0.5, u * 2, u * 1.5);
+      ctx.fillStyle = '#c9d0e4';
+      const r = Math.floor(time * 24 + d.bayX) % 2 ? 5 : 2;
+      ctx.fillRect(x - u * r, y - u * 3.5, u * r * 2, u);
+      if (Object.keys(d.cargo).length > 0) {
+        ctx.fillStyle = '#ffcf4a';
+        ctx.fillRect(x - u * 1.5, y + u * 3, u * 3, u * 2);
+      }
+      ctx.globalAlpha = 1;
     }
   }
 

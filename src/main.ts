@@ -15,6 +15,7 @@ import { isNight } from './sim/daynight';
 import { WEATHER } from './sim/weather';
 import { shareCard } from './ui/share';
 import { BOSSES } from './sim/bosses';
+import { ROLE_INFO } from './sim/drones';
 import { UI, type UiAction } from './ui/ui';
 
 const TOOL_NAMES: Record<Tool, string> = { drill: 'Mining drill', blade: 'Energy blade', pistol: 'Pulse pistol', rod: 'Fishing rod: click water to cast', hook: 'Grappling hook: click a ceiling, swing, jump to let go' };
@@ -379,6 +380,19 @@ function boot(): void {
         break;
       case 'zap':
         fx.burst(e.tx, e.ty, '#ffcf4a', 6, 3);
+        break;
+      case 'dronerole':
+        ui.toast(`Drone bay: ${e.name} - ${ROLE_INFO[e.role].desc}`, ROLE_INFO[e.role].color, 3);
+        saveNow();
+        break;
+      case 'dronebank':
+        ui.toast(`${ROLE_INFO[e.role].name} drone banked ${e.n} items`, ROLE_INFO[e.role].color, 1.6);
+        break;
+      case 'dronetake':
+        ui.toast(`Hauler took ${e.n} items home`, ROLE_INFO.hauler.color, 1.6);
+        break;
+      case 'dronemine':
+        fx.burst(e.x + 0.5, e.y + 0.5, ROLE_INFO.miner.color, 6, 3);
         break;
       case 'meteor':
         fx.burst(e.x, e.y, '#ffcf4a', 20, 7);

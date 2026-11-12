@@ -31,6 +31,7 @@ import { FOOD, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_
 import { daylight } from './daynight';
 import { awaySeconds, simulateOffline, OFFLINE_MIN, type OfflineResult } from './offline';
 import { automationHint, stepGrid, newPower, scanMachines, stepSmelting, stepMining, stepDrones, SMELT_RUST, type PowerState } from './power';
+import { DRONE_ROLES, ROLE_INFO, listBays, nextRole, roleOf, stepFieldDrones, surveyBays, syncDrones, type DroneEvent, type DroneRole, type FieldDrone, GUARD_DMG } from './drones';
 import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight } from './daynight';
 import { applyDiff, captureDiff } from './persist';
@@ -131,7 +132,9 @@ export type GameEvent =
   | { t: 'drip'; x: number; y: number }
   | { t: 'splash'; x: number; y: number; kind: 'acid' | 'debris' }
   | { t: 'steam'; x: number; y: number }
-  | { t: 'gas' };
+  | { t: 'gas' }
+  | { t: 'dronerole'; role: DroneRole; name: string }
+  | DroneEvent;
 
 export type Tool = 'drill' | 'blade' | 'pistol' | 'rod' | 'hook';
 export const TOOLS: readonly Tool[] = ['drill', 'blade', 'pistol', 'rod', 'hook'];
@@ -263,6 +266,9 @@ export class Game {
   private mineProgress = 0;
   private mineCount = 0;
   private machineAcc = 0;
+  /** Field drones launched from bays with a non-survey role (drones.ts). */
+  drones: FieldDrone[] = [];
+  private surveyCount = 0;
   private liquidAcc = 0;
   private liquidTick = 0;
   private save: SaveData;
@@ -280,6 +286,7 @@ export class Game {
     if (!Array.isArray(this.save.codex)) this.save.codex = [];
     this.save.gear = sanitizeGear(this.save.gear);
     if (!Array.isArray(this.save.bosses)) this.save.bosses = [];
+    if (!this.save.drones || typeof this.save.drones !== 'object') this.save.drones = {};
     this.stash = { ...save.stash };
     this.upgrades = { ...save.upgrades };
     // Crash/refresh safety: loot carried at last save is banked, never lost.
@@ -318,7 +325,8 @@ export class Game {
     this.save.away.savedAt = 0; // never apply the same absence twice
     if (secs < OFFLINE_MIN) return null;
     this.machineCounts = scanMachines(this.world);
-    const m = this.machineCounts;
+    // Field drones idle while you are away; only survey bays keep working (and drawing power).
+    const m = { ...this.machineCounts, drones: surveyBays(listBays(this.world), this.save.drones) };
     if (m.smelters + m.miners + m.drones === 0 && m.batteries === 0) return null;
     const r = simulateOffline(this.stash, m, { progressSmelt: this.smeltProgress, progressMine: this.mineProgress, mineCount: this.mineCount, droneProgress: this.droneProgress, droneCount: this.droneCount, charge: this.power.charge, time: this.time }, secs);
     this.smeltProgress = r.progressSmelt;
@@ -747,6 +755,9 @@ export class Game {
     if (this.machineAcc >= 0.5) {
       this.machineAcc = 0;
       this.machineCounts = scanMachines(this.world);
+      const bays = listBays(this.world);
+      this.surveyCount = surveyBays(bays, this.save.drones);
+      this.drones = syncDrones(this.drones, bays, this.save.drones);
     }
     const m = this.machineCounts;
     const want = (this.stash.rust ?? 0) >= SMELT_RUST || this.smeltProgress > 0;
@@ -754,13 +765,65 @@ export class Game {
     const mined = stepMining(this.stash, this.power, this.mineProgress, this.mineCount, dt);
     this.mineProgress = mined.progress;
     this.mineCount = mined.count;
-    const flown = stepDrones(this.stash, this.power, this.droneProgress, this.droneCount, dt);
+    const flown = stepDrones(this.stash, { ...this.power, drones: this.surveyCount }, this.droneProgress, this.droneCount, dt);
+    this.stepFieldDrones(dt);
     this.droneProgress = flown.progress;
     this.droneCount = flown.count;
     if (!this.power.working) return;
     const r = stepSmelting(this.stash, this.power, this.smeltProgress, dt);
     this.smeltProgress = r.progress;
     if (r.made > 0) this.emit({ t: 'smelt', made: r.made });
+  }
+
+  private stepFieldDrones(dt: number): void {
+    if (this.drones.length === 0) return;
+    const b = this.body;
+    const ev = stepFieldDrones(this.drones, {
+      world: this.world,
+      px: b.x,
+      py: b.y,
+      atBase: this.isAtBase(),
+      powered: this.power.ratio > 0,
+      enemies: this.enemies,
+      carried: this.carried,
+      stash: this.stash,
+    }, dt);
+    for (const e of ev) {
+      if (e.t === 'droneshot') {
+        const en = this.enemies.find((x) => x.id === e.id);
+        if (en) this.damageEnemy(en, GUARD_DMG, Math.sign(en.x - e.x) || 1);
+        this.emit({ t: 'zap', x: e.x, y: e.y, tx: e.tx, ty: e.ty });
+      } else if (e.t === 'dronemine') this.emit({ t: 'break', x: e.x, y: e.y, tile: e.tile });
+      else if (e.t === 'dronebank') this.save.stats.banked += e.n;
+      this.emit(e);
+    }
+  }
+
+  /** Drone bay within reach of the player (nearest), or null. */
+  bayNear(): { x: number; y: number; key: string } | null {
+    const b = this.body;
+    let best: { x: number; y: number; key: string; d: number } | null = null;
+    for (const bay of listBays(this.world)) {
+      const d = Math.hypot(bay.x + 0.5 - b.x, bay.y + 0.5 - (b.y - 0.9));
+      if (d <= REACH && (!best || d < best.d)) best = { ...bay, d };
+    }
+    return best;
+  }
+
+  droneRole(key: string): DroneRole {
+    return roleOf(this.save.drones, key);
+  }
+
+  /** Cycle the role of the bay at `key` (survey -> miner -> guard -> hauler). */
+  setDroneRole(key: string, role: DroneRole = nextRole(this.droneRole(key))): DroneRole {
+    if (!DRONE_ROLES.includes(role)) return this.droneRole(key);
+    if (role === 'survey') delete this.save.drones[key];
+    else this.save.drones[key] = role;
+    const bays = listBays(this.world);
+    this.surveyCount = surveyBays(bays, this.save.drones);
+    this.drones = syncDrones(this.drones, bays, this.save.drones);
+    this.emit({ t: 'dronerole', role, name: ROLE_INFO[role].name });
+    return role;
   }
 
   step(dt: number, c: Controls): void {
@@ -910,6 +973,11 @@ export class Game {
     const pressed = c.dig && !this.prevDig;
     const onChest = c.dig && c.aim && this.world.get(c.aim.tx, c.aim.ty) === T.CHEST && this.reachable(c.aim.tx, c.aim.ty);
     if (onChest && c.aim && pressed) this.openChestAt(c.aim.tx, c.aim.ty);
+    // A tap on a drone bay in the base changes its role (holding still digs it up).
+    if (pressed && c.aim && this.world.get(c.aim.tx, c.aim.ty) === T.DRONE && this.reachable(c.aim.tx, c.aim.ty)) {
+      const key = `${c.aim.tx - this.world.padX},${this.world.padY - c.aim.ty}`;
+      if (listBays(this.world).some((bb) => bb.key === key)) this.setDroneRole(key);
+    }
     if (this.chestOpen && (!this.reachable(this.chestOpen.x, this.chestOpen.y) || this.world.get(this.chestOpen.x, this.chestOpen.y) !== T.CHEST)) this.chestOpen = null;
     const dig = c.dig && !onChest;
     this.prevDig = c.dig;
@@ -1381,6 +1449,11 @@ export class Game {
       this.chestOpen = null;
       return true;
     }
+    const bay = this.bayNear();
+    if (bay && (!best || Math.hypot(bay.x + 0.5 - b.x, bay.y + 0.5 - (b.y - 0.9)) < best.d)) {
+      this.setDroneRole(bay.key);
+      return true;
+    }
     return best ? this.openChestAt(best.x, best.y) : false;
   }
 
@@ -1692,6 +1765,7 @@ export class Game {
       codex: [...this.save.codex],
       gear: { owned: [...this.save.gear.owned], equip: { ...this.save.gear.equip } },
       bosses: [...this.save.bosses],
+      drones: { ...this.save.drones },
       world: captureDiff(this.world, this.fog),
     };
   }
@@ -1699,6 +1773,11 @@ export class Game {
   /** Tutorial line for the first automation, shown at the base only. */
   hintAutomation(touch: boolean): string | null {
     if (!this.isAtBase()) return null;
+    const bay = this.bayNear();
+    if (bay) {
+      const r = this.droneRole(bay.key);
+      return `Drone bay: ${ROLE_INFO[r].name} (${ROLE_INFO[r].desc}). ${touch ? 'Tap the bay' : 'Press E'} to change role`;
+    }
     return automationHint(this.machineCounts, this.stash, this.power.ratio, touch, this.upgrades.fab ?? 0);
   }
 
