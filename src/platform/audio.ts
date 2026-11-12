@@ -199,6 +199,15 @@ export class Sfx {
       case 'discover':
         [523, 784, 1047, 1319].forEach((f, i) => this.tone(f, 0.18, 'triangle', 0.12, undefined, i * 0.09));
         break;
+      case 'hook':
+        // Claw bites rock, then the rope twangs down in pitch.
+        this.noise(0.03, 0.12);
+        this.tone(1240, 0.05, 'square', 0.04);
+        this.tone(330, 0.22, 'triangle', 0.07, 196, 0.03);
+        break;
+      case 'unhook':
+        if (this.ok('unhook', 150)) this.tone(520, 0.07, 'sine', 0.04, 260);
+        break;
       case 'garage':
         this.tone(147, 0.18, 'sawtooth', 0.06, 110);
         break;

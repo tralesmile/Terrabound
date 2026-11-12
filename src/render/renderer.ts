@@ -1,6 +1,6 @@
 import { computeRims, type Rim } from './rimlight';
 import { buriedDecal, decalRects, hasStrata, strataShade } from './strata';
-import type { Game, Shot } from '../sim/game';
+import type { Game, Hook, Shot } from '../sim/game';
 import { acidBubble, causticBand, depthShade, surfaceGlint, waveOffsets } from './liquidfx';
 import { cropAt, isCropTile, isWatered } from '../sim/farming';
 import { cropSway, drawCropTile, ripeSparkle, sprinklerDrops } from './crops';
@@ -32,6 +32,7 @@ import { B, BIOME_IDS } from '../sim/biomes';
 import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 import { drawGlyph, hasGlyph } from './glyphs';
+import { ropePoints, ropeSag, twangAmp } from './ropefx';
 
 /** Chunk size in tiles for the render cache. */
 /** Per-robot colours: sprite remap, name tag, blanket. */
@@ -103,6 +104,10 @@ export class Renderer {
   private sky: [string, string, string, string] = ['#0b1026', '#2a1f4d', '#e87f5b', '#1a1536'];
   /** Daylight 0..1 of the current frame. */
   private day = 1;
+  private ropeHook: Hook | null = null;
+  private ropeT0 = 0;
+  /** Last drawn rope shape (for e2e checks). */
+  ropeInfo: { sag: number; twang: number; points: number } | null = null;
   /** Device pixels. */
   w = 1;
   h = 1;
@@ -454,16 +459,59 @@ export class Renderer {
         ctx.fillText('RIDE', vx, vy - (vd.top + 4) * vs);
       }
     }
-    // Grappling rope.
+    // Grappling rope: sags while slack, twangs on attach, two-tone with a claw at the anchor.
     if (game.hook) {
-      ctx.strokeStyle = '#e6f6ff';
+      const hk = game.hook;
+      if (hk !== this.ropeHook) {
+        this.ropeHook = hk;
+        this.ropeT0 = time;
+      }
+      const age = time - this.ropeT0;
+      const hy = b.y - 12 / TS;
+      const pts = ropePoints(b.x, hy, hk.ax, hk.ay, hk.len, age);
+      this.ropeInfo = { sag: ropeSag(Math.hypot(hk.ax - b.x, hk.ay - hy), hk.len), twang: twangAmp(age), points: pts.length };
+      const trace = (): void => {
+        ctx.beginPath();
+        pts.forEach((p, i) => {
+          const x = this.sx(p.x, shakeX);
+          const y = this.sy(p.y, shakeY);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      };
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#2a3346';
+      ctx.lineWidth = Math.max(2, scale * 1.6);
+      trace();
+      ctx.strokeStyle = '#d9ecf7';
       ctx.lineWidth = Math.max(1, scale * 0.7);
-      ctx.beginPath();
-      ctx.moveTo(px, py - 12 * scale);
-      ctx.lineTo(this.sx(game.hook.ax, shakeX), this.sy(game.hook.ay, shakeY));
-      ctx.stroke();
-      ctx.fillStyle = '#9aa3b8';
-      ctx.fillRect(this.sx(game.hook.ax, shakeX) - scale * 1.5, this.sy(game.hook.ay, shakeY) - scale * 1.5, scale * 3, scale * 3);
+      trace();
+      // Braid ticks so the rope reads as cord, not a laser.
+      ctx.fillStyle = '#8fa6bd';
+      for (let i = 1; i < pts.length - 1; i += 2) {
+        ctx.fillRect(this.sx(pts[i].x, shakeX) - scale * 0.5, this.sy(pts[i].y, shakeY) - scale * 0.5, scale, scale);
+      }
+      // Claw: a small hub with three prongs biting into the rock.
+      const ax = this.sx(hk.ax, shakeX);
+      const ay = this.sy(hk.ay, shakeY);
+      const ang = Math.atan2(hk.ay - hy, hk.ax - b.x);
+      ctx.strokeStyle = '#c3cbd9';
+      ctx.lineWidth = Math.max(1, scale * 0.8);
+      for (const off of [-0.8, 0, 0.8]) {
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(ax + Math.cos(ang + off) * scale * 3, ay + Math.sin(ang + off) * scale * 3);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#6f7a8f';
+      ctx.fillRect(ax - scale * 1.5, ay - scale * 1.5, scale * 3, scale * 3);
+      ctx.lineCap = 'butt';
+      ctx.lineJoin = 'miter';
+    } else {
+      this.ropeHook = null;
+      this.ropeInfo = null;
     }
     const paint = game.paint;
     drawPlayer(ctx, px, py, scale, {

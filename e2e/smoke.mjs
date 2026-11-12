@@ -868,11 +868,24 @@ try {
   await page.screenshot({ path: path.join(out, '23-grapple.png') });
   await page.keyboard.up('KeyD');
   check('the grappling hook attaches to a ceiling', await page.evaluate(() => !!window.__terrabound.game.hook));
+  check('the rope is drawn as a segmented cord', ((await page.evaluate(() => window.__terrabound.renderer.ropeInfo))?.points ?? 0) >= 10);
   await page.keyboard.down('KeyW');
   await page.waitForTimeout(80);
   await page.keyboard.up('KeyW');
   await page.waitForTimeout(100);
   check('jump lets go of the rope', await page.evaluate(() => !window.__terrabound.game.hook));
+  check('letting go clears the drawn rope', (await page.evaluate(() => window.__terrabound.renderer.ropeInfo)) === null);
+  // Slack rope: standing on the floor with a rope longer than the gap, it sags.
+  await page.waitForFunction(() => window.__terrabound.game.body.onGround, null, { timeout: 3000 }).catch(() => {});
+  await page.evaluate((a) => {
+    const g = window.__terrabound.game;
+    g.hook = { ax: a.x + 0.5, ay: a.y + 0.95, len: 10 };
+  }, hookAt);
+  await page.waitForTimeout(500);
+  const slack = await page.evaluate(() => window.__terrabound.renderer.ropeInfo);
+  check('a slack rope sags', !!slack && slack.sag > 0.3 && slack.points >= 10, JSON.stringify(slack));
+  await page.screenshot({ path: path.join(out, '23c-rope-slack.png') });
+  await page.evaluate(() => { window.__terrabound.game.hook = null; });
   // Boss: summon the Junk Colossus from the inventory in the Rust Wastes, see it and its health bar.
   await page.evaluate(() => {
     const g = window.__terrabound.game;
