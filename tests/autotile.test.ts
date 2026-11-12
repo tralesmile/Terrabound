@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EDGE_E, EDGE_N, EDGE_S, EDGE_W, MASKS, edgeMask, edgePixel, growsMoss, isBlock } from '../src/render/autotile';
-import { MOSS_H, TS, VARIANTS, atlasCol, autotilePixels, mossPixels, tileTexture } from '../src/render/sprites';
+import { MOSS_H, TS, VARIANTS, atlasCol, autotilePixels, mossPixels, tileTexture, tileTrim } from '../src/render/sprites';
 import { T, TILES } from '../src/sim/tiles';
 import { World } from '../src/sim/world';
 
@@ -92,5 +92,27 @@ describe('atlas cells', () => {
       expect(px.length).toBe(TS * MOSS_H);
       for (let x = 0; x < TS; x++) expect(px[x]).not.toBeNull();
     }
+  });
+});
+
+describe('built-block trims', () => {
+  it('metal and reinforced walls get a framed edge with corner bolts; rock does not', () => {
+    for (const id of [T.METAL, T.REINFORCED]) {
+      const t = tileTrim(id)!;
+      expect(t).toBeDefined();
+      const px = autotilePixels(id, 1, EDGE_N | EDGE_W);
+      expect(px[1 * TS + 8]).toBe(t.hi); // top band
+      expect(px[2 * TS + 8]).toBe(t.lo); // shadow line under it
+      expect(px[8 * TS + 1]).toBe(t.hi); // left band
+      expect(px[3 * TS + 3]).toBe(t.bolt); // bolt in the exposed corner
+      expect(px[0 * TS + 8]).toBe('#161a24'); // outline untouched
+      // Buried sides stay plain: no band where a neighbour joins.
+      const shut = autotilePixels(id, 1, 0);
+      expect(shut).toEqual(tileTexture(id, 1));
+      // Only one exposed side: no bolt.
+      expect(autotilePixels(id, 1, EDGE_N)[3 * TS + 3]).not.toBe(t.bolt);
+    }
+    expect(tileTrim(T.RUST)).toBeUndefined();
+    expect(autotilePixels(T.RUST, 1, EDGE_N)[1 * TS + 8]).not.toBe('#8e98b0');
   });
 });

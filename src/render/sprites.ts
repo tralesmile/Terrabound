@@ -4,7 +4,7 @@ import type { EnemyKind } from '../sim/enemies';
 import { drawIcon } from './icons';
 import { drawBossArt } from './bossart';
 import type { BossId } from '../sim/bosses';
-import { EDGE_N, MASKS, edgeMask, edgePixel, growsMoss } from './autotile';
+import { EDGE_E, EDGE_N, EDGE_S, EDGE_W, MASKS, edgeMask, edgePixel, growsMoss } from './autotile';
 
 /** Tile size in logical pixels. All art is generated in code: zero asset files, zero asset cost, tiny bundle. */
 export const TS = 16;
@@ -19,11 +19,19 @@ interface Look {
   /** Bright pixel on each speck (ore glint). */
   glint?: string;
   detail?: 'rivets' | 'flakes' | 'cracks' | 'frame' | 'pad' | 'bricks' | 'facets' | 'ripples' | 'roots';
+  /** Built-metal frame on exposed sides: bright band, inner shadow line, a bolt in each exposed corner. */
+  trim?: Trim;
+}
+
+export interface Trim {
+  hi: string;
+  lo: string;
+  bolt: string;
 }
 
 const LOOK: Record<number, Look> = {
   [T.RUST]: { base: '#7a4a3a', light: '#935c48', dark: '#5f382c', detail: 'flakes' },
-  [T.METAL]: { base: '#4a5568', light: '#5d6a80', dark: '#384154', detail: 'rivets' },
+  [T.METAL]: { base: '#4a5568', light: '#5d6a80', dark: '#384154', detail: 'rivets', trim: { hi: '#8e98b0', lo: '#2c3444', bolt: '#c8d0dc' } },
   [T.IRON]: { base: '#4a5568', light: '#5d6a80', dark: '#384154', speck: '#d6c7b8', speckCount: 7, glint: '#fff6e8' },
   [T.COPPER]: { base: '#4a5568', light: '#5d6a80', dark: '#384154', speck: '#e08a3c', speckCount: 7, glint: '#ffd0a0' },
   [T.BEDROCK]: { base: '#1a1d29', light: '#252938', dark: '#101219', detail: 'cracks' },
@@ -42,7 +50,7 @@ const LOOK: Record<number, Look> = {
   [T.CORE_ROCK]: { base: '#1e1028', light: '#2e1a3e', dark: '#12081a', speck: '#9a2aa8', speckCount: 2, detail: 'cracks' },
   [T.CORE_ORE]: { base: '#1e1028', light: '#ff9aff', dark: '#12081a', speck: '#ff5aff', speckCount: 6, glint: '#ffffff', detail: 'facets' },
   [T.BASALT]: { base: '#24232b', light: '#3a3842', dark: '#141319', speck: '#ff6028', speckCount: 1, detail: 'cracks' },
-  [T.REINFORCED]: { base: '#3f4a5e', light: '#8a9ab8', dark: '#262d3c', speck: '#ffb03a', speckCount: 2, glint: '#e6eeff', detail: 'rivets' },
+  [T.REINFORCED]: { base: '#3f4a5e', light: '#8a9ab8', dark: '#262d3c', speck: '#ffb03a', speckCount: 2, glint: '#e6eeff', detail: 'rivets', trim: { hi: '#b8c4dc', lo: '#1e2430', bolt: '#ffb03a' } },
   [T.SHIELD]: { base: '#1d4a66', light: '#5ad8ff', dark: '#10283a', speck: '#c8f6ff', speckCount: 4, glint: '#ffffff', detail: 'rivets' },
   [T.GATE]: { base: '#0b2a3a', light: '#36e0e8', dark: '#061620', speck: '#c8ffff', speckCount: 4, detail: 'pad' },
   [T.WRECK]: { base: '#3a3f4a', light: '#6b7080', dark: '#22252c', speck: '#e8a33d', speckCount: 2, glint: '#36e0e8', detail: 'rivets' },
@@ -186,7 +194,47 @@ export function autotilePixels(id: number, v: number, mask: number): (string | n
       else if (e === 'd') px[y * TS + x] = look.dark;
     }
   }
+  if (look.trim) applyTrim(px, mask, look.trim);
   return px;
+}
+
+/** Look of a block id, for tests and the gallery. */
+export function tileTrim(id: number): Trim | undefined {
+  return LOOK[id]?.trim;
+}
+
+/**
+ * Frames the exposed sides of a built block so walls read as architecture, not rock: a bright band
+ * one pixel in on top/left, a lip on bottom/right, a shadow line inside it, bolts in exposed corners.
+ */
+function applyTrim(px: (string | null)[], mask: number, t: Trim): void {
+  const L = TS - 1;
+  const set = (x: number, y: number, c: string): void => {
+    if (px[y * TS + x] !== null && px[y * TS + x] !== OUTLINE) px[y * TS + x] = c;
+  };
+  for (let i = 1; i < L; i++) {
+    if (mask & EDGE_N) {
+      set(i, 1, t.hi);
+      set(i, 2, t.lo);
+    }
+    if (mask & EDGE_W) {
+      set(1, i, t.hi);
+      set(2, i, t.lo);
+    }
+    if (mask & EDGE_S) set(i, L - 2, t.lo);
+    if (mask & EDGE_E) set(L - 2, i, t.lo);
+  }
+  const corners: [number, number, number][] = [
+    [EDGE_N | EDGE_W, 3, 3],
+    [EDGE_N | EDGE_E, L - 4, 3],
+    [EDGE_S | EDGE_W, 3, L - 4],
+    [EDGE_S | EDGE_E, L - 4, L - 4],
+  ];
+  for (const [m, x, y] of corners) {
+    if ((mask & m) !== m) continue;
+    set(x, y, t.bolt);
+    set(x + 1, y + 1, t.lo);
+  }
 }
 
 /** Atlas column for a variant and neighbour mask. */
