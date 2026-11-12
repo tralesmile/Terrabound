@@ -406,3 +406,14 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** robots react / sit / sleep, Gunsmith and Scientist, then wandering merchant drone.
 
 **Known issues:** upgrade BUY rows refuse while you shop upstairs off the pad; trade rows on a phone are tight; DAILY still replaces the world without a confirm; turrets draw 1 power even when idle; a chair has no flip; windows underground do not bring in daylight; mounted screens stay up if their wall is later removed.
+
+## 2026-11-12 Scheduled run 23
+
+**Done:** baseline: 419 unit tests green, e2e fishing check flaked once (a plain `mouse.click` fell between frames); fixed with a `holdClick` helper (press ~70 ms) and waiting for a fresh bite. Creative review: robots paced silently and the tower walls read as rock. Robots now live: sit on the chair at the table by day, sleep in bed at night (head on the pillow under a blanket, drifting z's; a nearby player wakes them), hurry to bed and tremble with a "!" during raids, wave ("Hi!" bubble + hop) when you bank loot and cheer ("Yay!") after a beaten raid. Frame trims on built metal and reinforced walls (bright band, shadow line, corner bolts). Backlog: Dex the wandering merchant drone (src/sim/merchant.ts): parks over the pad sunrise to mid-afternoon, 3 rotating offers a day from a 10-offer pool (seed + day), shown in the TRADE tab even while away, landing/leaving toasts, gold sprite with a crate and a landing beam. Screenshots 39-robots-asleep, 39b-robot-sits, 39c-robots-wave, 40-merchant, 40b-merchant-trade, 38-windows (trims) reviewed.
+
+**Numbers:** 437 unit tests (new: npcpose 9, merchant 8, trims 1), e2e all green (new: robots sleep at night, Trader sits on the chair, robots wave on bank, merchant E opens its 3 rows), bundle 268 kB (92.3 kB gzip).
+
+**Next:** Gunsmith (weapon mods) and Scientist (research tree) robots; then farming.
+
+**Known issues:** upgrade BUY rows refuse while you shop upstairs off the pad; trade rows on a phone are tight (TRADE now has 14 rows, scrolls); DAILY still replaces the world without a confirm; turrets draw 1 power even when idle; a chair has no flip; mounted screens stay up if their wall is later removed; the merchant hovers inside whatever is built over the right end of the pad.
+

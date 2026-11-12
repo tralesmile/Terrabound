@@ -1,5 +1,14 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-12 run 23
+
+- Done this run: robots sit/sleep/hide/wave/cheer, metal wall trims, Dex the merchant drone.
+- Weakest gameplay feel (vs Terraria/Core Keeper): combat still has no weapon progression beyond crafting tiers; the Gunsmith's mod chips (+pierce, +burn, +ricochet) would make each run's loadout feel different (backlog NPC line).
+- Weakest graphics: the merchant drone is a recoloured field drone; a bigger 24 px hull with a striped awning over the crate would sell "shop".
+- Weakest controls: lifts still need jump held; tap-to-ride to the next floor (carried over from run 22).
+- Weakest UI: TRADE is now 14 rows; group by robot with a portrait header and collapse locked rows (carried over, now more urgent).
+- New: a light-pipe block (carries daylight down a shaft) to make underground rooms bright; robots sometimes eat at the table at noon.
+
 ## 2026-11-12 run 22
 
 - Done this run: windows (live sky by day, warm glow at night, +1 comfort), lift shafts, wall-mount rules, cozy trade rates (comfort pays).
@@ -15,11 +24,3 @@
 - Weakest gameplay feel: robots still pace silently; a sit/sleep animation (Bolt sits on the chair, sleeps in the bed at night) is cheap and charming.
 - Weakest UI: the toast stack under the title repeats "moved in" lines on every load-in fixture; robots arriving could be one portrait card instead.
 - Weakest progression: comfort is computed but pays nothing yet; comfort 3+ unlocks a "cozy" trade row (merged into the NPC backlog line).
-
-## 2026-11-12 run 20
-
-- Done this run: trade rows with item icons, Patch the Medic (medkits, 3/4 pack kept on death).
-- Weakest controls: healing needs the inventory screen mid-fight; a quick-heal key/HUD button (Terraria's H) - promoted to BACKLOG.
-- Weakest gameplay feel: robots still only pace; reactions (wave, hide during raids, cheer after) - merged into the NPC backlog line.
-- Weakest progression: stacked homes upstairs are off the pad, so the base wants to grow up; a lift/elevator block would make multi-storey bases pleasant.
-- Weakest graphics: the base tower is one grey stone texture; per-material wall trims (metal frame vs. stone) would read as architecture.

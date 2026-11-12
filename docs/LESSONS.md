@@ -83,3 +83,9 @@
 
 - **`Game` has no event subscription; tests read `g.drainEvents()`** after the steps (run 22 wrote `g.on(...)`). Also placing a tile in the player's own column is refused (`overlapsPlayer`), so placement tests stand the player off to the side.
 - **Light tests need a source bright enough to reach the probe** (AIR_COST 4, SOLID_COST 8 per tile; TORCH_LEVEL 40). A level-24 source 6 tiles away reads 0 either way and the comparison is meaningless.
+
+- **A plain Playwright `mouse.click` flaked the fishing check** (the lesson about frame-sampled input applied to clicks too). Guard: `holdClick(page, x, y)` in e2e/smoke.mjs; use it for any click the sim must see.
+- **Anything new at the pad competes for E and the hint line.** The merchant took E from the drone bay and broke 4 drone checks. Guard: new interactables go after bays/chests in `interact()` and after base hints in `hintAutomation`; run the full e2e after adding one.
+- **Two posted rates can loop into free goods** (5 biomass -> 3 seed, 4 seed -> 8 biomass = 1.2x). Guard: tests/merchant.test.ts checks every A -> B -> A pair over all robot and merchant rates loses.
+- **Disabled buttons are not in `ui.rects`.** An e2e that counts TRADE buttons must give the stash enough to afford every row first.
+
