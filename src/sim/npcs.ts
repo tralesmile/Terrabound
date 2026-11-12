@@ -104,6 +104,51 @@ export const TRADES: readonly Trade[] = [
   { id: 'cozy_med', npc: 'medic', give: { biomass: 2, fish: 1 }, get: { medkit: 1 }, toPack: true, cozy: COZY },
 ];
 
+/**
+ * Robot happiness: how a robot feels about its home, from its room's comfort (0..4) plus up to
+ * two robot neighbours. Happy robots knock a little off their posted rates; an unhappy robot never
+ * charges more than the posted price. Derived, nothing saved.
+ */
+export type Mood = 'lonely' | 'content' | 'happy' | 'delighted';
+
+/** Mood score from comfort and how many other robots live in the base. Pure. */
+export function moodScore(comfort: number, neighbours: number): number {
+  return Math.max(0, comfort) + Math.min(2, Math.max(0, neighbours));
+}
+
+export function npcMood(comfort: number, neighbours: number): Mood {
+  const s = moodScore(comfort, neighbours);
+  return s <= 0 ? 'lonely' : s <= 3 ? 'content' : s <= 5 ? 'happy' : 'delighted';
+}
+
+/** Items knocked off the biggest stack a robot asks for, per mood (0 below happy: never a penalty). */
+export const MOOD_DISCOUNT: Record<Mood, number> = { lonely: 0, content: 0, happy: 1, delighted: 2 };
+
+export const MOOD_LABEL: Record<Mood, string> = { lonely: 'Lonely', content: 'Content', happy: 'Happy', delighted: 'Delighted' };
+
+/** What the robot says about its home, mixed into its lines (none while merely content). */
+export const MOOD_LINES: Record<Mood, string | null> = {
+  lonely: 'Bare walls and nobody next door. Decor or a neighbour would cheer me up.',
+  content: null,
+  happy: 'I like it here. My rates are one cheaper for you.',
+  delighted: 'Best home in the Hollow! Two off my rates, friend.',
+};
+
+/**
+ * The price a robot asks given its mood: the biggest stack in `give` drops by the mood discount,
+ * never below half of it (rounded up) and never below 1. Same object back when nothing changes. Pure.
+ */
+export function moodGive(give: Inventory, mood: Mood): Inventory {
+  const d = MOOD_DISCOUNT[mood];
+  if (d <= 0) return give;
+  let key: keyof Inventory | null = null;
+  let max = 0;
+  for (const [k, n] of Object.entries(give)) if ((n ?? 0) > max) [key, max] = [k as keyof Inventory, n ?? 0];
+  if (!key || max < 2) return give;
+  const n = Math.max(Math.ceil(max / 2), max - d);
+  return n === max ? give : { ...give, [key]: n };
+}
+
 /** Share of each pack stack kept on death: half normally, three quarters while the Medic lives in the base. */
 export function deathKeep(n: number, medic: boolean): number {
   return medic ? Math.floor((n * 3) / 4) : Math.floor(n / 2);
@@ -344,8 +389,11 @@ function walk(npc: Npc, x: number, step: number): boolean {
   return false;
 }
 
-/** The line a robot says now (changes every 6 s of game time). Pure. */
-export function npcLine(kind: NpcKind, time: number): string {
+/** The line a robot says now (changes every 6 s of game time); every third line is about its mood. Pure. */
+export function npcLine(kind: NpcKind, time: number, mood: Mood = 'content'): string {
   const lines = NPC_INFO[kind].lines;
-  return lines[Math.floor(Math.max(0, time) / 6) % lines.length];
+  const i = Math.floor(Math.max(0, time) / 6);
+  const m = MOOD_LINES[mood];
+  if (m && i % 3 === 0) return m;
+  return lines[i % lines.length];
 }

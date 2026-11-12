@@ -38,7 +38,7 @@ import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims
 import { findRooms, mountOk, roomHint, type Room } from './rooms';
 import { RESEARCH, applyResearch, researchMissing, type ResearchId } from './research';
 import { MODS, applyMods, bounce, fitMod, type ModId, type ModSlot } from './mods';
-import { NPC_INFO, TRADES, deathKeep, doTrade, npcLine, npcSpots, reactNpcs, roomFloor, stepNpc, syncNpcs, tradeOpen, type Npc, type NpcKind, type Trade } from './npcs';
+import { NPC_INFO, NPC_ORDER, TRADES, deathKeep, doTrade, moodGive, npcLine, npcMood, type Mood, npcSpots, reactNpcs, roomFloor, stepNpc, syncNpcs, tradeOpen, type Npc, type NpcKind, type Trade } from './npcs';
 import { merchantDay, merchantPresent, merchantStock } from './merchant';
 import { placement, removeTile } from './wide';
 import { blueprintDrop, RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
@@ -399,13 +399,13 @@ export class Game {
 
   /** The Scientist studies a perk: it must live in the base, prerequisites done, you can shop and pay from the stash. */
   canResearch(id: ResearchId): boolean {
-    return !this.hasResearch(id) && researchMissing(this.save.research, id).length === 0 && this.hasNpc('scientist') && this.canShop() && canAfford(this.stash, RESEARCH[id].cost);
+    return !this.hasResearch(id) && researchMissing(this.save.research, id).length === 0 && this.hasNpc('scientist') && this.canShop() && canAfford(this.stash, this.npcPrice('scientist', RESEARCH[id].cost));
   }
 
   /** Study a perk for good. Battery and HP gains fill up right away so the new headroom is felt at once. */
   research(id: ResearchId): boolean {
     if (!this.canResearch(id)) return false;
-    pay(this.stash, RESEARCH[id].cost);
+    pay(this.stash, this.npcPrice('scientist', RESEARCH[id].cost));
     const before = this.derived;
     this.save.research.push(id);
     const after = this.derived;
@@ -431,13 +431,13 @@ export class Game {
 
   /** The Gunsmith builds a chip: it must live in the base, you must be able to shop and pay from the stash. */
   canBuyMod(id: ModId): boolean {
-    return !this.ownsMod(id) && this.hasNpc('gunsmith') && this.canShop() && canAfford(this.stash, MODS[id].cost);
+    return !this.ownsMod(id) && this.hasNpc('gunsmith') && this.canShop() && canAfford(this.stash, this.npcPrice('gunsmith', MODS[id].cost));
   }
 
   /** Buy a chip and fit it right away (like crafted gear is equipped right away). */
   buyMod(id: ModId): boolean {
     if (!this.canBuyMod(id)) return false;
-    pay(this.stash, MODS[id].cost);
+    pay(this.stash, this.npcPrice('gunsmith', MODS[id].cost));
     this.save.mods.owned.push(id);
     this.fitMod(id);
     this.emit({ t: 'modbuy', id });
@@ -2137,7 +2137,7 @@ export class Game {
       const info = NPC_INFO[npc.kind];
       const act = `${touch ? 'Tap' : 'E'} to ${npc.kind === 'medic' ? 'get medkits' : npc.kind === 'gunsmith' ? 'fit weapon mods' : npc.kind === 'scientist' ? 'research perks' : 'trade'}`;
       if (npc.pose === 'sleep' && this.raid) return `${info.name} hides under the covers: "Tell me when it is over!"  ${act}`;
-      return `${info.name} the ${info.title}: "${npcLine(npc.kind, this.time)}"  ${act}`;
+      return `${info.name} the ${info.title}: "${npcLine(npc.kind, this.time, this.npcMood(npc.kind))}"  ${act}`;
     }
     if (!this.isAtBase()) return null;
     const room = roomHint(this.roomHere());
@@ -2272,9 +2272,32 @@ export class Game {
     return this.rooms.find((r) => r.y0 * this.world.w + r.x0 === n.home)?.comfort ?? 0;
   }
 
-  /** Swap with the Trader at a posted rate (base only, Trader must live here). Stash to stash. */
+  /** Other robots living in the base besides `kind` (the visiting merchant does not count). */
+  npcNeighbours(kind: NpcKind): number {
+    return this.npcs.filter((n) => n.kind !== kind && NPC_ORDER.includes(n.kind)).length;
+  }
+
+  /** How a robot feels about its home (comfort + neighbours); 'content' for the merchant or a robot not home. */
+  npcMood(kind: NpcKind): Mood {
+    if (kind === 'merchant' || !this.hasNpc(kind)) return 'content';
+    return npcMood(this.npcComfort(kind), this.npcNeighbours(kind));
+  }
+
+  /** What a robot asks for a posted price right now: happy robots knock a little off, never more. */
+  npcPrice(kind: NpcKind, cost: Inventory): Inventory {
+    return moodGive(cost, this.npcMood(kind));
+  }
+
+  /** A posted rate at today's mood price. */
+  tradeNow(t: Trade): Trade {
+    const give = this.npcPrice(t.npc, t.give);
+    return give === t.give ? t : { ...t, give };
+  }
+
+  /** Swap with a robot at its posted rate (mood price; base only, it must live here). */
   trade(id: string): boolean {
-    const t = this.tradeList().find((k) => k.id === id);
+    const posted = this.tradeList().find((k) => k.id === id);
+    const t = posted && this.tradeNow(posted);
     if (!t || !this.canShop() || !tradeOpen(t, this.hasNpc(t.npc), this.npcComfort(t.npc)) || !doTrade(this.stash, t, this.carried)) return false;
     this.emit({ t: 'trade', id });
     return true;

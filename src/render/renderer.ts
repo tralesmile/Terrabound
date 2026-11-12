@@ -1,5 +1,5 @@
 import type { Game, Shot } from '../sim/game';
-import { NPC_INFO, type Npc } from '../sim/npcs';
+import { NPC_INFO, type Mood, type Npc } from '../sim/npcs';
 import { roomEdges } from '../sim/rooms';
 import { furnitureArt, screenLines } from './furniture';
 import { wideSide } from '../sim/wide';
@@ -34,6 +34,21 @@ export const ROBOT_LOOK: Record<RobotKind, { remap?: Record<string, string>; tag
 };
 
 /** Tracer colour of a player bolt: ricochet green, piercing blue, scatter orange, plain pulse gold. Pure. */
+const HEART = ['.#.#.', '#####', '.###.', '..#..'];
+
+/**
+ * Mood bubble over a robot that is awake: happy robots float a pink heart every few seconds,
+ * delighted ones more often in gold, lonely ones a grey one. Null while nothing shows. Pure.
+ */
+export function moodHeart(mood: Mood, t: number): { rise: number; alpha: number; color: string } | null {
+  if (mood === 'content') return null;
+  const period = mood === 'delighted' ? 2.5 : 4.5;
+  const p = (((t % period) + period) % period) / 1.4; // shows for the first 1.4 s of each period
+  if (p >= 1) return null;
+  const color = mood === 'delighted' ? '#ffd23a' : mood === 'happy' ? '#ff7aa8' : '#8a90a2';
+  return { rise: p, alpha: Math.min(1, (1 - p) * 2.5), color };
+}
+
 export function boltColor(sh: Shot, ranged: RangedKind): string {
   if (sh.bounces !== undefined) return '#7dffb0';
   if (sh.pierce) return ranged === 'rail' ? '#8fd0ff' : '#5aa6ff';
@@ -73,6 +88,8 @@ export class Renderer {
   camY = 0;
   /** Last frame's hurt vignette alpha (read by e2e). */
   lastHurtAlpha = 0;
+  /** Mood hearts drawn last frame (read by e2e). */
+  heartsShown = 0;
   private snapped = false;
 
   constructor(private ctx: CanvasRenderingContext2D) {}
@@ -977,6 +994,7 @@ export class Renderer {
   private drawNpcs(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
     const near = game.npcNear();
     const s = this.scale;
+    this.heartsShown = 0;
     for (const n of game.npcs) {
       const x = this.sx(n.x, shakeX);
       const hop = n.react && n.pose !== 'sit' ? npcHop(n.react, n.reactT ?? 0) * s : 0;
@@ -995,6 +1013,11 @@ export class Renderer {
         drawRows(ctx, rows, Math.round(x - (TRADER_W / 2) * s), Math.round(y - 20 * s), s, n.face < 0, TRADER_W, undefined, remap);
       }
       if (n.react) this.drawNpcBubble(ctx, x, y - (n.pose === 'sit' ? 23 : 22) * s, n.react === 'cheer' ? 'Yay!' : 'Hi!', n.react === 'cheer' ? '#7dffb0' : '#ffffff', time);
+      else if (n.pose !== 'sleep' && n !== near) {
+        const h = moodHeart(game.npcMood(n.kind), t + n.home * 0.37);
+        if (h) this.heartsShown++;
+        if (h) this.drawHeart(ctx, x + 5 * s, y - (22 + h.rise * 6) * s, h.alpha, h.color);
+      }
       if (n === near && !n.react) {
         const label = `${info.name.toUpperCase()}  ${info.title}`;
         ctx.font = `bold ${Math.round(s * 4)}px monospace`;
@@ -1043,6 +1066,17 @@ export class Renderer {
       ctx.textBaseline = 'middle';
       ctx.fillText(label, x, ty - s);
     }
+  }
+
+  /** A 5x4 pixel heart (or a grey sigh for a lonely robot) centred on (x, y). */
+  private drawHeart(ctx: CanvasRenderingContext2D, x: number, y: number, alpha: number, color: string): void {
+    const s = this.scale;
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    for (let r = 0; r < HEART.length; r++) for (let c = 0; c < 5; c++) {
+      if (HEART[r][c] === '#') ctx.fillRect(Math.round(x + (c - 2.5) * s), Math.round(y + (r - 2) * s), Math.ceil(s), Math.ceil(s));
+    }
+    ctx.globalAlpha = 1;
   }
 
   /** A little speech bubble with a tail, centred over (x, y) (its bottom edge). */

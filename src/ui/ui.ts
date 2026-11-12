@@ -14,7 +14,7 @@ import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type
 import { UPGRADES } from '../sim/upgrades';
 import { RECIPES } from '../sim/recipes';
 import { ACT_INFO, COND_INFO, RULE_MAX, ROLE_INFO } from '../sim/drones';
-import { NPC_INFO, NPC_ORDER, TRADES, tradeOpen, type NpcKind } from '../sim/npcs';
+import { MOOD_DISCOUNT, MOOD_LABEL, NPC_INFO, NPC_ORDER, TRADES, tradeOpen, type NpcKind } from '../sim/npcs';
 import { MERCHANT_STOCK } from '../sim/merchant';
 import { MODS, MOD_IDS, type ModId } from '../sim/mods';
 import { RESEARCH, RESEARCH_IDS, type ResearchId } from '../sim/research';
@@ -852,7 +852,8 @@ export class UI {
       ry += rowH;
     }
 
-    for (const tr of this.shopTab === 'trade' ? tradeEntries(game).slice(this.shopScroll, this.shopScroll + vis) : []) {
+    for (const entry of this.shopTab === 'trade' ? tradeEntries(game).slice(this.shopScroll, this.shopScroll + vis) : []) {
+      const tr = typeof entry === 'object' && 'id' in entry ? game.tradeNow(entry) : entry;
       if (typeof tr === 'string') {
         this.modRow(ctx, game, tr, px, ry, pw, rowH, u);
         ry += rowH;
@@ -892,7 +893,7 @@ export class UI {
       const info = NPC_INFO[tr.npc];
       this.text(ctx, `${costText(tr.give)}  ->  ${costText(tr.get)}`, tx2, ry + rowH * 0.3, Math.round(u * 0.8), '#fff', 'left', tw2);
       const have = tradeParts(tr.give).map(([k]) => `${game.stash[k] ?? 0} ${ITEMS[k].name.toLowerCase()}`).join(', ');
-      const cozy = tr.cozy ? 'Cozy rate. ' : '';
+      const cozy = (tr.cozy ? 'Cozy rate. ' : '') + (typeof entry === 'object' && 'id' in entry && tr.give !== entry.give ? `${MOOD_LABEL[game.npcMood(tr.npc)]} price (was ${costText(entry.give)}). ` : '');
       const sub = home
         ? `${cozy}${info.name}${tr.npc === 'merchant' ? ' (today only)' : ''}${tr.toPack ? ' (into your pack)' : ''}: you have ${have}`
         : tr.npc === 'merchant'
@@ -948,7 +949,7 @@ export class UI {
           ? `On the pad now: ${h.rows} offers today only`
           : `Away: lands at sunrise with these ${h.rows} offers`
         : home
-          ? `Lives in your base: ${h.rows} ${h.header === 'gunsmith' ? 'chips' : h.header === 'scientist' ? 'perks' : 'rates'}`
+          ? `Lives in your base: ${h.rows} ${h.header === 'gunsmith' ? 'chips' : h.header === 'scientist' ? 'perks' : 'rates'}.  ${moodText(game, h.header)}`
           : `Not here yet: furnish a ${nth} room (light, table, bed) to unlock ${h.rows} ${h.header === 'gunsmith' ? 'chips' : h.header === 'scientist' ? 'perks' : 'rates'}`;
     this.text(ctx, sub, tx2, ry + rowH * 0.72, Math.round(u * 0.64), home || h.header === 'merchant' ? '#c8d0e0' : '#ff8a8a', 'left', tw2);
   }
@@ -973,7 +974,7 @@ export class UI {
         ? `${r.desc}. No scientist yet: furnish a fourth room (light, table, bed)`
         : missing.length > 0
           ? `${r.desc}. Needs ${missing.map((m) => RESEARCH[m].name).join(' + ')} first`
-          : `${r.desc}. Nova studies it for ${costText(r.cost)}`;
+          : `${r.desc}. Nova studies it for ${priceText(r.cost, game.npcPrice('scientist', r.cost))}`;
     this.text(ctx, sub, tx2, ry + rowH * 0.68, Math.round(u * 0.64), done ? '#d8c8ff' : afford ? '#9ff6a0' : '#ff8a8a', 'left', tw2);
     const bw = u * 5.5;
     const bx = px + pw - bw - u * 0.8;
@@ -1001,7 +1002,7 @@ export class UI {
         ? `${m.desc}. Fitted to your ${weapon.toLowerCase()} (tap to take out)`
         : `${m.desc}. Owned: fit it to your ${weapon.toLowerCase()} for free`
       : home
-        ? `${m.desc}. Rook builds it for ${costText(m.cost)}`
+        ? `${m.desc}. Rook builds it for ${priceText(m.cost, game.npcPrice('gunsmith', m.cost))}`
         : `${m.desc}. No gunsmith yet: furnish a third room (light, table, bed)`;
     this.text(ctx, sub, tx2, ry + rowH * 0.68, Math.round(u * 0.64), owned ? (fitted ? '#ffd8a8' : '#9aa3b8') : afford ? '#9ff6a0' : '#ff8a8a', 'left', tw2);
     const bw = u * 5.5;
@@ -1052,6 +1053,19 @@ export function tradeEntries(game: Game): TradeEntry[] {
 /** Which robot a TRADE entry belongs to (for jumping to its rows). Pure. */
 export function entryNpc(e: TradeEntry): string {
   return typeof e === 'string' ? 'gunsmith' : 'research' in e ? 'scientist' : 'header' in e ? e.header : e.npc;
+}
+
+/** A price that shows the posted one too when a happy robot asks less. */
+function priceText(posted: Partial<Record<ItemId, number>>, now: Partial<Record<ItemId, number>>): string {
+  return now === posted ? costText(posted) : `${costText(now)} (was ${costText(posted)})`;
+}
+
+/** Header mood note: how the robot feels and what would cheer it up or what it gives back. */
+export function moodText(game: Game, kind: NpcKind): string {
+  const mood = game.npcMood(kind);
+  const off = MOOD_DISCOUNT[mood];
+  if (off > 0) return `${MOOD_LABEL[mood]}: ${off} off the biggest cost`;
+  return `${MOOD_LABEL[mood]}: more comfort or neighbours make it happy (cheaper)`;
 }
 
 /** The non-zero entries of a trade side, in ITEM_IDS order. */

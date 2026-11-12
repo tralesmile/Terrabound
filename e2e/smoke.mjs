@@ -1157,7 +1157,13 @@ try {
     const { game } = window.__terrabound;
     return { metal: game.stash.metal ?? 0, rust: game.stash.rust ?? 0 };
   });
-  check('clicking TRADE swaps 8 rust for 1 metal', !!tradeBtn && tradeAfter.rust === tradeUi.rust - 8 && tradeAfter.metal === tradeUi.metal + 1, JSON.stringify({ tradeBtn: !!tradeBtn, tradeUi, tradeAfter }));
+  // The furnished room is comfort 4, so Bolt is happy and knocks one rust off (posted 8).
+  const mood = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const t = g.tradeList().find((k) => k.id === 'rust_metal');
+    return { mood: g.npcMood('trader'), rust: g.tradeNow(t).give.rust, posted: t.give.rust };
+  });
+  check('a happy Trader (comfort 4) trades rust for metal one cheaper than posted', !!tradeBtn && mood.mood === 'happy' && mood.posted === 8 && mood.rust === 7 && tradeAfter.rust === tradeUi.rust - 7 && tradeAfter.metal === tradeUi.metal + 1, JSON.stringify({ tradeBtn: !!tradeBtn, mood, tradeUi, tradeAfter }));
   // Comfort pays: the furnished room is comfort 4, so Bolt posts the cozy fish -> crystal rate.
   await page.evaluate(() => {
     const { ui, game } = window.__terrabound;
@@ -1166,6 +1172,30 @@ try {
   });
   await page.waitForTimeout(200);
   await page.screenshot({ path: path.join(out, '36c-cozy-trade.png') });
+  {
+    // Happy robots float a heart now and then (only while you are not standing next to them).
+    const saved = await page.evaluate(() => {
+      const { ui, game } = window.__terrabound;
+      ui.shopOpen = false;
+      const p = { x: game.body.x, y: game.body.y };
+      game.body.x -= 4;
+      return p;
+    });
+    let hearts = 0;
+    for (let i = 0; i < 30 && hearts === 0; i++) {
+      await page.waitForTimeout(100);
+      hearts = await page.evaluate(() => window.__terrabound.renderer.heartsShown);
+    }
+    await page.screenshot({ path: path.join(out, '36i-happy-heart.png') });
+    check('a happy robot floats a heart when you step back', hearts > 0, JSON.stringify({ hearts }));
+    await page.evaluate((p) => {
+      const { ui, game } = window.__terrabound;
+      game.body.x = p.x;
+      game.body.y = p.y;
+      ui.shopOpen = true;
+    }, saved);
+    await page.waitForTimeout(150);
+  }
   const cozyBtn = await page.evaluate(() => {
     const { ui, game } = window.__terrabound;
     return { btn: !!ui.rects.find((r) => r.a.k === 'trade' && r.a.id === 'cozy_crystal'), comfort: game.npcComfort('trader') };
