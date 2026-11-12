@@ -26,7 +26,7 @@ import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, fra
 
 /** Chunk size in tiles for the render cache. */
 /** Per-robot colours: sprite remap, name tag, blanket. */
-const ROBOT_LOOK: Record<RobotKind, { remap?: Record<string, string>; tag: string; blanket: Record<string, string> }> = {
+export const ROBOT_LOOK: Record<RobotKind, { remap?: Record<string, string>; tag: string; blanket: Record<string, string> }> = {
   trader: { tag: '#ffd23a', blanket: { a: '#4a6ab8', b: '#a8c0ff', e: '#34508f' } },
   medic: { remap: MEDIC_REMAP, tag: '#ff8a8a', blanket: { a: '#d8dee8', b: '#ffffff', e: '#9aa4b4' } },
   gunsmith: { remap: GUNSMITH_REMAP, tag: '#ffb23a', blanket: { a: '#8a4a2a', b: '#d88a4a', e: '#5a2e1a' } },

@@ -1,8 +1,8 @@
 import type { Game, Tool } from '../sim/game';
 import { MAP_ZOOMS, MapView } from './map';
 import { ICON, drawIcon } from '../render/icons';
-import { drawPlayer } from '../render/sprites';
-import { playerGear } from '../render/renderer';
+import { TRADER_W, drawPlayer, drawRows, robotRows, type RobotKind } from '../render/sprites';
+import { ROBOT_LOOK, playerGear } from '../render/renderer';
 import { FOOD, bestHeal, healCount } from '../sim/fishing';
 import { GEAR, GEAR_IDS, GEAR_SLOTS, type GearId } from '../sim/gear';
 import { BOSSES, bossForBeacon } from '../sim/bosses';
@@ -14,7 +14,7 @@ import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type
 import { UPGRADES } from '../sim/upgrades';
 import { RECIPES } from '../sim/recipes';
 import { ACT_INFO, COND_INFO, RULE_MAX, ROLE_INFO } from '../sim/drones';
-import { NPC_INFO, TRADES, tradeOpen } from '../sim/npcs';
+import { NPC_INFO, NPC_ORDER, TRADES, tradeOpen, type NpcKind } from '../sim/npcs';
 import { MERCHANT_STOCK } from '../sim/merchant';
 import { MODS, MOD_IDS, type ModId } from '../sim/mods';
 import { RESEARCH, RESEARCH_IDS, type ResearchId } from '../sim/research';
@@ -160,10 +160,12 @@ export class UI {
   shopVisible = SHOP_VISIBLE;
   /** First visible row of the current shop tab. */
   shopScroll = 0;
+  /** TRADE tab length (headers + unfolded rows), refreshed each draw since robots come and go. */
+  tradeRows = TRADES.length + MOD_IDS.length + RESEARCH_IDS.length + MERCHANT_STOCK + 5;
 
   /** Row count of the current shop tab. */
   shopRows(): number {
-    return this.shopTab === 'upgrades' ? UPGRADES.length : this.shopTab === 'gear' ? GEAR_IDS.length : this.shopTab === 'trade' ? TRADES.length + MOD_IDS.length + RESEARCH_IDS.length + MERCHANT_STOCK : RECIPES.length;
+    return this.shopTab === 'upgrades' ? UPGRADES.length : this.shopTab === 'gear' ? GEAR_IDS.length : this.shopTab === 'trade' ? this.tradeRows : RECIPES.length;
   }
 
   scrollShop(d: number): void {
@@ -785,6 +787,7 @@ export class UI {
     if (owned.length === 0) this.text(ctx, 'Stash empty: dive and bank loot', px + u, sy, Math.round(u * 0.9), '#8a93a8');
 
     // Rows.
+    if (this.shopTab === 'trade') this.tradeRows = tradeEntries(game).length;
     const total = this.shopRows();
     const vis = this.shopVisible;
     this.shopScroll = clampScroll(this.shopScroll, total, vis);
@@ -860,6 +863,11 @@ export class UI {
         ry += rowH;
         continue;
       }
+      if ('header' in tr) {
+        this.npcHeader(ctx, game, tr, px, ry, pw, rowH, u);
+        ry += rowH;
+        continue;
+      }
       const comfort = game.npcComfort(tr.npc);
       const home = tradeOpen(tr, game.hasNpc(tr.npc), comfort);
       const afford = home && ITEM_IDS.every((k) => (game.stash[k] ?? 0) >= (tr.give[k] ?? 0));
@@ -908,6 +916,43 @@ export class UI {
     this.button(ctx, px + u * 2 + bw, fy, bw, u * 2.4, 'CLOSE', { k: 'close' }, u);
     this.text(ctx, `World ${game.seedCode}   Best ${game.stats.deepest}m   Dives ${game.runs}   Deaths ${game.stats.deaths}`, px + pw / 2, py + ph - u * 0.9, Math.round(u * 0.65), '#8a90a2', 'center', pw - u);
   }
+  /** A robot's group header: its portrait, name and title, and whether it lives here (or what it needs). */
+  private npcHeader(ctx: CanvasRenderingContext2D, game: Game, h: HeaderEntry, px: number, ry: number, pw: number, rowH: number, u: number): void {
+    const info = NPC_INFO[h.header];
+    const home = game.hasNpc(h.header);
+    const tag = h.header === 'merchant' ? '#5ad8ff' : ROBOT_LOOK[h.header as RobotKind].tag;
+    ctx.fillStyle = home ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.25)';
+    ctx.fillRect(px + u * 0.5, ry + rowH * 0.12, pw - u, rowH - u * 0.5);
+    ctx.fillStyle = tag;
+    ctx.fillRect(px + u * 0.5, ry + rowH * 0.12, u * 0.25, rowH - u * 0.5);
+    // Portrait: the robot's own sprite (head and chest), dimmed while it has no home.
+    const isz = rowH - u * 0.8;
+    if (h.header === 'merchant') drawIcon(ctx, 'drone', px + u * 1.1, ry + u * 0.4, Math.max(1, Math.floor(isz / 12)));
+    else {
+      const s = Math.max(1, Math.floor(isz / 15));
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(px + u * 0.9, ry + u * 0.2, isz, isz);
+      ctx.clip();
+      if (!home) ctx.globalAlpha = 0.35;
+      drawRows(ctx, robotRows(h.header as RobotKind, 0, false), px + u * 0.9 + (isz - TRADER_W * s) / 2, ry + u * 0.35, s, false, TRADER_W, undefined, ROBOT_LOOK[h.header as RobotKind].remap);
+      ctx.restore();
+    }
+    const tx2 = px + u * 1.6 + isz;
+    const tw2 = pw - isz - u * 3;
+    this.text(ctx, `${info.name.toUpperCase()} THE ${info.title.toUpperCase()}`, tx2, ry + rowH * 0.36, Math.round(u * 0.85), tag, 'left', tw2);
+    const nth = ['first', 'second', 'third', 'fourth'][NPC_ORDER.indexOf(h.header)] ?? 'another';
+    const sub =
+      h.header === 'merchant'
+        ? game.hasNpc('merchant')
+          ? `On the pad now: ${h.rows} offers today only`
+          : `Away: lands at sunrise with these ${h.rows} offers`
+        : home
+          ? `Lives in your base: ${h.rows} ${h.header === 'gunsmith' ? 'chips' : h.header === 'scientist' ? 'perks' : 'rates'}`
+          : `Not here yet: furnish a ${nth} room (light, table, bed) to unlock ${h.rows} ${h.header === 'gunsmith' ? 'chips' : h.header === 'scientist' ? 'perks' : 'rates'}`;
+    this.text(ctx, sub, tx2, ry + rowH * 0.72, Math.round(u * 0.64), home || h.header === 'merchant' ? '#c8d0e0' : '#ff8a8a', 'left', tw2);
+  }
+
   /** One Scientist research row: perk icon, what it does, then STUDY, LOCKED (needs a perk first) or DONE. */
   private researchRow(ctx: CanvasRenderingContext2D, game: Game, id: ResearchId, px: number, ry: number, pw: number, rowH: number, u: number): void {
     const r = RESEARCH[id];
@@ -970,16 +1015,43 @@ export class UI {
 export interface ResearchEntry {
   research: ResearchId;
 }
+/** A robot's group header in the TRADE tab; `hidden` rows are folded away while it is not home. */
+export interface HeaderEntry {
+  header: NpcKind;
+  rows: number;
+  hidden: number;
+}
+export type TradeEntry = Trade | ModId | ResearchEntry | HeaderEntry;
 
-/** TRADE tab rows in order: the room robots' rates, the Gunsmith's chips, the Scientist's research, then the merchant's stock. */
-export function tradeEntries(game: Game): (Trade | ModId | ResearchEntry)[] {
+/** Rows each room robot posts, in NPC_ORDER (the merchant's stock comes last). Pure. */
+function robotRowsFor(kind: NpcKind, list: readonly Trade[]): TradeEntry[] {
+  if (kind === 'gunsmith') return [...MOD_IDS];
+  if (kind === 'scientist') return RESEARCH_IDS.map((research) => ({ research }));
+  return list.filter((t) => t.npc === kind);
+}
+
+/**
+ * TRADE tab rows: one header per robot (portrait, name, status) followed by its rows; a robot that
+ * has not moved in yet folds to its header so the tab stays short. The merchant's stock is never
+ * folded (its rows show what it brings next morning).
+ */
+export function tradeEntries(game: Game): TradeEntry[] {
   const list = game.tradeList();
-  return [...list.slice(0, TRADES.length), ...MOD_IDS, ...RESEARCH_IDS.map((research) => ({ research })), ...list.slice(TRADES.length)];
+  const out: TradeEntry[] = [];
+  for (const kind of NPC_ORDER) {
+    const rows = robotRowsFor(kind, list);
+    const home = game.hasNpc(kind);
+    out.push({ header: kind, rows: rows.length, hidden: home ? 0 : rows.length });
+    if (home) out.push(...rows);
+  }
+  const stock = list.filter((t) => t.npc === 'merchant');
+  out.push({ header: 'merchant', rows: stock.length, hidden: 0 }, ...stock);
+  return out;
 }
 
 /** Which robot a TRADE entry belongs to (for jumping to its rows). Pure. */
-export function entryNpc(e: Trade | ModId | ResearchEntry): string {
-  return typeof e === 'string' ? 'gunsmith' : 'research' in e ? 'scientist' : e.npc;
+export function entryNpc(e: TradeEntry): string {
+  return typeof e === 'string' ? 'gunsmith' : 'research' in e ? 'scientist' : 'header' in e ? e.header : e.npc;
 }
 
 /** The non-zero entries of a trade side, in ITEM_IDS order. */
