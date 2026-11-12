@@ -314,3 +314,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** P1.8 "Living base and drones", then the rest of P1.8; IDEAS: magma surface art, context hints, touch jump button.
 
 **Known issues:** DAILY still replaces the world without a confirm; basalt is quite dark against plasma rock.
+
+## 2026-11-12 Scheduled run 14
+
+**Done:** baseline green (295 tests). Creative review: magma pools were flat orange blocks; now a travelling heat band, rolling crest, bubbles that swell and pop, embers and heat haze (fx.ts helpers, 4 tests, e2e checks two frames differ, 27b2-magma-close.png). Backlog P1.8 field drones slice 1: bays get roles (Survey/Miner/Guard/Hauler) via E or tap, drones fly out with the player, miners drill exposed ore and bank it, guards shoot, haulers empty a filling pack; save v12 (roles per bay); bay hint at the base; 12 unit tests, e2e 33-drones.png.
+
+**Numbers:** 311 unit tests, e2e all green, bundle 203 kB (70.5 kB gzip).
+
+**Next:** drone rules + rule editor (P1.8, split out), then night base raids.
+
+**Known issues:** drones fly straight through rock (drawn faint while inside); drone art is rectangles; DAILY still replaces the world without a confirm.

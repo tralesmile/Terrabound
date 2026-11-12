@@ -86,7 +86,8 @@ Bosses and goals
 - [x] Final boss: the Hollow AI in the Core (Core key recipe); victory screen. Still todo: new game+ toggle, status effects on trophy weapons, base trophies, boss pixel-art pass
 
 Living base and drones
-- [ ] Programmable drones in the world: Miner (mine assigned vein), Hauler (bring loot to base chests), Guard (shoot enemies), Repair; 3 rules each, visual rule editor, deterministic, offline-capable
+- [x] Field drones slice 1 (src/sim/drones.ts, save v12): E/tap at a bay cycles Survey (abstract, offline) / Miner (drills exposed ore near you, flies it home) / Guard (shoots enemies) / Hauler (banks a load from a filling pack); powered by the base grid
+- [ ] Drone rules: 3 IF/THEN rules per drone (e.g. IF night THEN guard, IF cargo full THEN home, IF pack > half THEN haul), visual rule editor panel at the bay; Repair role; drone sprites in sprites.ts instead of rectangles
 - [ ] Night base raids (opt-out in settings): waves scale with base value; turrets (craftable), traps, reinforced walls
 - [ ] Furniture and decoration set (tables, lamps, screens, plants, banners, beds); house "room" detection
 

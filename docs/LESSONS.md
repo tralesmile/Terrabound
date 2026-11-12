@@ -56,3 +56,5 @@
 - **Rotating noise coordinates by a position-dependent angle shreds the pattern.** `x * cos(a(x, y))` changes by ~x * da/dx per tile, so seams turned into speckle. Guard: pick a fixed angle per region (SEAM_DIRS) and test shape (component elongation) rather than eyeballing; dump a region to PNG with PIL to look at worldgen.
 - **E2e that stands the player in a deep layer can lose the world** (heat/magma death regenerates it). Guard: build the fixture right next to the player in the same evaluate, and restore HP first.
 - **Order of liquid passes matters.** Cooling after flow let water slide off magma before reacting; reactions run before flow.
+- **Liquid fixtures drain before the screenshot.** A found magma pocket had flowed away by the time the e2e looked at it, so the clip showed empty rock. Guard: build a sealed basin fixture right beside the player in the same evaluate, then screenshot.
+- **E2e fixtures in the base leak into later checks.** Solar cells added for the drone check changed the smelter check's numbers. Guard: remove every tile a check placed in the base before moving on.
