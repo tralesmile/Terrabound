@@ -507,3 +507,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** the follow-ups at the end of BACKLOG P1.9.
 
 **Known issues:** the drill tank is drawn behind the pilot; the e2e water-crest check failed twice and then passed, so it looks flaky (watch it).
+
+## 2026-11-12 Scheduled run 32
+
+**Done:** baseline green (579 tests). Creative review: cave darkness flattened every wall (carried 4 runs; 27-deep-layer, 17-water). Cave rim light (src/render/rimlight.ts): solid faces bordering lit, non-sky air get a 1 art px warm highlight, strongest toward the suit lamp, continuous along flat walls (50-rim-light, 27-deep-layer). Backlog: codex screen (CODEX beside AWARDS in the inventory; PLACES / CREATURES / LOGS tabs, paged, phone fit; kills per kind and logs read are new award counters, so no save bump; 51-codex, 51b, 51c, 51d-mobile-codex). Suit paints: 6 paints from the 6 gold awards, PAINT cycles them on the inventory preview, drawn over armour tier and crafted body armour (save v25 after the interactive session's garage took v24; 52-suit-paint, 51e-mobile-inventory). Fixed: the held-tool name overprinted the 5th tool slot in the inventory (now in the TOOLS header); the water-crest e2e flake (the pool settles a cell while the swimmer moves; it now finds the live surface).
+
+**Numbers:** 599 unit tests (new: rimlight 5, codex 4, paints 4; garage 7 from the interactive session), 160 e2e checks all green (new: rims in a deep cave and a dug pit, codex tabs + kill/log reveal + phone fit, paint locked/unlocked/cycle), bundle 353 kB (120.3 kB gzip).
+
+**Next:** mobile polish (thumb hotbar, hold-to-reel, safe-area insets); codex follow-ups; P1.9 garage follow-ups.
+
+**Known issues:** rims are subtle in big open caves (by design: only lamp-facing faces are strong); awards still pay only a star except gold ones (paints); drone mining counts toward "mined"; digits 1-0 not remappable; toast kinds guessed from text; ore marks 5 px; offline crop growth ignores robot gardeners; crops restart their stage when the base moves; upgrade BUY refuses upstairs off the pad; turrets draw 1 power idle; e2e farm uses raw tile ids (57-67); drill tank drawn behind the pilot.

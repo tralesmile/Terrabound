@@ -1,5 +1,14 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-12 run 32
+
+- Done this run: cave rim light toward the lamp (carried 4 runs); codex screen; suit paints from gold awards.
+- Weakest feel (carried): entering water has no splash ring or air bubbles from the suit; a splash burst + bubble trail while submerged would sell swimming (Terraria).
+- Weakest graphics: open caves are one flat dark tone between rims; faint ambient occlusion (darker 2 px inner band on tile faces next to air) would add depth cheaply in the chunk cache.
+- Weakest progression: bronze/silver awards still pay only a star; small one-time stash gifts per award (no pressure, nothing expires) would make every star land.
+- Weakest controls: hold right click to sow a row (carried); hotbar digits not remappable.
+- Weakest UI: lore is read as one toast at a terminal; a LOGS reader that pages the story in order (codex follow-up in BACKLOG).
+
 ## 2026-11-12 run 31
 
 - Done this run: living water/acid (rolling crest, glints, depth shade, caustics, bubbles); 44 awards with an AWARDS page; 7-step guided GOAL card.
@@ -15,20 +24,3 @@
 - Weakest progression: no achievements or codex screen; 30 achievements with cosmetic suit colours (Terraria-style long goals) is the next backlog item.
 - Weakest controls: hold right click to sow a row (carried); hotbar digits are not remappable yet.
 - Weakest feel: toasts still use one sound for every kind; a soft per-kind chime (discover sparkle, warning blip) would make them readable without looking.
-
-## 2026-11-12 run 29
-
-- Done this run: pickup icons arc into the hotbar/bag with a slot pulse; ore/hazard shape marks; reduced flashes; left-handed stick.
-- Weakest UI (carried 3 runs, do next): toasts are full sentences mid-screen (11-biome-crystal shows three lines over the trees); cap 2, icon + short text, top-left under the depth line.
-- Weakest graphics: cave darkness flattens strata; a faint rim light on tile edges facing the lamp would make caves read in 3D (Core Keeper).
-- Weakest controls: hold right click to sow along a row (carried); hold-to-reel button on touch.
-- Weakest progression: no achievements/codex screen yet (FTUE item); 30 achievements with cosmetic suit colours would give long-term goals (Terraria-style).
-
-## 2026-11-12 run 28
-
-- Done this run: soil strata + buried bones/pipes, merged pickup labels, settings screen (volumes, shake, UI size).
-- Weakest feel: harvest and ore pickups have no arc into the pack; a 0.4 s icon arc to the hotbar (Core Keeper style) would make every pickup land.
-- Weakest graphics: cave darkness flattens the new strata; a faint rim light on exposed tile edges near the player's lamp would make caves read in 3D.
-- Weakest controls: one seed per right click (carried); hold right click to sow along a row.
-- Weakest UI: toasts are full sentences mid-screen (carried); cap 2, icon + 4 words, plant timer on aim.
-- Weakest accessibility: ore colours (iron vs copper vs crystal) rely on hue alone; a colour-blind palette plus ore glyphs is the next settings slice.

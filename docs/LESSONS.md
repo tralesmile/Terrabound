@@ -127,3 +127,9 @@
 - **Deployed vehicles must not spawn under a roof:** the Sky Jet parked inside the carport frame and hit the metal roof on take-off. Vehicles now deploy 4.5 tiles out (the frame spans +-3). Any new structure that spawns things checks the spawn spot against its own frame.
 - **Right-click placement in e2e can land one tile off** after the camera moves. Find the placed tile near the aim instead of asserting the exact aimed tile.
 - **The e2e water-crest check is flaky:** it failed in two runs and passed in the next two with no related change. If it fails again, make the strip sample deterministic (fixed pool, fixed camera).
+
+- **Two sessions bumped `SAVE_VERSION` to the same number** (the interactive garage took v24 while this run's paints also used v24). Guard: on a ship rejection, rebase and re-number your migration to the next free version, and move the exact `SAVE_VERSION` pin to your own newest fixture test (paints.test.ts pins 25); older tests use `toBeGreaterThanOrEqual`.
+- **An e2e that reads liquids at a fixed cell is flaky:** water settles while the sim runs, so the pool's top moved a row and the crest strip sampled rock. Guard: the water check searches for the live surface from the start cell; any liquid check must re-find the surface at sample time.
+- **Overlay text placed by slot index breaks when a list grows** (the held-tool label sat after slot 4 and overprinted the 5th tool). Guard: labels go in headers, not after the Nth cell.
+- **Derived knowledge beats new save fields:** codex kills and logs live in the award counters (sanitised generically), so the codex needed no migration. Prefer that when the data is a count or a seen-flag.
+- **Retro:** three slices, three ships (~4-5 min each) plus one rebase. Editing files while `npm run ship` runs in the background is unsafe (the gate builds the working tree); only read code while it runs.

@@ -140,7 +140,9 @@ Polish
 - [x] Toast rework (run 30, src/ui/toastfx.ts): max 2 left-aligned pills under the HUD text, kind icon, head label, 2-line wrap, slide-in
 - [x] Achievements (run 31, src/sim/achievements.ts): 44 bronze/silver/gold awards counted from game events, AWARDS page in the inventory (paged, phone fit), Award toast + chime, save v23 seeded from older saves
 - [x] Guided first minutes (run 31, src/sim/ftue.ts): 7-step GOAL card above the toasts, read from award counters (no save field)
-- [ ] Codex screen with lore logs and enemy entries; cosmetic suit colours unlocked by gold awards (visible in the inventory preview)
+- [x] Codex screen (run 32, src/sim/codex.ts): CODEX in the inventory, tabs PLACES / CREATURES (kill counts, field notes, bosses) / LOGS (12 data logs); derived from save.codex, save.bosses and award counters (no save field)
+- [x] Suit paints (run 32, src/sim/paints.ts): 6 cosmetic paints, one per gold award, PAINT button on the inventory preview, shown in the world; save v25
+- [ ] Codex follow-ups: a log reader that pages the full story in order, codex entries for robots and the merchant, paint colours for helmets and vehicles
 - [ ] Mobile polish: on-screen hotbar sized for thumbs, hook hold-to-reel button, safe-area insets; real-device check listed in NEEDS_FROM_USER
 
 Money (ethical, no paywalls)
