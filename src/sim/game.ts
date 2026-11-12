@@ -34,8 +34,8 @@ import { automationHint, stepGrid, newPower, scanMachines, stepSmelting, stepMin
 import { DRONE_ROLES, ENEMY_NEAR, HP_LOW, DEEP_AT, RULE_MAX, ROLE_INFO, sanitizeRules, type DroneRule, listBays, nextRole, roleOf, stepFieldDrones, surveyBays, syncDrones, type DroneEvent, type DroneRole, type FieldDrone, GUARD_DMG } from './drones';
 import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight, DAY_LENGTH } from './daynight';
-import { SPIKE_DMG, SPIKE_TICK, TURRET_DMG, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
-import { RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
+import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
+import { blueprintDrop, RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
 import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
@@ -89,7 +89,7 @@ export type GameEvent =
   | { t: 'nightfall' }
   | { t: 'raidstart'; n: number; side: number }
   | { t: 'raidchew'; x: number; y: number; tile: number }
-  | { t: 'raidclear'; n: number; reward: Inventory }
+  | { t: 'raidclear'; n: number; reward: Inventory; blueprint: string | null }
   | { t: 'raidend' }
   | { t: 'raidwarn'; n: number; side: number; secs: number }
   | { t: 'turretshot'; x: number; y: number; tx: number; ty: number }
@@ -565,6 +565,7 @@ export class Game {
     if (!def || !this.isAtBase()) return false;
     const level = this.upgrades[def.id] ?? 0;
     if (level >= def.maxLevel) return false;
+    if (this.save.stats.raids < (def.needRaids?.(level) ?? 0)) return false;
     const cost = def.cost(level);
     if (!canAfford(this.stash, cost)) return false;
     pay(this.stash, cost);
@@ -576,7 +577,7 @@ export class Game {
   /** Craft at the base: pay from the stash, output goes to the pack (needs room). */
   craft(id: string): boolean {
     const r = recipeById(id);
-    if (!r || !this.isAtBase() || (this.upgrades.fab ?? 0) < (r.fab ?? 0) || !canAfford(this.stash, r.cost)) return false;
+    if (!r || !this.isAtBase() || (this.upgrades.fab ?? 0) < (r.fab ?? 0) || this.save.stats.raids < (r.raids ?? 0) || !canAfford(this.stash, r.cost)) return false;
     if (invTotal(this.carried) + r.qty > this.derived.packCap) return false;
     pay(this.stash, r.cost);
     invAdd(this.carried, r.out, r.qty);
@@ -1508,9 +1509,9 @@ export class Game {
   /** Base turrets shoot, spike traps bite (defences.ts). */
   private stepDefences(dt: number): void {
     if (this.turrets.length > 0) {
-      for (const sh of stepTurrets(this.world, this.turrets, this.enemies, this.power.ratio, dt)) {
+      for (const sh of stepTurrets(this.world, this.turrets, this.enemies, this.power.ratio, dt, this.upgrades.turret ?? 0)) {
         const en = this.enemies.find((x) => x.id === sh.id);
-        if (en) this.damageEnemy(en, TURRET_DMG, Math.sign(sh.tx - sh.x) || 1, false);
+        if (en) this.damageEnemy(en, turretStats(this.upgrades.turret ?? 0).dmg, Math.sign(sh.tx - sh.x) || 1, false);
         this.emit({ t: 'turretshot', x: sh.x, y: sh.y, tx: sh.tx, ty: sh.ty });
       }
     }
@@ -1565,7 +1566,7 @@ export class Game {
       for (const k in reward) invAdd(this.stash, k as ItemId, reward[k as ItemId] ?? 0);
       this.save.stats.raids++;
       this.raid = null;
-      this.emit({ t: 'raidclear', n: r.total, reward });
+      this.emit({ t: 'raidclear', n: r.total, reward, blueprint: blueprintDrop(this.save.stats.raids)?.name ?? null });
     }
   }
 

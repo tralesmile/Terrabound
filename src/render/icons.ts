@@ -413,6 +413,23 @@ export const ICONS: Record<string, IconDef> = {
       'oooooooooooo',
     ],
   },
+  shield: {
+    pal: { a: '#1d4a66', b: '#5ad8ff', c: '#ffffff' },
+    rows: [
+      'oooooooooooo',
+      'obbbbbbbbbbo',
+      'obaaacaaaabo',
+      'obaacbcaaabo',
+      'obacbbbcaabo',
+      'obaacbcaaabo',
+      'obaaacaacabo',
+      'obaaaaacbcbo',
+      'obaaaaaacabo',
+      'obaaaaaaaabo',
+      'obbbbbbbbbbo',
+      'oooooooooooo',
+    ],
+  },
   chest: {
     pal: { a: '#6b5028', b: '#8a6a36', c: '#c9a35a', k: '#36e0e8' },
     rows: [

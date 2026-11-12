@@ -37,4 +37,19 @@ describe('toast stacking', () => {
     ui.toast('Other');
     expect(ui.toasts.length).toBe(2);
   });
+  it('a toast in a group replaces the older line of that group', async () => {
+    const { UI } = await import('../src/ui/ui');
+    const ui = new UI();
+    ui.toast('Raid repelled!', '#fff', 4, 'raid');
+    ui.toast('Dawn breaks');
+    ui.toast('RAID! 3 raiders', '#fff', 4, 'raid');
+    expect(ui.toasts.map((t) => t.text)).toEqual(['Dawn breaks', 'RAID! 3 raiders']);
+  });
+  it('never shows more than TOAST_MAX lines', async () => {
+    const { UI, TOAST_MAX } = await import('../src/ui/ui');
+    const ui = new UI();
+    for (let i = 0; i < 8; i++) ui.toast(`line ${i}`);
+    expect(ui.toasts.length).toBe(TOAST_MAX);
+    expect(ui.toasts[TOAST_MAX - 1].text).toBe('line 7');
+  });
 });

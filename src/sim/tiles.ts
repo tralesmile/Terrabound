@@ -33,7 +33,8 @@ export type ItemId =
   | 'drone'
   | 'turret'
   | 'spikes'
-  | 'reinforced';
+  | 'reinforced'
+  | 'shield';
 export const ITEM_IDS: ItemId[] = [
   'rust',
   'metal',
@@ -68,6 +69,7 @@ export const ITEM_IDS: ItemId[] = [
   'turret',
   'spikes',
   'reinforced',
+  'shield',
 ];
 
 export const T = {
@@ -119,6 +121,8 @@ export const T = {
   TURRET: 42,
   SPIKES: 43,
   REINFORCED: 44,
+  /** Raid blueprint: energy-laced wall, 6x chew time, glows. */
+  SHIELD: 45,
 } as const;
 
 export interface TileDef {
@@ -191,6 +195,7 @@ export const TILES: TileDef[] = [
   { name: 'Turret', hardness: 0.6, solid: false, drop: 'turret', minable: true },
   { name: 'Spike trap', hardness: 0.4, solid: false, drop: 'spikes', minable: true },
   { name: 'Reinforced wall', hardness: 1.6, solid: true, drop: 'reinforced' },
+  { name: 'Shield wall', hardness: 2, solid: true, drop: 'shield', glow: true },
 ];
 
 export interface ItemDef {
@@ -239,9 +244,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   turret: { name: 'Turret', color: '#ff6a4a', places: T.TURRET, kit: true },
   spikes: { name: 'Spike trap', color: '#c9d0e4', places: T.SPIKES, kit: true },
   reinforced: { name: 'Reinforced wall', color: '#8a9ab8', places: T.REINFORCED, kit: true },
+  shield: { name: 'Shield wall', color: '#5ad8ff', places: T.SHIELD, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield'];
 
 /** Placeables worth showing in the hotbar: owned ones plus the selected one, in PLACEABLE order. */
 export function visiblePlaceables(inv: Inventory, selected: ItemId): ItemId[] {

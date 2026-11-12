@@ -1,6 +1,6 @@
 import type { Inventory } from './tiles';
 
-export type UpgradeId = 'battery' | 'pick' | 'pack' | 'boots' | 'armor' | 'lamp' | 'fab';
+export type UpgradeId = 'battery' | 'pick' | 'pack' | 'boots' | 'armor' | 'lamp' | 'fab' | 'turret';
 
 export interface UpgradeDef {
   id: UpgradeId;
@@ -8,6 +8,8 @@ export interface UpgradeDef {
   desc: string;
   maxLevel: number;
   cost(level: number): Inventory;
+  /** Raids cleared needed to buy the next level (raid blueprints); default none. */
+  needRaids?(level: number): number;
 }
 
 const scale = (base: number, level: number) => Math.ceil(base * Math.pow(1.55, level));
@@ -61,6 +63,15 @@ export const UPGRADES: UpgradeDef[] = [
     desc: 'Unlocks machines',
     maxLevel: 2,
     cost: (l) => (l === 0 ? { iron_scrap: 6, rust: 10 } : { metal: 6, copper_wire: 4, iron_scrap: 8 }),
+  },
+  {
+    id: 'turret',
+    name: 'Turret core',
+    desc: 'Mk II/III: +50% dmg, +1.5 range',
+    maxLevel: 2,
+    cost: (l) => (l === 0 ? { metal: 10, copper_wire: 6, crystal: 3 } : { metal: 16, circuit: 6, crystal: 6 }),
+    // Raid blueprints: Mk II after 3 cleared raids, Mk III after 9 (raids.ts RAID_BLUEPRINTS).
+    needRaids: (l) => (l === 0 ? 3 : 9),
   },
 ];
 

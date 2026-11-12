@@ -105,9 +105,38 @@ export function chewTarget(world: World, e: Enemy): { x: number; y: number } | n
   const xr = Math.floor(e.x + d.halfW + 0.2);
   const cells: [number, number][] = [];
   for (let y = y0; y <= y1; y++) cells.push([e.dir > 0 ? xr : xl, y], [e.dir > 0 ? xl : xr, y]);
-  cells.push([Math.floor(e.x), Math.floor(e.y + 0.05)]);
+  // Below only when it is a roof over open space: a floor block resting on ground is never chewed through.
+  const bx = Math.floor(e.x);
+  const by = Math.floor(e.y + 0.05);
+  if (!world.isSolid(bx, by + 1)) cells.push([bx, by]);
   for (const [x, y] of cells) if (inBase(x, y) && BASE_KEEP.has(world.get(x, y)) && world.get(x, y) !== T.SPIKES) return { x, y };
   return null;
+}
+
+/** Every this many raids cleared, the wave drops a defence blueprint. */
+export const BLUEPRINT_EVERY = 3;
+export type RaidBlueprint = 'turret_mk2' | 'shield' | 'turret_mk3';
+/** Raid-only blueprints in the order they drop; names for the toast and shop. */
+export const RAID_BLUEPRINTS: readonly { id: RaidBlueprint; name: string }[] = [
+  { id: 'turret_mk2', name: 'Turret Mk II' },
+  { id: 'shield', name: 'Shield wall' },
+  { id: 'turret_mk3', name: 'Turret Mk III' },
+];
+
+/** Raids cleared needed for a blueprint. Pure. */
+export function blueprintRaids(id: RaidBlueprint): number {
+  return (RAID_BLUEPRINTS.findIndex((b) => b.id === id) + 1) * BLUEPRINT_EVERY;
+}
+
+/** Has clearing `cleared` raids unlocked this blueprint? Derived from the raid count, so no save field. Pure. */
+export function hasBlueprint(cleared: number, id: RaidBlueprint): boolean {
+  return cleared >= blueprintRaids(id);
+}
+
+/** The blueprint that clearing raid number `cleared` (1-based count after the clear) just unlocked, or null. Pure. */
+export function blueprintDrop(cleared: number): { id: RaidBlueprint; name: string } | null {
+  if (cleared <= 0 || cleared % BLUEPRINT_EVERY !== 0) return null;
+  return RAID_BLUEPRINTS[cleared / BLUEPRINT_EVERY - 1] ?? null;
 }
 
 /** Lift a freshly spawned raider out of any rock it landed in (at most 24 tiles). */

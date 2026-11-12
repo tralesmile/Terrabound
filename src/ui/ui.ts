@@ -81,7 +81,12 @@ interface Toast {
   text: string;
   color: string;
   life: number;
+  /** Toasts in the same group replace each other (a raid shows one line, not a stale stack). */
+  group?: string;
 }
+
+/** Most toast lines on screen at once; older lines drop first. */
+export const TOAST_MAX = 3;
 
 const TOOL_SLOTS: { tool: Tool; label: string; key: string }[] = [
   { tool: 'drill', label: 'Drill', key: '1' },
@@ -161,15 +166,16 @@ export class UI {
   toasts: Toast[] = [];
   private rects: Rect[] = [];
 
-  toast(text: string, color = '#ffffff', life = 2.4): void {
+  toast(text: string, color = '#ffffff', life = 2.4, group?: string): void {
     // The same message twice in a row refreshes the existing line instead of stacking.
     const same = this.toasts.find((t) => t.text === text);
     if (same) {
       same.life = Math.max(same.life, life);
       return;
     }
-    if (this.toasts.length >= 4) this.toasts.shift();
-    this.toasts.push({ text, color, life });
+    if (group) this.toasts = this.toasts.filter((t) => t.group !== group);
+    while (this.toasts.length >= TOAST_MAX) this.toasts.shift();
+    this.toasts.push({ text, color, life, group });
   }
 
   update(dt: number): void {
@@ -758,23 +764,27 @@ export class UI {
     for (const up of this.shopTab === 'upgrades' ? UPGRADES.slice(this.shopScroll, this.shopScroll + vis) : []) {
       const lv = game.upgrades[up.id] ?? 0;
       const maxed = lv >= up.maxLevel;
+      const needR = maxed ? 0 : (up.needRaids?.(lv) ?? 0);
+      const bpLocked = game.stats.raids < needR;
       const cost = maxed ? null : up.cost(lv);
-      const afford = !!cost && ITEM_IDS.every((id) => (game.stash[id] ?? 0) >= (cost[id] ?? 0));
+      const afford = !!cost && !bpLocked && ITEM_IDS.every((id) => (game.stash[id] ?? 0) >= (cost[id] ?? 0));
       ctx.fillStyle = 'rgba(255,255,255,0.05)';
       ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
       this.text(ctx, `${up.name}  Lv ${lv}/${up.maxLevel}`, px + u, ry + rowH * 0.3, Math.round(u * 0.95));
-      this.text(ctx, maxed ? up.desc : `${up.desc}   Cost: ${costText(cost ?? {})}`, px + u, ry + rowH * 0.68, Math.round(u * 0.72), maxed ? '#8a90a2' : afford ? '#9ff6a0' : '#ff8a8a', 'left', pw - u * 8);
+      this.text(ctx, maxed ? up.desc : bpLocked ? `Raid blueprint: clear ${needR} raids (${game.stats.raids}/${needR})` : `${up.desc}   Cost: ${costText(cost ?? {})}`, px + u, ry + rowH * 0.68, Math.round(u * 0.72), maxed ? '#8a90a2' : afford ? '#9ff6a0' : '#ff8a8a', 'left', pw - u * 8);
       const bw = u * 5.5;
       this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, maxed ? 'MAX' : 'BUY', { k: 'buy', id: up.id }, u * 0.9, { enabled: afford && !maxed });
       ry += rowH;
     }
     for (const r of this.shopTab === 'fab' ? RECIPES.slice(this.shopScroll, this.shopScroll + vis) : []) {
-      const locked = (game.upgrades.fab ?? 0) < (r.fab ?? 0);
+      const fabLocked = (game.upgrades.fab ?? 0) < (r.fab ?? 0);
+      const bpLock = game.stats.raids < (r.raids ?? 0);
+      const locked = fabLocked || bpLock;
       const afford = !locked && ITEM_IDS.every((id) => (game.stash[id] ?? 0) >= (r.cost[id] ?? 0));
       ctx.fillStyle = 'rgba(255,255,255,0.05)';
       ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
       this.text(ctx, `Fabricator: ${r.name}`, px + u, ry + rowH * 0.3, Math.round(u * 0.95));
-      this.text(ctx, locked ? `Needs Fabricator Lv ${r.fab}` : `Cost: ${costText(r.cost)}`, px + u, ry + rowH * 0.68, Math.round(u * 0.72), afford ? '#9ff6a0' : '#ff8a8a');
+      this.text(ctx, fabLocked ? `Needs Fabricator Lv ${r.fab}` : bpLock ? `Raid blueprint: clear ${r.raids} raids (${game.stats.raids}/${r.raids})` : `Cost: ${costText(r.cost)}`, px + u, ry + rowH * 0.68, Math.round(u * 0.72), afford ? '#9ff6a0' : '#ff8a8a');
       const bw = u * 5.5;
       this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, 'MAKE', { k: 'craft', id: r.id }, u * 0.9, { enabled: afford });
       ry += rowH;

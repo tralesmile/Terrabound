@@ -21,6 +21,14 @@ export const SPIKE_DMG = 5;
 export const SPIKE_TICK = 0.5;
 /** Raiders chew a reinforced wall this many times slower than a plain block. */
 export const REINFORCED_MULT = 3;
+/** Shield walls (raid blueprint) take this many times longer. */
+export const SHIELD_MULT = 6;
+
+/** Turret stats at a core tier (0 = Mk I, 1 = Mk II, 2 = Mk III; the shop's turret upgrade). Pure. */
+export function turretStats(tier: number): { range: number; dmg: number; cd: number } {
+  const t = Math.max(0, Math.min(2, Math.floor(tier)));
+  return { range: TURRET_RANGE + t * 1.5, dmg: Math.round(TURRET_DMG * (1 + t * 0.5)), cd: TURRET_CD * (1 - t * 0.15) };
+}
 
 export interface Turret {
   x: number;
@@ -41,6 +49,7 @@ export interface TurretShot {
 
 /** Seconds of chewing to knock a base block loose: reinforced walls take REINFORCED_MULT times longer. Pure. */
 export function chewTime(tile: number): number {
+  if (tile === T.SHIELD) return CHEW_TIME * SHIELD_MULT;
   return tile === T.REINFORCED ? CHEW_TIME * REINFORCED_MULT : CHEW_TIME;
 }
 
@@ -60,7 +69,7 @@ export function syncTurrets(world: World, prev: Turret[]): Turret[] {
 }
 
 /** Target for a turret: raiders before wild enemies, then the nearest in range with a clear line. Pure. */
-export function turretTarget(world: World, t: Turret, enemies: readonly Enemy[]): Enemy | null {
+export function turretTarget(world: World, t: Turret, enemies: readonly Enemy[], range = TURRET_RANGE): Enemy | null {
   const ox = t.x + 0.5;
   const oy = t.y + 0.3;
   let best: Enemy | null = null;
@@ -69,7 +78,7 @@ export function turretTarget(world: World, t: Turret, enemies: readonly Enemy[])
     if (e.hp <= 0) continue;
     const cy = e.y - ENEMIES[e.kind].h / 2;
     const d = Math.hypot(e.x - ox, cy - oy);
-    if (d > TURRET_RANGE) continue;
+    if (d > range) continue;
     const score = d - (e.raid ? 100 : 0);
     if (score >= bestScore) continue;
     if (!clearLine(world, ox, oy, e.x, cy)) continue;
@@ -83,18 +92,19 @@ export function turretTarget(world: World, t: Turret, enemies: readonly Enemy[])
  * Step every turret. `power` is the grid's met share (0..1): no power, no shots; half power, half the fire rate.
  * Mutates cooldown and aim; returns the shots fired this step (the game applies the damage). Pure.
  */
-export function stepTurrets(world: World, turrets: Turret[], enemies: readonly Enemy[], power: number, dt: number): TurretShot[] {
+export function stepTurrets(world: World, turrets: Turret[], enemies: readonly Enemy[], power: number, dt: number, tier = 0): TurretShot[] {
   const shots: TurretShot[] = [];
   if (power <= 0) return shots;
+  const st = turretStats(tier);
   for (const t of turrets) {
     t.cd = Math.max(0, t.cd - dt * Math.min(1, power));
     if (t.cd > 0) continue;
-    const e = turretTarget(world, t, enemies);
+    const e = turretTarget(world, t, enemies, st.range);
     if (!e) continue;
     const tx = e.x;
     const ty = e.y - ENEMIES[e.kind].h / 2;
     t.aim = Math.atan2(ty - (t.y + 0.3), tx - (t.x + 0.5));
-    t.cd = TURRET_CD;
+    t.cd = st.cd;
     shots.push({ x: t.x + 0.5, y: t.y + 0.3, tx, ty, id: e.id });
   }
   return shots;

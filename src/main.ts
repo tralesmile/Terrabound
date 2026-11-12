@@ -488,24 +488,25 @@ function boot(): void {
         ui.toast('Dawn breaks', '#ffcf4a');
         break;
       case 'raidstart':
-        ui.toast(`RAID! ${e.n} raiders from the ${e.side < 0 ? 'west' : 'east'}: defend the base`, '#ff5a5a', 4);
+        ui.toast(`RAID! ${e.n} raiders from the ${e.side < 0 ? 'west' : 'east'}: defend the base`, '#ff5a5a', 4, 'raid');
         break;
       case 'raidwarn':
-        ui.toast(`Raid at nightfall: ${e.n} raiders from the ${e.side < 0 ? 'west' : 'east'} in ${e.secs} s`, '#ff9a3c', 4);
+        ui.toast(`Raid at nightfall: ${e.n} raiders from the ${e.side < 0 ? 'west' : 'east'} in ${e.secs} s`, '#ff9a3c', 4, 'raid');
         break;
       case 'raidchew':
         fx.burst(e.x + 0.5, e.y + 0.5, TILE_COLORS[e.tile] ?? '#888', 8, 4);
-        ui.toast('A raider knocked a block loose', '#ff9a3c', 1.5);
+        ui.toast('A raider knocked a block loose', '#ff9a3c', 1.5, 'raidchew');
         break;
       case 'raidclear': {
         const parts = Object.entries(e.reward).filter(([, n]) => (n ?? 0) > 0).map(([k, n]) => `+${n} ${ITEMS[k as ItemId].name.toLowerCase()}`);
-        ui.toast(`Raid repelled! ${parts.join(', ')}`, '#7dffb0', 4);
+        ui.toast(`Raid repelled! ${parts.join(', ')}`, '#7dffb0', 4, 'raid');
+        if (e.blueprint) ui.toast(`Blueprint found: ${e.blueprint} (workshop)`, '#ffcf4a', 6, 'blueprint');
         fx.burst(game.body.x, game.body.y - 1.5, '#7dffb0', 16, 5);
         saveNow();
         break;
       }
       case 'raidend':
-        ui.toast('The raiders retreat', '#c9d0e4', 2);
+        ui.toast('The raiders retreat', '#c9d0e4', 2, 'raid');
         break;
 
       case 'recallstart':
