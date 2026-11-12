@@ -73,6 +73,14 @@ World size and variety:
 - [x] Floating sky islands with a rich chest; surface ponds (codex now 14 entries)
 - [ ] Follow-ups: gear/armor as real equippable items (P3 equipment slots), crops and farming, ice fishing in Frozen Spires, a way up to islands (jump pads / grapple), an inventory hotbar the player can arrange, touch long-press for item actions
 
+## P1.9 Owner request 2026-11-12: garage and buildable vehicles (CLAIMED by the interactive session; scheduled runs skip this section)
+
+- [ ] Garage kit (fabricator) placed on flat ground builds a garage; E / click opens the garage panel
+- [ ] Vehicles are built only in a garage: buggy (new car, rams enemies), drill tank (new, digs while driving), hoverbike, Sky Jet
+- [ ] Parts per vehicle: engine (speed), armor (damage taken), battery (drain); 3 levels each
+- [ ] Vehicles are parked world objects: DEPLOY from the garage, walk up and press V to enter, leaving parks it; save migration parks owned vehicles at the pad
+- [ ] Art for the garage, buggy and drill tank; e2e checks and screenshots
+
 ## P1.8 Owner request 2026-11-11: "add all" (do these FIRST, top to bottom, before P2)
 
 Bosses and goals: done by the interactive session 2026-11-11 except the follow-ups noted on the final-boss line. Scheduled runs: continue with "Living base and drones".
