@@ -8,7 +8,7 @@ interface PointerInfo {
   id: number;
   x: number;
   y: number;
-  kind: 'stick' | 'aim';
+  kind: 'stick' | 'aim' | 'reel';
   button: number;
   startX: number;
   startY: number;
@@ -139,6 +139,11 @@ export class Input {
       return;
     }
     const a = this.ui.hit(x, y);
+    if (a && a.k === 'reel') {
+      // A hold button: the rope reels in for as long as this finger stays down.
+      this.pointers.set(e.pointerId, { id: e.pointerId, x, y, kind: 'reel', button: e.button, startX: x, startY: y });
+      return;
+    }
     if (a) {
       this.onAction(a);
       return;
@@ -188,8 +193,10 @@ export class Input {
     let place = false;
     let aimCss: { x: number; y: number } | null = this.mouse.has ? { x: this.mouse.x, y: this.mouse.y } : null;
 
+    let reel = false;
     for (const p of this.pointers.values()) {
-      if (p.kind === 'stick') {
+      if (p.kind === 'reel') reel = true;
+      else if (p.kind === 'stick') {
         const dx = p.x - p.startX;
         const dy = p.y - p.startY;
         const dead = 10;
@@ -203,7 +210,10 @@ export class Input {
         else dig = true;
       }
     }
-    if (this.ui.screen !== 'play' || this.ui.shopOpen) return { moveX: 0, jump: false, dig: false, place: false, aim: null };
+    if (this.ui.screen !== 'play' || this.ui.shopOpen) {
+      this.ui.reeling = false;
+      return { moveX: 0, jump: false, dig: false, place: false, aim: null };
+    }
     let aim: Controls['aim'] = null;
     if (aimCss) {
       const d = this.dpr();
@@ -212,6 +222,7 @@ export class Input {
     }
     const dash = k.has(km.dash) || (km.dash === 'ShiftLeft' && k.has('ShiftRight')) || this.dashTap;
     this.dashTap = false;
-    return { moveX, jump, dig, place, aim, down, dash };
+    this.ui.reeling = reel;
+    return { moveX, jump, dig, place, aim, down, dash, reel };
   }
 }

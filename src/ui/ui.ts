@@ -8,6 +8,7 @@ import { recordLine } from '../sim/records';
 import type { Game, Tool } from '../sim/game';
 import { MAP_ZOOMS, MapView } from './map';
 import { FLY_TIME, Flyers, flyerPos, pulseAmount } from './flyers';
+import { safeFrame, type Insets } from './safearea';
 import { ICON, drawIcon } from '../render/icons';
 import { TRADER_W, drawPlayer, drawRows, robotRows, type RobotKind } from '../render/sprites';
 import { ROBOT_LOOK, playerGear } from '../render/renderer';
@@ -87,6 +88,8 @@ export type UiAction =
   | { k: 'part'; id: VehicleId; part: PartId }
   | { k: 'heal' }
   | { k: 'dash' }
+  /** Touch hold button: reel the grappling rope in while held (handled by Input as a held pointer). */
+  | { k: 'reel' }
   | { k: 'craftgear'; id: GearId }
   | { k: 'equip'; id: GearId }
   | { k: 'mapzoom'; d: number }
@@ -266,7 +269,7 @@ export class UI {
   /** A picked-up item's icon arcs from (x, y) in CSS px into its hotbar slot or the bag. */
   flyPickup(item: string, x: number, y: number): void {
     if (this.screen !== 'play') return;
-    this.flyers.add(item, x, y);
+    this.flyers.add(item, x - this.frame.x, y - this.frame.y);
   }
 
   hit(x: number, y: number): UiAction | null {
@@ -340,7 +343,28 @@ export class UI {
     this.text(ctx, label, x + 6, y + h / 2, Math.round(u * 0.8), '#fff');
   }
 
+  /** Device safe-area insets in CSS px (notch, home bar); the UI draws inside them. */
+  /** Set by Input while a finger holds the REEL button (drawn pressed). */
+  reeling = false;
+  insets: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
+  /** The safe frame used by the last draw (rects are stored in full-canvas CSS px). */
+  frame = { x: 0, y: 0, w: 0, h: 0 };
+
+  /** Draws the whole UI inside the safe frame, then moves the hit rects back to canvas CSS px. */
   draw(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, time: number): void {
+    const f = safeFrame(w, h, this.insets);
+    this.frame = f;
+    ctx.save();
+    ctx.translate(f.x, f.y);
+    this.drawFrame(ctx, game, f.w, f.h, time);
+    ctx.restore();
+    if (f.x !== 0 || f.y !== 0) for (const r of this.rects) {
+      r.x += f.x;
+      r.y += f.y;
+    }
+  }
+
+  private drawFrame(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, time: number): void {
     this.rects = [];
     const u = uiUnit(w, h, this.uiScale);
     if (this.settingsOpen) {
@@ -1152,6 +1176,10 @@ export class UI {
     if (this.touch) by += bhgt + u * 0.5;
     if (game.canMount()) {
       this.button(ctx, bx, by, bwid, bhgt, game.riding ? 'GET OFF' : 'RIDE', { k: 'ride' }, u * 0.85, { color: game.riding ? '#7a5a1f' : '#1f6f78' });
+      by += bhgt + u * 0.5;
+    }
+    if (this.touch && game.hook) {
+      this.button(ctx, bx, by, bwid, bhgt, this.reeling ? 'REELING' : 'HOLD REEL', { k: 'reel' }, u * 0.75, { color: this.reeling ? '#7a5a1f' : '#1f6f78' });
       by += bhgt + u * 0.5;
     }
     if (this.touch && game.gear.dash) {

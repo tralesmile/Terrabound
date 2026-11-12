@@ -2543,6 +2543,55 @@ try {
     await page.evaluate(() => window.__terrabound.act({ k: 'pref', key: 'stickSide', d: -1 }));
     check('touch move stick follows the stick-side setting', res.leftDefault && !res.rightDefault && !res.leftLefty && res.rightLefty, JSON.stringify({ ...res, hint }));
   }
+  {
+    // Safe area: a faked notch (47 px) and home bar (34 px) keep every button and the hotbar inside them.
+    const npage = await mctx.newPage();
+    npage.on('pageerror', (e) => merrors.push('pageerror: ' + e.message));
+    await npage.goto(base + (base.includes('?') ? '&' : '?') + 'inset=47,0,34,0');
+    await npage.waitForFunction(() => window.__terrabound, null, { timeout: 10000 });
+    await npage.touchscreen.tap(195, 470);
+    await npage.waitForTimeout(400);
+    const notch = await npage.evaluate(() => {
+      const { ui } = window.__terrabound;
+      const top = Math.min(...ui.rects.map((r) => r.y));
+      const bottom = Math.max(...ui.rects.map((r) => r.y + r.h));
+      return { screen: ui.screen, frame: ui.frame, top, bottom, n: ui.rects.length };
+    });
+    await npage.screenshot({ path: path.join(out, '06c-mobile-notch.png') });
+    check('a notch and home bar push the HUD and hotbar inside the safe area', notch.screen === 'play' && notch.n > 5 && notch.top >= 47 && notch.bottom <= 844 - 34 && notch.frame.y === 47, JSON.stringify(notch));
+    // Touch grappling: while hooked a HOLD REEL button appears; holding it reels the rope in.
+    const hooked = await npage.evaluate(() => {
+      const { game: g } = window.__terrabound;
+      const bx = Math.floor(g.body.x);
+      const by = Math.floor(g.body.y);
+      g.enemies = [];
+      for (let dx = -2; dx <= 2; dx++) {
+        for (let dy = 2; dy <= 7; dy++) g.world.set(bx + dx, by - dy, 0);
+        g.world.set(bx + dx, by - 8, 2);
+      }
+      g.setTool('hook');
+      return g.pressHook({ tx: bx, ty: by - 8 }) ? g.hook.len : -1;
+    });
+    await npage.waitForTimeout(200);
+    const reelBtn = await npage.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'reel') ?? null);
+    const reel = reelBtn ? await npage.evaluate(async (b) => {
+      const t = window.__terrabound;
+      const c = document.getElementById('game');
+      const r = c.getBoundingClientRect();
+      const ev = (type) => new PointerEvent(type, { pointerId: 91, pointerType: 'touch', clientX: r.left + b.x + b.w / 2, clientY: r.top + b.y + b.h / 2, bubbles: true });
+      const len0 = t.game.hook ? t.game.hook.len : -1;
+      c.dispatchEvent(ev('pointerdown'));
+      await new Promise((res) => setTimeout(res, 450));
+      const len1 = t.game.hook ? t.game.hook.len : -1;
+      const reeling = t.ui.reeling;
+      c.dispatchEvent(ev('pointerup'));
+      await new Promise((res) => setTimeout(res, 100));
+      return { len0, len1, reeling, after: t.ui.reeling, tool: t.game.tool };
+    }, reelBtn) : null;
+    await npage.screenshot({ path: path.join(out, '23b-mobile-reel.png') });
+    check('touch: holding HOLD REEL reels the grappling rope in', hooked > 0 && !!reel && reel.reeling && !reel.after && reel.len1 < reel.len0 - 0.8, JSON.stringify({ hooked, reelBtn, reel }));
+    await npage.close();
+  }
   check('no console or page errors on mobile', merrors.length === 0, merrors.join(' | '));
   await mctx.close();
   const gctx = await browser.newContext({ viewport: { width: 1100, height: 1040 } });

@@ -6,6 +6,7 @@ import { drawDecorGallery } from './render/decor';
 import { dailyCode } from './sim/daily';
 import { clock as mmss } from './sim/records';
 import { Input } from './platform/input';
+import { readInsets } from './platform/safearea';
 import { Sfx } from './platform/audio';
 import { loadRaw, saveRaw } from './platform/storage';
 import { Fx, splashColor, splashPower } from './render/fx';
@@ -98,6 +99,12 @@ function boot(): void {
       canvas.height = h;
     }
     renderer.resize(w, h);
+    // Notch / home bar: the UI draws inside the safe area. `?inset=t,r,b,l` fakes one (e2e).
+    const fake = new URLSearchParams(location.search).get('inset');
+    if (fake) {
+      const [t = 0, r = 0, b = 0, l = 0] = fake.split(',').map(Number);
+      ui.insets = { top: t, right: r, bottom: b, left: l };
+    } else ui.insets = readInsets();
   };
   resize();
   // Map: drag to pan.

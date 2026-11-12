@@ -88,6 +88,8 @@ export interface Controls {
   aim: { tx: number; ty: number } | null;
   /** Dash (needs dash boots). */
   dash?: boolean;
+  /** Reel the grappling rope in (touch REEL hold button; desktop reels by holding dig). */
+  reel?: boolean;
 }
 
 export const NO_CONTROLS: Controls = { moveX: 0, jump: false, dig: false, place: false, aim: null };
@@ -1630,7 +1632,7 @@ export class Game {
       this.emit({ t: 'unhook' });
       return;
     }
-    if (c.dig && this.tool === 'hook') h.len = Math.max(1.5, h.len - HOOK_REEL * dt);
+    if ((c.dig && this.tool === 'hook') || c.reel) h.len = Math.max(1.5, h.len - HOOK_REEL * dt);
     else if (c.down) h.len = Math.min(HOOK_RANGE, h.len + HOOK_REEL * dt);
     const cx = b.x;
     const cy = b.y - BODY_H / 2;
