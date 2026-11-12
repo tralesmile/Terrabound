@@ -1131,10 +1131,71 @@ try {
   check('clicking TRADE swaps 8 rust for 1 metal', !!tradeBtn && tradeAfter.rust === tradeUi.rust - 8 && tradeAfter.metal === tradeUi.metal + 1, JSON.stringify({ tradeBtn: !!tradeBtn, tradeUi, tradeAfter }));
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
+  // Patch the Medic moves into a second home upstairs (on the first room's roof) and sells medkits into the pack.
+  const medicState = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const px = w.padX;
+    const py = w.padY;
+    const T = { AIR: 0, METAL: 2, TABLE: 46, LAMP: 47, BED: 51 };
+    for (let y = py - 10; y <= py - 6; y++) {
+      w.set(px - 4, y, T.METAL);
+      w.set(px + 4, y, T.METAL);
+    }
+    for (let x = px - 4; x <= px + 4; x++) w.set(x, py - 10, T.METAL);
+    for (let y = py - 9; y <= py - 6; y++) for (let x = px - 3; x <= px + 3; x++) {
+      w.set(x, y, T.AIR);
+      w.setWall(x, y, 3);
+    }
+    w.set(px - 3, py - 6, T.BED);
+    w.set(px + 3, py - 6, T.TABLE);
+    w.set(px, py - 9, T.LAMP);
+    g.body.x = px + 0.5;
+    g.body.y = py - 5;
+    g.body.vx = g.body.vy = 0;
+    return { valid: g.rooms.filter((r) => r.valid).length };
+  });
+  await page.waitForTimeout(300);
+  const medicNear = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const m = g.npcs.find((n) => n.kind === 'medic');
+    if (m) {
+      g.body.x = m.x + 0.8;
+      g.body.y = m.y;
+      g.body.vx = g.body.vy = 0;
+    }
+    g.stash.biomass = (g.stash.biomass ?? 0) + 8;
+    g.stash.fish = (g.stash.fish ?? 0) + 2;
+    return { medic: !!m, kinds: g.npcs.map((n) => n.kind) };
+  });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(out, '35c-medic.png') });
+  const medicHint = await page.evaluate(() => window.__terrabound.game.hintAutomation(false));
+  check('Patch the Medic moves into a second home and greets you', medicState.valid >= 2 && medicNear.medic && /Patch the Medic/.test(medicHint || ''), JSON.stringify({ medicState, medicNear, medicHint }));
+  await page.keyboard.down('KeyE');
+  await page.waitForTimeout(80);
+  await page.keyboard.up('KeyE');
+  await page.waitForTimeout(250);
+  const medShop = await page.evaluate(() => {
+    const { ui } = window.__terrabound;
+    return { open: ui.shopOpen, tab: ui.shopTab, scroll: ui.shopScroll };
+  });
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: path.join(out, '36b-medic-trade.png') });
+  const medBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'trade' && r.a.id === 'med_fish'));
+  const kits0 = await page.evaluate(() => window.__terrabound.game.carried.medkit ?? 0);
+  if (medBtn) {
+    await page.mouse.click(medBtn.x + medBtn.w / 2, medBtn.y + medBtn.h / 2);
+    await page.waitForTimeout(150);
+  }
+  const kits1 = await page.evaluate(() => window.__terrabound.game.carried.medkit ?? 0);
+  check('talking to the Medic opens TRADE at its rows; buying a medkit puts it in the pack', medShop.open && medShop.tab === 'trade' && medShop.scroll > 0 && !!medBtn && kits1 === kits0 + 1, JSON.stringify({ medShop, medBtn: !!medBtn, kits0, kits1 }));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(150);
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     const w = g.world;
-    for (let y = w.padY - 5; y <= w.padY - 1; y++) for (let x = w.padX - 4; x <= w.padX + 4; x++) {
+    for (let y = w.padY - 10; y <= w.padY - 1; y++) for (let x = w.padX - 4; x <= w.padX + 4; x++) {
       w.set(x, y, 0);
       w.setWall(x, y, 0);
     }

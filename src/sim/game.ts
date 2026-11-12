@@ -36,7 +36,7 @@ import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight, DAY_LENGTH } from './daynight';
 import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
 import { findRooms, roomHint, type Room } from './rooms';
-import { NPC_INFO, doTrade, npcLine, roomFloor, stepNpc, syncNpcs, tradeById, type Npc, type NpcKind } from './npcs';
+import { NPC_INFO, deathKeep, doTrade, npcLine, roomFloor, stepNpc, syncNpcs, tradeById, type Npc, type NpcKind } from './npcs';
 import { blueprintDrop, RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
 import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
@@ -132,7 +132,7 @@ export type GameEvent =
   | { t: 'fell'; x: number; y: number; tiles: number }
   | { t: 'hurt'; amount: number }
   | { t: 'bank'; total: number }
-  | { t: 'death'; lost: number }
+  | { t: 'death'; lost: number; medic: boolean }
   | { t: 'jump' }
   | { t: 'land'; speed: number }
   | { t: 'lowbattery' }
@@ -625,16 +625,17 @@ export class Game {
 
   private die(): void {
     let lost = 0;
+    const medic = this.hasNpc('medic');
     for (const id of Object.keys(this.carried) as ItemId[]) {
       const n = this.carried[id] ?? 0;
-      const keep = Math.floor(n / 2);
+      const keep = deathKeep(n, medic);
       lost += n - keep;
       invAdd(this.stash, id, keep);
     }
     this.carried = {};
     this.save.stats.deaths += 1;
     this.save.stats.deepest = Math.max(this.save.stats.deepest, Math.floor(this.runDeepest));
-    this.emit({ t: 'death', lost });
+    this.emit({ t: 'death', lost, medic });
     this.newWorld();
   }
 
@@ -1984,12 +1985,13 @@ export class Game {
 
   /** Tutorial line for the first automation, shown at the base only. */
   hintAutomation(touch: boolean): string | null {
-    if (!this.isAtBase()) return null;
+    // Robots can live in rooms beyond the pad strip (upstairs, next door), so they talk anywhere in the base.
     const npc = this.npcNear();
     if (npc) {
       const info = NPC_INFO[npc.kind];
-      return `${info.name} the ${info.title}: "${npcLine(npc.kind, this.time)}"  ${touch ? 'Tap' : 'E'} to trade`;
+      return `${info.name} the ${info.title}: "${npcLine(npc.kind, this.time)}"  ${touch ? 'Tap' : 'E'} to ${npc.kind === 'medic' ? 'get medkits' : 'trade'}`;
     }
+    if (!this.isAtBase()) return null;
     const room = roomHint(this.roomHere());
     if (room) return room;
     const bay = this.bayNear();
@@ -2067,6 +2069,11 @@ export class Game {
     return this.npcs.find((n) => Math.floor(n.x) === tx && ty >= Math.floor(n.y) - 2 && ty < Math.floor(n.y)) ?? null;
   }
 
+  /** The workshop can stay open: on the pad, or talking to a robot in a room nearby. */
+  canShop(): boolean {
+    return this.isAtBase() || this.npcNear() !== null;
+  }
+
   /** Is a robot of this kind living in the base? */
   hasNpc(kind: NpcKind): boolean {
     return this.npcs.some((n) => n.kind === kind);
@@ -2075,7 +2082,7 @@ export class Game {
   /** Swap with the Trader at a posted rate (base only, Trader must live here). Stash to stash. */
   trade(id: string): boolean {
     const t = tradeById(id);
-    if (!t || !this.isAtBase() || !this.hasNpc('trader') || !doTrade(this.stash, t)) return false;
+    if (!t || !this.canShop() || !this.hasNpc(t.npc) || !doTrade(this.stash, t, this.carried)) return false;
     this.emit({ t: 'trade', id });
     return true;
   }

@@ -17,7 +17,7 @@ import { shareCard } from './ui/share';
 import { BOSSES } from './sim/bosses';
 import { ROLE_INFO, nextAct, nextCond } from './sim/drones';
 import { UI, type UiAction } from './ui/ui';
-import { NPC_INFO } from './sim/npcs';
+import { NPC_INFO, TRADES } from './sim/npcs';
 
 const TOOL_NAMES: Record<Tool, string> = { drill: 'Mining drill', blade: 'Energy blade', pistol: 'Pulse pistol', rod: 'Fishing rod: click water to cast', hook: 'Grappling hook: click a ceiling, swing, jump to let go' };
 
@@ -353,7 +353,7 @@ function boot(): void {
         saveNow();
         break;
       case 'death':
-        ui.toast(`SIGNAL LOST - ${e.lost} items lost`, '#ff5a5a');
+        ui.toast(`SIGNAL LOST - ${e.lost} items lost${e.medic ? ' (Patch saved 3/4 of your pack)' : ''}`, '#ff5a5a');
         fx.addShake(1);
         saveNow();
         break;
@@ -520,6 +520,8 @@ function boot(): void {
           ui.invOpen = false;
           ui.shopOpen = true;
           ui.setShopTab('trade');
+          // Jump to the rows this robot posts (the Medic's sit below the Trader's).
+          ui.shopScroll = Math.max(0, TRADES.findIndex((t) => t.npc === e.kind));
         }
         break;
       case 'trade':
@@ -568,7 +570,7 @@ function boot(): void {
           steps++;
         }
         if (steps === 6) acc = 0;
-        if (ui.shopOpen && !game.isAtBase()) ui.shopOpen = false;
+        if (ui.shopOpen && !game.canShop()) ui.shopOpen = false;
         if (ui.dronesOpen && !game.isAtBase()) ui.dronesOpen = false;
       }
       for (const e of game.drainEvents()) handle(e);

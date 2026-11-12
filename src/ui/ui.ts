@@ -814,15 +814,32 @@ export class UI {
       ry += rowH;
     }
 
-    const trader = game.hasNpc('trader');
     for (const tr of this.shopTab === 'trade' ? TRADES.slice(this.shopScroll, this.shopScroll + vis) : []) {
-      const afford = trader && ITEM_IDS.every((k) => (game.stash[k] ?? 0) >= (tr.give[k] ?? 0));
-      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      const home = game.hasNpc(tr.npc);
+      const afford = home && ITEM_IDS.every((k) => (game.stash[k] ?? 0) >= (tr.give[k] ?? 0));
+      ctx.fillStyle = tr.npc === 'medic' ? 'rgba(255,90,90,0.07)' : 'rgba(255,255,255,0.05)';
       ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
-      this.text(ctx, `${costText(tr.give)}  ->  ${costText(tr.get)}`, px + u, ry + rowH * 0.3, Math.round(u * 0.95), '#fff', 'left', pw - u * 8);
-      const info = NPC_INFO.trader;
-      const sub = trader ? `${info.name} the ${info.title}: fixed rate, from your stash` : 'No trader yet: build a room with a light, table and bed';
-      this.text(ctx, sub, px + u, ry + rowH * 0.68, Math.round(u * 0.72), afford ? '#9ff6a0' : '#ff8a8a', 'left', pw - u * 8);
+      // Icons read at a glance: what you give (count), an arrow, what you get.
+      const isz = rowH - u * 0.8;
+      let ix = px + u * 0.8;
+      const iy = ry + u * 0.25;
+      for (const [k, n] of tradeParts(tr.give)) {
+        this.cell(ctx, ix, iy, isz, k, n, false, null, !home);
+        ix += isz + u * 0.3;
+      }
+      this.text(ctx, '>', ix + u * 0.6, iy + isz * 0.55, Math.round(u * 1.1), afford ? '#ffd23a' : '#5a6078', 'center');
+      ix += u * 1.4;
+      for (const [k, n] of tradeParts(tr.get)) {
+        this.cell(ctx, ix, iy, isz, k, n, afford, null, !home);
+        ix += isz + u * 0.3;
+      }
+      const tx2 = ix + u * 0.5;
+      const tw2 = px + pw - u * 7 - tx2;
+      const info = NPC_INFO[tr.npc];
+      this.text(ctx, `${costText(tr.give)}  ->  ${costText(tr.get)}`, tx2, ry + rowH * 0.3, Math.round(u * 0.8), '#fff', 'left', tw2);
+      const have = tradeParts(tr.give).map(([k]) => `${game.stash[k] ?? 0} ${ITEMS[k].name.toLowerCase()}`).join(', ');
+      const sub = home ? `${info.name}${tr.toPack ? ' (into your pack)' : ''}: you have ${have}` : `No ${info.title.toLowerCase()} yet: furnish ${tr.npc === 'medic' ? 'a second' : 'a'} room (light, table, bed)`;
+      this.text(ctx, sub, tx2, ry + rowH * 0.68, Math.round(u * 0.64), afford ? '#9ff6a0' : '#ff8a8a', 'left', tw2);
       const bw = u * 5.5;
       this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, 'TRADE', { k: 'trade', id: tr.id }, u * 0.85, { enabled: afford });
       ry += rowH;
@@ -838,4 +855,9 @@ export class UI {
     this.button(ctx, px + u * 2 + bw, fy, bw, u * 2.4, 'CLOSE', { k: 'close' }, u);
     this.text(ctx, `World ${game.seedCode}   Best ${game.stats.deepest}m   Dives ${game.runs}   Deaths ${game.stats.deaths}`, px + pw / 2, py + ph - u * 0.9, Math.round(u * 0.65), '#8a90a2', 'center', pw - u);
   }
+}
+
+/** The non-zero entries of a trade side, in ITEM_IDS order. */
+function tradeParts(inv: Partial<Record<ItemId, number>>): [ItemId, number][] {
+  return ITEM_IDS.filter((k) => (inv[k] ?? 0) > 0).map((k) => [k, inv[k] ?? 0]);
 }

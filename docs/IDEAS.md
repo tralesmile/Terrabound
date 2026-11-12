@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-12 run 20
+
+- Done this run: trade rows with item icons, Patch the Medic (medkits, 3/4 pack kept on death).
+- Weakest controls: healing needs the inventory screen mid-fight; a quick-heal key/HUD button (Terraria's H) - promoted to BACKLOG.
+- Weakest gameplay feel: robots still only pace; reactions (wave, hide during raids, cheer after) - merged into the NPC backlog line.
+- Weakest progression: stacked homes upstairs are off the pad, so the base wants to grow up; a lift/elevator block would make multi-storey bases pleasant.
+- Weakest graphics: the base tower is one grey stone texture; per-material wall trims (metal frame vs. stone) would read as architecture.
+
 ## 2026-11-12 run 19
 
 - Done this run: Bolt the Trader (rooms now pay off), room outline overlay.

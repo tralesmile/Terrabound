@@ -10,6 +10,7 @@ export type ItemId =
   | 'seed'
   | 'fish'
   | 'glowfish'
+  | 'medkit'
   | 'beacon_colossus'
   | 'beacon_vine'
   | 'beacon_golem'
@@ -51,6 +52,7 @@ export const ITEM_IDS: ItemId[] = [
   'seed',
   'fish',
   'glowfish',
+  'medkit',
   'beacon_colossus',
   'beacon_vine',
   'beacon_golem',
@@ -244,6 +246,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   seed: { name: 'Tree seed', color: '#c9a35a', places: T.SAPLING },
   fish: { name: 'Hollow fish', color: '#5aa6ff', places: null },
   glowfish: { name: 'Glowfish', color: '#36e0e8', places: null },
+  medkit: { name: 'Medkit', color: '#ff5a5a', places: null, kit: true },
   beacon_colossus: { name: 'Scrap beacon', color: '#c77a5e', places: null },
   beacon_vine: { name: 'Vine beacon', color: '#7fcf5a', places: null },
   beacon_golem: { name: 'Prism beacon', color: '#d8b8ff', places: null },

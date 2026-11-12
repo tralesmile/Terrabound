@@ -9,7 +9,7 @@ import { T, TILES, canAfford, invAdd, pay, type Inventory } from './tiles';
 import type { Room } from './rooms';
 import type { World } from './world';
 
-export type NpcKind = 'trader';
+export type NpcKind = 'trader' | 'medic';
 
 export interface NpcInfo {
   name: string;
@@ -29,37 +29,59 @@ export const NPC_INFO: Record<NpcKind, NpcInfo> = {
       'A room with a bed! You have no idea how rare that is.',
     ],
   },
+  medic: {
+    name: 'Patch',
+    title: 'Medic',
+    lines: [
+      'While I live here, I patch you up: you keep 3/4 of your pack when you fall.',
+      'Medkits for the road. Biomass and fish, nothing fancy.',
+      'Eat a medkit before the big ones. The bosses, I mean.',
+      'Two homes in one base. Bolt finally has a neighbour.',
+    ],
+  },
 };
 
 /** Order robots move in: the first valid room gets the first kind. */
-export const NPC_ORDER: readonly NpcKind[] = ['trader'];
+export const NPC_ORDER: readonly NpcKind[] = ['trader', 'medic'];
 
 export interface Trade {
   id: string;
+  /** Who posts this rate; the row only works while that robot lives in the base. */
+  npc: NpcKind;
   give: Inventory;
   get: Inventory;
+  /** Goods go into the pack (field kit like medkits) instead of the stash. */
+  toPack?: boolean;
 }
 
 /** The Trader's posted rates. Fixed forever, so the player can plan; worse than a powered smelter. */
 export const TRADES: readonly Trade[] = [
-  { id: 'rust_metal', give: { rust: 8 }, get: { metal: 1 } },
-  { id: 'scrap_wire', give: { iron_scrap: 6 }, get: { copper_wire: 2 } },
-  { id: 'bio_wire', give: { biomass: 6 }, get: { copper_wire: 1 } },
-  { id: 'fish_crystal', give: { fish: 3 }, get: { crystal: 1 } },
-  { id: 'glow_crystal', give: { glowfish: 1 }, get: { crystal: 2 } },
-  { id: 'metal_circuit', give: { metal: 6 }, get: { circuit: 1 } },
-  { id: 'crystal_plasma', give: { crystal: 5 }, get: { plasma: 1 } },
+  { id: 'rust_metal', npc: 'trader', give: { rust: 8 }, get: { metal: 1 } },
+  { id: 'scrap_wire', npc: 'trader', give: { iron_scrap: 6 }, get: { copper_wire: 2 } },
+  { id: 'bio_wire', npc: 'trader', give: { biomass: 6 }, get: { copper_wire: 1 } },
+  { id: 'fish_crystal', npc: 'trader', give: { fish: 3 }, get: { crystal: 1 } },
+  { id: 'glow_crystal', npc: 'trader', give: { glowfish: 1 }, get: { crystal: 2 } },
+  { id: 'metal_circuit', npc: 'trader', give: { metal: 6 }, get: { circuit: 1 } },
+  { id: 'crystal_plasma', npc: 'trader', give: { crystal: 5 }, get: { plasma: 1 } },
+  { id: 'med_fish', npc: 'medic', give: { biomass: 4, fish: 1 }, get: { medkit: 1 }, toPack: true },
+  { id: 'med_crystal', npc: 'medic', give: { biomass: 3, crystal: 2 }, get: { medkit: 1 }, toPack: true },
 ];
+
+/** Share of each pack stack kept on death: half normally, three quarters while the Medic lives in the base. */
+export function deathKeep(n: number, medic: boolean): number {
+  return medic ? Math.floor((n * 3) / 4) : Math.floor(n / 2);
+}
 
 export function tradeById(id: string): Trade | undefined {
   return TRADES.find((t) => t.id === id);
 }
 
-/** Swap from the stash at the posted rate. Returns false (and changes nothing) when it cannot pay. */
-export function doTrade(stash: Inventory, trade: Trade): boolean {
+/** Swap from the stash at the posted rate (goods to `pack` when the trade says so). Returns false (and changes nothing) when it cannot pay. */
+export function doTrade(stash: Inventory, trade: Trade, pack: Inventory = stash): boolean {
   if (!canAfford(stash, trade.give)) return false;
   pay(stash, trade.give);
-  for (const [k, n] of Object.entries(trade.get)) invAdd(stash, k as keyof Inventory, n ?? 0);
+  const to = trade.toPack ? pack : stash;
+  for (const [k, n] of Object.entries(trade.get)) invAdd(to, k as keyof Inventory, n ?? 0);
   return true;
 }
 
@@ -107,31 +129,40 @@ function homeKey(world: World, room: Room): number {
  * sends away robots whose room is gone. Returns the new list and which kinds arrived or left. Pure.
  */
 export function syncNpcs(world: World, rooms: readonly Room[], npcs: readonly Npc[]): { npcs: Npc[]; arrived: NpcKind[]; left: NpcKind[] } {
-  const valid = rooms.filter((r) => r.valid);
+  const valid = rooms.filter((r) => r.valid && roomFloor(world, r) !== null);
   const out: Npc[] = [];
   const arrived: NpcKind[] = [];
   const left: NpcKind[] = [];
-  NPC_ORDER.forEach((kind, k) => {
-    const room = valid[k];
+  // Robots keep their own room while it stays a home (a new room never makes anyone move house).
+  const taken = new Set<number>();
+  const kept = new Map<NpcKind, Room>();
+  for (const kind of NPC_ORDER) {
     const prev = npcs.find((n) => n.kind === kind);
+    const room = prev ? valid.find((r) => homeKey(world, r) === prev.home) : undefined;
+    if (room) {
+      kept.set(kind, room);
+      taken.add(homeKey(world, room));
+    }
+  }
+  const free = valid.filter((r) => !taken.has(homeKey(world, r)));
+  for (const kind of NPC_ORDER) {
+    const prev = npcs.find((n) => n.kind === kind);
+    const own = kept.get(kind);
+    const room = own ?? free.shift();
     if (!room) {
       if (prev) left.push(kind);
-      return;
+      continue;
     }
     const floor = roomFloor(world, room);
-    if (!floor) {
-      if (prev) left.push(kind);
-      return;
-    }
-    const key = homeKey(world, room);
-    if (prev && prev.home === key) {
+    if (!floor) continue;
+    if (own && prev) {
       // Same room: stay, but keep the feet on the (possibly rebuilt) floor.
       out.push({ ...prev, y: floor.y + 1, x: Math.max(floor.x0 + 0.5, Math.min(floor.x1 + 0.5, prev.x)) });
-      return;
+      continue;
     }
     if (!prev) arrived.push(kind);
-    out.push({ kind, x: (floor.x0 + floor.x1 + 1) / 2, y: floor.y + 1, face: 1, to: null, wait: 1.5, n: 0, home: key });
-  });
+    out.push({ kind, x: (floor.x0 + floor.x1 + 1) / 2, y: floor.y + 1, face: 1, to: null, wait: 1.5, n: 0, home: homeKey(world, room) });
+  }
   return { npcs: out, arrived, left };
 }
 

@@ -175,6 +175,23 @@ export const ICONS: Record<string, IconDef> = {
       '            ',
     ],
   },
+  medkit: {
+    pal: { a: '#f2f4f8', b: '#c8ccd8', r: '#e8343a', R: '#ff8a8a' },
+    rows: [
+      '            ',
+      '    oooo    ',
+      '    o  o    ',
+      ' oooooooooo ',
+      ' oaaaaaaaao ',
+      ' oaaarraaao ',
+      ' oarrRrrrao ',
+      ' oarrrrrrao ',
+      ' oaaarraaao ',
+      ' obbbbbbbbo ',
+      ' oooooooooo ',
+      '            ',
+    ],
+  },
   torch: {
     pal: { a: '#6b4a2e', f: '#ffcf4a', F: '#ff7a3c' },
     rows: [

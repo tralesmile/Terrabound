@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { World } from '../src/sim/world';
 import { ITEMS, ITEM_IDS, T } from '../src/sim/tiles';
 import { findRooms } from '../src/sim/rooms';
-import { NPC_INFO, NPC_ORDER, NPC_SPEED, TRADES, doTrade, npcLine, roomFloor, stepNpc, syncNpcs, tradeById, type Npc } from '../src/sim/npcs';
+import { NPC_INFO, NPC_ORDER, NPC_SPEED, TRADES, deathKeep, doTrade, npcLine, roomFloor, stepNpc, syncNpcs, tradeById, type Npc } from '../src/sim/npcs';
 import { defaultSave } from '../src/sim/save';
 import { Game, NO_CONTROLS } from '../src/sim/game';
+import { FOOD } from '../src/sim/fishing';
 
 /** Open world with a flat floor at row 20, pad at (60, 20). */
 function flat(): World {
@@ -39,7 +40,8 @@ describe('trader rates', () => {
         expect(keys.length).toBeGreaterThan(0);
         for (const k of keys) {
           expect(ITEM_IDS).toContain(k);
-          expect(ITEMS[k as keyof typeof ITEMS].kit, `${t.id}: kit items are not traded`).toBeFalsy();
+          // Kit is never traded away, and kit bought (medkits) goes straight into the pack, where kit lives.
+          if (inv === t.give || !t.toPack) expect(ITEMS[k as keyof typeof ITEMS].kit, `${t.id}: kit items are not traded`).toBeFalsy();
           expect(inv[k as keyof typeof inv]).toBeGreaterThan(0);
         }
       }
@@ -179,5 +181,120 @@ describe('the Trader in the game', () => {
     g.drainEvents();
     g.step(1 / 30, { ...NO_CONTROLS, dig: true, aim: { tx: Math.floor(n.x), ty: Math.floor(n.y) - 1 } });
     expect(g.drainEvents().some((e) => e.t === 'npctalk')).toBe(true);
+  });
+});
+
+/** Two furnished rooms side by side on the pad: the original home plus one to its right (x px+4..px+8). */
+function twoHomes(w: World): void {
+  home(w);
+  const px = w.padX + 6;
+  const py = w.padY;
+  for (let y = py - 5; y <= py - 1; y++) w.set(px + 3, y, T.METAL);
+  for (let x = px - 3; x <= px + 3; x++) w.set(x, py - 5, T.METAL);
+  for (let y = py - 4; y <= py - 1; y++) for (let x = px - 2; x <= px + 2; x++) w.set(x, y, T.AIR);
+  w.set(px - 2, py - 1, T.BED);
+  w.set(px + 2, py - 1, T.TABLE);
+  w.set(px + 2, py - 3, T.TORCH);
+}
+
+describe('Patch the Medic', () => {
+  it('a new room upstairs never makes the Trader move house', () => {
+    const w = flat();
+    home(w);
+    const a = syncNpcs(w, findRooms(w), []);
+    const traderHome = a.npcs[0].home;
+    // Second home on the first room's roof (scanned before the lower room).
+    const px = w.padX;
+    const py = w.padY - 5;
+    for (let y = py - 5; y <= py; y++) {
+      w.set(px - 3, y, T.METAL);
+      w.set(px + 3, y, T.METAL);
+    }
+    for (let x = px - 3; x <= px + 3; x++) w.set(x, py - 5, T.METAL);
+    for (let y = py - 4; y <= py - 1; y++) for (let x = px - 2; x <= px + 2; x++) w.set(x, y, T.AIR);
+    w.set(px - 2, py - 1, T.BED);
+    w.set(px + 2, py - 1, T.TABLE);
+    w.set(px + 2, py - 3, T.TORCH);
+    const b = syncNpcs(w, findRooms(w), a.npcs);
+    expect(b.arrived).toEqual(['medic']);
+    expect(b.npcs.find((n) => n.kind === 'trader')?.home).toBe(traderHome);
+    expect(b.npcs.find((n) => n.kind === 'medic')?.home).not.toBe(traderHome);
+    // The Trader's room breaks: the Medic stays put; the Trader leaves.
+    w.set(w.padX - 2, w.padY - 1, T.AIR);
+    const c = syncNpcs(w, findRooms(w), b.npcs);
+    expect(c.npcs.map((n) => n.kind)).toEqual(['medic']);
+    expect(c.left).toEqual(['trader']);
+  });
+
+  it('moves into the second valid room only', () => {
+    const w = flat();
+    home(w);
+    expect(syncNpcs(w, findRooms(w), []).npcs.map((n) => n.kind)).toEqual(['trader']);
+    const w2 = flat();
+    twoHomes(w2);
+    const rooms = findRooms(w2).filter((r) => r.valid);
+    expect(rooms).toHaveLength(2);
+    const res = syncNpcs(w2, findRooms(w2), []);
+    expect(res.arrived).toEqual(['trader', 'medic']);
+    expect(new Set(res.npcs.map((n) => n.home)).size).toBe(2);
+  });
+
+  it('medkit trades go to the pack, heal when eaten, and need the Medic home', () => {
+    const meds = TRADES.filter((t) => t.npc === 'medic');
+    expect(meds.length).toBeGreaterThanOrEqual(2);
+    for (const t of meds) {
+      expect(t.toPack).toBe(true);
+      expect(t.get.medkit).toBe(1);
+    }
+    expect(FOOD.medkit?.hp ?? 0).toBeGreaterThan(FOOD.glowfish?.hp ?? 0);
+    const stash = { biomass: 4, fish: 1 };
+    const pack = {};
+    expect(doTrade(stash, meds[0], pack)).toBe(true);
+    expect(pack).toEqual({ medkit: 1 });
+    expect(stash).toEqual({ biomass: 0, fish: 0 });
+
+    const g = new Game(defaultSave());
+    g.body.x = g.world.padX + 0.5;
+    g.body.y = g.world.padY;
+    home(g.world);
+    g.step(1 / 30, NO_CONTROLS);
+    g.stash.biomass = 20;
+    g.stash.fish = 5;
+    // Only the Trader lives here: medic rows refuse.
+    expect(g.trade('med_fish')).toBe(false);
+    twoHomes(g.world);
+    g.step(1 / 30, NO_CONTROLS);
+    expect(g.hasNpc('medic')).toBe(true);
+    expect(g.trade('med_fish')).toBe(true);
+    expect(g.carried.medkit).toBe(1);
+    expect(g.stash.medkit ?? 0).toBe(0);
+  });
+
+  it('death keeps 3/4 of each stack while the Medic lives in the base, half otherwise', () => {
+    expect(deathKeep(10, false)).toBe(5);
+    expect(deathKeep(10, true)).toBe(7);
+    expect(deathKeep(1, true)).toBe(0);
+    for (let n = 0; n < 50; n++) {
+      expect(deathKeep(n, true)).toBeGreaterThanOrEqual(deathKeep(n, false));
+      expect(deathKeep(n, true)).toBeLessThanOrEqual(n);
+    }
+  });
+
+  it('says its own lines and offers medkits in the hint', () => {
+    expect(NPC_ORDER).toContain('medic');
+    expect(npcLine('medic', 0)).toContain('3/4');
+    const g = new Game(defaultSave());
+    twoHomes(g.world);
+    g.body.x = g.world.padX + 0.5;
+    g.body.y = g.world.padY;
+    g.step(1 / 30, NO_CONTROLS);
+    const m = g.npcs.find((n) => n.kind === 'medic');
+    expect(m).toBeDefined();
+    if (!m) return;
+    g.body.x = m.x + 0.3;
+    g.step(1 / 30, NO_CONTROLS);
+    expect(g.hintAutomation(false)).toContain('Patch the Medic');
+    expect(g.hintAutomation(false)).toContain('medkits');
+    expect(g.canShop()).toBe(true);
   });
 });

@@ -75,3 +75,5 @@
 - **Ran `npm ci && npm run check` bare again (run 19)** and the shell killed it at 2 min, despite two lessons. Guard: the run prompt's step "npm ci && npm run check" must be issued as two calls, the gate with `timeout: 600000` and output to a log.
 - **Derived state that announces itself needs a "first sync is silent" rule.** NPCs are derived from rooms each frame; without it every load would toast "moved in". Tests that expect the arrival event must step the game once before finishing the room.
 
+- **Derived assignment by scan order reshuffles on change.** Rooms are scanned top-down, so a new room upstairs became "room 0" and the Trader moved house. Guard: syncNpcs keeps a robot's own room first, then hands free rooms to newcomers; tests/npcs "never makes the Trader move house".
+- **"At base" is a 13-tile strip, but rooms can be wider or upstairs.** Anything a robot offers must use `canShop()` (pad or next to a robot), not `isAtBase()`; the workshop auto-close in main.ts uses it too.

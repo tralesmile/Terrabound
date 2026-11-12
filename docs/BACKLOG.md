@@ -99,7 +99,9 @@ Living base and drones
 
 Characters
 - [x] Robot NPC slice 1 (run 19, src/sim/npcs.ts): Bolt the Trader moves into the first valid room (derived, no save change), paces, greets, E/tap opens the TRADE tab with 7 fixed barter rates from the stash
-- [ ] More robot NPCs in later valid rooms: Medic (heals, cures), Gunsmith (weapon mods), Scientist (research tree); comfort-based happiness (cozier room = better rates or bonus)
+- [x] Medic robot (run 20): Patch moves into the second valid room; medkit trades into the pack (+60 HP, eat from inventory); while home you keep 3/4 of the pack on death; robots never move house when a new room appears; trade rows show item icons
+- [ ] More robot NPCs: Gunsmith (weapon mods), Scientist (research tree); comfort-based happiness (cozier room = better rates or bonus); robots react (wave, hide in bed during raids, cheer)
+- [ ] Quick-heal key/button (H / a HUD medkit button on touch) that eats the best healing item in the pack
 - [ ] Wandering merchant drone with rotating, fully visible stock (seeded per day; no paid randomness)
 
 World

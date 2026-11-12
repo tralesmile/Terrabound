@@ -26,6 +26,7 @@ export const BITE_SPREAD = 5;
 export const FOOD: Partial<Record<ItemId, { hp: number; battery: number }>> = {
   fish: { hp: 25, battery: 0 },
   glowfish: { hp: 50, battery: 40 },
+  medkit: { hp: 60, battery: 0 },
 };
 
 /** The water surface cell to cast at: the aimed cell if it is water, else the first water below it (6 rows). */

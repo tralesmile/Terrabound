@@ -571,6 +571,18 @@ export function traderRows(t: number, walking: boolean): string[] {
   return [...top, ...legs];
 }
 
+/** Medic colours over the trader rig: white coat, red cross and beacon, teal trim. */
+export const MEDIC_REMAP: Record<string, string> = { g: '#eef2f8', y: '#e8343a', Y: '#ff9a9a', P: '#2fb8b0', S: '#c8d0dc' };
+
+/** Rows for the Medic: the trader rig with a red cross on the chest plate. Pure. */
+export function medicRows(t: number, walking: boolean): string[] {
+  const rows = traderRows(t, walking);
+  rows[12] = ' oPogSSyySSgoPo';
+  rows[13] = ' oPogSyyyySgoPo';
+  rows[14] = ' oHogSSyySSgoHo';
+  return rows;
+}
+
 /**
  * Vehicle sprite maps, nose/handlebar facing right (flip for left). Rows are top-down; the
  * renderer puts row 0 `VEHICLES[id].top` art px above the player's feet.

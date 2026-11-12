@@ -20,7 +20,7 @@ import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
-import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, traderRows, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, traderRows, medicRows, MEDIC_REMAP, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 
 /** Chunk size in tiles for the render cache. */
@@ -878,7 +878,9 @@ export class Renderer {
       const x = this.sx(n.x, shakeX);
       const y = this.sy(n.y, shakeY);
       const info = NPC_INFO[n.kind];
-      drawRows(ctx, traderRows(time + n.home * 0.01, n.to !== null), Math.round(x - (TRADER_W / 2) * s), Math.round(y - 20 * s), s, n.face < 0, TRADER_W);
+      const medic = n.kind === 'medic';
+      const rows = (medic ? medicRows : traderRows)(time + n.home * 0.01, n.to !== null);
+      drawRows(ctx, rows, Math.round(x - (TRADER_W / 2) * s), Math.round(y - 20 * s), s, n.face < 0, TRADER_W, undefined, medic ? MEDIC_REMAP : undefined);
       if (n === near) {
         const label = `${info.name.toUpperCase()}  ${info.title}`;
         ctx.font = `bold ${Math.round(s * 4)}px monospace`;
@@ -886,10 +888,10 @@ export class Renderer {
         const ty = y - 26 * s + Math.sin(time * 3) * s;
         ctx.fillStyle = 'rgba(10,12,20,0.8)';
         ctx.fillRect(x - tw / 2, ty - s * 3.5, tw, s * 5);
-        ctx.strokeStyle = '#ffd23a';
+        ctx.strokeStyle = medic ? '#ff8a8a' : '#ffd23a';
         ctx.lineWidth = Math.max(1, s * 0.5);
         ctx.strokeRect(x - tw / 2, ty - s * 3.5, tw, s * 5);
-        ctx.fillStyle = '#ffd23a';
+        ctx.fillStyle = medic ? '#ff8a8a' : '#ffd23a';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(label, x, ty - s);

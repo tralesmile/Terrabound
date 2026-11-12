@@ -376,3 +376,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 
 **Known issues:** trade rows are text only (no item icons); table and bed are 1 tile and read small; DAILY still replaces the world without a confirm; turrets draw 1 power even when idle.
 
+
+## 2026-11-12 Scheduled run 20
+
+**Done:** baseline green (397 tests). Creative review: the TRADE tab was a wall of text with the same subtitle on every row. Trade rows now show item icons (give > get, with counts, dimmed when the robot is not home) and "you have N" per row (36-trade). Backlog P1.8 Characters: Patch the Medic moves into the second valid room (white-coat remap of the trader rig with a red cross, red name tag); posts two medkit rates that go straight into the pack (medkit is a new kit item, eat for +60 HP); while Patch lives in the base death keeps 3/4 of each pack stack (toast says so). Robots now keep their own room when a new one appears (the Trader used to move upstairs). Robots talk and trade anywhere in the base (`canShop`), and talking to one opens TRADE scrolled to its rows. Screenshots 35c-medic, 36b-medic-trade reviewed.
+
+**Numbers:** 405 unit tests, e2e all green (new: medic moves in upstairs + greets, E opens TRADE at its rows, click buys a medkit into the pack), bundle ~252 kB (~87 kB gzip).
+
+**Next:** furniture follow-ups (2-tile bed/table, chairs), quick-heal key, then wandering merchant drone.
+
+**Known issues:** upgrade BUY rows refuse while you shop upstairs off the pad (only TRADE is meant to work there); trade rows on a phone are tight (text shrinks); table and bed are 1 tile; DAILY still replaces the world without a confirm; turrets draw 1 power even when idle.
