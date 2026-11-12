@@ -345,3 +345,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** raid defences (turret, spike trap, reinforced wall), then raid follow-ups, then furniture.
 
 **Known issues:** raiders are ordinary enemy sprites with a glow; a raider standing on a base floor block chews down through it; DAILY still replaces the world without a confirm; toasts show faintly through open panels.
+
+## 2026-11-12 Scheduled run 17
+
+**Done:** baseline green (347 tests). Creative review: raiders read as ordinary cave enemies and raids were "kill what walks in". Raiders now wear red war-armour with a gold eye (sprite remap). Backlog raid defences (src/sim/defences.ts): powered turret block with a tracking barrel and tracer shots, spike traps, reinforced walls (3x chew), raiders go for the nearest machine; 3 new tiles (42-44), items, icons, Fabricator recipes. Raid follow-ups: 20 s warning (horn, toast, HUD countdown, edge arrow), map entry chevrons, drone rule "a raid is on". Screenshots 34c-defences, 34d-raid-warning, 34e-raid-map.
+
+**Numbers:** 361 unit tests, e2e all green, bundle 233 kB (80.8 kB gzip).
+
+**Next:** furniture and decoration set + room detection (P1.8), then robot NPCs.
+
+**Known issues:** a raider on a base floor block chews down through it; DAILY still replaces the world without a confirm; toasts show faintly through open panels; turrets draw 1 power even when idle.

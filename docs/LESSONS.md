@@ -66,3 +66,6 @@
 - **The world is open above row 0** (`get` returns air off the top, rock off the sides), so A* can route over a wall's top. Guard: path tests assert "detour" (length), not a specific route.
 - **Hopping walkers jump over the thing they should attack.** Raiders hopped over a 1-tile block instead of chewing it. Guard: raiders with a chew target hold still (game.stepEnemies) and a test checks the block comes loose.
 - **The pad clears all enemies every frame** (`atBase`). Any enemy meant to threaten the base must be exempt (raiders keep `e.raid`).
+- **Ran `npm run check` without the 600000 ms timeout again (run 17)** and the shell killed it at 2 min. Guard: only ever run the gate through `npm run ship` or with `timeout: 600000` on the Bash call; never bare.
+- **`damageEnemy` sets hit-stop**, so every automated hit (turrets, spikes) would stutter the game. Guard: pass `stop = false` for anything that is not the player's own hit.
+- **A turret in MACHINE_TILES would grow the raid** (machines count double in baseValue) and punish defending. Defences are in BASE_KEEP only; a test asserts a turret leaves baseValue at 0.

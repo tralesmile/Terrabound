@@ -90,8 +90,9 @@ Living base and drones
 - [x] Drone rules (run 15, save v13): 3 IF/THEN rules per bay (night / enemy near / pack half / hp low / deep -> mine / guard / haul / repair / home), DRONES panel at the base, Repair role with a heal beam, 16 px drone sprites per job
 - [x] Drone pathing: bounded A* over air tiles so drones stop phasing through rock (IDEAS run 14; run 16, src/sim/dronepath.ts)
 - [x] Night base raids slice 1 (run 16, src/sim/raids.ts, save v14): at nightfall at home, a wave sized by base value marches on the pad from the map edges, chews base blocks loose (they drop as items), clearing pays metal/wire/crystal; RAIDS ON/OFF in the workshop; HUD counter, siren
-- [ ] Raid defences: craftable powered turret block (shoots raiders in range), spike trap, reinforced wall (raiders chew 3x slower); raiders path toward exposed machines first
-- [ ] Raid follow-ups: raider art (red-armoured variants), a warning 20 s before the wave, wave preview on the map, raid rule fact for drones ("raid on")
+- [x] Raid defences (run 17, src/sim/defences.ts): powered turret (raiders first, line of sight, 1 power), spike trap (5 dmg / 0.5 s to walkers), reinforced wall (3x chew); raiders head for the nearest machine
+- [x] Raid follow-ups (run 17): red war-armour raiders (`raiderRemap`), 20 s warning (horn, countdown, edge arrow), map entry chevrons, drone rule "a raid is on"
+- [ ] Raid polish: raiders standing on a base floor block should not chew down through it; raid-only blueprint every 3 nights (turret Mk II, shield wall); turret upgrade tiers
 - [ ] Furniture and decoration set (tables, lamps, screens, plants, banners, beds); house "room" detection
 
 Characters
