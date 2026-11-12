@@ -77,3 +77,6 @@
 
 - **Derived assignment by scan order reshuffles on change.** Rooms are scanned top-down, so a new room upstairs became "room 0" and the Trader moved house. Guard: syncNpcs keeps a robot's own room first, then hands free rooms to newcomers; tests/npcs "never makes the Trader move house".
 - **"At base" is a 13-tile strip, but rooms can be wider or upstairs.** Anything a robot offers must use `canShop()` (pad or next to a robot), not `isAtBase()`; the workshop auto-close in main.ts uses it too.
+- **Loose pack items vanish in e2e when an earlier check left a hauler drone running** (fish got banked, so a quick-heal check looked like a double eat). Guard: e2e fixtures that need pack items use kit items (medkit), or remove drone bays first.
+- **Base HP regen (40/s on the pad) and repair drones hide heal amounts in e2e.** Guard: assert which item was consumed, not the exact HP.
+- **Multi-cell tiles need every removal path to clear the partner.** Mining and raid chewing go through `removeTile` (wide.ts); explosions skip non-solid tiles. Any new removal path must call it too.

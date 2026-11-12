@@ -386,3 +386,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** furniture follow-ups (2-tile bed/table, chairs), quick-heal key, then wandering merchant drone.
 
 **Known issues:** upgrade BUY rows refuse while you shop upstairs off the pad (only TRADE is meant to work there); trade rows on a phone are tight (text shrinks); table and bed are 1 tile; DAILY still replaces the world without a confirm; turrets draw 1 power even when idle.
+
+## 2026-11-12 Scheduled run 21
+
+**Done:** baseline green (402 tests). Creative review: the 1-tile bed and table looked like toys next to the player (35-room). Furniture follow-ups (src/sim/wide.ts): bed and table now go down 2 cells wide for one item (right half tiles BED_FOOT 52 / TABLE_END 53; prefers the right cell, else left, else single; mining or raider chewing either half clears both and drops one item; old 1-tile pieces still count and draw as before). New 32x16 art: double bed with head/footboard, long table with a mug, sprout and crate. Chair (tile 54, Chair x2 for 3 rust) adds a comfort kind; comfort capped at COMFORT_MAX 4. Quick heal: H or a heal button with a count beside the HP bar eats the smallest heal that covers the missing HP (`bestHeal`), pulses red under 35% HP; toasts for full/none. Screenshots 35-room, 35c-medic, 37-quick-heal reviewed.
+
+**Numbers:** 410 unit tests (new tests/wide.test.ts: 8), e2e all green (new: quick heal by H and by clicking the HUD button), bundle 257 kB (88.5 kB gzip).
+
+**Next:** wall-mounted placement rules + lift block, then more robot NPCs (comfort pays, robots react), then wandering merchant drone.
+
+**Known issues:** upgrade BUY rows refuse while you shop upstairs off the pad; trade rows on a phone are tight; DAILY still replaces the world without a confirm; turrets draw 1 power even when idle; a chair has no flip (always faces right).
