@@ -1,6 +1,6 @@
 import type { Game, Shot } from '../sim/game';
-import { isCropTile, isWatered } from '../sim/farming';
-import { drawCropTile } from './crops';
+import { cropAt, isCropTile, isWatered } from '../sim/farming';
+import { cropSway, drawCropTile, ripeSparkle, sprinklerDrops } from './crops';
 import { NPC_INFO, type Mood, type Npc } from '../sim/npcs';
 import { roomEdges } from '../sim/rooms';
 import { furnitureArt, screenLines } from './furniture';
@@ -92,6 +92,8 @@ export class Renderer {
   lastHurtAlpha = 0;
   /** Mood hearts drawn last frame (read by e2e). */
   heartsShown = 0;
+  /** Crops and sprinklers drawn by the per-frame pass last frame (read by e2e). */
+  farmShown = 0;
   private snapped = false;
 
   constructor(private ctx: CanvasRenderingContext2D) {}
@@ -701,7 +703,8 @@ export class Renderer {
     }
     if (t === T.SPRINKLER || t === T.POT || isCropTile(t)) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
-      drawCropTile(ctx, t, dx, dy, ts, isCropTile(t) && isWatered(world, tx, ty), t === T.SPRINKLER, t === T.POT);
+      // Crops sway and sprinklers spray: drawn each frame by drawDynamic.
+      if (t === T.POT) drawCropTile(ctx, t, dx, dy, ts, false, false, true);
       return;
     }
     if (t === T.SAPLING) {
@@ -922,10 +925,12 @@ export class Renderer {
   /** Per-frame tile art: torch flames and bobbing chests over the cached chunks. */
   private drawDynamic(ctx: CanvasRenderingContext2D, world: Game['world'], x0: number, y0: number, x1: number, y1: number, shakeX: number, shakeY: number, time: number): void {
     const ts = TS * this.scale;
+    this.farmShown = 0;
     for (let ty = Math.max(0, y0); ty <= Math.min(world.h - 1, y1); ty++) {
       for (let tx = Math.max(0, x0); tx <= Math.min(world.w - 1, x1); tx++) {
         const t = world.tiles[ty * world.w + tx];
         if (t === T.TORCH) this.drawTorch(ctx, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time + tx);
+        else if (t === T.SPRINKLER || isCropTile(t)) this.drawFarmTile(ctx, world, t, tx, ty, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time);
         else if (t === T.WINDOW) this.drawWindow(ctx, world, tx, ty, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time);
         else if (t === T.LIFT) this.drawLiftGlow(ctx, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time, ty);
         else if (t === T.LAMP || t === T.SCREEN) this.drawFurnitureGlow(ctx, t, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time, tx);
@@ -959,6 +964,34 @@ export class Renderer {
           const bob = Math.sin(time * 3 + tx) > 0.6 ? this.scale : 0;
           ctx.drawImage(this.decor.chest, 0, 0, TS, TS, this.sx(tx, shakeX), this.sy(ty, shakeY) - bob, ts, ts);
         }
+      }
+    }
+  }
+
+  /** Crops (swaying in the wind, ripe ones twinkle) and sprinklers (spray arcs), per frame. */
+  private drawFarmTile(ctx: CanvasRenderingContext2D, world: Game['world'], t: number, tx: number, ty: number, dx: number, dy: number, ts: number, time: number): void {
+    const u = ts / 16;
+    if (t === T.SPRINKLER) {
+      drawCropTile(ctx, t, dx, dy, ts, false, true);
+      ctx.fillStyle = '#9fd8ff';
+      for (const d of sprinklerDrops(time, tx)) {
+        ctx.globalAlpha = d.a;
+        ctx.fillRect(dx + d.x * u, dy + d.y * u, u, u);
+      }
+      ctx.globalAlpha = 1;
+      this.farmShown++;
+      return;
+    }
+    const c = cropAt(t);
+    if (!c) return;
+    drawCropTile(ctx, t, dx, dy, ts, isWatered(world, tx, ty), false, false, cropSway(time, tx, c.stage));
+    this.farmShown++;
+    if (c.stage === 2) {
+      const sp = ripeSparkle(time, tx);
+      if (sp) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(dx + sp.x * u, dy + sp.y * u, u, u);
+        ctx.fillRect(dx + (sp.x - 1) * u, dy + sp.y * u, 3 * u, u * 0.5);
       }
     }
   }

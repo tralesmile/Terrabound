@@ -40,8 +40,42 @@ export const POT_ART: readonly R[] = [
   [4, 13, 2, 3, '#3d4152'], [10, 13, 2, 3, '#3d4152'], [6, 14, 4, 2, '#ff8a3a'], [7, 14, 2, 1, '#ffd27a'],
 ];
 
+/**
+ * Gentle wind sway for a crop in 16ths of a tile at its top (row 0): taller stages sway more and
+ * neighbouring columns are out of phase so a field ripples. Pure (time is the render clock).
+ */
+export function cropSway(time: number, tx: number, stage: number): number {
+  const amp = stage === 0 ? 0.4 : stage === 1 ? 0.9 : 1.4;
+  return amp * Math.sin(time * 1.7 + tx * 0.9) + 0.3 * amp * Math.sin(time * 3.1 + tx * 2.3);
+}
+
+/** Shift each rect by the sway scaled to its height (feet stay planted on row 16). Rounds to whole 16ths. Pure. */
+export function swayRects(rects: readonly R[], sway: number): R[] {
+  return rects.map(([x, y, w, h, c]) => [x + Math.round((sway * (16 - (y + h / 2))) / 16), y, w, h, c]);
+}
+
+/** Ripe twinkle: a white pixel that blinks over a ripe crop about once every 2 s, or null. Pure. */
+export function ripeSparkle(time: number, tx: number): { x: number; y: number } | null {
+  const p = (time * 0.5 + tx * 0.618) % 1;
+  if (p > 0.12) return null;
+  const k = Math.floor(time * 0.5 + tx * 0.618);
+  return { x: 3 + ((k * 5 + tx * 3) % 10), y: 2 + ((k * 7 + tx) % 6) };
+}
+
+/** Sprinkler spray: droplets on two arcs either side, cycling outward. Positions in 16ths relative to the tile. Pure. */
+export function sprinklerDrops(time: number, tx: number): { x: number; y: number; a: number }[] {
+  const out: { x: number; y: number; a: number }[] = [];
+  for (let i = 0; i < 6; i++) {
+    const p = (time * 0.9 + i / 6 + tx * 0.13) % 1;
+    const side = i % 2 === 0 ? -1 : 1;
+    const reach = p * 30;
+    out.push({ x: 8 + side * reach, y: 4 - 14 * p + 22 * p * p, a: 0.75 * (1 - p) });
+  }
+  return out;
+}
+
 /** Draw a crop tile (or sprinkler) at (dx, dy) with tile size ts; false when `t` is neither. */
-export function drawCropTile(ctx: CanvasRenderingContext2D, t: number, dx: number, dy: number, ts: number, wet: boolean, sprinkler: boolean, pot = false): boolean {
+export function drawCropTile(ctx: CanvasRenderingContext2D, t: number, dx: number, dy: number, ts: number, wet: boolean, sprinkler: boolean, pot = false, sway = 0): boolean {
   const u = ts / 16;
   let rects: readonly R[] | null = null;
   if (pot) rects = POT_ART;
@@ -50,6 +84,7 @@ export function drawCropTile(ctx: CanvasRenderingContext2D, t: number, dx: numbe
     const c = cropAt(t);
     if (!c) return false;
     rects = CROP_ART[c.crop][c.stage];
+    if (sway !== 0) rects = swayRects(rects, sway);
   }
   // Damp soil line under watered crops so players can see the sprinkler reaches.
   if (wet && !sprinkler) {

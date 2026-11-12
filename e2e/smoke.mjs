@@ -1182,12 +1182,15 @@ try {
       return p;
     });
     let hearts = 0;
-    for (let i = 0; i < 30 && hearts === 0; i++) {
+    // A happy heart shows 1.4 s of every 4.5 s, so poll for two full periods (a 3 s poll can miss the 3.1 s gap).
+    let why = '';
+    for (let i = 0; i < 100 && hearts === 0; i++) {
       await page.waitForTimeout(100);
       hearts = await page.evaluate(() => window.__terrabound.renderer.heartsShown);
     }
+    if (hearts === 0) why = await page.evaluate(() => { const g = window.__terrabound.game; return JSON.stringify(g.npcs.map((n) => ({ k: n.kind, pose: n.pose, react: n.react, mood: g.npcMood(n.kind), near: g.npcNear() === n }))); });
     await page.screenshot({ path: path.join(out, '36i-happy-heart.png') });
-    check('a happy robot floats a heart when you step back', hearts > 0, JSON.stringify({ hearts }));
+    check('a happy robot floats a heart when you step back', hearts > 0, JSON.stringify({ hearts, why }));
     await page.evaluate((p) => {
       const { ui, game } = window.__terrabound;
       game.body.x = p.x;
@@ -1502,6 +1505,19 @@ try {
     return { tile: g.world.get(x0 + 1, y - 1), timers: g.world.crops.size, seeds: g.carried.corn_seed ?? 0 };
   }, farm);
   await page.screenshot({ path: path.join(out, '41-farm.png') });
+  {
+    // Crops sway in the wind and the sprinkler sprays: the crop row is drawn per frame and moves.
+    const clipBox = await page.evaluate(({ x0, y }) => {
+      const r = window.__terrabound.renderer;
+      const ts = 16 * r.scale;
+      return { x: Math.max(0, r.w / 2 + (x0 + 3 - r.camX) * ts), y: Math.max(0, r.h / 2 + (y - 3 - r.camY) * ts), width: ts * 13, height: ts * 3 };
+    }, farm);
+    const a = await page.screenshot({ clip: clipBox });
+    await page.waitForTimeout(450);
+    const b = await page.screenshot({ path: path.join(out, '41d-farm-sway.png'), clip: clipBox });
+    const shown = await page.evaluate(() => window.__terrabound.renderer.farmShown);
+    check('crops sway and the sprinkler sprays (farm row drawn per frame and moves)', shown >= 10 && !a.equals(b), JSON.stringify({ shown, same: a.equals(b) }));
+  }
   check('right click plants a glowcorn seed on soil (sprout with a growth timer)', planted.tile === 57 && planted.timers >= 1 && planted.seeds === 0, JSON.stringify(planted));
   await page.evaluate(() => { window.__terrabound.game.tool = 'drill'; });
   await page.mouse.move(farmPos.ripe.sx, farmPos.ripe.sy);
