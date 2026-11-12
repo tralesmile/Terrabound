@@ -5,7 +5,7 @@ import { ENEMIES } from '../sim/enemies';
 import { hash2 } from '../sim/rng';
 import { T } from '../sim/tiles';
 import { BODY_H } from '../sim/physics';
-import { squashScale, type Fx } from './fx';
+import { magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx } from './fx';
 import type { PlayerGear } from './sprites';
 import { ICON, drawIcon } from './icons';
 import { GEAR } from '../sim/gear';
@@ -717,11 +717,51 @@ export class Renderer {
           ctx.fillStyle = 'rgba(159,216,255,0.35)';
           const gx = this.sx(tx, shakeX) + ts * (0.1 + 0.8 * ((time * 0.4 + tx * 0.37) % 1));
           ctx.fillRect(gx, this.sy(ty, shakeY) + ts * 0.2, ts * 0.12, ts * 0.45);
+        } else if (t === T.MAGMA) {
+          this.drawMagma(ctx, world, tx, ty, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time);
         } else if (t === T.CHEST) {
           const bob = Math.sin(time * 3 + tx) > 0.6 ? this.scale : 0;
           ctx.drawImage(this.decor.chest, 0, 0, TS, TS, this.sx(tx, shakeX), this.sy(ty, shakeY) - bob, ts, ts);
         }
       }
+    }
+  }
+
+  /** Molten rock moves: a travelling heat band, bubbles that swell and pop, embers and shimmer above the surface. */
+  private drawMagma(ctx: CanvasRenderingContext2D, world: Game['world'], tx: number, ty: number, dx: number, dy: number, ts: number, time: number): void {
+    const p = magmaPulse(tx, ty, time);
+    ctx.fillStyle = `rgba(255,${200 + 40 * p | 0},90,${0.12 + 0.28 * p})`;
+    ctx.fillRect(dx, dy + ts * (0.2 + 0.25 * p), ts, ts * 0.22);
+    const above = world.get(tx, ty - 1);
+    if (above === T.MAGMA) return;
+    const u = ts / 16;
+    // Rolling crest: the bright surface line rises and falls a pixel.
+    const crest = Math.sin(time * 2.4 + tx * 1.3) > 0 ? u : 0;
+    ctx.fillStyle = '#fff0b0';
+    ctx.fillRect(dx, dy - crest, ts, Math.max(1, u));
+    if (above !== T.AIR) return;
+    // Heat shimmer: a faint warm haze one tile tall.
+    ctx.fillStyle = `rgba(255,140,60,${0.05 + 0.05 * p})`;
+    ctx.fillRect(dx, dy - ts, ts, ts);
+    const b = magmaBubble(tx, ty, time);
+    if (b) {
+      const bx = dx + b.x * ts;
+      if (!b.pop) {
+        const r = Math.max(1, b.r * 4 * u);
+        ctx.fillStyle = '#ffd27a';
+        ctx.fillRect(bx - r, dy - r * 0.8, r * 2, r);
+        ctx.fillStyle = '#ff8a3a';
+        ctx.fillRect(bx - r * 0.4, dy - r * 0.6, r * 0.8, r * 0.4);
+      } else {
+        const s = (b.k - 0.7) / 0.3;
+        ctx.fillStyle = `rgba(255,220,120,${1 - s})`;
+        for (const side of [-1, 1]) ctx.fillRect(bx + side * (2 + 5 * s) * u, dy - (2 + 4 * s - 3 * s * s) * u, u * 1.5, u * 1.5);
+      }
+    }
+    const e = magmaEmber(tx, ty, time);
+    if (e) {
+      ctx.fillStyle = `rgba(255,190,80,${e.a})`;
+      ctx.fillRect(dx + e.dx * ts, dy - e.up * ts, u * 1.5, u * 1.5);
     }
   }
 

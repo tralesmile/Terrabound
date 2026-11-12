@@ -637,6 +637,36 @@ try {
   await page.waitForTimeout(500);
   await page.screenshot({ path: path.join(out, '27b-magma.png') });
   check('the Plasma layer has magma pockets', magma !== null, JSON.stringify(magma));
+  if (magma) {
+    // Molten surface animates (heat band, crest, bubbles): two frames of a pool differ.
+    // Pockets drain after the fixture above, so pour a 5-wide pool in a rock basin beside the player.
+    const cell = await page.evaluate(() => {
+      const g = window.__terrabound.game;
+      const w = g.world;
+      g.hp = g.derived.maxHp;
+      const fx = Math.floor(g.body.x);
+      const fy = Math.floor(g.body.y);
+      for (let xx = fx + 2; xx <= fx + 8; xx++) {
+        for (let yy = fy - 4; yy < fy; yy++) w.set(xx, yy, 0);
+        w.set(xx, fy, 35);
+        w.set(xx, fy + 1, 35);
+      }
+      w.set(fx + 2, fy - 1, 35);
+      w.set(fx + 8, fy - 1, 35);
+      for (let xx = fx + 3; xx <= fx + 7; xx++) w.set(xx, fy - 1, 40);
+      return { x: fx + 5, y: fy - 1 };
+    });
+    check('a magma surface is on screen', cell !== null);
+    if (cell) {
+      const c = await tileToCss(page, cell.x, cell.y);
+      const clip = { x: Math.max(0, c.x - 30), y: Math.max(0, c.y - 50), width: 60, height: 70 };
+      const a = await page.screenshot({ clip });
+      await page.waitForTimeout(450);
+      const b = await page.screenshot({ clip });
+      check('magma surface animates between frames', !a.equals(b), JSON.stringify(cell));
+      await page.screenshot({ path: path.join(out, '27b2-magma-close.png') });
+    }
+  }
   // Water poured onto magma cools it into basalt (id 41) with a steam puff. Built beside the
   // player in a small rock basin so the check does not depend on the pocket above surviving.
   const basin = await page.evaluate(() => {

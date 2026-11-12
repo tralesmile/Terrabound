@@ -221,3 +221,46 @@ export class Fx {
     this.squashLeft = Math.max(0, this.squashLeft - dt);
   }
 }
+
+/** Seconds between bubbles on one magma surface cell (each cell is offset by a hash). */
+export const BUBBLE_PERIOD = 2.6;
+
+function cellHash(ix: number, iy: number, seed: number): number {
+  let h = Math.imul(ix | 0, 374761393) ^ Math.imul(iy | 0, 668265263) ^ Math.imul(seed | 0, 1442695041);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+
+/** Slow sideways heat wave through molten rock: 0..1 brightness for a magma cell at time `t`. */
+export function magmaPulse(tx: number, ty: number, t: number): number {
+  return 0.5 + 0.5 * Math.sin(t * 1.7 - tx * 0.9 + ty * 0.6);
+}
+
+/**
+ * A bubble on a magma surface cell: swells for the first 70% of its life, then pops.
+ * Returns null while the cell is quiet. `x` is 0..1 across the cell, `r` 0..1 of a quarter cell,
+ * `pop` true in the last 30% (draw a ring of spatter instead of a dome).
+ */
+export function magmaBubble(tx: number, ty: number, t: number): { x: number; r: number; pop: boolean; k: number } | null {
+  const off = cellHash(tx, ty, 41) * BUBBLE_PERIOD;
+  const cycle = Math.floor((t + off) / BUBBLE_PERIOD);
+  // Only some cycles bubble, so the surface never ticks like a metronome.
+  if (cellHash(tx, cycle, 43) > 0.45) return null;
+  const k = ((t + off) % BUBBLE_PERIOD) / BUBBLE_PERIOD;
+  const life = 0.55;
+  if (k > life) return null;
+  const p = k / life;
+  const x = 0.2 + 0.6 * cellHash(tx, cycle, 47);
+  return p < 0.7 ? { x, r: p / 0.7, pop: false, k: p } : { x, r: 1, pop: true, k: p };
+}
+
+/** An ember drifting up from a magma surface cell: offset in tiles above the surface and alpha, or null. */
+export function magmaEmber(tx: number, ty: number, t: number): { dx: number; up: number; a: number } | null {
+  const period = 3.4;
+  const off = cellHash(tx, ty, 53) * period;
+  const k = ((t + off) % period) / period;
+  if (cellHash(tx, Math.floor((t + off) / period), 59) > 0.3 || k > 0.6) return null;
+  const p = k / 0.6;
+  return { dx: 0.3 + 0.4 * cellHash(tx, ty, 61) + 0.15 * Math.sin(p * 6), up: p * 1.6, a: 1 - p };
+}
