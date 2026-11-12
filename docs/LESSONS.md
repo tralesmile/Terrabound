@@ -58,3 +58,7 @@
 - **Order of liquid passes matters.** Cooling after flow let water slide off magma before reacting; reactions run before flow.
 - **Liquid fixtures drain before the screenshot.** A found magma pocket had flowed away by the time the e2e looked at it, so the clip showed empty rock. Guard: build a sealed basin fixture right beside the player in the same evaluate, then screenshot.
 - **E2e fixtures in the base leak into later checks.** Solar cells added for the drone check changed the smelter check's numbers. Guard: remove every tile a check placed in the base before moving on.
+- **Tests that pin `SAVE_VERSION` with `toBe(n)` break on every bump.** Run 15 had to edit the v12 drone test. Guard: migration tests assert `toBeGreaterThanOrEqual(n)` and test the migration itself with an old fixture.
+- **Sprite rows over the width are easy to type** (a 17-char drone rotor). The width test caught it; add every new sprite map to tests/sprites.test.ts the moment you write it.
+- **Rule/role systems need a per-frame "acting" field** (`FieldDrone.act`) so the renderer and panel show what the drone does now, not its saved role; switching acts must drop half-finished targets.
+

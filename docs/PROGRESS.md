@@ -324,3 +324,14 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** drone rules + rule editor (P1.8, split out), then night base raids.
 
 **Known issues:** drones fly straight through rock (drawn faint while inside); drone art is rectangles; DAILY still replaces the world without a confirm.
+
+## 2026-11-12 Scheduled run 15
+
+**Done:** baseline green (311 tests). Creative review: bosses were flat rectangles (worst art in the game). New src/render/bossart.ts draws every boss as a rig of shaded, outlined pixel parts (scrap plates, vines, crystal facets, ice cracks, ember scales, circuit traces) cached as canvases: walkers step, bob, reach and glow red when enraged; the Ash Wyrm has finned segments and a maw; the Hollow AI is an armoured eye with orbiting shards that tracks you (screenshots 10-gallery, 26-boss, 28-final-boss). Backlog P1.8 drone rules: 3 IF/THEN rules per bay, DRONES panel at the base, Repair role with heal beam, 16 px drone sprites per job, save v13 (`droneRules`, v12 migration test). Button labels now shrink to fit.
+
+**Numbers:** 325 unit tests, e2e all green (new: rule panel by clicks, Escape closes, repair heals, phone panel fit; 33b/33c/33d screenshots), bundle 218 kB (75.9 kB gzip).
+
+**Next:** drone pathing (bounded A*), then night base raids (P1.8).
+
+**Known issues:** drones still fly through rock; DAILY still replaces the world without a confirm; toasts show faintly through open panels.
+

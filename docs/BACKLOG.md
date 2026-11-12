@@ -83,11 +83,12 @@ Bosses and goals
 - [x] Vine Queen (Overgrown Ruins), Crystal Golem (Crystal Flats), Ash Wyrm (Ash Dunes, burrowing), Frost Titan (Frozen Spires)
 - [x] Unique boss drops: trophy GEAR per boss (stat-based; status effects burn/chain/freeze/lifesteal still todo); trophies for the base still todo
 - [x] Deeper layers (src/sim/layers.ts): Circuit 90 m, Plasma 180 m, Core 270 m; own rock/ore, tougher enemies, heat drain; energy gates open at 1 / 3 / 5 bosses; plasma saber and core plate gear
-- [x] Final boss: the Hollow AI in the Core (Core key recipe); victory screen. Still todo: new game+ toggle, status effects on trophy weapons, base trophies, boss pixel-art pass
+- [x] Final boss: the Hollow AI in the Core (Core key recipe); victory screen. Boss pixel-art rigs done (run 15, src/render/bossart.ts). Still todo: new game+ toggle, status effects on trophy weapons, base trophies
 
 Living base and drones
 - [x] Field drones slice 1 (src/sim/drones.ts, save v12): E/tap at a bay cycles Survey (abstract, offline) / Miner (drills exposed ore near you, flies it home) / Guard (shoots enemies) / Hauler (banks a load from a filling pack); powered by the base grid
-- [ ] Drone rules: 3 IF/THEN rules per drone (e.g. IF night THEN guard, IF cargo full THEN home, IF pack > half THEN haul), visual rule editor panel at the bay; Repair role; drone sprites in sprites.ts instead of rectangles
+- [x] Drone rules (run 15, save v13): 3 IF/THEN rules per bay (night / enemy near / pack half / hp low / deep -> mine / guard / haul / repair / home), DRONES panel at the base, Repair role with a heal beam, 16 px drone sprites per job
+- [ ] Drone pathing: bounded A* over air tiles so drones stop phasing through rock (IDEAS run 14)
 - [ ] Night base raids (opt-out in settings): waves scale with base value; turrets (craftable), traps, reinforced walls
 - [ ] Furniture and decoration set (tables, lamps, screens, plants, banners, beds); house "room" detection
 
@@ -139,7 +140,7 @@ Money (ethical, no paywalls)
 - [x] Machines: ore-to-plate recipe (Metal plate x2 from 3 iron scrap + 2 rust, Fabricator Lv1)
 - [x] Workshop tabs (UPGRADES / FABRICATOR) so the shop scales; fits 11 recipe rows at 360 px
 - [x] Drone bay v1 (powered base machine, 3 power, 1 load per 12 s: copper wire, every 5th a crystal; first crystal source without diving; offline-aware; a circling drone is drawn). Todo: world-flying drones on assigned ore tiles
-- [ ] Drone rules UI (3 rules per drone, deterministic evaluation)
+- [x] Drone rules UI (3 rules per drone, deterministic evaluation): done in P1.8 run 15
 - [x] Offline production (cap 8 h, clock-skew safe, save v6 `away` stamp, src/sim/offline.ts) and a "while you were away" toast
 - [x] First automation moment tutorial beat (`automationHint`, green line at the base)
 
