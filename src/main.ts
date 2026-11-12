@@ -8,12 +8,14 @@ import { clock as mmss } from './sim/records';
 import { Input } from './platform/input';
 import { Sfx } from './platform/audio';
 import { loadRaw, saveRaw } from './platform/storage';
-import { Fx } from './render/fx';
+import { Fx, splashColor, splashPower } from './render/fx';
+import { isLiquid } from './sim/liquids';
+import { BODY_H } from './sim/physics';
 import { Renderer } from './render/renderer';
 import { ENEMY_ART_UNIT, ENEMY_LOOKS, ENEMY_W, TILE_COLORS, drawGallery, enemyFrame, spriteDebris } from './render/sprites';
 import { FIXED_DT, Game, NO_CONTROLS, TOOLS, type GameEvent, type Tool } from './sim/game';
 import { parseSave, serializeSave } from './sim/save';
-import { ITEMS, type ItemId } from './sim/tiles';
+import { ITEMS, T, type ItemId } from './sim/tiles';
 import { codexEntry } from './sim/explore';
 import { GEAR } from './sim/gear';
 import { isNight } from './sim/daynight';
@@ -434,6 +436,29 @@ function boot(): void {
 
   /** Colour of the tile under the player's feet, for dust puffs. */
   const groundColor = (): string => TILE_COLORS[game.world.get(Math.floor(game.body.x), Math.floor(game.body.y + 0.05))] ?? '#9aa3b8';
+  // Splash on entering/leaving a pool and air bubbles from the helmet while under (cosmetic only).
+  let prevLiquid = 0;
+  const liquidKind = (t: number): 'water' | 'acid' | 'magma' => (t === T.ACID_POOL ? 'acid' : t === T.MAGMA ? 'magma' : 'water');
+  const liquidTop = (x: number, y: number): number => {
+    const tx = Math.floor(x);
+    let ty = Math.floor(y);
+    for (let k = 0; k < 12 && isLiquid(game.world.get(tx, ty - 1)); k++) ty--;
+    return ty;
+  };
+  const liquidFx = (dt: number): void => {
+    const b = game.body;
+    const now = game.riding ? 0 : game.inLiquid;
+    if (now !== prevLiquid) {
+      const entering = now !== 0;
+      const kind = liquidKind(entering ? now : prevLiquid);
+      const top = liquidTop(b.x, entering ? b.y - BODY_H / 2 : b.y + 0.2);
+      const p = splashPower(b.vy, entering);
+      if (fx.splash(b.x, top, p, splashColor(kind)) > 0) sfx.splash(p);
+    }
+    prevLiquid = now;
+    const head = game.world.get(Math.floor(b.x), Math.floor(b.y - BODY_H + 0.3));
+    fx.bubbles(dt, now !== 0 && isLiquid(head), b.x, b.y - BODY_H + 0.4, game.facing, liquidKind(now) === 'water' ? '#cfeeff' : splashColor(liquidKind(now)).foam);
+  };
   const handle = (e: GameEvent): void => {
     sfx.handle(e);
     switch (e.t) {
@@ -767,7 +792,8 @@ function boot(): void {
       if (ui.screen === 'play' && !ui.mapOpen) {
         const b = game.body;
         fx.footsteps(dt, b.onGround && Math.abs(b.vx) > 2 && !game.riding && !game.inLiquid, b.x, b.y, game.facing, groundColor());
-      }
+        liquidFx(dt);
+      } else prevLiquid = game.inLiquid;
       fx.update(dt);
       ui.update(dt);
       renderer.follow(game, dt);

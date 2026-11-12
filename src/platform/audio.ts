@@ -153,6 +153,13 @@ export class Sfx {
     return true;
   }
 
+  /** Water splash: a noise hiss and a falling plop, louder with `power` (0..1). */
+  splash(power: number): void {
+    if (!this.ok('splash', 120)) return;
+    this.noise(0.12 + power * 0.18, 0.12 + power * 0.3);
+    this.tone(420 + power * 120, 0.12, 'sine', 0.06 + power * 0.08, 140);
+  }
+
   handle(e: GameEvent): void {
     switch (e.t) {
       case 'dig':

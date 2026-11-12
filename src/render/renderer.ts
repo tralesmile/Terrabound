@@ -561,7 +561,17 @@ export class Renderer {
     for (const p of fx.particles) {
       ctx.globalAlpha = Math.max(0, Math.min(1, p.life / p.max + 0.2));
       ctx.fillStyle = p.color;
-      ctx.fillRect(this.sx(p.x, shakeX), this.sy(p.y, shakeY), p.size * scale, p.size * scale);
+      const px = this.sx(p.x, shakeX);
+      const py = this.sy(p.y, shakeY);
+      const ps = p.size * scale;
+      if (p.hollow) {
+        // Air bubble: a 1 art px ring with a bright fleck, so it reads as air, not a speck.
+        ctx.fillRect(px + scale, py, ps - scale * 2, scale);
+        ctx.fillRect(px + scale, py + ps - scale, ps - scale * 2, scale);
+        ctx.fillRect(px, py + scale, scale, ps - scale * 2);
+        ctx.fillRect(px + ps - scale, py + scale, scale, ps - scale * 2);
+        if (p.size >= 4) ctx.fillRect(px + scale, py + scale, scale, scale);
+      } else ctx.fillRect(px, py, ps, ps);
     }
     ctx.globalAlpha = 1;
     for (const tr of fx.tracers) {
@@ -581,7 +591,9 @@ export class Renderer {
       ctx.strokeStyle = r.color;
       ctx.lineWidth = scale * (2.5 - 1.5 * k);
       ctx.beginPath();
-      ctx.arc(this.sx(r.x, shakeX), this.sy(r.y, shakeY), Math.max(1, r.r * ts * (0.2 + 0.8 * k)), 0, Math.PI * 2);
+      const rad = Math.max(1, r.r * ts * (0.2 + 0.8 * k));
+      // Flat rings (splashes) are ellipses lying on the surface.
+      ctx.ellipse(this.sx(r.x, shakeX), this.sy(r.y, shakeY), rad, rad * (r.flat ?? 1), 0, 0, Math.PI * 2);
       ctx.stroke();
     }
     ctx.globalAlpha = 1;

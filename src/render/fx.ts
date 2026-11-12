@@ -12,6 +12,10 @@ export interface Particle {
   size: number;
   /** Gravity in tiles/s^2 (default 18; negative floats up, e.g. smoke). */
   g?: number;
+  /** Drawn as a hollow 1 px outline (air bubbles). */
+  hollow?: boolean;
+  /** Drag toward zero sideways speed per second (bubbles wobble up, not fly). */
+  drag?: number;
 }
 
 export interface Ring {
@@ -22,6 +26,8 @@ export interface Ring {
   /** Final radius in tiles. */
   r: number;
   color: string;
+  /** Vertical squash 0..1 (1 = circle; splashes lie flat on the surface). */
+  flat?: number;
 }
 
 /** A sprite chunk for `shatter`: offset from bottom-centre in art px. */
@@ -44,6 +50,26 @@ export interface FloatText {
 }
 
 const MAX_PARTICLES = 400;
+/** Seconds between suit air bubbles while the helmet is under. */
+export const BUBBLE_EVERY = 0.32;
+
+/**
+ * Splash strength 0..1 from the vertical speed (tiles/s) when the body crosses a liquid surface.
+ * Wading in slowly makes no splash; a fall from a ledge makes a big one. Leaving is softer.
+ */
+export function splashPower(vy: number, entering: boolean): number {
+  const v = entering ? vy : -vy;
+  const p = (v - 2) / 14;
+  const k = Math.max(0, Math.min(1, p));
+  return entering ? k : k * 0.5;
+}
+
+/** Splash droplet colour for a liquid: light foam for water, the liquid's glow for acid/magma. */
+export function splashColor(liquid: 'water' | 'acid' | 'magma'): { drop: string; foam: string } {
+  if (liquid === 'acid') return { drop: '#9cff5a', foam: '#e4ffb8' };
+  if (liquid === 'magma') return { drop: '#ff8a2a', foam: '#ffd27a' };
+  return { drop: '#6ec3ff', foam: '#e8f6ff' };
+}
 /** Seconds a landing squash lasts. */
 export const SQUASH_TIME = 0.22;
 /** Seconds between footstep puffs while running. */
@@ -146,6 +172,78 @@ export class Fx {
   hurtLeft = 0;
   hurtPower = 0;
   private stepAcc = 0;
+  private bubbleAcc = 0;
+
+  /**
+   * Breaking a liquid surface at (x, top): a crown of droplets thrown up and out, foam on the
+   * surface and a flat ring. Bigger and wider with `power` (0..1, see splashPower).
+   */
+  splash(x: number, top: number, power: number, c: { drop: string; foam: string }): number {
+    if (power <= 0) return 0;
+    const n = 6 + Math.round(power * 14);
+    let made = 0;
+    for (let i = 0; i < n && this.particles.length < MAX_PARTICLES; i++) {
+      const side = i % 2 === 0 ? -1 : 1;
+      const spread = 0.2 + Math.random() * 0.6;
+      this.particles.push({
+        x: x + side * Math.random() * 0.35,
+        y: top - 0.05,
+        vx: side * spread * (2 + power * 4),
+        vy: -(3 + power * 7) * (0.55 + Math.random() * 0.45),
+        life: 0.45 + Math.random() * 0.35,
+        max: 0.8,
+        color: i % 3 === 0 ? c.foam : c.drop,
+        size: 1 + (Math.random() < 0.35 ? 1 : 0),
+        g: 20,
+      });
+      made++;
+    }
+    for (let i = 0; i < 3 + Math.round(power * 3) && this.particles.length < MAX_PARTICLES; i++) {
+      const side = i % 2 === 0 ? -1 : 1;
+      this.particles.push({
+        x: x + side * (0.2 + Math.random() * 0.4),
+        y: top - 0.02,
+        vx: side * (0.6 + power * 1.6),
+        vy: 0,
+        life: 0.35 + Math.random() * 0.25,
+        max: 0.6,
+        color: c.foam,
+        size: 2,
+        g: 0,
+        drag: 3,
+      });
+      made++;
+    }
+    this.ring(x, top, 0.6 + power * 1.2, c.foam, 0.3 + power * 0.15);
+    this.rings[this.rings.length - 1].flat = 0.25;
+    return made;
+  }
+
+  /** Air bubbles from the helmet while it is under liquid: one every BUBBLE_EVERY s, wobbling up. */
+  bubbles(dt: number, under: boolean, x: number, y: number, facing: number, color: string): void {
+    if (!under) {
+      this.bubbleAcc = 0;
+      return;
+    }
+    this.bubbleAcc += dt;
+    while (this.bubbleAcc >= BUBBLE_EVERY && this.particles.length < MAX_PARTICLES) {
+      this.bubbleAcc -= BUBBLE_EVERY;
+      const big = Math.random() < 0.35;
+      this.particles.push({
+        x: x + facing * 0.25 + (Math.random() - 0.5) * 0.2,
+        y,
+        vx: (Math.random() - 0.5) * 1.4,
+        vy: -1.2 - Math.random() * 0.8,
+        life: 0.9 + Math.random() * 0.5,
+        max: 1.4,
+        color,
+        size: big ? 4 : 3,
+        g: -1.2,
+        hollow: true,
+        drag: 1.5,
+      });
+    }
+  }
 
   /** The player took damage: red edge flash, recoil squash and a damage number. */
   hurt(x: number, y: number, amount: number, maxHp: number): void {
@@ -316,6 +414,7 @@ export class Fx {
     for (const p of this.particles) {
       p.life -= dt;
       p.vy += (p.g ?? 18) * dt;
+      if (p.drag) p.vx *= Math.max(0, 1 - p.drag * dt);
       p.x += p.vx * dt;
       p.y += p.vy * dt;
     }

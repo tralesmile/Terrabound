@@ -472,6 +472,56 @@ try {
   }
   await page.keyboard.up('KeyW');
   check('the player swims in a flooded cave and W strokes upward', !!poolAt && swim.inLiquid === 25 && swamUp < swim.y - 0.5, JSON.stringify({ poolAt, swim, swamUp }));
+  // Swimming juice: the helmet leaks hollow air bubbles while under, and diving in from above splashes.
+  // A sealed bedrock tank (5 wide, 4 deep, 5 rows of air above) so flowing water cannot move the surface.
+  const tank = poolAt ? await page.evaluate(({ x, y }) => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const top = y - 6;
+    for (let yy = top - 6; yy <= top + 4; yy++) for (let xx = x - 3; xx <= x + 3; xx++) {
+      const wall = xx === x - 3 || xx === x + 3 || yy === top + 4 || yy === top - 6;
+      w.set(xx, yy, wall ? 5 : yy >= top ? 25 : 0);
+    }
+    g.enemies = [];
+    return { x, top };
+  }, poolAt) : null;
+  const bubbled = tank ? await page.evaluate(async ({ x, top }) => {
+    const t = window.__terrabound;
+    const g = t.game;
+    let most = 0;
+    for (let i = 0; i < 20; i++) {
+      g.body.x = x + 0.5;
+      g.body.y = top + 3.9;
+      g.body.vx = g.body.vy = 0;
+      await new Promise((r) => setTimeout(r, 60));
+      most = Math.max(most, t.fx.particles.filter((p) => p.hollow).length);
+    }
+    return { most, inLiquid: g.inLiquid };
+  }, tank) : null;
+  check('the helmet leaks air bubbles while under water', !!bubbled && bubbled.most >= 2, JSON.stringify(bubbled));
+  const splash = tank ? await page.evaluate(async ({ x, top }) => {
+    const t = window.__terrabound;
+    const g = t.game;
+    g.body.x = x + 0.5;
+    g.body.y = top - 3;
+    g.body.vx = g.body.vy = 0;
+    await new Promise((r) => setTimeout(r, 150));
+    t.fx.particles = [];
+    t.fx.rings = [];
+    g.body.x = x + 0.5;
+    g.body.y = top - 0.3;
+    g.body.vy = 16;
+    let drops = 0;
+    let rings = 0;
+    for (let i = 0; i < 12 && (drops < 6 || rings < 1); i++) {
+      await new Promise((r) => setTimeout(r, 20));
+      drops = Math.max(drops, t.fx.particles.filter((p) => !p.hollow && p.vy < 0 && Math.abs(p.y - top) < 2).length);
+      rings = Math.max(rings, t.fx.rings.length);
+    }
+    return { top, drops, rings, inLiquid: g.inLiquid };
+  }, tank) : null;
+  await page.screenshot({ path: path.join(out, '17b-splash.png') });
+  check('diving into water throws a splash crown and a ring', !!splash && splash.drops >= 6 && splash.rings >= 1, JSON.stringify(splash));
 
   // Loot: aim the drill at a real chest in a ruin and break it with the mouse.
   const chestAt = await page.evaluate(() => {
