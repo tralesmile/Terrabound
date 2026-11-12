@@ -427,3 +427,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** Scientist research tree (needs room space: base strip holds 3 rooms comfortably), TRADE tab grouping per robot, then farming.
 
 **Known issues:** base strip (15x10) fits about 3 robot rooms; upgrade BUY rows refuse while you shop upstairs off the pad; TRADE has 21 rows (scrolls); DAILY still replaces the world without a confirm; turrets draw 1 power even when idle; mounted screens stay up if their wall is removed; the merchant hovers inside whatever is built over the right end of the pad; piercer chip does nothing extra on the rail rifle (already pierces).
+
+## 2026-11-12 Scheduled run 25
+
+**Done:** baseline green (453 tests). Creative review: hits had no weight (05-blade) and TRADE had grown to 21+ rows of mixed robots. Enemies now squash flat on the hit frame and spring back (`hitSquash`, white flash only the first 60%; 05b-hit-squash). Backlog: base strip widened from 15x10 to 33x16 so four or more robot rooms fit; natural hill tiles inside it are skipped by base capture, raid value and raider chewing (`isBuilt` via `world.edits`); raiders enter 10 columns outside the strip (was 16). `findRooms` rewritten with a stamped visited buffer and leaked-pocket skipping (4.5 ms -> 0.23 ms per scan). Nova the Scientist (lavender coat, green goggles, bubbling flask) moves into the fourth room and studies 7 permanent perks with prerequisites (save v16 `research`, migration + v15 fixture). TRADE tab grouped: header row per robot with its sprite portrait; robots not home fold to one header. Screenshots 05b-hit-squash, 35e-scientist, 36g-research, 36h-researched, 36-trade reviewed.
+
+**Numbers:** 469 unit tests (new: research 8, tradegroups 2, base wide strip 4, hit squash 1, scientist sprite 1), e2e all green (new: hit squash frame, Scientist moves in + hint, E opens research, STUDY adds 40 battery), bundle 282 kB (97.1 kB gzip).
+
+**Next:** farming (crops, watering, cooking, food buffs); robot happiness (mood lines, small comfort discount); P1.6/P1.7 follow-ups.
+
+**Known issues:** upgrade BUY rows refuse while you shop upstairs off the pad; DAILY still replaces the world without a confirm; turrets draw 1 power even when idle; mounted screens stay up if their wall is removed; the merchant hovers inside whatever is built over the right end of the pad; piercer chip does nothing extra on the rail rifle; research rows only show while the Scientist is home (folded header says what to build).

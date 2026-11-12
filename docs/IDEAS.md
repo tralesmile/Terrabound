@@ -1,5 +1,14 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-12 run 25
+
+- Done this run: hit squash and stretch on enemies, wide base strip, Nova the Scientist + research tree, TRADE grouped per robot.
+- Weakest gameplay feel: player has no hurt reaction beyond blinking; a 1-frame red vignette pulse plus a short knock-back squash on the suit would make damage readable (cheap, renderer only).
+- Weakest progression: perks and chips are all in the base; enemy-dropped "research samples" (a rare drop per biome enemy) that the Scientist needs for top perks would pull players into every biome.
+- Weakest graphics: research flasks and mod chips are 12 px icons inside large cells; drawing them at 2x with a glow ring would read better.
+- Weakest UI: the workshop is one big modal; a small "robot is talking" speech bubble over the NPC (instead of the bottom hint line) would feel more alive.
+- New: farming next (backlog), with crops that robots water when they are happy.
+
 ## 2026-11-12 run 24
 
 - Done this run: glowing bolt tracers (light up caves, colour by behaviour), Rook the Gunsmith with 7 mod chips, chip pip on the hotbar.

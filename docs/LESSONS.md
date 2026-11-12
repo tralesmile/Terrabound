@@ -92,3 +92,7 @@
 
 - **The base strip is only 15 x 10 tiles (BASE_HALF 7, BASE_ROWS 10).** A third room stacked on two others is outside `findRooms`, so the Gunsmith test never saw it. Guard: tests build rooms side by side with `rowHomes` (tests/mods.test.ts); any 4th robot needs a wider strip first.
 - **Things drawn before `drawDarkness` are dimmed by it.** Bolts looked dull in caves; anything that should glow (bolts, sparks) goes in a pass after the darkness (`drawBolts`).
+
+- **Widening the base strip pulls natural terrain into "base" scans.** Hills inside the wider strip would have followed the player into new worlds, swelled raids and been chewed. Guard: every base scan that means "player-built" checks `isBuilt` (world.edits); tests/base.test.ts writes natural tiles straight into `world.tiles` and asserts they are ignored.
+- **`findRooms` was already 1.8 ms per call** and runs on every world edit; Set-based flood fills were the cost. Guard: stamped visited buffer + leaked-pocket skip, and a perf assertion (< 2 ms) in tests/base.test.ts.
+- **Tests that pin a growing list with `toEqual` break on content growth** (NPC_ORDER in mods.test). Pin the prefix you care about (`slice(0, 3)`).

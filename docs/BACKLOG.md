@@ -105,8 +105,9 @@ Characters
 - [x] Comfort pays (run 22): each robot posts one cozy rate while its room has comfort 3+ (`COZY`, `tradeOpen`, `game.npcComfort`); locked rows say what the room needs
 - [x] Robots live (run 23): sit on the chair by day, sleep in bed at night (a nearby player wakes them), hurry to bed and hide in raids, wave when you bank loot, cheer when a raid is beaten (`npcSpots`, `reactNpcs`)
 - [x] Gunsmith (run 24, src/sim/mods.ts): Rook moves into the third valid room and builds 7 mod chips (overcharge, hair trigger, piercer, ricochet, keen edge, leech, quick grip); one per weapon slot, owned forever, free swap at the base; save v15
-- [ ] Scientist robot (research tree: spend materials on permanent small perks, visible costs) in a fourth room; needs the base strip widened or a second row of rooms (BASE_ROWS 10 fits two floors)
-- [ ] TRADE tab grouping: one header per robot with its portrait, collapse locked rows (TRADE now has 21 rows)
+- [x] Scientist (run 25, src/sim/research.ts): Nova moves into the fourth valid room and studies 7 permanent perks (battery, dig, pack, lamp, HP, speed) at fixed prices, some gated by an earlier perk; save v16 `research`
+- [x] TRADE tab grouping (run 25): one header per robot with its sprite portrait; robots not moved in fold to their header (`tradeEntries`)
+- [ ] Robot happiness: comfort and neighbours change a robot's mood line and give a small discount at high comfort (visible, never a penalty below today's prices)
 - [x] Quick heal (run 21): H or the HUD heal button beside the bars eats the smallest healing item that covers the missing HP (`bestHeal`); pulses red under 35% HP
 - [x] Wandering merchant drone (run 23, src/sim/merchant.ts): Dex parks over the pad sunrise to mid-afternoon, 3 offers/day from a 10-offer pool by seed+day, shown in full even while away; no-loop test over all rates
 
@@ -142,7 +143,7 @@ Money (ethical, no paywalls)
 
 - [x] Persistent base strip above the pad (15x10 tiles, src/sim/base.ts) saved in format v2 with v1 migration test; built tiles survive dives and reloads
 - [x] Hotbar shows only owned placeables plus the selected one (`visiblePlaceables`), so new build tiles fit at 360 px
-- [ ] Base grid: widen/extend beyond the 15x10 strip if needed (walls behind, background layer)
+- [x] Base grid widened (run 25): strip 33 x 16 (BASE_HALF 16, BASE_ROWS 16); natural hills inside it never count as base (`isBuilt`)
 - [x] One-way platform tile (craftable, key 9, jump up through, S/Down drops, saved in base)
 - [x] Build mode in base: back walls and doors (door passable for player, blocks enemies via `enemyBlock`; keys 0 and -)
 - [x] Power v1: solar cell + shared base grid (src/sim/power.ts), machines glow when working. Todo: battery tile (night power), wire tile, power readout in the HUD
