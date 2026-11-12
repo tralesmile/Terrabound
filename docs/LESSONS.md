@@ -143,3 +143,5 @@
 - **Cosmetic animation state keyed by object identity** (the rope twang restarts when `game.hook` is a new object) needs no sim field; prefer that over new events for render-only timers.
 - **Retro:** three slices, three ships (~4 min each), no rebase. The repo dir existed on a detached HEAD without a local dev branch; `git fetch && git checkout -B dev origin/dev` fixed it. Content-growth tests (codex row count) were updated to include the new section, not loosened.
 
+- **Rules encoded as tests need updating on purpose, not weakening:** "magma only in Plasma/Core" became "or under the Ash Dunes". Update the test to the new rule, and keep the old guarantee where it still holds (non-Ash columns).
+- **Velocity-based poses need weighting:** a raw atan2 of the swim velocity pointed the swimmer head-down, because gravity sinking dominated. Weight passive motion less than input-driven motion. Vehicle slope tilt likewise had to treat walls as at most a one-tile step.

@@ -522,6 +522,36 @@ try {
   }, tank) : null;
   await page.screenshot({ path: path.join(out, '17b-splash.png') });
   check('diving into water throws a splash crown and a ring', !!splash && splash.drops >= 6 && splash.rings >= 1, JSON.stringify(splash));
+  // Swim pose: in a wide sealed tank, hold D near the surface; the body leans head-first toward the stroke.
+  const lane = tank ? await page.evaluate(({ x, top }) => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const t0 = top - 20;
+    for (let yy = t0 - 6; yy <= t0 + 5; yy++) for (let xx = x - 14; xx <= x + 14; xx++) {
+      const wall = xx === x - 14 || xx === x + 14 || yy === t0 + 5 || yy === t0 - 6;
+      w.set(xx, yy, wall ? 5 : yy >= t0 ? 25 : 0);
+    }
+    g.enemies = [];
+    g.body.x = x - 11.5;
+    g.body.y = t0 + 2.2;
+    g.body.vx = g.body.vy = 0;
+    return { x, top: t0 };
+  }, tank) : null;
+  await page.waitForTimeout(250);
+  await page.keyboard.down('KeyD');
+  await page.waitForTimeout(450);
+  const stroke = await page.evaluate(() => ({ ...window.__terrabound.renderer.swimInfo, vx: window.__terrabound.game.body.vx }));
+  await page.screenshot({ path: path.join(out, '17c-swim-stroke.png') });
+  await page.keyboard.up('KeyD');
+  check('swimming leans the body toward the stroke', !!lane && !!stroke && stroke.moving === true && stroke.angle > 0.6, JSON.stringify(stroke));
+  await page.evaluate(({ x, top }) => {
+    const g = window.__terrabound.game;
+    g.body.x = x + 0.5;
+    g.body.y = top + 1.6;
+    g.body.vx = g.body.vy = 0;
+  }, lane ?? { x: 0, top: 0 });
+  await page.waitForTimeout(120);
+  await page.screenshot({ path: path.join(out, '17d-swim-tread.png') });
 
   // Loot: aim the drill at a real chest in a ruin and break it with the mouse.
   const chestAt = await page.evaluate(() => {
@@ -811,8 +841,11 @@ try {
   await page.waitForTimeout(100);
   const bx0 = await page.evaluate(() => window.__terrabound.game.body.x);
   await page.keyboard.down('KeyD');
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(450);
+  const dusty = await page.evaluate(() => ({ dust: window.__terrabound.fx.particles.filter((p) => !p.hollow).length, pose: window.__terrabound.renderer.vehPose }));
+  await page.waitForTimeout(250);
   await page.keyboard.up('KeyD');
+  check('driving the buggy kicks up dust and the vehicle pose is live', dusty.dust >= 4 && !!dusty.pose, JSON.stringify(dusty));
   const drive = await page.evaluate(() => ({ riding: window.__terrabound.game.riding, veh: window.__terrabound.game.vehicle, x: window.__terrabound.game.body.x }));
   await page.screenshot({ path: path.join(out, '22c-buggy.png') });
   check('walk up + V rides the buggy and it drives fast', drive.riding && drive.veh === 'buggy' && drive.x > bx0 + 4, JSON.stringify({ bx0, ...drive }));
@@ -901,6 +934,22 @@ try {
     g.save.gear.equip.vehicle = 'sky_jet';
     g.gearCache = null;
   });
+  // Lava: the Ash Dunes have glowing surface lava pools (seen from the rim, not touched).
+  const lava = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const p = w.structures.find((st) => st.kind === 'lava');
+    if (!p) return null;
+    const rim = p.x0 - 3;
+    g.body.x = rim + 0.5;
+    g.body.y = w.surface[rim];
+    g.body.vx = g.body.vy = 0;
+    g.enemies = [];
+    return { x0: p.x0, x1: p.x1, y: p.y0, mid: w.get((p.x0 + p.x1) >> 1, p.y0) };
+  });
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: path.join(out, '22d-lava-pool.png') });
+  check('the Ash Dunes have a surface lava pool', !!lava && lava.mid === 40, JSON.stringify(lava));
   // Grappling hook: tool 5, click a ceiling, swing.
   const hookAt = await page.evaluate(() => {
     const g = window.__terrabound.game;

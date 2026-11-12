@@ -805,6 +805,7 @@ function boot(): void {
       if (ui.screen === 'play' && !ui.mapOpen) {
         const b = game.body;
         fx.footsteps(dt, b.onGround && Math.abs(b.vx) > 2 && !game.riding && !game.inLiquid, b.x, b.y, game.facing, groundColor());
+        fx.vehicleTrail(dt, game.riding ? game.vehicle : null, b.x, b.y, game.facing, b.vx, b.vy, b.onGround, groundColor());
         liquidFx(dt);
       } else prevLiquid = game.inLiquid;
       fx.update(dt);

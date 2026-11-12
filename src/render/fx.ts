@@ -173,6 +173,7 @@ export class Fx {
   hurtPower = 0;
   private stepAcc = 0;
   private bubbleAcc = 0;
+  private vehAcc = 0;
 
   /**
    * Breaking a liquid surface at (x, top): a crown of droplets thrown up and out, foam on the
@@ -295,6 +296,55 @@ export class Fx {
         g: 3,
       });
     }
+  }
+
+  /**
+   * Vehicle juice each frame: ground vehicles kick dust from both wheels and puff exhaust, the drill tank
+   * throws sparks off its drill, the hoverbike sheds cyan motes and the Sky Jet leaves a contrail.
+   * (x, y) is the rider's feet in tiles.
+   */
+  vehicleTrail(dt: number, kind: string | null, x: number, y: number, facing: number, vx: number, vy: number, onGround: boolean, ground: string): void {
+    const speed = Math.hypot(vx, vy);
+    if (!kind || speed < 1.5) {
+      this.vehAcc = 0;
+      return;
+    }
+    this.vehAcc += dt;
+    const every = kind === 'sky_jet' ? 0.04 : 0.06;
+    while (this.vehAcc >= every && this.particles.length < MAX_PARTICLES - 4) {
+      this.vehAcc -= every;
+      const back = -Math.sign(vx || facing);
+      if ((kind === 'buggy' || kind === 'drill_tank') && onGround) {
+        const fast = Math.min(1, Math.abs(vx) / 10);
+        this.dust(x + back * 1.1, y, ground, 1 + (fast > 0.5 ? 1 : 0), 1.5 + fast * 2.5, back);
+        this.dust(x - back * 0.9, y, ground, 1, 1 + fast * 1.5, back);
+        if (Math.random() < 0.35) this.puff(x + back * 1.4, y - 0.7, kind === 'buggy' ? '#9aa0ad' : '#6b6f78', back);
+        if (kind === 'drill_tank') {
+          for (let i = 0; i < 2; i++) {
+            this.particles.push({
+              x: x - back * 1.7,
+              y: y - 0.5 - Math.random() * 0.6,
+              vx: -back * (2 + Math.random() * 4),
+              vy: -2 - Math.random() * 3,
+              life: 0.18 + Math.random() * 0.15,
+              max: 0.33,
+              color: Math.random() < 0.5 ? '#ffcf4a' : '#ff8a3c',
+              size: 2,
+              g: 14,
+            });
+          }
+        }
+      } else if (kind === 'hoverbike') {
+        this.particles.push({ x: x + (Math.random() - 0.5) * 1.2, y: y + 0.1, vx: back * 1.2, vy: 0.6 + Math.random(), life: 0.35, max: 0.35, color: '#7ff6ff', size: 2, g: 0, drag: 2 });
+      } else if (kind === 'sky_jet') {
+        this.particles.push({ x: x + back * 1.5, y: y - 0.55, vx: back * 0.6, vy: (Math.random() - 0.5) * 0.4, life: 0.5, max: 0.5, color: 'rgba(235,242,255,0.8)', size: 3, g: 0, drag: 3 });
+      }
+    }
+  }
+
+  /** A soft rising smoke puff (exhaust). */
+  private puff(x: number, y: number, color: string, dir: number): void {
+    this.particles.push({ x, y, vx: dir * (0.6 + Math.random() * 0.6), vy: -0.6 - Math.random() * 0.5, life: 0.6, max: 0.6, color, size: 3, g: -0.5, drag: 1.5 });
   }
 
   /** Footstep puffs while running on the ground: one small puff behind the feet every STEP_EVERY s. */

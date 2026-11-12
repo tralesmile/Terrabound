@@ -3,7 +3,7 @@
  * underground vaults, crystal geodes and cave growth. Pure and seeded (hash2 only).
  */
 import { hash2, valueNoise } from './rng';
-import { BIOMES, type BiomeId, type TreeShape } from './biomes';
+import { B, BIOMES, type BiomeId, type TreeShape } from './biomes';
 import { T, TILES } from './tiles';
 import { W, type World } from './world';
 import { layerAt } from './layers';
@@ -13,7 +13,7 @@ export const PAD_CLEAR = 22;
 /** Plants keep out of the base strip. */
 export const PLANT_CLEAR = 9;
 
-export type StructureKind = 'ruin' | 'tower' | 'ship' | 'vault' | 'geode' | 'shrine' | 'wreck' | 'pond' | 'island';
+export type StructureKind = 'ruin' | 'tower' | 'ship' | 'vault' | 'geode' | 'shrine' | 'wreck' | 'pond' | 'island' | 'lava';
 export interface Structure {
   kind: StructureKind;
   x0: number;
@@ -28,6 +28,7 @@ export function decorate(world: World): Structure[] {
   const used = new Uint8Array(world.w);
   surfaceStructures(world, used, out);
   ponds(world, used, out);
+  lavaPools(world, used, out);
   islands(world, out);
   trees(world, used);
   plants(world);
@@ -265,7 +266,8 @@ function underground(world: World, out: Structure[]): void {
     for (let x = 2; x < world.w - 2; x++) {
       if (world.get(x, y) !== T.AIR || !solidAt(world, x, y + 1)) continue;
       const deep = y > padY + 110;
-      const hot = layerAt(y - padY) >= 2;
+      // Plasma and Core layers, and the caves under the Ash Dunes, pool lava instead of water.
+      const hot = layerAt(y - padY) >= 2 || (world.biome[x] === B.ASH && y - padY > 24);
       const wet = valueNoise(x / 30, y / 30, seed + (hot ? 8 : deep ? 6 : 5));
       if (wet < 0.7) continue;
       // Plasma and Core layers pool magma instead of water: glowing, deadly, and a reason to bring blocks.
@@ -414,23 +416,48 @@ function ponds(world: World, used: Uint8Array, out: Structure[]): void {
     const hw = 4 + Math.floor(hash2(k, 2, seed) * 5);
     const depth = 3 + Math.floor(hash2(k, 3, seed) * 3);
     if (x + hw >= world.w - 4 || Math.abs(x - world.padX) < PAD_CLEAR + hw + 4) continue;
-    // Ash Dunes are dry.
-    if (world.biome[x] === 3) continue;
-    let clear = true;
-    for (let c = x - hw - 2; c <= x + hw + 2; c++) if (used[c]) clear = false;
-    if (!clear) continue;
-    const top = world.surface[x];
-    flatten(world, x - hw - 1, x + hw + 1, top, 6);
-    for (let dx = -hw; dx <= hw; dx++) {
-      const d = Math.max(1, Math.round(depth * (1 - (dx / (hw + 0.5)) ** 2)));
-      for (let y = top; y < top + d; y++) put(world, x + dx, y, T.WATER);
-      // Solid lining so the pond holds its water.
-      const lining = BIOMES[world.biome[x + dx] as BiomeId].crust;
-      put(world, x + dx, top + d, lining);
-      if (Math.abs(dx) === hw) put(world, x + dx + Math.sign(dx), top, lining);
+    // Ash Dunes have no water (lavaPools fills their basins instead).
+    if (world.biome[x - hw - 2] === B.ASH || world.biome[x] === B.ASH || world.biome[x + hw + 2] === B.ASH) continue;
+    if (basin(world, used, x, hw, depth, T.WATER)) out.push({ kind: 'pond', x0: x - hw, y0: world.surface[x], x1: x + hw, y1: world.surface[x] + depth });
+  }
+}
+
+/** Dig a bowl at column x (half width hw) and fill it with liquid; false if the spot is taken. */
+function basin(world: World, used: Uint8Array, x: number, hw: number, depth: number, liquid: number): boolean {
+  for (let c = x - hw - 2; c <= x + hw + 2; c++) if (used[c]) return false;
+  const top = world.surface[x];
+  flatten(world, x - hw - 1, x + hw + 1, top, 6);
+  for (let dx = -hw; dx <= hw; dx++) {
+    const d = Math.max(1, Math.round(depth * (1 - (dx / (hw + 0.5)) ** 2)));
+    for (let y = top; y < top + d; y++) put(world, x + dx, y, liquid);
+    // Solid lining so the basin holds its liquid: basalt under lava, the biome's crust under water.
+    const lining = liquid === T.MAGMA ? T.BASALT : BIOMES[world.biome[x + dx] as BiomeId].crust;
+    put(world, x + dx, top + d, lining);
+    if (Math.abs(dx) === hw) put(world, x + dx + Math.sign(dx), top, lining);
+  }
+  for (let c = x - hw - 2; c <= x + hw + 2; c++) used[c] = 1;
+  return true;
+}
+
+/** Ash Dunes lava pools: two shallow glowing basins per Ash band, well inside the band and away from the pad. */
+function lavaPools(world: World, used: Uint8Array, out: Structure[]): void {
+  const seed = world.seed ^ 0x1a7a;
+  let start = 0;
+  for (let x = 1; x <= world.w; x++) {
+    if (x < world.w && world.biome[x] === world.biome[start]) continue;
+    if (world.biome[start] === B.ASH) {
+      for (let i = 0; i < 2; i++) {
+        const hw = 4 + Math.floor(hash2(start, i + 4, seed) * 3);
+        const depth = 2 + Math.floor(hash2(start, i + 7, seed) * 2);
+        const want = start + Math.floor(((i + 1) / 3) * (x - start));
+        const cx = [0, 10, -10, 20, -20, 30, -30].map((o) => want + o).find(
+          (c) => c - hw - 4 > start && c + hw + 4 < x && c > 8 && c < world.w - 8 && Math.abs(c - world.padX) > PAD_CLEAR + hw + 4 && !used.subarray(c - hw - 2, c + hw + 3).some((u) => u),
+        );
+        if (cx === undefined) continue;
+        if (basin(world, used, cx, hw, depth, T.MAGMA)) out.push({ kind: 'lava', x0: cx - hw, y0: world.surface[cx], x1: cx + hw, y1: world.surface[cx] + depth });
+      }
     }
-    for (let c = x - hw - 2; c <= x + hw + 2; c++) used[c] = 1;
-    out.push({ kind: 'pond', x0: x - hw, y0: top, x1: x + hw, y1: top + depth });
+    start = x;
   }
 }
 

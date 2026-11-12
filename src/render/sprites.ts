@@ -512,10 +512,15 @@ const LEGS: Record<string, string[]> = {
   climbB: ['    olllLlo', '    olo olo', '    olo olLo', '    olLo olo', '    olo  olo', '    olo oLo', '    ooo ooo', ''],
   jump: ['    olllLlo', '   ollo ollo', '   olo   olo', '   olLo  olLo', '   oooo  oooo', '', '', ''],
   fall: ['    olllLlo', '    olo olo', '    olo olo', '    olLo olLo', '    oooo oooo', '', '', ''],
+  // Flutter kick (the renderer tilts the whole body toward the swim direction).
+  kickA: ['    olllLlo', '    olo olo', '    olo olo', '    olo  olo', '    olo  olo', '    olo   olLo', '   olLo   oooo', '   oooo'],
+  kickB: ['    olllLlo', '    olo olo', '    olo olo', '   olo  olo', '   olo  olo', '  olLo  olo', '  oooo  olLo', '        oooo'],
+  // Seated on a vehicle: thighs forward, shins down to the footrest.
+  sit: ['    olllLlo', '    ollllllllo', '    oolllllllLo', '           olo', '           olo', '          olLo', '          oooo', ''],
 };
 
-export type PlayerFrame = 'stand' | 'runA' | 'runB' | 'runC' | 'jump' | 'fall' | 'climbA' | 'climbB';
-export const PLAYER_FRAMES: PlayerFrame[] = ['stand', 'runA', 'runB', 'runC', 'jump', 'fall', 'climbA', 'climbB'];
+export type PlayerFrame = 'stand' | 'runA' | 'runB' | 'runC' | 'jump' | 'fall' | 'climbA' | 'climbB' | 'kickA' | 'kickB' | 'sit';
+export const PLAYER_FRAMES: PlayerFrame[] = ['stand', 'runA', 'runB', 'runC', 'jump', 'fall', 'climbA', 'climbB', 'kickA', 'kickB', 'sit'];
 
 /** Suit colours by armor tier (0-3+): shirt, shade. */
 export const SUIT_TIERS: [string, string][] = [
@@ -925,6 +930,10 @@ export interface PlayerPose {
   paint?: [string, string];
   /** Earned helmet paint (shell, shade): drawn over the lamp tier and a crafted helmet. */
   helm?: [string, string];
+  /** Swimming: flutter-kick legs and a stroking arm; `moving` speeds the stroke up. */
+  swim?: { moving: boolean };
+  /** Seated on a vehicle (hoverbike, Sky Jet). */
+  seated?: boolean;
 }
 
 export interface PlayerGear {
@@ -958,6 +967,8 @@ export function gearRemap(gear: PlayerGear | undefined, tier: number): Record<st
 }
 
 export function poseFrame(pose: PlayerPose): { frame: PlayerFrame; bob: number } {
+  if (pose.seated) return { frame: 'sit', bob: 0 };
+  if (pose.swim) return { frame: Math.floor(pose.t * (pose.swim.moving ? 9 : 3)) % 2 ? 'kickA' : 'kickB', bob: 0 };
   if (pose.climbing) return { frame: Math.floor(pose.t * 8) % 2 ? 'climbA' : 'climbB', bob: 0 };
   if (pose.airborne) return { frame: (pose.vy ?? 0) > 0 ? 'fall' : 'jump', bob: 0 };
   if (pose.walking) {
@@ -994,13 +1005,37 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, 
   if (pose.paint) [remap.s, remap.S] = pose.paint;
   if (pose.helm) [remap.h, remap.H] = pose.helm;
   drawRows(ctx, rows, ox, oy, s, flip, PLAYER_W, pose.hurt ? '#ffffff' : undefined, remap);
+  if (pose.swim && !pose.hurt) drawStrokeArm(ctx, ox, oy, s, flip, pose.t, pose.swim.moving, remap.s ?? SUIT_TIERS[0][0]);
   // Held tool at the front hand (art col ~11, row ~10), drawn at 3/4 scale.
-  if (pose.held && !pose.hurt && !pose.climbing) {
+  if (pose.held && !pose.hurt && !pose.climbing && !pose.swim) {
     const hs = s * 0.75;
     const hx = flip ? ox + (PLAYER_W - 12) * s - 12 * hs + 3 * s : ox + 11 * s - 2 * s;
     const hy = oy + (8 + (bobOf(pose) ? 1 : 0)) * s;
     drawIcon(ctx, pose.held, hx, hy, hs, flip);
   }
+}
+
+/** Swim stroke: the front arm sweeps from reaching ahead over the head back to the hip. */
+export function strokeAngle(t: number, moving: boolean): number {
+  // 0 = arm straight down; negative = forward and up (toward the visor side).
+  return moving ? -1.3 + Math.sin(t * 7) * 1.5 : -0.6 + Math.sin(t * 3) * 0.6;
+}
+
+function drawStrokeArm(ctx: CanvasRenderingContext2D, ox: number, oy: number, s: number, flip: boolean, t: number, moving: boolean, suit: string): void {
+  const a = strokeAngle(t, moving);
+  // Shoulder at art (9, 9) facing right; mirrored when facing left.
+  const sx = ox + (flip ? PLAYER_W - 9 : 9) * s;
+  const sy = oy + 9 * s;
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(flip ? -a : a);
+  ctx.fillStyle = PAL.o;
+  ctx.fillRect(-1.5 * s, -0.5 * s, 3 * s, 7 * s);
+  ctx.fillStyle = suit;
+  ctx.fillRect(-0.5 * s, 0, s, 5 * s);
+  ctx.fillStyle = '#c9d0e4';
+  ctx.fillRect(-0.5 * s, 5 * s, s, s);
+  ctx.restore();
 }
 
 function bobOf(pose: PlayerPose): number {

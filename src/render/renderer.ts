@@ -13,12 +13,35 @@ import { REACH } from '../sim/game';
 import { onLadder } from '../sim/physics';
 import { ENEMIES } from '../sim/enemies';
 import { hash2 } from '../sim/rng';
-import { T } from '../sim/tiles';
+import { T, TILES } from '../sim/tiles';
+import { isLiquid } from '../sim/liquids';
 import { BODY_H } from '../sim/physics';
 import { HIT_SQUASH_TIME, hitSquash, hurtSquash, hurtVignette, softFlash, magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx } from './fx';
 import type { PlayerGear, VehicleSpriteId } from './sprites';
 import { ICON, drawIcon } from './icons';
 import { vehicleRemap } from './sprites';
+/**
+ * Swim tilt in radians (canvas rotation; positive leans the head right): head-first toward the
+ * swim direction, but never upside down.
+ */
+export function swimTilt(vx: number, vy: number): number {
+  // Sinking counts for less than stroking, so a sideways swim stays roughly level.
+  const a = Math.atan2(vx, -vy * (vy > 0 ? 0.4 : 1));
+  return Math.max(-1.8, Math.min(1.8, a));
+}
+/** Vehicle tilt from the ground rows under the left and right wheels (positive: right side lower). */
+export function vehicleTilt(gyLeft: number, gyRight: number): number {
+  // A wall in front is not a slope: steps count as one tile at most.
+  const d = Math.max(-1, Math.min(1, gyRight - gyLeft));
+  return Math.max(-0.3, Math.min(0.3, Math.atan2(d, 2.6)));
+}
+export const LAND_SQUASH_TIME = 0.28;
+/** Suspension squash 0..0.12 over the landing: compress fast, spring back. */
+export function landSquash(left: number): number {
+  if (left <= 0) return 0;
+  const k = 1 - left / LAND_SQUASH_TIME;
+  return 0.12 * Math.sin(Math.PI * Math.min(1, k * 1.3)) * (1 - k * 0.4);
+}
 /** Pixel-art scale of ground vehicles relative to the player sprite. */
 const VEHICLE_ART_SCALE = 1.5;
 /** Sprite row where a ground vehicle's hull starts (above it: roll cage / cab). */
@@ -115,6 +138,16 @@ export class Renderer {
   ropeInfo: { sag: number; twang: number; points: number } | null = null;
   /** True while a ground vehicle's hull is drawn over the pilot (for e2e checks). */
   pilotTucked = false;
+  /** Swim pose this frame (e2e): body tilt in radians, whether stroking. */
+  swimInfo: { angle: number; moving: boolean } | null = null;
+  private swimAngle = 0;
+  /** Vehicle tilt (radians) and landing squash (0-1) this frame (e2e). */
+  vehPose: { tilt: number; squash: number } | null = null;
+  private vehTilt = 0;
+  private vehSquashT = 0;
+  private vehAir = false;
+  private vehVy = 0;
+  private lastDrawTime = 0;
   /** Device pixels. */
   w = 1;
   h = 1;
@@ -199,6 +232,8 @@ export class Renderer {
     const shakeX = (Math.random() - 0.5) * fx.shake * this.shakeMul * 6 * scale;
     const shakeY = (Math.random() - 0.5) * fx.shake * this.shakeMul * 6 * scale;
     const world = game.world;
+    const dtFrame = Math.min(0.1, Math.max(0, time - this.lastDrawTime));
+    this.lastDrawTime = time;
 
     // Underground base colour, then the sky above the surface.
     ctx.fillStyle = '#17141f';
@@ -445,6 +480,17 @@ export class Renderer {
     }
     const rp = game.ridePaint;
     const rideRemap = (id: VehicleSpriteId): Record<string, string> | undefined => vehicleRemap(id, rp ? [rp.c1, rp.c2] : undefined);
+    // Vehicle body language: ground vehicles tilt to the slope under their wheels, fliers pitch with
+    // their climb, and a hard landing squashes the suspension. Applied to the vehicle and its pilot.
+    const vt = veh ? this.vehiclePose(game, veh, dtFrame) : { tilt: 0, squash: 0 };
+    this.vehPose = veh ? vt : null;
+    const vehXf = (): void => {
+      if (!veh) return;
+      ctx.translate(px, py);
+      ctx.rotate(vt.tilt);
+      ctx.scale(1 + vt.squash * 0.5, 1 - vt.squash);
+      ctx.translate(-px, -py);
+    };
     let hullOver: { clipY: number; floorY: number; draw: () => void } | null = null;
     if (veh === 'hoverbike' || veh === 'sky_jet' || veh === 'buggy' || veh === 'drill_tank') {
       const vd = VEHICLES[veh];
@@ -459,7 +505,10 @@ export class Renderer {
       // Ground vehicles are drawn larger so the pilot sits inside, not on top of a toy.
       const vs = ground ? scale * VEHICLE_ART_SCALE : scale;
       const drawVeh = (): void => drawRows(ctx, vehicleRows(veh, ground ? moving : time, game.jetting), px - (vd.w / 2) * vs, py - (vd.top - bob) * vs, vs, game.facing < 0, vd.w, undefined, rideRemap(veh));
+      ctx.save();
+      vehXf();
       drawVeh();
+      ctx.restore();
       // Ground vehicles: the hull (rows below the cab) is drawn again over the pilot after the
       // player, so the pilot sits inside with only helmet and shoulders showing.
       if (ground) hullOver = { clipY: Math.round(py - (vd.top - HULL_ROW) * vs), floorY: Math.round(py - (vd.top - HULL_FLOOR[veh]) * vs), draw: drawVeh };
@@ -535,13 +584,35 @@ export class Renderer {
     }
     const paint = game.paint;
     const helmPaint = game.helmPaint;
+    if (veh) {
+      ctx.save();
+      vehXf();
+    }
     if (hullOver) {
       ctx.save();
       ctx.beginPath();
-      ctx.rect(0, 0, w, hullOver.floorY);
+      ctx.rect(-w, -h, w * 3, hullOver.floorY + h);
       ctx.clip();
     }
-    drawPlayer(ctx, px, py, scale, {
+    // Swimming: tilt the whole body toward the swim direction (smoothed), tread water when still.
+    const swimming = game.inLiquid !== 0 && !veh && !b.onGround;
+    const swimMoving = swimming && Math.hypot(b.vx, b.vy) > 1.2;
+    const target = swimMoving ? swimTilt(b.vx, b.vy) : 0;
+    this.swimAngle += (target - this.swimAngle) * Math.min(1, dtFrame * 8);
+    if (!swimming) this.swimAngle = 0;
+    const tread = swimming && !swimMoving ? Math.round(Math.sin(time * 3)) * scale : 0;
+    const seated = veh === 'hoverbike' || veh === 'sky_jet';
+    if (swimming) {
+      this.drawSwimRipples(ctx, game, shakeX, shakeY, time, swimMoving);
+      ctx.save();
+      const pivotY = py - 12 * scale;
+      ctx.translate(px, pivotY + tread);
+      ctx.rotate(this.swimAngle);
+      ctx.translate(-px, -pivotY);
+    }
+    drawPlayer(ctx, px, py + (seated ? 2 * scale : 0), scale, {
+      swim: swimming ? { moving: swimMoving } : undefined,
+      seated,
       wear: { head: eq('head'), body: eq('body'), feet: eq('feet') },
       paint: paint ? [paint.c1, paint.c2] : undefined,
       helm: helmPaint ? [helmPaint.c1, helmPaint.c2] : undefined,
@@ -558,16 +629,19 @@ export class Renderer {
       held: game.tool,
       squash: fx.hurtLeft > 0 ? hurtSquash(fx.hurtLeft) : squashScale(fx.squashLeft, fx.squashPower),
     });
+    if (swimming) ctx.restore();
+    this.swimInfo = swimming ? { angle: this.swimAngle, moving: swimMoving } : null;
     this.pilotTucked = hullOver !== null;
     if (hullOver) {
       ctx.restore();
       ctx.save();
       ctx.beginPath();
-      ctx.rect(0, hullOver.clipY, w, h - hullOver.clipY);
+      ctx.rect(-w, hullOver.clipY, w * 3, h * 2);
       ctx.clip();
       hullOver.draw();
       ctx.restore();
     }
+    if (veh) ctx.restore();
 
     // Items on the ground: bobbing icons with a soft glow so they read as pickups.
     for (const d of game.drops) {
@@ -1417,6 +1491,50 @@ export class Renderer {
 
   /** Molten rock moves: a travelling heat band, bubbles that swell and pop, embers and shimmer above the surface. */
   /** Water and acid per frame: depth shade, rolling crest, drifting glint, caustics, acid bubbles. */
+  private vehiclePose(game: Game, veh: string, dt: number): { tilt: number; squash: number } {
+    const b = game.body;
+    const ground = veh === 'buggy' || veh === 'drill_tank';
+    let target = 0;
+    if (ground && b.onGround) {
+      // Slope under the wheels: ground height one tile left and right of the body.
+      const gy = (x: number): number => {
+        for (let y = Math.floor(b.y - 1.5); y <= Math.floor(b.y + 2); y++) if (TILES[game.world.get(Math.floor(x), y)]?.solid) return y;
+        return b.y + 2;
+      };
+      target = vehicleTilt(gy(b.x - 1.1), gy(b.x + 1.1));
+    } else if (!ground) target = Math.max(-0.3, Math.min(0.3, game.facing * b.vy * 0.03));
+    else target = Math.max(-0.25, Math.min(0.25, game.facing * b.vy * 0.02));
+    this.vehTilt += (target - this.vehTilt) * Math.min(1, dt * 10);
+    if (this.vehAir && b.onGround && this.vehVy > 7) this.vehSquashT = LAND_SQUASH_TIME;
+    this.vehAir = !b.onGround;
+    this.vehVy = b.vy;
+    this.vehSquashT = Math.max(0, this.vehSquashT - dt);
+    return { tilt: this.vehTilt, squash: landSquash(this.vehSquashT) };
+  }
+
+  /** Rings spreading on the surface while the swimmer's head is near it (faster and wider when stroking). */
+  private drawSwimRipples(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number, moving: boolean): void {
+    const b = game.body;
+    const w = game.world;
+    const tx = Math.floor(b.x);
+    let top = Math.floor(b.y - 0.2);
+    while (isLiquid(w.get(tx, top - 1)) && top > b.y - 4) top--;
+    if (isLiquid(w.get(tx, top - 1)) || b.y - BODY_H > top + 1.2) return;
+    const scale = this.scale;
+    const cx = this.sx(b.x, shakeX);
+    const cy = this.sy(top, shakeY) + scale;
+    const period = moving ? 0.7 : 1.4;
+    ctx.fillStyle = 'rgba(220,242,255,0.75)';
+    for (let k = 0; k < 2; k++) {
+      const ph = ((time / period + k / 2) % 1 + 1) % 1;
+      const r = (4 + ph * (moving ? 18 : 12)) * scale;
+      ctx.globalAlpha = 1 - ph;
+      ctx.fillRect(cx - r - 3 * scale, cy, 3 * scale, scale);
+      ctx.fillRect(cx + r, cy, 3 * scale, scale);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   private drawLiquid(ctx: CanvasRenderingContext2D, world: Game['world'], t: number, tx: number, ty: number, dx: number, dy: number, ts: number, time: number): void {
     const u = ts / 16;
     const acid = t === T.ACID_POOL;

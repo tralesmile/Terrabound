@@ -1,3 +1,4 @@
+import { B } from '../src/sim/biomes';
 import { describe, expect, it } from 'vitest';
 import { flowLiquids, isLiquid } from '../src/sim/liquids';
 import { FIXED_DT, Game, NO_CONTROLS, SINK, type Controls } from '../src/sim/game';
@@ -73,7 +74,7 @@ describe('liquid flow', () => {
     expect(acid).toBeGreaterThan(30);
   });
 
-  it('worldgen pools magma only in the Plasma and Core layers', () => {
+  it('worldgen pools magma only in the Plasma and Core layers, or under the Ash Dunes', () => {
     let magma = 0;
     for (const seed of [1, 2]) {
       const w = generateWorld(seed);
@@ -81,7 +82,7 @@ describe('liquid flow', () => {
         for (let x = 0; x < w.w; x++) {
           if (w.get(x, y) !== T.MAGMA) continue;
           magma++;
-          expect(y - w.padY).toBeGreaterThanOrEqual(LAYERS[2].top);
+          if (w.biome[x] !== B.ASH) expect(y - w.padY).toBeGreaterThanOrEqual(LAYERS[2].top);
         }
       }
       // No water or acid down there: the hot layers trade them for magma.

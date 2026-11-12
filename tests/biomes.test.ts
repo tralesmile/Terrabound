@@ -6,6 +6,7 @@ import { Game } from '../src/sim/game';
 import { defaultSave } from '../src/sim/save';
 import { T, TILES, invTotal } from '../src/sim/tiles';
 import { WORLD_W, generateWorld } from '../src/sim/world';
+import { flowLiquids } from '../src/sim/liquids';
 
 const SEEDS = [1, 2, 3, 7, 42, 99, 1234, 77777];
 
@@ -31,7 +32,7 @@ describe('biomes', () => {
     let checked = 0;
     for (let x = 30; x < w.w - 30; x += 11) {
       const t = w.get(x, w.surface[x] + 1);
-      if (t === T.RUIN || t === T.METAL || t === T.CRYSTAL || t === T.IRON || t === T.AIR || t === T.PAD || t === T.WATER) continue;
+      if (t === T.RUIN || t === T.METAL || t === T.CRYSTAL || t === T.IRON || t === T.AIR || t === T.PAD || t === T.WATER || t === T.MAGMA || t === T.BASALT) continue;
       expect(t).toBe(crust[w.biome[x]]);
       checked++;
     }
@@ -243,5 +244,53 @@ describe('surface ponds and sky islands', () => {
         expect(Math.abs(mid - w.padX)).toBeGreaterThan(PAD_CLEAR);
       }
     }
+  });
+});
+
+describe('lava in the Ash Dunes', () => {
+  it('every world has surface lava pools inside the Ash Dunes, lined with basalt, away from the pad', () => {
+    for (const seed of SEEDS) {
+      const w = generateWorld(seed);
+      const pools = w.structures.filter((s) => s.kind === 'lava');
+      expect(pools.length).toBeGreaterThanOrEqual(1);
+      for (const p of pools) {
+        const mid = (p.x0 + p.x1) >> 1;
+        expect(w.biome[mid]).toBe(B.ASH);
+        expect(w.get(mid, p.y0)).toBe(T.MAGMA);
+        let d = p.y0;
+        while (w.get(mid, d) === T.MAGMA) d++;
+        expect(w.get(mid, d)).toBe(T.BASALT);
+        expect(Math.abs(mid - w.padX)).toBeGreaterThan(PAD_CLEAR);
+      }
+      // Water ponds never sit in the Ash Dunes (water would cool the lava).
+      for (const p of w.structures.filter((s) => s.kind === 'pond')) expect(w.biome[(p.x0 + p.x1) >> 1]).not.toBe(B.ASH);
+    }
+  });
+
+  it('surface lava pools hold their lava when liquids flow', () => {
+    const w = generateWorld(SEEDS[0]);
+    for (const p of w.structures.filter((s) => s.kind === 'lava')) {
+      const count = (): number => {
+        let n = 0;
+        for (let y = p.y0 - 2; y <= p.y1 + 6; y++) for (let x = p.x0 - 6; x <= p.x1 + 6; x++) if (w.get(x, y) === T.MAGMA) n++;
+        return n;
+      };
+      const before = count();
+      for (let t = 0; t < 60; t++) flowLiquids(w, (p.x0 + p.x1) / 2, p.y0, t, 20, 10);
+      expect(count()).toBe(before);
+      expect(w.get((p.x0 + p.x1) >> 1, p.y0)).toBe(T.MAGMA);
+    }
+  });
+
+  it('caves under the Ash Dunes pool lava above the Plasma layer', () => {
+    let shallow = 0;
+    for (const seed of SEEDS) {
+      const w = generateWorld(seed);
+      for (let x = 0; x < w.w; x++) {
+        if (w.biome[x] !== B.ASH) continue;
+        for (let y = w.padY + 25; y < w.padY + 180; y++) if (w.get(x, y) === T.MAGMA) shallow++;
+      }
+    }
+    expect(shallow).toBeGreaterThan(20);
   });
 });

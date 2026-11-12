@@ -538,3 +538,17 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 
 **Known issues:** the log reader leaves empty space on desktop for these one-line logs; full-screen panels fill only the safe frame (world shows in the notch strip); rims subtle in big open caves; drone mining counts toward "mined"; digits 1-0 not remappable; toast kinds guessed from text; ore marks 5 px; offline crop growth ignores robot gardeners; crops restart their stage when the base moves; upgrade BUY refuses upstairs off the pad; turrets draw 1 power idle; e2e farm uses raw tile ids (57-67).
 
+
+## 2026-11-12 Interactive session: driving and swimming graphics, Ash Dunes lava
+
+**Done:**
+- Swimming now has a real pose: the body leans head-first toward the swim direction (sinking is weighted less, so a sideways swim stays level), legs flutter-kick, the front arm strokes, the player treads water when still, and ripples spread on the surface.
+- Vehicles: the pilot sits on the hoverbike and Sky Jet. Ground vehicles tilt to the slope (a wall counts as a one-tile step) and squash their suspension on hard landings; fliers pitch with their climb.
+- New particles: wheel dust, exhaust, drill-tank sparks, hoverbike motes and a Sky Jet contrail.
+- Lava: two basalt-lined lava pools per Ash Dunes band (new codex entry "Lava pool", orange map pin), and lava basins in the caves under the Ash Dunes from 25 m down.
+
+**Numbers:** 629 unit tests (new: motion 6, lava 3; 2 updated for the new rules), e2e adds swim lean, buggy dust and lava pool checks plus screenshots 17c, 17d and 22d, all green; bundle 366.8 kB (126.8 kB gzip).
+
+**Next:** the follow-ups at the end of BACKLOG P1.10.
+
+**Known issues:** the stroke arm is small at phone scale; the tilt also rotates the RIDE/GET OFF state art; lava pools are placed before trees but rely on `used` to keep trees off the rim.

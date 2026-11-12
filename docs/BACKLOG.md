@@ -73,6 +73,13 @@ World size and variety:
 - [x] Floating sky islands with a rich chest; surface ponds (codex now 14 entries)
 - [ ] Follow-ups: gear/armor as real equippable items (P3 equipment slots), crops and farming, ice fishing in Frozen Spires, a way up to islands (jump pads / grapple), an inventory hotbar the player can arrange, touch long-press for item actions
 
+## P1.10 Owner request 2026-11-12: better driving and swimming graphics, lava (done 2026-11-12)
+
+- [x] Swim pose: head-first tilt toward the swim direction, flutter kick, stroking arm, tread water, surface ripples
+- [x] Vehicles: seated pilot on hoverbike and Sky Jet, slope tilt and climb pitch, landing suspension squash, wheel dust, exhaust, drill sparks, hover motes, jet contrail
+- [x] Lava: two basalt-lined surface lava pools per Ash Dunes band (codex: Lava pool), lava basins in the caves under the Ash Dunes
+- [ ] Follow-ups (scheduled runs may take these): lavafalls down Ash cliffs, heat shimmer over surface lava, swim animation for the robot pets, wheel spin speed matched to ground speed
+
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 
 - [x] Garage kit (fabricator) placed on flat ground builds a garage; E / click opens the garage panel
