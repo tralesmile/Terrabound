@@ -1,5 +1,14 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-12 run 27
+
+- Done this run: crop sway, ripe twinkle, sprinkler spray; robot gardeners; local world records with personal-best toasts.
+- Weakest UI (vs Core Keeper/Terraria): toasts are full sentences stacked mid-screen; cap at 2, shorten to "icon + 4 words", and move the plant timer to an aim tooltip.
+- Weakest graphics: surface dirt is one flat noise; darker strata bands and buried bones/pipes in the top rows (carried over, still the cheapest big visual win).
+- Weakest controls: one seed per right click; hold right click to sow along a row (Stardew style).
+- Weakest progression/retention: records exist but are only a footer line; a small RECORDS screen with the last 10 codes and a share-card variant ("beat my 152m on 1MVE-X89G") would make Daily Dive social without a backend.
+- Weakest feel: harvesting gives no burst; a pop of produce icons arcing into the pack would sell farming.
+
 ## 2026-11-12 run 26
 
 - Done this run: hurt vignette + recoil + damage numbers, robot happiness with hearts and discounts, farming (3 crops, sprinklers), cooking pot and meal buffs.
@@ -27,11 +36,3 @@
 - Weakest UI: TRADE is 21 rows; group per robot with portrait headers (backlog).
 - New: an "ember" chip (burn over time) once enemies have status effects; chips as rare chest loot so dives can drop a build-changer.
 
-## 2026-11-12 run 23
-
-- Done this run: robots sit/sleep/hide/wave/cheer, metal wall trims, Dex the merchant drone.
-- Weakest gameplay feel (vs Terraria/Core Keeper): combat still has no weapon progression beyond crafting tiers; the Gunsmith's mod chips (+pierce, +burn, +ricochet) would make each run's loadout feel different (backlog NPC line).
-- Weakest graphics: the merchant drone is a recoloured field drone; a bigger 24 px hull with a striped awning over the crate would sell "shop".
-- Weakest controls: lifts still need jump held; tap-to-ride to the next floor (carried over from run 22).
-- Weakest UI: TRADE is now 14 rows; group by robot with a portrait header and collapse locked rows (carried over, now more urgent).
-- New: a light-pipe block (carries daylight down a shaft) to make underground rooms bright; robots sometimes eat at the table at noon.

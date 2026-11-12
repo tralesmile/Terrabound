@@ -100,3 +100,7 @@
 - **New happiness discounts silently changed an existing e2e price check** (8 rust -> 7 at comfort 4). Guard: the e2e now reads the mood price through `game.tradeNow` and asserts both posted and mood price; any future price modifier must go through `tradeNow` / `npcPrice` so UI, sim and tests agree.
 - **Crop timers reuse the sapling diff instead of a new save field.** It works because the tile at each index says which map it belongs to; tests/farming.test.ts reloads a save with both a sapling and a crop. Any new "growing" tile must be routed in `applyDiff` too, or it stalls with no timer (applyDiff restarts a growing crop without one).
 - **Retro:** the run stayed fast by doing pure sim + unit tests first, then one e2e block per slice with its own fixture cleanup. Raw tile ids in e2e (57-67) are brittle; next time expose `T` on `window.__terrabound`.
+
+- **E2e polls for periodic visuals must cover a full period plus margin.** The heart shows 1.4 s of every 4.5 s; a 3 s poll missed it sometimes. Guard: poll for two periods and print the state that gates the visual on failure.
+- **Base positions are pad-relative and every world has its own pad height.** A test that checked `padY - 3` of the old world in the new one read air. Guard: recompute `padX/padY` from the new world after any world change.
+- **Retro:** four small slices each shipped through `npm run ship` (one gate each, ~3-4 min) kept every step safe; the run's slowest part is the full gate, so batch e2e edits before the gate and run `npm run e2e` alone while iterating.

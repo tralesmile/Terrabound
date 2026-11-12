@@ -447,3 +447,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** farming follow-ups (robots water crops, sprinkler spray, crops kept with the base), P1.8 Together/Polish items (leaderboard, settings screen), P1.6 follow-ups.
 
 **Known issues:** meal buffs end on reload; crops planted in the base are lost when the world resets on death (base tiles are kept, crops are not); the e2e farm uses raw tile ids (57-67); upgrade BUY rows refuse while you shop upstairs off the pad; DAILY still replaces the world without a confirm; turrets draw 1 power even when idle; the merchant hovers inside whatever is built over the right end of the pad.
+
+## 2026-11-12 Scheduled run 27
+
+**Done:** baseline: 494 unit tests green, e2e "happy heart" check failed (it polled 3 s for a heart that shows 1.4 s of every 4.5 s, so the 3.1 s gap could be missed); poll now covers two periods and logs robot state on failure. Creative review: the farm was a row of static stickers and toasts were long (41-farm). Crops now sway in a two-sine wind (taller stages more, neighbours out of phase), ripe ones twinkle, sprinklers throw droplet arcs (per-frame pass, 41d-farm-sway). Backlog: farming follow-ups done (base crops kept across worlds via `BASE_SAVE`, raids still use `BASE_KEEP`; meal buffs saved, v17; a happy/delighted robot waters every crop in the base strip; Dex seed packet; offline crop growth `growCrops` + welcome-back toast). Local world records (src/sim/records.ts, save v18): per shared code best depth, most loot in one try, fastest boss; gold toast + fanfare; workshop footer line (42-world-record). DAILY now needs a second tap (known issue fixed).
+
+**Numbers:** 515 unit tests (new: cropfx 4, farming +9, records 8), e2e all green (new: farm sway, gardener, personal-best toast, DAILY confirm), bundle 302 kB (103.7 kB gzip).
+
+**Next:** online leaderboard needs a hosting decision (NEEDS_FROM_USER); co-op spike; settings screen (volume, shake, colour-blind, text size); shorter toasts with icons.
+
+**Known issues:** offline crop growth ignores robot gardeners (robots are derived after load); growing crops restart their current stage when the base moves to a new world; upgrade BUY rows refuse while you shop upstairs off the pad; turrets draw 1 power even when idle; the merchant hovers inside whatever is built over the right end of the pad; e2e farm uses raw tile ids (57-67).
