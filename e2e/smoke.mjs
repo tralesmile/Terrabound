@@ -816,7 +816,7 @@ try {
     return { scale: t.ui.uiScale, shake: t.renderer.shakeMul, prefs: t.game.prefs };
   });
   await page.screenshot({ path: path.join(out, '44-settings.png') });
-  check('cog opens settings with its steppers (maxed ones disabled) and pauses the game', setA.open && setA.rows === 10 && Math.abs(pausedT - setA.time) < 1e-6, JSON.stringify({ ...setA, pausedT }));
+  check('cog opens settings with its steppers (maxed ones disabled) and pauses the game', setA.open && setA.rows === 11 && Math.abs(pausedT - setA.time) < 1e-6, JSON.stringify({ ...setA, pausedT }));
   check('settings steppers raise UI size and turn screen shake off', setB.scale > 1 && setB.shake === 0 && setB.prefs.uiSize === 1 && setB.prefs.shake === 0, JSON.stringify(setB));
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
@@ -2122,7 +2122,7 @@ try {
     return { n: rs.length, inside: rs.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= c.width && r.y + r.h <= c.height) };
   });
   await page.screenshot({ path: path.join(out, '44c-mobile-settings.png') });
-  check('settings at HUGE size fits a phone', msettings.n >= 12 && msettings.inside, JSON.stringify(msettings));
+  check('settings at HUGE size fits a phone', msettings.n >= 13 && msettings.inside, JSON.stringify(msettings));
   await page.evaluate(() => {
     const t = window.__terrabound;
     t.ui.settingsOpen = false;
@@ -2130,6 +2130,29 @@ try {
     t.game.stepPref('uiSize', -1);
     t.ui.uiScale = 1;
   });
+  {
+    // TOUCH MOVE STICK: the move stick starts on the left third by default, on the right third when set.
+    const stickAt = async (side, x) => page.evaluate(async ([side, x]) => {
+      const t = window.__terrabound;
+      while (t.game.prefs.stickSide !== side) t.act({ k: 'pref', key: 'stickSide', d: side > t.game.prefs.stickSide ? 1 : -1 });
+      const c = document.getElementById('game');
+      const r = c.getBoundingClientRect();
+      const ev = (type) => new PointerEvent(type, { pointerId: 77, pointerType: 'touch', clientX: r.left + x, clientY: r.top + r.height * 0.6, bubbles: true });
+      c.dispatchEvent(ev('pointerdown'));
+      await new Promise((res) => requestAnimationFrame(res));
+      const stick = t.input.stick() !== null;
+      c.dispatchEvent(ev('pointerup'));
+      return stick;
+    }, [side, x]);
+    const vw = 390;
+    const res = { leftDefault: await stickAt(0, 30), rightDefault: await stickAt(0, vw - 30), leftLefty: await stickAt(1, 30), rightLefty: await stickAt(1, vw - 30) };
+    await page.evaluate(() => window.__terrabound.act({ k: 'pref', key: 'stickSide', d: 1 }));
+    await page.waitForTimeout(100);
+    await page.screenshot({ path: path.join(out, '06b-mobile-lefty.png') });
+    const hint = await page.evaluate(() => window.__terrabound.game.stats.playTime);
+    await page.evaluate(() => window.__terrabound.act({ k: 'pref', key: 'stickSide', d: -1 }));
+    check('touch move stick follows the stick-side setting', res.leftDefault && !res.rightDefault && !res.leftLefty && res.rightLefty, JSON.stringify({ ...res, hint }));
+  }
   check('no console or page errors on mobile', merrors.length === 0, merrors.join(' | '));
   await mctx.close();
   const gctx = await browser.newContext({ viewport: { width: 1100, height: 1040 } });

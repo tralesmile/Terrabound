@@ -76,11 +76,13 @@ function boot(): void {
     renderer.shakeMul = shakeMul(p);
     renderer.setOreMarks(p.oreMarks === 1);
     renderer.reduceFlash = p.flashes === 1;
+    input.stickSide = p.stickSide;
+    ui.stickSide = p.stickSide;
     ui.uiScale = uiScale(p);
   };
-  applyPrefs();
   ui.touch = window.matchMedia?.('(pointer: coarse)').matches === true || 'ontouchstart' in window;
   const input = new Input(canvas, ui, renderer, () => dpr);
+  applyPrefs();
 
   const resize = (): void => {
     dpr = Math.min(window.devicePixelRatio || 1, 2);

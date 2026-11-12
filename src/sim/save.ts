@@ -12,7 +12,7 @@ import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 20;
+export const SAVE_VERSION = 21;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -27,7 +27,7 @@ export interface SaveData {
   upgrades: Levels;
   /** v14 adds raids (night raids repelled). */
   stats: { deepest: number; deaths: number; playTime: number; banked: number; raids: number };
-  /** v11 adds music (background music on/off, default on); v14 adds raids (night base raids, default on); v19 adds the settings screen prefs (volumes, shake, UI size); v20 adds oreMarks and flashes. */
+  /** v11 adds music (background music on/off, default on); v14 adds raids (night base raids, default on); v19 adds the settings screen prefs (volumes, shake, UI size); v20 adds oreMarks and flashes; v21 adds stickSide. */
   settings: { muted: boolean; music: boolean; raids: boolean } & Prefs;
   /** v2: persistent base tiles above the landing pad (see base.ts). */
   base: BaseTiles;
@@ -141,6 +141,7 @@ export function parseSave(raw: string | null | undefined): SaveData {
     // v10 -> v11: music defaults to on. v13 -> v14: raids default to on (opt-out in the workshop).
     // v18 -> v19: prefs missing from old saves take DEFAULT_PREFS; out-of-range values are clamped.
     // v19 -> v20: oreMarks and flashes are missing and take their defaults (off, full).
+    // v20 -> v21: stickSide is missing and takes its default (move stick on the left).
     settings: { muted: se.muted === true, music: se.music !== false, raids: se.raids !== false, ...cleanPrefs(se) },
     // v1 saves have no base field: sanitizeBase(undefined) yields an empty base (migration v1 -> v2).
     base: sanitizeBase(r.base),

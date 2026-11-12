@@ -13,11 +13,13 @@ export interface Prefs {
   oreMarks: number;
   /** 0 full, 1 reduced: no strobing hit flashes, softer red vignette. */
   flashes: number;
+  /** Touch: 0 move stick on the left (default), 1 on the right (left-handed). */
+  stickSide: number;
 }
 
 export type PrefKey = keyof Prefs;
 
-export const DEFAULT_PREFS: Prefs = { master: 8, musicVol: 7, sfxVol: 8, shake: 2, uiSize: 0, oreMarks: 0, flashes: 0 };
+export const DEFAULT_PREFS: Prefs = { master: 8, musicVol: 7, sfxVol: 8, shake: 2, uiSize: 0, oreMarks: 0, flashes: 0, stickSide: 0 };
 
 interface PrefDef {
   key: PrefKey;
@@ -35,6 +37,7 @@ export const PREFS: readonly PrefDef[] = [
   { key: 'uiSize', label: 'UI SIZE (TEXT AND BUTTONS)', max: 2, names: ['NORMAL', 'LARGE', 'HUGE'] },
   { key: 'oreMarks', label: 'ORE AND HAZARD MARKS', max: 1, names: ['OFF', 'ON'] },
   { key: 'flashes', label: 'FLASHES', max: 1, names: ['FULL', 'REDUCED'] },
+  { key: 'stickSide', label: 'TOUCH MOVE STICK', max: 1, names: ['LEFT', 'RIGHT'] },
 ];
 
 function def(key: PrefKey): PrefDef {
@@ -74,4 +77,12 @@ export function shakeMul(p: Prefs): number {
 
 export function uiScale(p: Prefs): number {
   return [1, 1.18, 1.36][p.uiSize] ?? 1;
+}
+
+/** Share of the screen width that is the touch move-stick zone. */
+export const STICK_ZONE = 0.33;
+
+/** True when a touch at css x on a screen w wide starts the move stick (its side is a setting). */
+export function inStickZone(x: number, w: number, side: number): boolean {
+  return side === 1 ? x > w * (1 - STICK_ZONE) : x < w * STICK_ZONE;
 }

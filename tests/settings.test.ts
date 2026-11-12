@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { defaultSave, parseSave, SAVE_VERSION } from '../src/sim/save';
-import { audioGains, cleanPref, DEFAULT_PREFS, PREFS, prefValueLabel, shakeMul, stepPref, uiScale } from '../src/sim/settings';
+import { audioGains, inStickZone, STICK_ZONE, cleanPref, DEFAULT_PREFS, PREFS, prefValueLabel, shakeMul, stepPref, uiScale } from '../src/sim/settings';
 import { Game } from '../src/sim/game';
 import { uiUnit } from '../src/ui/ui';
 
@@ -54,16 +54,35 @@ describe('settings screen prefs', () => {
     const v18 = { ...defaultSave(), v: 18, settings: { muted: true, music: false, raids: false } };
     const s = parseSave(JSON.stringify(v18));
     expect(s.v).toBe(SAVE_VERSION);
-    expect(SAVE_VERSION).toBe(20);
+    expect(SAVE_VERSION).toBe(21);
     expect(s.settings).toEqual({ muted: true, music: false, raids: false, ...DEFAULT_PREFS });
   });
 
   it('a v19 save keeps its prefs and gets ore marks off, flashes full', () => {
     const v19 = { ...defaultSave(), v: 19, settings: { muted: false, music: true, raids: true, master: 3, musicVol: 4, sfxVol: 5, shake: 1, uiSize: 2 } };
     const s = parseSave(JSON.stringify(v19));
-    expect(s.settings).toEqual({ muted: false, music: true, raids: true, master: 3, musicVol: 4, sfxVol: 5, shake: 1, uiSize: 2, oreMarks: 0, flashes: 0 });
+    expect(s.settings).toEqual({ muted: false, music: true, raids: true, master: 3, musicVol: 4, sfxVol: 5, shake: 1, uiSize: 2, oreMarks: 0, flashes: 0, stickSide: 0 });
     expect(prefValueLabel(s.settings, 'oreMarks')).toBe('OFF');
     expect(prefValueLabel({ ...s.settings, flashes: 1 }, 'flashes')).toBe('REDUCED');
+  });
+
+  it('a v20 save keeps ore marks and flashes and gets the stick on the left', () => {
+    const v20 = { ...defaultSave(), v: 20, settings: { muted: false, music: true, raids: true, ...DEFAULT_PREFS, oreMarks: 1, flashes: 1, stickSide: undefined } };
+    const s = parseSave(JSON.stringify(v20));
+    expect(s.settings.oreMarks).toBe(1);
+    expect(s.settings.flashes).toBe(1);
+    expect(s.settings.stickSide).toBe(0);
+  });
+
+  it('the touch move stick zone follows the stick-side setting', () => {
+    const w = 900;
+    expect(inStickZone(50, w, 0)).toBe(true);
+    expect(inStickZone(850, w, 0)).toBe(false);
+    expect(inStickZone(50, w, 1)).toBe(false);
+    expect(inStickZone(850, w, 1)).toBe(true);
+    // The middle of the screen always aims, whichever side the stick is on.
+    expect(inStickZone(w / 2, w, 0) || inStickZone(w / 2, w, 1)).toBe(false);
+    expect(STICK_ZONE).toBeLessThan(0.5);
   });
 
   it('prefs round-trip through a save and junk values are clamped', () => {

@@ -196,6 +196,8 @@ export class UI {
   }
   placeMode = false;
   touch = false;
+  /** Settings: touch move stick on the left (0) or right (1); the hint follows it. */
+  stickSide = 0;
   toasts: Toast[] = [];
   private rects: Rect[] = [];
   /** Pickup icons arcing into the hotbar or bag. */
@@ -346,12 +348,16 @@ export class UI {
     ctx.fillStyle = 'rgba(4,4,10,0.6)';
     ctx.fillRect(0, 0, w, h);
     const prefs = game.prefs;
-    const rowH = u * 2.4;
-    const gap = u * 0.5;
     const pw = Math.min(w - u * 2, u * 30);
     // Narrow screens (phones, big UI): label on its own line above the steppers.
     const stacked = pw < u * 26;
-    const labelH = stacked ? u * 1.5 : 0;
+    // Rows shrink (down to 70%) when every option would not fit the screen height.
+    const fixed = u * 6;
+    const perRow = u * (2.4 + 0.5 + (stacked ? 1.5 : 0));
+    const fit = Math.max(0.7, Math.min(1, (h - u - fixed) / ((PREFS.length + 1) * perRow)));
+    const rowH = u * 2.4 * fit;
+    const gap = u * 0.5 * fit;
+    const labelH = stacked ? u * 1.5 * fit : 0;
     const ph = u * 4.4 + (PREFS.length + 1) * (rowH + gap + labelH) + u * 1.6;
     const px = (w - pw) / 2;
     const py = Math.max(u * 0.5, (h - ph) / 2);
@@ -881,7 +887,7 @@ export class UI {
     const auto = game.stats.playTime >= 40 ? game.hintAutomation(this.touch) : null;
     if (auto) this.text(ctx, auto, w / 2, h - u * 0.7, Math.round(u * 0.75), '#7dffb0', 'center', w - u * 2);
     if (game.stats.playTime < 40) {
-      const hint = this.touch ? 'Left thumb: move, drag up to jump. Right side: dig.' : 'A/D move, W jump. Click: dig / open chests. Right click: build. 1-4 or wheel: tools. I: inventory. E: open chest.';
+      const hint = this.touch ? (this.stickSide === 1 ? 'Right thumb: move, drag up to jump. Left side: dig.' : 'Left thumb: move, drag up to jump. Right side: dig.') : 'A/D move, W jump. Click: dig / open chests. Right click: build. 1-4 or wheel: tools. I: inventory. E: open chest.';
       this.text(ctx, hint, w / 2, h - u * 0.7, Math.round(u * 0.75), '#c9d0e4', 'center', w - u * 2);
     }
   }

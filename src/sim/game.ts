@@ -528,7 +528,7 @@ export class Game {
   /** Settings screen options (volumes, shake, UI size). */
   get prefs(): Prefs {
     const s = this.save.settings;
-    return { master: s.master, musicVol: s.musicVol, sfxVol: s.sfxVol, shake: s.shake, uiSize: s.uiSize, oreMarks: s.oreMarks, flashes: s.flashes };
+    return { master: s.master, musicVol: s.musicVol, sfxVol: s.sfxVol, shake: s.shake, uiSize: s.uiSize, oreMarks: s.oreMarks, flashes: s.flashes, stickSide: s.stickSide };
   }
 
   /** Step one option by d (clamped); returns the new prefs. */

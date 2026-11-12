@@ -1,4 +1,5 @@
 import type { Controls } from '../sim/game';
+import { inStickZone } from '../sim/settings';
 import type { Renderer } from '../render/renderer';
 import type { UI, UiAction } from '../ui/ui';
 
@@ -12,11 +13,13 @@ interface PointerInfo {
   startY: number;
 }
 
-/** Keyboard + mouse + touch. Left third of a touch screen is a floating thumbstick; the rest aims and digs. */
+/** Keyboard + mouse + touch. One third of a touch screen (left by default, right if left-handed) is a floating thumbstick; the rest aims and digs. */
 export class Input {
   private keys = new Set<string>();
   private pointers = new Map<number, PointerInfo>();
   mouse = { x: 0, y: 0, has: false };
+  /** Settings: 0 move stick on the left third, 1 on the right third (left-handed). */
+  stickSide = 0;
   /** Called when the player acts on UI. */
   onAction: (a: UiAction) => void = () => undefined;
   onAnyInput: () => void = () => undefined;
@@ -109,7 +112,7 @@ export class Input {
     if (this.ui.shopOpen) return;
     const w = this.canvas.clientWidth;
     const isTouch = e.pointerType === 'touch';
-    const kind: PointerInfo['kind'] = isTouch && x < w * 0.33 ? 'stick' : 'aim';
+    const kind: PointerInfo['kind'] = isTouch && inStickZone(x, w, this.stickSide) ? 'stick' : 'aim';
     this.pointers.set(e.pointerId, { id: e.pointerId, x, y, kind, button: e.button, startX: x, startY: y });
     this.mouse = { x, y, has: true };
   }
