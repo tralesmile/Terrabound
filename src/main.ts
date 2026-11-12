@@ -1,3 +1,4 @@
+import { giftText } from './sim/achievements';
 import { PAINT_SLOT_NAMES } from './sim/paints';
 import { VEHICLES } from './sim/garage';
 import { FTUE_STEPS } from './sim/ftue';
@@ -521,7 +522,7 @@ function boot(): void {
         break;
       }
       case 'award':
-        ui.toast(`Award: ${e.name}`, e.tier === 3 ? '#ffd23a' : e.tier === 2 ? '#d8e4f0' : '#e0a060', 3.5, 'award');
+        ui.toast(`Award: ${e.name}! Gift in stash: ${giftText(e.gift)}`, e.tier === 3 ? '#ffd23a' : e.tier === 2 ? '#d8e4f0' : '#e0a060', 3.5, 'award');
         ui.awardFlash(e.id);
         saveNow();
         break;

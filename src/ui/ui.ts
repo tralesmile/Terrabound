@@ -1,6 +1,6 @@
 import { PAINTS, PAINT_SLOTS, unlockedPaints, type PaintSlot } from '../sim/paints';
 import { codexCounts, logParts, readLogs, stepLog, type CodexSection } from '../sim/codex';
-import { AWARDS, awardProgress } from '../sim/achievements';
+import { AWARDS, awardGift, awardProgress } from '../sim/achievements';
 import { FTUE_STEPS } from '../sim/ftue';
 import { PREFS, prefValueLabel, type PrefKey } from '../sim/settings';
 import { BINDS, keyLabel, type BindId } from '../sim/keys';
@@ -850,6 +850,7 @@ export class UI {
     this.awardFirst = Math.min(this.awardFirst, Math.floor((AWARDS.length - 1) / this.awardsPer) * this.awardsPer);
     const cw = (pw - u * 2 - gap * (cols - 1)) / cols;
     const page = AWARDS.slice(this.awardFirst, this.awardFirst + this.awardsPer);
+    this.giftsShown = 0;
     const tierCol = ['#e0a060', '#d8e4f0', '#ffd23a'];
     page.forEach((d, i) => {
       const x = px + u + (i % cols) * (cw + gap);
@@ -869,11 +870,13 @@ export class UI {
       this.text(ctx, d.desc, x + u * 2.6, y + u * 2.05, Math.round(u * 0.62), done ? '#e8d8a0' : '#8a90a2', 'left', cw - u * 8);
       const bw = u * 4.4;
       const bx = x + cw - bw - u * 0.6;
-      this.text(ctx, done ? 'DONE' : `${have.toLocaleString('en-US')}/${d.goal.toLocaleString('en-US')}`, bx + bw, y + u * 1.05, Math.round(u * 0.62), done ? '#ffd23a' : '#8a90a2', 'right', bw + u);
+      this.text(ctx, done ? 'DONE' : `${have.toLocaleString('en-US')}/${d.goal.toLocaleString('en-US')}`, bx + bw, y + u * 0.85, Math.round(u * 0.62), done ? '#ffd23a' : '#8a90a2', 'right', bw + u);
       ctx.fillStyle = '#2a3046';
-      ctx.fillRect(bx, y + u * 1.55, bw, u * 0.45);
+      ctx.fillRect(bx, y + u * 1.1, bw, u * 0.4);
       ctx.fillStyle = done ? '#ffd23a' : '#36e0e8';
-      ctx.fillRect(bx, y + u * 1.55, bw * (have / d.goal), u * 0.45);
+      ctx.fillRect(bx, y + u * 1.1, bw * (have / d.goal), u * 0.4);
+      // The one-time gift: item icons with counts, right-aligned under the bar (dimmed once paid).
+      this.drawGift(ctx, awardGift(d), bx + bw, y + u * 1.65, u * 0.75, done);
     });
     this.awardsShown = page.length;
     const fy = py + ph - foot + u * 0.4;
@@ -883,6 +886,27 @@ export class UI {
     this.button(ctx, px + pw - u * 6, fy, u * 5, u * 2, 'NEXT >', { k: 'awardpage', d: 1 }, u * 0.75, { enabled: cur < pages, color: '#2a3550' });
     this.text(ctx, `Page ${cur}/${pages}  -  ${aw.done.length} of ${AWARDS.length} earned`, px + pw / 2, fy + u * 1.3, Math.round(u * 0.7), '#8a90a2', 'center', pw - u * 14);
   }
+
+  /** Gift row ending at `right`: icon then "xN" per item, `size` tall; returns nothing (counts giftsShown). */
+  private drawGift(ctx: CanvasRenderingContext2D, gift: Partial<Record<ItemId, number>>, right: number, y: number, size: number, paid: boolean): void {
+    let x = right;
+    const s = size / ICON;
+    ctx.globalAlpha = paid ? 0.55 : 1;
+    for (const k of (Object.keys(gift) as ItemId[]).reverse()) {
+      const label = `x${gift[k] ?? 0}`;
+      ctx.font = `bold ${Math.round(size * 0.8)}px ${FONT}`;
+      const tw = ctx.measureText(label).width;
+      this.text(ctx, label, x, y + size * 0.82, Math.round(size * 0.8), paid ? '#e8d8a0' : '#c9d0e4', 'right');
+      x -= tw + size * 0.15;
+      drawIcon(ctx, k, x - size, y, s);
+      x -= size + size * 0.4;
+    }
+    ctx.globalAlpha = 1;
+    this.giftsShown++;
+  }
+
+  /** Award cards that drew a gift row last frame (e2e). */
+  giftsShown = 0;
 
   private awardStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, color: string): void {
     ctx.fillStyle = color;

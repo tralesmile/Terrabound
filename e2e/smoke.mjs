@@ -617,10 +617,10 @@ try {
   await page.waitForTimeout(200);
   const awardsPage = await page.evaluate(() => {
     const { ui, game } = window.__terrabound;
-    return { page: ui.invPage, shown: ui.awardsShown, meals: game.awards.n.meals ?? 0, chests: game.awards.n.chests ?? 0, mined: game.awards.n.mined ?? 0 };
+    return { page: ui.invPage, shown: ui.awardsShown, gifts: ui.giftsShown, meals: game.awards.n.meals ?? 0, chests: game.awards.n.chests ?? 0, mined: game.awards.n.mined ?? 0 };
   });
   await page.screenshot({ path: path.join(out, '48-awards.png') });
-  check('AWARDS page lists award cards and play was counted (meal eaten, chest opened)', awardsPage.page === 'awards' && awardsPage.shown >= 6 && awardsPage.meals >= 1 && awardsPage.chests >= 1, JSON.stringify(awardsPage));
+  check('AWARDS page lists award cards with their gifts and play was counted (meal eaten, chest opened)', awardsPage.page === 'awards' && awardsPage.shown >= 6 && awardsPage.gifts === awardsPage.shown && awardsPage.meals >= 1 && awardsPage.chests >= 1, JSON.stringify(awardsPage));
   const nextBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'awardpage' && r.a.d === 1));
   if (nextBtn) await holdClick(page, nextBtn.x + nextBtn.w / 2, nextBtn.y + nextBtn.h / 2);
   await page.waitForTimeout(150);
@@ -630,12 +630,13 @@ try {
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     g.awards.n.dashes = 49;
+    window.__torchBefore = g.stash.torch ?? 0;
     g.emit({ t: 'dash' });
   });
   await page.waitForTimeout(250);
-  const unlocked = await page.evaluate(() => ({ done: window.__terrabound.game.awards.done.includes('dash1'), toast: window.__terrabound.ui.toasts.some((t) => t.text === 'Award: Blink') }));
+  const unlocked = await page.evaluate(() => ({ done: window.__terrabound.game.awards.done.includes('dash1'), toast: window.__terrabound.ui.toasts.some((t) => t.text === 'Award: Blink! Gift in stash: 6 Torch'), gift: (window.__terrabound.game.stash.torch ?? 0) - window.__torchBefore }));
   await page.screenshot({ path: path.join(out, '48b-award-unlock.png') });
-  check('reaching a goal unlocks the award with an Award toast', unlocked.done && unlocked.toast, JSON.stringify(unlocked));
+  check('reaching a goal unlocks the award with an Award toast and its stash gift', unlocked.done && unlocked.toast && unlocked.gift === 6, JSON.stringify(unlocked));
   // Codex: back to items, open CODEX; places found so far are named, the tabs switch sections, a kill and a log are learnt.
   const clickAct = async (pred) => {
     const r = await page.evaluate((src) => window.__terrabound.ui.rects.find(new Function('r', `return ${src}`)), pred);

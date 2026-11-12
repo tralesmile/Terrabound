@@ -1,7 +1,7 @@
 import { activePaint, nextPaint, type PaintDef, type PaintSlot } from './paints';
 import { CREW_KINDS, codexRows, noteCodexEvent, type CodexRow } from './codex';
 import { currentGoal, FTUE_STEPS, goalIndex } from './ftue';
-import { checkAwards, countEvent, newAwards, noteMax, sanitizeAwards, type Awards, type Tier } from './achievements';
+import { awardGift, checkAwards, countEvent, newAwards, noteMax, sanitizeAwards, type Awards, type Tier } from './achievements';
 import { stepPref, type PrefKey, type Prefs } from './settings';
 import { DEFAULT_KEYS, rebind, type BindId, type KeyMap } from './keys';
 import { decodeSeed, encodeSeed } from './seedcode';
@@ -169,7 +169,7 @@ export type GameEvent =
   | { t: 'craft'; id: string }
   | { t: 'smelt'; made: number }
   | { t: 'newdive' }
-  | { t: 'award'; id: string; name: string; tier: Tier }
+  | { t: 'award'; id: string; name: string; tier: Tier; gift: Partial<Record<ItemId, number>> }
   | { t: 'goal'; id: string; next: number }
   | { t: 'record'; beat: RecordBeat; value: number; code: string }
   | { t: 'swing'; dir: number }
@@ -802,7 +802,12 @@ export class Game {
 
   /** Unlock awards whose goals are met and announce each one. */
   private awardCheck(): void {
-    for (const d of checkAwards(this.save.awards)) this.emit({ t: 'award', id: d.id, name: d.name, tier: d.tier });
+    for (const d of checkAwards(this.save.awards)) {
+      // A small one-time gift lands in the base stash with the star (nothing to claim, nothing expires).
+      const gift = awardGift(d);
+      for (const k of Object.keys(gift) as ItemId[]) invAdd(this.stash, k, gift[k] ?? 0);
+      this.emit({ t: 'award', id: d.id, name: d.name, tier: d.tier, gift });
+    }
     const gi = goalIndex(this.save.awards);
     if (gi > this.goalAt) {
       const done = FTUE_STEPS[this.goalAt];

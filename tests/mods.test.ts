@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { AWARDS, awardGift } from '../src/sim/achievements';
 import { FIXED_DT, Game, NO_CONTROLS, type Controls } from '../src/sim/game';
 import { ENEMIES, makeEnemy } from '../src/sim/enemies';
 import { BASE_STATS, gearStats } from '../src/sim/gear';
@@ -170,7 +171,9 @@ describe('Rook the Gunsmith', () => {
     expect(g.canBuyMod('overcharge')).toBe(true);
     expect(g.buyMod('overcharge')).toBe(true);
     expect(g.drainEvents().some((e) => e.t === 'modbuy')).toBe(true);
-    expect(g.stash.copper_wire).toBe(20 - (MODS.overcharge.cost.copper_wire ?? 0));
+    // The first chip also unlocks the Tinkerer award, whose stash gift is copper wire.
+    const tinkerer = awardGift(AWARDS.find((d) => d.id === 'mod1')!);
+    expect(g.stash.copper_wire).toBe(20 - (MODS.overcharge.cost.copper_wire ?? 0) + (tinkerer.copper_wire ?? 0));
     expect(g.ownsMod('overcharge')).toBe(true);
     expect(g.fittedMod('ranged')).toBe('overcharge');
     expect(g.gear.rangedDmg).toBeGreaterThan(dmg);

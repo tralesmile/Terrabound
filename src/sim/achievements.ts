@@ -1,9 +1,11 @@
 /**
  * Achievements (awards): long goals across every system, counted from game events.
  * Pure data + helpers. Progress lives in SaveData.awards (v23): `n` counters, `done` ids in unlock order.
- * No rewards that pressure play: an award is a gold star and a line on the AWARDS page, nothing expires.
+ * No rewards that pressure play: an award is a star, a line on the AWARDS page and a small one-time
+ * gift into the base stash (awardGift); nothing expires and nothing is held back.
  */
 import type { GameEvent } from './game';
+import { ITEMS, type ItemId } from './tiles';
 
 export type Counter =
   | 'mined' | 'kills' | 'chests' | 'discoveries' | 'bosses' | 'bossKinds' | 'victory' | 'depth'
@@ -20,7 +22,7 @@ export interface AwardDef {
   desc: string;
   stat: Counter;
   goal: number;
-  /** Bronze, silver, gold: only the star colour changes. */
+  /** Bronze, silver, gold: the star colour and the gift size (awardGift). */
   tier: Tier;
 }
 
@@ -73,6 +75,42 @@ export const AWARDS: readonly AwardDef[] = [
   a('rec1', 'Personal best', 'Beat your own record on a shared world', 'records', 1),
   a('death1', 'Learning curve', 'Lose a suit and try again', 'deaths', 1),
 ];
+
+/** The gift item for each counter: themed so the reward feeds the thing you were doing. */
+const GIFT_ITEM: Record<Counter, ItemId> = {
+  mined: 'torch', depth: 'torch', dashes: 'torch', hooks: 'ladder',
+  kills: 'medkit', bosses: 'medkit', bossKinds: 'medkit', deaths: 'medkit', raids: 'metal',
+  chests: 'crystal', discoveries: 'crystal', lore: 'crystal', meteors: 'crystal', records: 'crystal', victory: 'crystal',
+  fish: 'seed', harvest: 'seed', planted: 'seed', meals: 'seed', trees: 'seed',
+  crafted: 'metal', upgrades: 'metal', smelted: 'metal', banked: 'metal',
+  trades: 'copper_wire', research: 'copper_wire', mods: 'copper_wire', rides: 'copper_wire',
+  robots: 'wall', rooms: 'wall',
+};
+
+/** How many of a gift item each tier pays (bronze, silver, gold). Scarce items pay fewer. */
+const GIFT_COUNT: Partial<Record<ItemId, readonly [number, number, number]>> = {
+  medkit: [1, 3, 5],
+  crystal: [3, 8, 15],
+  torch: [6, 15, 30],
+  ladder: [6, 15, 30],
+  seed: [3, 8, 15],
+  wall: [8, 20, 40],
+};
+const GIFT_DEFAULT = [10, 25, 50] as const;
+
+/** One-time stash gift for unlocking `d` (silver and gold add gold circuits on top). */
+export function awardGift(d: AwardDef): Partial<Record<ItemId, number>> {
+  const item = GIFT_ITEM[d.stat];
+  const n = (GIFT_COUNT[item] ?? GIFT_DEFAULT)[d.tier - 1] ?? 1;
+  const out: Partial<Record<ItemId, number>> = { [item]: n };
+  if (d.tier >= 2) out.circuit = d.tier === 3 ? 3 : 1;
+  return out;
+}
+
+/** "6 Torch, 1 Gold circuit": the gift as one short line. */
+export function giftText(g: Partial<Record<ItemId, number>>): string {
+  return (Object.keys(g) as ItemId[]).filter((k) => (g[k] ?? 0) > 0).map((k) => `${g[k]} ${ITEMS[k].name}`).join(', ');
+}
 
 export const AWARD_IDS: readonly string[] = AWARDS.map((d) => d.id);
 
