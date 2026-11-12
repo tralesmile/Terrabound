@@ -1,6 +1,6 @@
 import { decodeSeed, encodeSeed } from './seedcode';
 import { hash2, mixSeed, mulberry32 } from './rng';
-import { ENEMIES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
+import { ENEMIES, ENEMY_HIT_IFRAMES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
 import { type Body, moveX, moveY, onLadder, probeGround, unstick, BODY_H, HALF_W } from './physics';
 import { defaultSave, type SaveData } from './save';
 import {
@@ -1343,7 +1343,7 @@ export class Game {
   damageEnemy(e: Enemy, dmg: number, dir: number, stop = true): void {
     if (e.iframes > 0 || e.hp <= 0) return;
     e.hp -= dmg;
-    e.iframes = 0.15;
+    e.iframes = ENEMY_HIT_IFRAMES;
     e.vx = dir * 9;
     e.vy = ENEMIES[e.kind].flying ? e.vy : -5;
     if (stop) this.hitStop = HITSTOP;

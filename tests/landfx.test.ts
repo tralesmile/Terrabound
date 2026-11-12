@@ -46,3 +46,19 @@ describe('landing and footstep feedback', () => {
     expect(fx.particles.length).toBe(n);
   });
 });
+
+describe('enemy hit squash', () => {
+  it('squashes wide on the hit frame, stretches back, then settles', async () => {
+    const { hitSquash, HIT_SQUASH_TIME } = await import('../src/render/fx');
+    const { ENEMY_HIT_IFRAMES } = await import('../src/sim/enemies');
+    expect(HIT_SQUASH_TIME).toBe(ENEMY_HIT_IFRAMES);
+    const hit = hitSquash(HIT_SQUASH_TIME);
+    expect(hit.sx).toBeGreaterThan(1.25);
+    expect(hit.sy).toBeLessThan(0.75);
+    const late = hitSquash(HIT_SQUASH_TIME * 0.15);
+    expect(late.sy).toBeGreaterThan(1); // the spring-back stretch
+    expect(late.sy - 1).toBeLessThan(1 - hit.sy);
+    expect(hitSquash(0)).toEqual({ sx: 1, sy: 1 });
+    expect(hitSquash(-1)).toEqual({ sx: 1, sy: 1 });
+  });
+});

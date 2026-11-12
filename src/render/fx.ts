@@ -1,4 +1,5 @@
 /** Cosmetic effects only. Nothing here may affect game state, so the simulation stays deterministic and testable. */
+import { ENEMY_HIT_IFRAMES } from '../sim/enemies';
 
 export interface Particle {
   x: number;
@@ -52,6 +53,21 @@ export const STEP_EVERY = 0.28;
 export function squashScale(left: number, power: number): { sx: number; sy: number } {
   if (left <= 0 || power <= 0) return { sx: 1, sy: 1 };
   const k = Math.min(1, left / SQUASH_TIME) ** 2 * Math.min(1, power) * 0.22;
+  return { sx: 1 + k, sy: 1 - k };
+}
+
+/** Enemy hit i-frames (game.ts sets 0.15 s on every hit); the squash eases over this window. */
+export const HIT_SQUASH_TIME = ENEMY_HIT_IFRAMES;
+
+/**
+ * Hit squash for an enemy sprite (Dead Cells style): on the hit frame it is squashed flat and
+ * wide, then it springs back tall for a beat and settles to (1, 1). `left` is the i-frame time left.
+ */
+export function hitSquash(left: number): { sx: number; sy: number } {
+  if (left <= 0) return { sx: 1, sy: 1 };
+  const p = 1 - Math.min(1, left / HIT_SQUASH_TIME); // 0 at the hit, 1 when settled
+  // Damped spring: -cos gives squash first, then a smaller stretch.
+  const k = Math.cos(p * Math.PI * 1.5) * (1 - p) * 0.3;
   return { sx: 1 + k, sy: 1 - k };
 }
 

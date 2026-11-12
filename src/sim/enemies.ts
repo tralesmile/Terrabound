@@ -63,6 +63,9 @@ export interface Enemy {
   chew?: number;
 }
 
+/** Invulnerability after an enemy is hit (also the length of the hit flash and squash). */
+export const ENEMY_HIT_IFRAMES = 0.15;
+
 const EPS = 1e-9;
 const G = 42;
 

@@ -199,6 +199,23 @@ try {
   const hurt = await page.evaluate(() => window.__terrabound.game.enemies.every((e) => e.hp < 24));
   check('blade swing damages an enemy', hurt);
   await page.screenshot({ path: path.join(out, '05-blade.png') });
+  // Hit squash: freeze the sim on the hit frame (long hit-stop) and check the crawler draws squashed flat.
+  const squash = await page.evaluate(async () => {
+    const t = window.__terrabound;
+    const g = t.game;
+    g.enemies = [{ id: 9, kind: 'crawler', x: g.body.x + 2, y: g.body.y - 0.01, vx: 0, vy: 0, hp: 24, dir: -1, iframes: 0, age: 0, phase: 0 }];
+    g.damageEnemy(g.enemies[0], 1, 1);
+    g.hitStop = 5;
+    await new Promise((r) => setTimeout(r, 120));
+    return { left: g.enemies[0]?.iframes ?? 0 };
+  });
+  await page.screenshot({ path: path.join(out, '05b-hit-squash.png') });
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.hitStop = 0;
+    g.enemies = [];
+  });
+  check('a hit squashes the enemy sprite on the hit frame', squash.left > 0.1, JSON.stringify(squash));
   await page.keyboard.press('KeyQ');
   check('Q cycles to the pistol', (await page.evaluate(() => window.__terrabound.game.tool)) === 'pistol');
   await page.evaluate(() => {

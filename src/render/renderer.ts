@@ -9,7 +9,7 @@ import { ENEMIES } from '../sim/enemies';
 import { hash2 } from '../sim/rng';
 import { T } from '../sim/tiles';
 import { BODY_H } from '../sim/physics';
-import { magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx } from './fx';
+import { HIT_SQUASH_TIME, hitSquash, magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx } from './fx';
 import type { PlayerGear } from './sprites';
 import { ICON, drawIcon } from './icons';
 import { GEAR, type RangedKind } from '../sim/gear';
@@ -265,7 +265,15 @@ export class Renderer {
         ctx.arc(ex, ey - h / 2, Math.max(w, h) * 0.9, 0, Math.PI * 2);
         ctx.fill();
       }
-      drawEnemySprite(ctx, e.kind, ex, ey, scale * ENEMY_SCALE, e.dir, time, e.iframes > 0, !!e.raid);
+      const sq = hitSquash(e.iframes);
+      if (sq.sx !== 1) {
+        // Squash and stretch about the feet so every hit lands with weight.
+        ctx.save();
+        ctx.translate(ex, ey);
+        ctx.scale(sq.sx, sq.sy);
+        drawEnemySprite(ctx, e.kind, 0, 0, scale * ENEMY_SCALE, e.dir, time, e.iframes > HIT_SQUASH_TIME * 0.4, !!e.raid);
+        ctx.restore();
+      } else drawEnemySprite(ctx, e.kind, ex, ey, scale * ENEMY_SCALE, e.dir, time, false, !!e.raid);
       if (e.raid) {
         const cy = ey - h - 7 * scale + Math.round(Math.sin(time * 6 + e.id) * scale);
         ctx.fillStyle = (e.chew ?? 0) > 0 && Math.floor(time * 8) % 2 ? '#ffcf4a' : '#ff4a3a';
