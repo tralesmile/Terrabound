@@ -1066,7 +1066,7 @@ try {
     const w = g.world;
     const px = w.padX;
     const py = w.padY;
-    const T = { AIR: 0, METAL: 2, TORCH: 7, DOOR: 11, TABLE: 46, LAMP: 47, SCREEN: 48, POT_PLANT: 49, BANNER: 50, BED: 51 };
+    const T = { AIR: 0, METAL: 2, TORCH: 7, DOOR: 11, TABLE: 46, LAMP: 47, SCREEN: 48, POT_PLANT: 49, BANNER: 50, BED: 51, BED_FOOT: 52, TABLE_END: 53, CHAIR: 54 };
     g.enemies = g.enemies.filter((e) => !e.raid);
     g.raid = null;
     for (let y = py - 5; y <= py - 1; y++) {
@@ -1078,8 +1078,12 @@ try {
       w.set(x, y, T.AIR);
       w.setWall(x, y, 3);
     }
+    // Two-tile bed and table (wide.ts) with a chair pulled up to the table.
     w.set(px - 3, py - 1, T.BED);
-    w.set(px + 2, py - 1, T.TABLE);
+    w.set(px - 2, py - 1, T.BED_FOOT);
+    w.set(px + 1, py - 1, T.TABLE);
+    w.set(px + 2, py - 1, T.TABLE_END);
+    w.set(px, py - 1, T.CHAIR);
     w.set(px + 3, py - 1, T.POT_PLANT);
     w.set(px - 2, py - 4, T.LAMP);
     w.set(px + 2, py - 4, T.LAMP);
@@ -1137,7 +1141,7 @@ try {
     const w = g.world;
     const px = w.padX;
     const py = w.padY;
-    const T = { AIR: 0, METAL: 2, TABLE: 46, LAMP: 47, BED: 51 };
+    const T = { AIR: 0, METAL: 2, TABLE: 46, LAMP: 47, BED: 51, BED_FOOT: 52, TABLE_END: 53 };
     for (let y = py - 10; y <= py - 6; y++) {
       w.set(px - 4, y, T.METAL);
       w.set(px + 4, y, T.METAL);
@@ -1148,7 +1152,9 @@ try {
       w.setWall(x, y, 3);
     }
     w.set(px - 3, py - 6, T.BED);
-    w.set(px + 3, py - 6, T.TABLE);
+    w.set(px - 2, py - 6, T.BED_FOOT);
+    w.set(px + 2, py - 6, T.TABLE);
+    w.set(px + 3, py - 6, T.TABLE_END);
     w.set(px, py - 9, T.LAMP);
     g.body.x = px + 0.5;
     g.body.y = py - 5;
@@ -1192,6 +1198,35 @@ try {
   check('talking to the Medic opens TRADE at its rows; buying a medkit puts it in the pack', medShop.open && medShop.tab === 'trade' && medShop.scroll > 0 && !!medBtn && kits1 === kits0 + 1, JSON.stringify({ medShop, medBtn: !!medBtn, kits0, kits1 }));
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
+  // Quick heal: low HP shows a pulsing heal button by the bars; H eats a medkit, so does clicking the button.
+  // (Medkits are kit items: a hauler drone from an earlier check would bank loose fish.)
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.carried.medkit = 2;
+    g.hp = 20;
+  });
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: path.join(out, '37-quick-heal.png') });
+  const healBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'heal'));
+  await page.keyboard.down('KeyH');
+  await page.waitForTimeout(80);
+  await page.keyboard.up('KeyH');
+  await page.waitForTimeout(150);
+  const heal1 = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const r = { hp: Math.round(g.hp), kits: g.carried.medkit ?? 0 };
+    g.hp = 20;
+    return r;
+  });
+  await page.waitForTimeout(100);
+  const healBtn2 = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'heal'));
+  if (healBtn2) await page.mouse.click(healBtn2.x + healBtn2.w / 2, healBtn2.y + healBtn2.h / 2);
+  await page.waitForTimeout(150);
+  const heal2 = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    return { hp: Math.round(g.hp), kits: g.carried.medkit ?? 0 };
+  });
+  check('quick heal: H eats a medkit at low HP, and so does the HUD button', !!healBtn && heal1.kits === 1 && heal1.hp >= 75 && heal2.kits === 0 && heal2.hp >= 75, JSON.stringify({ healBtn: !!healBtn, heal1, heal2 }));
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     const w = g.world;

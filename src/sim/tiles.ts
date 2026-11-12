@@ -41,7 +41,8 @@ export type ItemId =
   | 'screen'
   | 'potplant'
   | 'banner'
-  | 'bed';
+  | 'bed'
+  | 'chair';
 export const ITEM_IDS: ItemId[] = [
   'rust',
   'metal',
@@ -84,6 +85,7 @@ export const ITEM_IDS: ItemId[] = [
   'potplant',
   'banner',
   'bed',
+  'chair',
 ];
 
 export const T = {
@@ -144,6 +146,10 @@ export const T = {
   POT_PLANT: 49,
   BANNER: 50,
   BED: 51,
+  /** Right halves of the 2-tile bed and table (wide.ts); placed and removed with their left half. */
+  BED_FOOT: 52,
+  TABLE_END: 53,
+  CHAIR: 54,
 } as const;
 
 export interface TileDef {
@@ -223,6 +229,9 @@ export const TILES: TileDef[] = [
   { name: 'Potted plant', hardness: 0.1, solid: false, drop: 'potplant', minable: true },
   { name: 'Banner', hardness: 0.1, solid: false, drop: 'banner', minable: true },
   { name: 'Bunk bed', hardness: 0.2, solid: false, drop: 'bed', minable: true },
+  { name: 'Bunk bed', hardness: 0.2, solid: false, drop: 'bed', minable: true },
+  { name: 'Table', hardness: 0.2, solid: false, drop: 'table', minable: true },
+  { name: 'Chair', hardness: 0.1, solid: false, drop: 'chair', minable: true },
 ];
 
 export interface ItemDef {
@@ -279,9 +288,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   potplant: { name: 'Potted plant', color: '#5ac85a', places: T.POT_PLANT, kit: true },
   banner: { name: 'Banner', color: '#e04a5a', places: T.BANNER, kit: true },
   bed: { name: 'Bunk bed', color: '#6a8ad8', places: T.BED, kit: true },
+  chair: { name: 'Chair', color: '#c9a35a', places: T.CHAIR, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair'];
 
 /** Placeables worth showing in the hotbar: owned ones plus the selected one, in PLACEABLE order. */
 export function visiblePlaceables(inv: Inventory, selected: ItemId): ItemId[] {

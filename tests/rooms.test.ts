@@ -48,7 +48,7 @@ describe('furniture', () => {
         for (const ch of r) if (ch !== ' ') expect(art.pal[ch], `${d.name} '${ch}'`).toBeDefined();
       }
     }
-    expect(FURNITURE.size).toBe(6);
+    expect(FURNITURE.size).toBe(7); // + chair (run 21)
   });
   it('a lamp lights like a torch, and stops when removed', () => {
     const w = flat();

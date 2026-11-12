@@ -3,7 +3,7 @@ import { MAP_ZOOMS, MapView } from './map';
 import { ICON, drawIcon } from '../render/icons';
 import { drawPlayer } from '../render/sprites';
 import { playerGear } from '../render/renderer';
-import { FOOD } from '../sim/fishing';
+import { FOOD, bestHeal, healCount } from '../sim/fishing';
 import { GEAR, GEAR_IDS, GEAR_SLOTS, type GearId } from '../sim/gear';
 import { BOSSES, bossForBeacon } from '../sim/bosses';
 import { BIOMES, type BiomeId } from '../sim/biomes';
@@ -45,6 +45,7 @@ export type UiAction =
   | { k: 'put'; id: ItemId }
   | { k: 'breakchest' }
   | { k: 'ride' }
+  | { k: 'heal' }
   | { k: 'dash' }
   | { k: 'craftgear'; id: GearId }
   | { k: 'equip'; id: GearId }
@@ -602,7 +603,7 @@ export class UI {
     this.button(ctx, w / 2 - bw / 2, h * 0.55, bw, bh, this.touch ? 'TAP TO START' : 'CLICK OR PRESS ANY KEY', { k: 'start' }, u, { pulse: Math.floor(time * 2) % 2 === 0 });
     const best = game.stats.deepest;
     if (best > 0) this.text(ctx, `Best depth ${best}m   Deaths ${game.stats.deaths}`, w / 2, h * 0.55 + bh + u * 1.6, Math.round(u * 0.9), '#c9d0e4', 'center');
-    if (!this.touch) this.text(ctx, 'A/D move  W/Space jump  Hold click: dig  Right click: build  B: workshop  M: map  R: beam home', w / 2, h - u * 1.6, Math.round(u * 0.7), '#8a90a2', 'center', w - u * 2);
+    if (!this.touch) this.text(ctx, 'A/D move  W/Space jump  Hold click: dig  Right click: build  B: workshop  M: map  R: beam home  H: heal', w / 2, h - u * 1.6, Math.round(u * 0.7), '#8a90a2', 'center', w - u * 2);
   }
 
   private drawHud(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, time: number): void {
@@ -616,6 +617,20 @@ export class UI {
     const low = game.battery / d.maxBattery < 0.2;
     this.bar(ctx, x, y, bw, bh, game.battery / d.maxBattery, low ? '#ff9a3c' : '#36e0e8', `BAT ${Math.ceil(game.battery)}`, u);
     y += bh + u * 0.9;
+    // Quick-heal button beside the bars (H): best healing item in the pack, pulses red when HP is low.
+    const heals = healCount(game.carried);
+    if (heals > 0) {
+      const hs = bh * 2 + u * 0.4;
+      const hx = x + bw + u * 0.5;
+      const pick = bestHeal(game.carried, d.maxHp - game.hp) ?? bestHeal(game.carried, d.maxHp) ?? 'medkit';
+      const lowHp = game.hp / d.maxHp < 0.35;
+      if (lowHp && Math.floor(time * 3) % 2 === 0) {
+        ctx.fillStyle = 'rgba(255,60,60,0.45)';
+        ctx.fillRect(hx - 3, u - 3, hs + 6, hs + 6);
+      }
+      this.cell(ctx, hx, u, hs, pick, heals, false, { k: 'heal' });
+      this.text(ctx, this.touch ? 'HEAL' : 'H', hx + 4, u + hs * 0.3, Math.round(hs * 0.24), lowHp ? '#ff8a8a' : '#9ff6a0');
+    }
     const carried = invTotal(game.carried);
     this.text(ctx, `Depth ${Math.floor(game.depth)}m ${game.depth > 2 ? `(${LAYERS[game.layer].name})` : ''}  Pack ${carried}/${d.packCap}`, x, y, Math.round(u * 0.95), carried >= d.packCap ? '#ff9a3c' : '#ffffff');
 

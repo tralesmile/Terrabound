@@ -29,6 +29,27 @@ export const FOOD: Partial<Record<ItemId, { hp: number; battery: number }>> = {
   medkit: { hp: 60, battery: 0 },
 };
 
+/**
+ * Quick-heal pick (H / HUD button): among healing food in the pack, the smallest heal that covers
+ * the missing HP (so a medkit is not spent on a scratch), else the biggest heal. Null when nothing
+ * heals or HP is full. Pure.
+ */
+export function bestHeal(carried: Partial<Record<ItemId, number>>, missing: number): ItemId | null {
+  if (missing <= 0) return null;
+  const have = (Object.keys(FOOD) as ItemId[]).filter((id) => (FOOD[id]?.hp ?? 0) > 0 && (carried[id] ?? 0) > 0);
+  if (!have.length) return null;
+  const hp = (id: ItemId): number => FOOD[id]?.hp ?? 0;
+  have.sort((a, b) => hp(a) - hp(b));
+  return have.find((id) => hp(id) >= missing) ?? have[have.length - 1];
+}
+
+/** Total healing food in the pack (for the HUD heal button count). Pure. */
+export function healCount(carried: Partial<Record<ItemId, number>>): number {
+  let n = 0;
+  for (const id of Object.keys(FOOD) as ItemId[]) if ((FOOD[id]?.hp ?? 0) > 0) n += carried[id] ?? 0;
+  return n;
+}
+
 /** The water surface cell to cast at: the aimed cell if it is water, else the first water below it (6 rows). */
 export function castTarget(world: World, px: number, py: number, tx: number, ty: number): { x: number; y: number } | null {
   if (Math.hypot(tx + 0.5 - px, ty + 0.5 - (py - 0.9)) > CAST_RANGE) return null;

@@ -41,6 +41,7 @@ export const RECIPES: Recipe[] = [
   { id: 'lamp', name: 'Lamp x2', out: 'lamp', qty: 2, cost: { iron_scrap: 1, crystal: 1 } },
   { id: 'screen', name: 'Wall screen x1', out: 'screen', qty: 1, cost: { metal: 1, copper_wire: 1 }, fab: 1 },
   { id: 'potplant', name: 'Potted plant x1', out: 'potplant', qty: 1, cost: { rust: 1, biomass: 2 } },
+  { id: 'chair', name: 'Chair x2', out: 'chair', qty: 2, cost: { rust: 3 } },
   { id: 'banner', name: 'Banner x1', out: 'banner', qty: 1, cost: { biomass: 2, rust: 1 } },
   { id: 'smelter', name: 'Smelter x1', out: 'smelter', qty: 1, cost: { metal: 4, copper_wire: 2 }, fab: 2 },
 ];

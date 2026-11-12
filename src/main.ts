@@ -230,6 +230,12 @@ function boot(): void {
       case 'mapcenter':
         ui.mapView.center();
         break;
+      case 'heal': {
+        const r = game.quickHeal();
+        if (r === 'full') ui.toast('Already at full health', '#c9d0e4', 1.5, 'heal');
+        else if (r === 'none') ui.toast('Nothing to heal with: fish, glowfish or medkits', '#ff9a3c', 2, 'heal');
+        break;
+      }
       case 'ride':
         if (!game.toggleRide()) ui.toast('Craft a vehicle in the workshop GEAR tab first', '#ff9a3c');
         break;

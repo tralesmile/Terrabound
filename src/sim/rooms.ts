@@ -12,12 +12,14 @@ import type { World } from './world';
 export const ROOM_MIN = 12;
 export const ROOM_MAX = 80;
 
-/** Furniture tiles (all 1 tile, non-solid, minable). */
-export const FURNITURE: ReadonlySet<number> = new Set<number>([T.TABLE, T.LAMP, T.SCREEN, T.POT_PLANT, T.BANNER, T.BED]);
+/** Placeable furniture tiles (non-solid, minable). The bed and table go down 2 tiles wide (wide.ts). */
+export const FURNITURE: ReadonlySet<number> = new Set<number>([T.TABLE, T.LAMP, T.SCREEN, T.POT_PLANT, T.BANNER, T.BED, T.CHAIR]);
 /** Tiles that light a room. */
 export const ROOM_LIGHTS: ReadonlySet<number> = new Set<number>([T.TORCH, T.LAMP]);
 /** Decorations that add comfort (one point per kind). */
-export const DECOR: readonly number[] = [T.SCREEN, T.POT_PLANT, T.BANNER];
+export const DECOR: readonly number[] = [T.SCREEN, T.POT_PLANT, T.BANNER, T.CHAIR];
+/** Highest comfort score. */
+export const COMFORT_MAX = 4;
 
 export interface Room {
   /** Cell indices (y * w + x), in fill order. */
@@ -84,12 +86,12 @@ export function roomAt(world: World, x: number, y: number): Room | null {
     y1 = Math.max(y1, cy);
     const t = world.tiles[i];
     if (ROOM_LIGHTS.has(t)) light = true;
-    if (t === T.TABLE) table = true;
-    if (t === T.BED) bed = true;
+    if (t === T.TABLE || t === T.TABLE_END) table = true;
+    if (t === T.BED || t === T.BED_FOOT) bed = true;
     if (DECOR.includes(t)) decor.add(t);
     if (world.wall(cx, cy) !== 0) walls++;
   }
-  const comfort = decor.size + (walls * 2 >= cells.length ? 1 : 0);
+  const comfort = Math.min(COMFORT_MAX, decor.size + (walls * 2 >= cells.length ? 1 : 0));
   const missing: string[] = [];
   if (cells.length < ROOM_MIN) missing.push('more space');
   if (!light) missing.push('a light');
@@ -120,7 +122,7 @@ export function findRooms(world: World): Room[] {
 /** One-line hint for the player standing in a room (null outside rooms). Pure. */
 export function roomHint(r: Room | null): string | null {
   if (!r) return null;
-  if (r.valid) return `Room ready: a robot can move in here (comfort ${r.comfort}/4)`;
+  if (r.valid) return `Room ready: a robot can move in here (comfort ${r.comfort}/${COMFORT_MAX})`;
   return `Room: needs ${r.missing.join(', ')} (Fabricator)`;
 }
 

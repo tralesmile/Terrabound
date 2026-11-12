@@ -549,6 +549,23 @@ export const ICONS: Record<string, IconDef> = {
       'ooo      ooo',
     ],
   },
+  chair: {
+    pal: { a: '#8a6a36', b: '#c9a35a', c: '#6b5028' },
+    rows: [
+      '            ',
+      '  oooo      ',
+      '  obbo      ',
+      '  obao      ',
+      '  obao      ',
+      '  obaooooo  ',
+      '  obbbbbbbo ',
+      '  oaaaaaaao ',
+      '  ooooooooo ',
+      '  oco   oco ',
+      '  oco   oco ',
+      '  ooo   ooo ',
+    ],
+  },
   chest: {
     pal: { a: '#6b5028', b: '#8a6a36', c: '#c9a35a', k: '#36e0e8' },
     rows: [

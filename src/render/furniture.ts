@@ -138,7 +138,90 @@ export const FURNITURE_ART: Record<number, FurnitureArt> = {
       'ooo          ooo',
     ],
   },
+  [T.CHAIR]: {
+    pal: { o: O, a: '#8a6a36', b: '#c9a35a', c: '#6b5028' },
+    rows: [
+      '                ',
+      '                ',
+      '                ',
+      '   oooo         ',
+      '   obbo         ',
+      '   obao         ',
+      '   obao         ',
+      '   obao         ',
+      '   obaoooooooo  ',
+      '   obbbbbbbbbbo ',
+      '   oaaaaaaaaaao ',
+      '   oooooooooooo ',
+      '   oco      oco ',
+      '   oco      oco ',
+      '   oco      oco ',
+      '   ooo      ooo ',
+    ],
+  },
 };
+
+/** 32x16 art for the two-tile bed and table (wide.ts): the left half draws columns 0-15, the right 16-31. */
+export const WIDE_ART: Record<number, FurnitureArt> = {
+  [T.BED]: {
+    pal: { o: O, f: '#7d8aa6', d: '#566078', c: '#e6eeff', b: '#a8c0ff', a: '#4a6ab8', e: '#34508f' },
+    rows: [
+      '                                ',
+      '                                ',
+      'oooo                            ',
+      'offo                            ',
+      'ofdo                            ',
+      'ofdo                        oooo',
+      'ofdo                        offo',
+      'ofdoooooooooooooooooooooooooofdo',
+      'ofdoocccccccobbbbbbbbbbbbbbbofdo',
+      'ofdooccccccccoaabaaaaaaaaaaaofdo',
+      'ofdooooooooooooaaaaaaaaaeaaaofdo',
+      'ofdoeeeeeeeeeeeeeeeeeeeeeeeeofdo',
+      'ofddddddddddddddddddddddddddddfo',
+      'oooooooooooooooooooooooooooooooo',
+      'odo                          odo',
+      'ooo                          ooo',
+    ],
+  },
+  [T.TABLE]: {
+    pal: { o: O, a: '#a07a4a', b: '#d0a870', c: '#6b5028', m: '#36e0e8', w: '#e6eeff', g: '#5ac85a', y: '#ffcf4a' },
+    rows: [
+      '                                ',
+      '                                ',
+      '                                ',
+      '                                ',
+      '     oo               ooooo     ',
+      '    omwo             oyyyyyo    ',
+      '    oomo   oo        oyyyyyo    ',
+      '           oggo      ooooooo    ',
+      'oooooooooooooooooooooooooooooooo',
+      'obbbbbbbbbbbbbbbbbbbbbbbbbbbbbbo',
+      'oaaaaaaaaaaaaaaaaaaaaaaaaaaaaaao',
+      'occcccccccccccccccccccccccccccco',
+      'oooccooooooooooooooooooooooccooo',
+      '  occo                    occo  ',
+      '  occo                    occo  ',
+      '  oooo                    oooo  ',
+    ],
+  },
+};
+
+const HEADS: Record<number, number> = { [T.BED_FOOT]: T.BED, [T.TABLE_END]: T.TABLE };
+
+/**
+ * The 16x16 art for a furniture cell: one half of the wide art when the piece is wide (`side`), the
+ * single-tile art otherwise (an orphaned right half draws as its single piece). Null for non-furniture. Pure.
+ */
+export function furnitureArt(t: number, side: 'left' | 'right' | null): FurnitureArt | null {
+  const head = HEADS[t] ?? t;
+  const wide = WIDE_ART[head];
+  if (wide && side) {
+    const from = side === 'left' ? 0 : 16;
+    return { pal: wide.pal, rows: wide.rows.map((r) => r.slice(from, from + 16)) };
+  }
+  return FURNITURE_ART[head] ?? null;
+}
 
 /** Lengths (in art pixels, 1..9) of the wall screen's three readout lines at a time; scrolls every 0.4 s. Pure. */
 export function screenLines(time: number, salt: number): number[] {

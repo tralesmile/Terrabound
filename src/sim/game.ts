@@ -27,7 +27,7 @@ import { BIOMES, type BiomeId } from './biomes';
 import { LAYERS, layerAt, openGates } from './layers';
 import { METEOR_RATE, weatherAt, weatherEnemy, type WeatherKind } from './weather';
 import { GEAR, gearStats, sanitizeGear, type GearId, type GearSlot, type GearStats } from './gear';
-import { FOOD, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE } from './fishing';
+import { FOOD, bestHeal, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE } from './fishing';
 import { daylight } from './daynight';
 import { awaySeconds, simulateOffline, OFFLINE_MIN, type OfflineResult } from './offline';
 import { automationHint, stepGrid, newPower, scanMachines, stepSmelting, stepMining, stepDrones, SMELT_RUST, type PowerState } from './power';
@@ -37,6 +37,7 @@ import { isNight, DAY_LENGTH } from './daynight';
 import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
 import { findRooms, roomHint, type Room } from './rooms';
 import { NPC_INFO, deathKeep, doTrade, npcLine, roomFloor, stepNpc, syncNpcs, tradeById, type Npc, type NpcKind } from './npcs';
+import { placement, removeTile } from './wide';
 import { blueprintDrop, RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
 import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
@@ -1103,7 +1104,7 @@ export class Game {
           }
           if (this.mining.progress >= 1) {
             if (onWall) this.world.setWall(tx, ty, W.NONE);
-            else this.world.set(tx, ty, 0);
+            else removeTile(this.world, tx, ty); // also clears the other half of a 2-tile bed/table
             this.emit({ t: 'break', x: tx, y: ty, tile: onWall ? T.WALL : tile });
             if (def.drop) {
               invAdd(this.carried, def.drop, 1);
@@ -1136,7 +1137,8 @@ export class Game {
           this.placeCd = 0.5;
         } else {
           const homeBefore = this.validRooms();
-          this.world.set(tx, ty, item.places);
+          // Beds and tables take the free cell beside the aimed one too (wide.ts).
+          for (const c of placement(this.world, tx, ty, item.places, (x, y) => !this.overlapsPlayer(x, y))) this.world.set(c.x, c.y, c.tile);
           if (this.validRooms() > homeBefore) this.emit({ t: 'roomready', x: tx, y: ty });
           const i = ty * this.world.w + tx;
           if (item.places === T.SAPLING) this.world.saplings.set(i, growTime(this.world, i));
@@ -1573,8 +1575,7 @@ export class Game {
       const tile = w.get(c.x, c.y);
       if (e.chew >= chewTime(tile)) {
         e.chew = 0;
-        const item = TILES[tile].drop;
-        w.set(c.x, c.y, T.AIR);
+        const item = removeTile(w, c.x, c.y).drop;
         if (item) addDrop(this.drops, makeDrop(item, 1, c.x + 0.5, c.y + 0.5, 0, -4));
         this.emit({ t: 'raidchew', x: c.x, y: c.y, tile });
       }
@@ -1900,6 +1901,15 @@ export class Game {
     this.battery = Math.min(this.derived.maxBattery, this.battery + food.battery);
     this.emit({ t: 'eat', item: id });
     return true;
+  }
+
+  /** Quick heal (H / HUD button): eats the best healing item for the HP missing. 'full', 'none' or the item eaten. */
+  quickHeal(): ItemId | 'full' | 'none' {
+    const missing = this.derived.maxHp - this.hp;
+    if (missing <= 0.5) return 'full';
+    const id = bestHeal(this.carried, missing);
+    if (!id || !this.useItem(id)) return 'none';
+    return id;
   }
 
   /** Throw a stack from the pack in front of the player (it cannot be picked up for a moment). */

@@ -1,7 +1,8 @@
 import type { Game } from '../sim/game';
 import { NPC_INFO } from '../sim/npcs';
 import { roomEdges } from '../sim/rooms';
-import { FURNITURE_ART, screenLines } from './furniture';
+import { furnitureArt, screenLines } from './furniture';
+import { wideSide } from '../sim/wide';
 import { REACH } from '../sim/game';
 import { onLadder } from '../sim/physics';
 import { ENEMIES } from '../sim/enemies';
@@ -543,7 +544,7 @@ export class Renderer {
       this.drawSpikes(ctx, dx, dy, ts);
       return;
     }
-    const art = FURNITURE_ART[t];
+    const art = furnitureArt(t, wideSide(world, tx, ty));
     if (art) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
       drawRows(ctx, art.rows, dx, dy, ts / 16, false, 16, undefined, art.pal);
