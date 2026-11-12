@@ -304,3 +304,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** near-foliage parallax layer, shaped ore veins, water+magma cooling into rock, then P1.8 "Living base and drones".
 
 **Known issues:** most magma pockets are 1-3 cells (the basin fill only floods floor cells); DAILY still replaces the world without a confirm.
+
+## 2026-11-12 Scheduled run 13
+
+**Done:** baseline green (274 tests). Creative review found the phone toast ("Codex reward ...") drawn over the SHOP button and clipped; toasts now move below the button column on narrow screens (`toastLayout`) and repeated toasts merge. Feel: landing squash about the feet and dust in the ground colour, footstep puffs while running (fx.ts, e2e checks + 02a-landing.png). Backlog: near foliage parallax layer with a ridge band (screenshots 02, 11-jungle reviewed), water cools magma into basalt (T.BASALT 41, steam hiss, e2e 27c-basalt.png), iron seams and copper veins (ore totals within ~2%).
+
+**Numbers:** 295 unit tests, e2e all green, bundle 194 kB (67.4 kB gzip).
+
+**Next:** P1.8 "Living base and drones", then the rest of P1.8; IDEAS: magma surface art, context hints, touch jump button.
+
+**Known issues:** DAILY still replaces the world without a confirm; basalt is quite dark against plasma rock.

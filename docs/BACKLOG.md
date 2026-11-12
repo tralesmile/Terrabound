@@ -45,14 +45,14 @@ Art (do first, biggest visible win):
 - [x] Back-wall layer (save v3; nothing spawns in front of built walls): separate `walls` array in World; caves show darker dug-out walls behind, so underground is never flat black. Player-placed walls move to this layer.
 - [x] Terraria-style tile light map (flood-fill light from sky, torches, lamp, glowing ores) replacing the radial gradient; smooth per-tile interpolation; cached and only recomputed near changes.
 - [x] Day/night cycle (src/sim/daynight.ts): 10-minute day, night sky palette, sun and moon, dimmer sky light, drone wisps hunt the surface at night beyond 30 columns of the pad.
-- [ ] Parallax backgrounds per biome: skyline silhouettes per biome done (towers, giant trees, spires, mountains, ash cones) and sky palette blends between biomes; far haze layer done (2026-11-11 run 12: second parallax layer, towers with setbacks, antennas, broken crowns and window grids); still todo: near foliage layer.
+- [x] Parallax backgrounds per biome: skyline silhouettes per biome (towers, giant trees, spires, mountains, ash cones), sky palette blends, far haze layer (run 12), near foliage layer at parallax 0.8 with a ridge band (run 13, `nearPieces` in decor.ts).
 
 World size and variety:
 - [x] Bigger world: 1400 x 420 tiles (chosen over 1600x600 to keep worldgen ~100 ms and tests fast) (wide surface to explore, deep layers). Chunked render cache (32x32 tile chunks pre-drawn to offscreen canvases, redraw only dirty chunks); keep 60 fps and memory budget; perf test in e2e. Save format unaffected (world regenerates from seed; only diffs near the base persist).
 - [x] Surface biomes left/right of the pad (data table in `src/sim/biomes.ts`): Rust Wastes (start), Overgrown Ruins (alien jungle), Crystal Flats, Ash Dunes, Frozen Spires. Each: tiles, colours, background, ores, enemies, music mood.
 - [x] Trees and plants (canopy, pine, spire, wire, dead shapes; felling yields biomass; bio torch recipe): alien trees of 3-4 shapes per biome (choppable for `biomass`, new item used in recipes), grass, bushes, flowers, mushrooms, vines in caves; decorative but harvestable.
 - [x] Surface structures (ruins, radio towers, crashed ships with chests; see src/sim/structures.ts): ruined buildings, crashed ships, radio towers, abandoned outposts with loot chests (seeded loot tables, no paid randomness). At least 1 structure every ~60 tiles.
-- [ ] Underground cave biomes: glowing mushroom patches, crystal-lined caverns, deep big caverns, flooded tunnels and acid pools, magma pockets in the Plasma/Core layers (2026-11-11 run 12: T.MAGMA, 60 dps, glows) done; still todo: shaped ore veins, water+magma cooling into rock.
+- [x] Underground cave biomes: glowing mushroom patches, crystal-lined caverns, deep big caverns, flooded tunnels and acid pools, magma pockets (run 12), iron seams and copper veins, water cooling magma into basalt T.BASALT (run 13).
 - [x] Underground points of interest: sealed vaults, crystal geodes, data shrines (12 lore logs) and drone wrecks.
 - [x] Biome-specific enemies: vine stalker, shard mite (hops), ember wisp, frost hulk. (Music mood per biome moves to P5 music.)
 - [x] Persistent world until death: edits + explored map in save v5 (src/sim/persist.ts), two-tap NEW WORLD.

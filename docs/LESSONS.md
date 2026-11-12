@@ -53,3 +53,6 @@
 - **`npm run ship` is rejected when a parallel run pushed first.** Fix: `git fetch origin && git rebase origin/main` (dev and main are the same commit after every ship), then ship again.
 - **`npm run check` takes over 2 minutes.** The default Bash timeout (120 s) killed it on run 12. Guard: run the gate and ship with an explicit 600000 ms timeout and log to a file.
 - **New liquids need four touch points:** tile def (with `dps`), renderer liquid branch + light source, sprites TILE_COLORS, map colours. Grep `ACID_POOL` before adding one.
+- **Rotating noise coordinates by a position-dependent angle shreds the pattern.** `x * cos(a(x, y))` changes by ~x * da/dx per tile, so seams turned into speckle. Guard: pick a fixed angle per region (SEAM_DIRS) and test shape (component elongation) rather than eyeballing; dump a region to PNG with PIL to look at worldgen.
+- **E2e that stands the player in a deep layer can lose the world** (heat/magma death regenerates it). Guard: build the fixture right next to the player in the same evaluate, and restore HP first.
+- **Order of liquid passes matters.** Cooling after flow let water slide off magma before reacting; reactions run before flow.
