@@ -39,6 +39,9 @@ describe('toast parts', () => {
     expect(toastKind('Battery low!')).toBe('warn');
     expect(toastKind('Back at the pad')).toBe('home');
     expect(toastKind('Dawn breaks')).toBe('info');
+    // Whole words only: "follows" is not "low", "notice" is not "not".
+    expect(toastKind('Drone bay: Guard - follows you and shoots enemies')).toBe('info');
+    expect(toastKind('Pack full! Return to the pad')).toBe('warn');
   });
 });
 

@@ -13,12 +13,12 @@ export interface ToastParts {
 }
 
 const KIND_RULES: { kind: ToastKind; re: RegExp }[] = [
-  { kind: 'record', re: /personal best|record|defeated|trophy/i },
-  { kind: 'danger', re: /^raid!|approaches|signal lost|raiders|knocked/i },
+  { kind: 'record', re: /personal best|\brecord\b|defeated|trophy/i },
+  { kind: 'danger', re: /^raid!|approaches|signal lost|\braiders?\b|knocked/i },
   { kind: 'discover', re: /^discovered|moved in|landed|room complete|gate has opened|blueprint/i },
-  { kind: 'reward', re: /reward|banked|caught|built|cracked|harvest|\+|repelled|grew|fitted|installed|took/i },
-  { kind: 'warn', re: /low|full|cannot|not |no |first|needs|cancel|return to|nothing|lost|retreat|withdrew|moved out/i },
-  { kind: 'home', re: /pad|home|beam/i },
+  { kind: 'reward', re: /reward|\bbanked\b|\bcaught\b|\bbuilt\b|cracked|harvest|\+|repelled|\bgrew\b|fitted|installed|\btook\b/i },
+  { kind: 'warn', re: /\b(low|full|cannot|not|no|first|needs?|cancelled|return to|nothing|lost|retreat|withdrew|moved out)\b/i },
+  { kind: 'home', re: /\bpad\b|\bhome\b|\bbeam/i },
 ];
 
 /** Heads shorter than this become a label; longer prefixes stay part of the sentence. */

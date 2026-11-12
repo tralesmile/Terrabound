@@ -2233,6 +2233,14 @@ try {
     await page.evaluate(() => window.__terrabound.act({ k: 'pref', key: 'stickSide', d: 1 }));
     await page.waitForTimeout(100);
     await page.screenshot({ path: path.join(out, '06b-mobile-lefty.png') });
+    const mir = await page.evaluate(() => {
+      const t = window.__terrabound;
+      const c = document.getElementById('game');
+      const btns = t.ui.rects.filter((r) => ['mute', 'map', 'recall', 'shop', 'mode', 'settings'].includes(r.a.k));
+      const right = Math.max(...btns.map((r) => r.x + r.w));
+      return { mirrored: t.ui.hudMirrored, n: btns.length, right, zone: c.width * (1 - 0.33) };
+    });
+    check('left-handed touch mirrors the HUD: buttons clear of the right-hand stick zone', mir.mirrored && mir.n >= 4 && mir.right < mir.zone, JSON.stringify(mir));
     const hint = await page.evaluate(() => window.__terrabound.game.stats.playTime);
     await page.evaluate(() => window.__terrabound.act({ k: 'pref', key: 'stickSide', d: -1 }));
     check('touch move stick follows the stick-side setting', res.leftDefault && !res.rightDefault && !res.leftLefty && res.rightLefty, JSON.stringify({ ...res, hint }));

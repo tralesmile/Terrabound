@@ -24,6 +24,7 @@ import { MERCHANT_STOCK } from '../sim/merchant';
 import { MODS, MOD_IDS, type ModId } from '../sim/mods';
 import { RESEARCH, RESEARCH_IDS, type ResearchId } from '../sim/research';
 import type { Trade } from '../sim/npcs';
+import { hudAnchors } from './hudlayout';
 import { toastColumn, toastParts, toastSlide, wrapText, type ToastKind } from './toastfx';
 
 /** Base UI unit in canvas px for a screen size, times the settings-screen UI scale. */
@@ -171,6 +172,8 @@ export class UI {
   settingsPage: 'main' | 'keys' = 'main';
   /** CONTROLS: the action waiting for its new key, if any. */
   rebinding: BindId | null = null;
+  /** True when the play HUD was last drawn mirrored (left-handed touch). */
+  hudMirrored = false;
   /** UI size multiplier from the settings screen (uiScale in sim/settings.ts). */
   uiScale = 1;
   /** Workshop tab: upgrades or Fabricator recipes (keeps the panel on screen however many rows exist). */
@@ -782,9 +785,16 @@ export class UI {
 
   private drawHud(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, time: number): void {
     const d = game.derived;
-    const bw = Math.min(w * 0.45, u * 14);
+    const bw0 = Math.min(w * 0.45, u * 14);
     const bh = u * 1.25;
-    const x = u;
+    // Left-handed touch (move stick on the right) mirrors the status block and the button column.
+    const bwid = u * 5.2;
+    const bhgt = u * 2.4;
+    const hs = bh * 2 + u * 0.4;
+    const anc = hudAnchors(w, u, bw0, hs, bwid, bhgt, this.touch && this.stickSide === 1);
+    const bw = anc.barW;
+    this.hudMirrored = this.touch && this.stickSide === 1;
+    const x = anc.x;
     let y = u;
     this.bar(ctx, x, y, bw, bh, game.hp / d.maxHp, '#ff5a5a', `HP ${Math.ceil(game.hp)}`, u);
     y += bh + u * 0.4;
@@ -794,7 +804,6 @@ export class UI {
     // Quick-heal button beside the bars (H): best healing item in the pack, pulses red when HP is low.
     const heals = healCount(game.carried);
     if (heals > 0) {
-      const hs = bh * 2 + u * 0.4;
       const hx = x + bw + u * 0.5;
       const pick = bestHeal(game.carried, d.maxHp - game.hp) ?? bestHeal(game.carried, d.maxHp) ?? 'medkit';
       const lowHp = game.hp / d.maxHp < 0.35;
@@ -806,7 +815,7 @@ export class UI {
       this.text(ctx, this.touch ? 'HEAL' : 'H', hx + 4, u + hs * 0.3, Math.round(hs * 0.24), lowHp ? '#ff8a8a' : '#9ff6a0');
     }
     const carried = invTotal(game.carried);
-    this.text(ctx, `Depth ${Math.floor(game.depth)}m ${game.depth > 2 ? `(${LAYERS[game.layer].name})` : ''}  Pack ${carried}/${d.packCap}`, x, y, Math.round(u * 0.95), carried >= d.packCap ? '#ff9a3c' : '#ffffff');
+    this.text(ctx, `Depth ${Math.floor(game.depth)}m ${game.depth > 2 ? `(${LAYERS[game.layer].name})` : ''}  Pack ${carried}/${d.packCap}`, x, y, Math.round(u * 0.95), carried >= d.packCap ? '#ff9a3c' : '#ffffff', 'left', anc.rightLimit - x - u * 0.5);
 
     // The toast column starts below whatever HUD text is showing.
     let hudLow = y + u * 0.9;
@@ -837,13 +846,11 @@ export class UI {
     }
 
     // Right-side buttons.
-    const bwid = u * 5.2;
-    const bhgt = u * 2.4;
     let by = u;
-    const bx = w - bwid - u;
+    const bx = anc.bx;
     const gw = bhgt;
     this.button(ctx, bx, by, bwid, bhgt, game.muted ? 'SOUND OFF' : game.musicOn ? 'SOUND ON' : 'MUSIC OFF', { k: 'mute' }, u * 0.8);
-    this.gearButton(ctx, bx - gw - u * 0.5, by, gw, bhgt);
+    this.gearButton(ctx, anc.gearX, by, gw, bhgt);
     by += bhgt + u * 0.5;
     this.button(ctx, bx, by, bwid, bhgt, 'MAP', { k: 'map' }, u * 0.9);
     by += bhgt + u * 0.5;
@@ -924,7 +931,7 @@ export class UI {
     this.text(ctx, game.tool === 'rod' && game.fishing ? (game.fishing.bite > 0 ? 'BITE! Click now!' : 'Waiting for a bite...') : heldName, w / 2, sy - u * 0.5, Math.round(u * 0.85), game.fishing && game.fishing.bite > 0 ? '#ffcf4a' : '#c9d0e4', 'center');
 
     // Toasts: newest on top, left-aligned under the HUD text.
-    const tl = toastColumn(u, x, bx, hudLow);
+    const tl = toastColumn(u, x, anc.rightLimit, hudLow);
     this.toastRects = [];
     let ty = tl.y;
     for (let i = this.toasts.length - 1; i >= 0; i--) ty += this.drawToast(ctx, this.toasts[i], tl.x, ty, tl.maxW, u) + u * 0.35;
