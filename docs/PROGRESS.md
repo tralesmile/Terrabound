@@ -477,3 +477,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** settings slice 3 (key remap, mirrored HUD for left-handed touch); FTUE / achievements / codex; mobile polish; shorter icon toasts.
 
 **Known issues:** left-handed stick zone overlaps the right HUD button column (buttons win the tap); ore marks are 5 px and can be hard to see at the smallest scale; strata bands subtle under cave darkness; offline crop growth ignores robot gardeners; growing crops restart their stage when the base moves; upgrade BUY rows refuse while you shop upstairs off the pad; turrets draw 1 power idle; e2e farm uses raw tile ids (57-67).
+
+## 2026-11-12 Scheduled run 30
+
+**Done:** baseline green (545 tests). Creative review: toasts were full sentences stacked mid-screen over the play area (carried 3 runs, 11-biome-crystal). Toasts are now at most 2 left-aligned pills under the HUD text: colour accent bar, vector icon per kind (pin, plus, star, warning, house, info), "Discovered:"-style prefixes as a small head label, body wrapped to 2 lines, 0.18 s slide-in (src/ui/toastfx.ts; 46-toasts, 46b-mobile-toasts). Backlog settings slice 3: CONTROLS page (desktop) remaps 15 actions (src/sim/keys.ts; click a key then press the new one, a used key swaps over, Esc/Tab reserved, RESET KEYS; arrows and Space always move; first-minute hint names bound keys; save v22 `settings.keys` with v21 fixture; 47-controls, 47b-controls-armed). Left-handed touch mirrors the HUD: button column left, bars/depth/toasts right, clear of the right-hand stick zone (src/ui/hudlayout.ts; 06b-mobile-lefty). The night-sky e2e now samples right of centre (the top-left corner holds the toast column).
+
+**Numbers:** 562 unit tests (new: toast 8, keys 7, hudlayout 5), 137 e2e checks all green (new: toast pills clear of buttons desktop + phone, CONTROLS lists 15, rebind jump to K and jump with it, Esc back, reset, mirrored HUD clear of stick zone), bundle 320 kB (110.3 kB gzip).
+
+**Next:** FTUE (guided first 2 minutes), achievements (30+), codex screen; mobile polish (thumb-sized hotbar, hold-to-reel, safe-area insets).
+
+**Known issues:** digits 1-0 and Minus (hotbar) are not remappable; toast kinds are guessed from the text (a new message family may get the info icon); a very long toast body shrinks its second line instead of truncating; ore marks are 5 px; strata bands subtle under cave darkness; offline crop growth ignores robot gardeners; growing crops restart their stage when the base moves; upgrade BUY rows refuse while you shop upstairs off the pad; turrets draw 1 power idle; e2e farm uses raw tile ids (57-67).

@@ -127,7 +127,8 @@ Polish
 - [x] Procedural music per biome, depth, night and boss fights (src/platform/composer.ts); SOUND button cycles all on / music off / all off (save v11). Volume sliders move to the settings screen item.
 - [x] Settings screen slice 1 (run 28, src/sim/settings.ts): cog beside SOUND / on the title, or O; pauses the game; master/music/effects volume (separate buses), screen shake off/low/full, UI size normal/large/huge, sound toggle; stacked layout on phones; save v19
 - [x] Settings slice 2 (run 29): ORE AND HAZARD MARKS (shape glyph per ore, acid/magma warning marks), FLASHES REDUCED (no hurt blink / enemy white flash / boss strobe, capped vignette), TOUCH MOVE STICK LEFT/RIGHT (left-handed); save v20/v21
-- [ ] Settings slice 3: key remap (desktop), mirrored HUD buttons for left-handed touch
+- [x] Settings slice 3 (run 30): CONTROLS page remaps 15 desktop keys (src/sim/keys.ts, swap on conflict, save v22); left-handed touch mirrors the HUD (buttons left, status right; src/ui/hudlayout.ts)
+- [x] Toast rework (run 30, src/ui/toastfx.ts): max 2 left-aligned pills under the HUD text, kind icon, head label, 2-line wrap, slide-in
 - [ ] Guided first 2 minutes (FTUE), achievements (30+), codex screen with lore logs and enemy entries
 - [ ] Mobile polish: on-screen hotbar sized for thumbs, hook hold-to-reel button, safe-area insets; real-device check listed in NEEDS_FROM_USER
 

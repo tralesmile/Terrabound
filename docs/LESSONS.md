@@ -114,3 +114,8 @@
 - **Anything chunk-cached must clear the chunk cache when a setting changes it** (`setOreMarks` clears `chunks`); a plain field toggle would only show on newly built chunks.
 - **`applyPrefs` ran before `input` existed** once it touched input (TDZ). Guard: the first `applyPrefs()` call now comes after `new Input`.
 - **Retro:** three slices, three ships (~4 min each). Adding a settings row means updating the two stepper counts in e2e (desktop rows, phone n); derive them from PREFS next time instead of hard numbers.
+
+- **Moving a HUD element breaks pixel-sampling e2e checks elsewhere.** The night-sky check read pixel (20,140), right where the new toast column sits (and "Night falls" toasts there). Guard: sky samples come from right of centre with a comment; any HUD move should grep e2e for `getImageData`.
+- **Keyword regexes need word boundaries.** "follows" matched `low` and gave a harmless drone toast a red warning icon. Guard: toastfx rules use `\b...\b` and tests/toast.test.ts pins a "follows" case.
+- **Tests that pin `SAVE_VERSION` or whole `settings` objects must change with every save bump** (settings.test v18/v19). That is expected, not weakening: update the pinned value and add the new field's default to the expectation.
+- **Retro:** three slices, three ships (~4 min each). Full `npx vitest run` takes over 2 min here, so run it with a 5-minute timeout or filter to the touched test files while iterating.

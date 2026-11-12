@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-12 run 30
+
+- Done this run: toast pills (icon, head label, wrap, slide-in, max 2, top-left); key remap; mirrored HUD for left-handed touch.
+- Weakest graphics (carried): cave darkness flattens strata; a faint rim light on tile edges facing the lamp would make caves read in 3D (Core Keeper).
+- Weakest progression: no achievements or codex screen; 30 achievements with cosmetic suit colours (Terraria-style long goals) is the next backlog item.
+- Weakest controls: hold right click to sow a row (carried); hotbar digits are not remappable yet.
+- Weakest feel: toasts still use one sound for every kind; a soft per-kind chime (discover sparkle, warning blip) would make them readable without looking.
+
 ## 2026-11-12 run 29
 
 - Done this run: pickup icons arc into the hotbar/bag with a slot pulse; ore/hazard shape marks; reduced flashes; left-handed stick.
@@ -25,12 +33,3 @@
 - Weakest controls: one seed per right click; hold right click to sow along a row (Stardew style).
 - Weakest progression/retention: records exist but are only a footer line; a small RECORDS screen with the last 10 codes and a share-card variant ("beat my 152m on 1MVE-X89G") would make Daily Dive social without a backend.
 - Weakest feel: harvesting gives no burst; a pop of produce icons arcing into the pack would sell farming.
-
-## 2026-11-12 run 26
-
-- Done this run: hurt vignette + recoil + damage numbers, robot happiness with hearts and discounts, farming (3 crops, sprinklers), cooking pot and meal buffs.
-- Weakest gameplay feel: crops are static tiles; a gentle sway on ripe crops and a mist arc from sprinklers (renderer-only, cosmetic random) would make the farm feel alive.
-- Weakest progression: crops do not tie into the robots yet; happy robots watering crops, and the Medic turning produce into better medkits, would connect farming to the town.
-- Weakest graphics: surface dirt is one flat noise texture; darker strata bands and occasional buried bones/pipes in the top 10 rows would add depth for free.
-- Weakest UI: toasts stack three long lines over the play area; shorter toasts with an icon, and the plant timer shown on aim instead of in a toast.
-- Weakest controls: seeds go one per right click; hold right click to sow a row (Stardew style) would make planting a field quick.
