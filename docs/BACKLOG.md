@@ -118,7 +118,8 @@ World
 - [x] Farming follow-ups (run 27): happy robots water every crop in the base strip; crops sway, ripe ones twinkle, sprinklers spray; meal buffs saved (v17); base crops kept across worlds (BASE_SAVE); Dex seed packet; offline crop growth (`growCrops`) with a welcome-back toast
 
 Together
-- [ ] Daily world leaderboard (local first, then free-tier backend behind the Leaderboard interface): deepest, most loot, fastest boss
+- [x] Local world records (run 27, src/sim/records.ts): personal bests per shared code (Daily Dive or a friend's code): best depth, most loot in one try, fastest first boss; gold toast + fanfare on a new best; record line in the workshop footer; save v18 `records` (last 10 codes)
+- [ ] Online daily leaderboard: free-tier backend behind a Leaderboard interface (needs an owner decision on hosting; see NEEDS_FROM_USER), records screen listing the last 10 codes
 - [x] Share card (src/ui/share.ts): 1200x630 image with stats and world code; SHARE on the map and victory screens; Web Share API with PNG download fallback
 - [ ] Co-op research spike then implementation (2-4 players, WebRTC peer-to-peer, host-authoritative sim); keep behind a feature flag until stable
 

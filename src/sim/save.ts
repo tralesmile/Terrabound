@@ -5,12 +5,13 @@ import { CODEX_IDS } from './explore';
 import { defaultGear, sanitizeGear, type GearSave } from './gear';
 import { defaultMods, sanitizeMods, type ModSave } from './mods';
 import { BUFF_IDS, BUFF_TIME, type Buffs } from './farming';
+import { sanitizeRecords, type WorldRecord } from './records';
 import { sanitizeResearch, type ResearchId } from './research';
 import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 17;
+export const SAVE_VERSION = 18;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -53,6 +54,8 @@ export interface SaveData {
   research: ResearchId[];
   /** v17: meal buffs with seconds left (farming.ts); v16 saves load with none. */
   buffs: Buffs;
+  /** v18: local personal bests per shared world code (records.ts); v17 saves load with none. */
+  records: WorldRecord[];
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -78,6 +81,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     mods: defaultMods(),
     research: [],
     buffs: {},
+    records: [],
   };
 }
 
@@ -160,6 +164,8 @@ export function parseSave(raw: string | null | undefined): SaveData {
     research: sanitizeResearch(r.research),
     // v16 -> v17: no meal buffs (they used to end on reload).
     buffs: sanitizeBuffs(r.buffs),
+    // v17 -> v18: no world records yet.
+    records: sanitizeRecords(r.records),
   };
 }
 

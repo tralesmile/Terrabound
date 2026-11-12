@@ -1,4 +1,5 @@
 import { decodeSeed, encodeSeed } from './seedcode';
+import { noteBoss, noteDepth, noteLoot, startAttempt, type RecordBeat, type WorldRecord } from './records';
 import { hash2, mixSeed, mulberry32 } from './rng';
 import { ENEMIES, ENEMY_HIT_IFRAMES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
 import { type Body, moveX, moveY, onLadder, probeGround, unstick, BODY_H, HALF_W } from './physics';
@@ -155,6 +156,7 @@ export type GameEvent =
   | { t: 'craft'; id: string }
   | { t: 'smelt'; made: number }
   | { t: 'newdive' }
+  | { t: 'record'; beat: RecordBeat; value: number; code: string }
   | { t: 'swing'; dir: number }
   | { t: 'enemyhit'; x: number; y: number; dmg: number }
   | { t: 'enemykill'; x: number; y: number; kind: EnemyKind }
@@ -335,6 +337,7 @@ export class Game {
     if (!Array.isArray(this.save.bosses)) this.save.bosses = [];
     if (!this.save.drones || typeof this.save.drones !== 'object') this.save.drones = {};
     if (!this.save.droneRules || typeof this.save.droneRules !== 'object') this.save.droneRules = {};
+    if (!Array.isArray(this.save.records)) this.save.records = [];
     this.stash = { ...save.stash };
     this.upgrades = { ...save.upgrades };
     this.buffs = { ...(this.save.buffs ?? {}) };
@@ -552,6 +555,18 @@ export class Game {
   }
 
   /** Shareable code for the current world (see seedcode.ts). */
+  /**
+   * Your local record for this world when it came from a shared code (Daily Dive, a friend's code);
+   * null on a random world. A shared world loaded from an older save gets its record on first use.
+   */
+  worldRecord(): WorldRecord | null {
+    if (this.save.worldSeed === null) return null;
+    const code = this.seedCode;
+    if (this.save.records[0]?.code === code) return this.save.records[0];
+    const r = this.save.records.find((k) => k.code === code);
+    return r ?? startAttempt(this.save.records, code);
+  }
+
   get seedCode(): string {
     return encodeSeed(this.diveSeed());
   }
@@ -642,6 +657,8 @@ export class Game {
     if (total > 0) {
       this.save.stats.banked += total;
       this.emit({ t: 'bank', total });
+      const rec = this.worldRecord();
+      if (rec && noteLoot(rec, total)) this.emit({ t: 'record', beat: 'loot', value: rec.loot, code: rec.code });
       reactNpcs(this.npcs, 'wave');
     }
     this.save.stats.deepest = Math.max(this.save.stats.deepest, Math.floor(this.runDeepest));
@@ -655,6 +672,7 @@ export class Game {
     if (code !== undefined && seed === null) return false;
     this.bank();
     this.newWorld(seed);
+    if (seed !== null) startAttempt(this.save.records, this.seedCode);
     this.emit({ t: 'newdive' });
     return true;
   }
@@ -1135,6 +1153,11 @@ export class Game {
     this.wasGround = b.onGround;
 
     this.runDeepest = Math.max(this.runDeepest, this.depth);
+    const rec = this.worldRecord();
+    if (rec) {
+      rec.curTime += dt;
+      if (noteDepth(rec, this.depth)) this.emit({ t: 'record', beat: 'deep', value: rec.deepest, code: rec.code });
+    }
     this.stepMachines(dt);
     for (const p of stepDrops(this.world, this.drops, dt, b.x, b.y, (item) => (invTotal(this.carried) < this.derived.packCap ? this.derived.packCap - invTotal(this.carried) : 0) * (ITEMS[item] ? 1 : 0), (item, n) => invAdd(this.carried, item, n), this.gear.magnet))
       this.emit({ t: 'pickup', item: p.item, x: b.x, y: b.y - 1 });
@@ -1979,6 +2002,8 @@ export class Game {
       if (!this.ownsGear(d.gear)) this.save.gear.owned.push(d.gear);
     }
     this.emit({ t: 'bossdown', id: bs.id, first });
+    const rec = this.worldRecord();
+    if (rec && noteBoss(rec)) this.emit({ t: 'record', beat: 'boss', value: rec.boss, code: rec.code });
     if (openGates(this.world, this.biomeBossesBeaten()) > 0) this.emit({ t: 'gateopen' });
     if (bs.id === FINAL_BOSS) this.emit({ t: 'victory', first });
     this.boss = null;
@@ -2176,6 +2201,7 @@ export class Game {
       drones: { ...this.save.drones },
       research: [...this.save.research],
       buffs: { ...this.buffs },
+      records: this.save.records.map((r) => ({ ...r })),
       world: captureDiff(this.world, this.fog),
     };
   }

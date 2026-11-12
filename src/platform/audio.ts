@@ -239,6 +239,10 @@ export class Sfx {
       case 'recall':
         [880, 660, 1320].forEach((f, i) => this.tone(f, 0.12, 'sine', 0.12, undefined, i * 0.06));
         break;
+      case 'record':
+        // Personal best: a bright rising three-note fanfare.
+        [523, 659, 988].forEach((f, i) => this.tone(f, i === 2 ? 0.22 : 0.12, 'square', 0.1, undefined, i * 0.11));
+        break;
       case 'upgrade':
         [392, 523, 659, 784, 1047].forEach((f, i) => this.tone(f, 0.14, 'triangle', 0.14, undefined, i * 0.06));
         break;

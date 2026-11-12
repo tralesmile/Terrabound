@@ -1900,6 +1900,36 @@ try {
     return /^[0-9A-Z]{4}-[0-9A-Z]{4}$/.test(g.seedCode) && !window.__terrabound.ui.shopOpen;
   });
   check('DAILY action starts a code-seeded world', dailyOk);
+  {
+    // Local world record: bank on the daily, dive it again, bank more and get a personal-best toast;
+    // the workshop footer shows the record line.
+    await page.evaluate(() => {
+      const { game } = window.__terrabound;
+      game.body.x = game.world.padX + 0.5;
+      game.body.y = game.world.padY;
+      game.carried.rust = 3;
+      game.bank();
+      window.__terrabound.act({ k: 'daily' });
+    });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => {
+      const { game } = window.__terrabound;
+      game.body.x = game.world.padX + 0.5;
+      game.body.y = game.world.padY;
+      game.carried.rust = 5;
+      game.bank();
+    });
+    await page.waitForTimeout(250);
+    await page.evaluate(() => { window.__terrabound.ui.shopOpen = true; window.__terrabound.ui.setShopTab('upgrades'); });
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: path.join(out, '42-world-record.png') });
+    const recState = await page.evaluate(() => {
+      const { game, ui } = window.__terrabound;
+      const r = game.worldRecord();
+      return { code: r?.code, loot: r?.loot, runs: r?.runs, toast: ui.toasts.some((t) => t.text.startsWith('New personal best')) };
+    });
+    check('a second Daily Dive try that banks more shows a personal-best toast and record', recState.loot === 5 && recState.runs >= 2 && recState.toast, JSON.stringify(recState));
+  }
   await page.evaluate(() => { window.__terrabound.ui.shopOpen = false; });
   await page.waitForTimeout(200);
   // Tap the MAP button like a player would.

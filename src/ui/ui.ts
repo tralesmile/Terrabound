@@ -1,3 +1,4 @@
+import { recordLine } from '../sim/records';
 import type { Game, Tool } from '../sim/game';
 import { MAP_ZOOMS, MapView } from './map';
 import { ICON, drawIcon } from '../render/icons';
@@ -937,7 +938,11 @@ export class UI {
     this.button(ctx, px + u * 3 + tbw * 2, fy - u * 2.8, tbw, u * 2.2, 'DAILY', { k: 'daily' }, u * 0.7, { color: '#2a6a7a' });
     this.button(ctx, px + u, fy, bw, u * 2.4, this.newWorldArmed > 0 ? 'CONFIRM?' : 'NEW WORLD', { k: 'dive' }, u, { color: this.newWorldArmed > 0 ? '#a33a2a' : '#7a5a1f', pulse: this.newWorldArmed > 0 });
     this.button(ctx, px + u * 2 + bw, fy, bw, u * 2.4, 'CLOSE', { k: 'close' }, u);
-    this.text(ctx, `World ${game.seedCode}   Best ${game.stats.deepest}m   Dives ${game.runs}   Deaths ${game.stats.deaths}`, px + pw / 2, py + ph - u * 0.9, Math.round(u * 0.65), '#8a90a2', 'center', pw - u);
+    // Footer: on a shared world (Daily Dive, a friend's code) your local record sits under the world line.
+    const rec = game.worldRecord();
+    const footY = rec ? py + ph - u * 1.45 : py + ph - u * 0.9;
+    this.text(ctx, `World ${game.seedCode}   Best ${game.stats.deepest}m   Dives ${game.runs}   Deaths ${game.stats.deaths}`, px + pw / 2, footY, Math.round(u * (rec ? 0.6 : 0.65)), '#8a90a2', 'center', pw - u);
+    if (rec) this.text(ctx, recordLine(rec), px + pw / 2, py + ph - u * 0.6, Math.round(u * 0.6), '#ffd23a', 'center', pw - u);
   }
   /** A robot's group header: its portrait, name and title, and whether it lives here (or what it needs). */
   private npcHeader(ctx: CanvasRenderingContext2D, game: Game, h: HeaderEntry, px: number, ry: number, pw: number, rowH: number, u: number): void {

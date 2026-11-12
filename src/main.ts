@@ -1,6 +1,7 @@
 import { CROPS } from './sim/farming';
 import { drawDecorGallery } from './render/decor';
 import { dailyCode } from './sim/daily';
+import { clock as mmss } from './sim/records';
 import { Input } from './platform/input';
 import { Sfx } from './platform/audio';
 import { loadRaw, saveRaw } from './platform/storage';
@@ -376,6 +377,12 @@ function boot(): void {
         ui.toast(`Banked ${e.total} items`, '#9ff6a0');
         saveNow();
         break;
+      case 'record': {
+        const what = e.beat === 'deep' ? `${e.value}m deep` : e.beat === 'loot' ? `${e.value} loot banked` : `boss down in ${mmss(e.value)}`;
+        ui.toast(`New personal best on ${e.code}: ${what}!`, '#ffd23a', 4, 'record');
+        fx.addShake(0.3);
+        break;
+      }
       case 'death':
         ui.toast(`SIGNAL LOST - ${e.lost} items lost${e.medic ? ' (Patch saved 3/4 of your pack)' : ''}`, '#ff5a5a');
         fx.addShake(1);
