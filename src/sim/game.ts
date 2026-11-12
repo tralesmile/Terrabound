@@ -35,7 +35,7 @@ import { DRONE_ROLES, ENEMY_NEAR, HP_LOW, DEEP_AT, RULE_MAX, ROLE_INFO, sanitize
 import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight, DAY_LENGTH } from './daynight';
 import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
-import { findRooms, roomHint, type Room } from './rooms';
+import { findRooms, mountOk, roomHint, type Room } from './rooms';
 import { NPC_INFO, deathKeep, doTrade, npcLine, roomFloor, stepNpc, syncNpcs, tradeById, type Npc, type NpcKind } from './npcs';
 import { placement, removeTile } from './wide';
 import { blueprintDrop, RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
@@ -57,6 +57,8 @@ export const LEAP_V = 14;
 export const ACID_DPS = 24;
 export const CLIMB_UP = 5;
 export const CLIMB_DOWN = 7;
+/** Lift shafts ride this many times faster than ladders. */
+export const LIFT_MUL = 3;
 export const REACH = 4.2;
 export const FIXED_DT = 1 / 60;
 /** Columns around the pad where nothing spawns at night. */
@@ -109,6 +111,7 @@ export type GameEvent =
   | { t: 'catch'; item: ItemId; n: number }
   | { t: 'reel' }
   | { t: 'nosoil' }
+  | { t: 'nomount' }
   | { t: 'craftgear'; id: GearId }
   | { t: 'mount' }
   | { t: 'dismount' }
@@ -1009,7 +1012,8 @@ export class Game {
       }
     } else if (!this.hook && onLadder(this.world, b)) {
       // Climbing: no gravity; jump climbs, down descends, otherwise cling.
-      b.vy = c.jump ? -CLIMB_UP : c.down ? CLIMB_DOWN : 0;
+      const lift = this.onLift() ? LIFT_MUL : 1;
+      b.vy = c.jump ? -CLIMB_UP * lift : c.down ? CLIMB_DOWN * lift : 0;
       b.vx *= 0.6;
       this.coyote = 0.1;
     } else if (this.dashT > 0) {
@@ -1128,12 +1132,16 @@ export class Game {
         invCount(this.carried, this.selected) > 0 &&
         // Blocks can be placed into liquid (displacing it), so players can dam and plug pools.
         (this.world.get(tx, ty) === 0 || isLiquid(this.world.get(tx, ty))) &&
-        this.hasSolidNeighbour(tx, ty) &&
+        (this.hasSolidNeighbour(tx, ty) || (item.places === T.LIFT && this.liftNeighbour(tx, ty))) &&
         !this.overlapsPlayer(tx, ty)
       ) {
         if (item.places === T.SAPLING && !SOIL_TILES.has(this.world.get(tx, ty + 1))) {
           // Seeds need soil underneath (not metal, ore or built blocks).
           if (this.placeCd === 0) this.emit({ t: 'nosoil' });
+          this.placeCd = 0.5;
+        } else if (!mountOk(this.world, tx, ty, item.places)) {
+          // Screens and banners hang on a wall (rooms.ts WALL_MOUNTED).
+          if (this.placeCd === 0) this.emit({ t: 'nomount' });
           this.placeCd = 0.5;
         } else {
           const homeBefore = this.validRooms();
@@ -1961,6 +1969,18 @@ export class Game {
     if (wl.wall(x, y) !== W.NONE) return true; // lining an existing cave wall
     const nb: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
     return this.hasSolidNeighbour(x, y) || nb.some(([dx, dy]) => wl.wall(x + dx, y + dy) === W.PLATE);
+  }
+
+  /** A lift shaft can hang from the shaft above or stand on the one below. */
+  private liftNeighbour(x: number, y: number): boolean {
+    return this.world.get(x, y - 1) === T.LIFT || this.world.get(x, y + 1) === T.LIFT;
+  }
+
+  /** The player's torso or feet are in a lift shaft. */
+  onLift(): boolean {
+    const b = this.body;
+    const x = Math.floor(b.x);
+    return this.world.get(x, Math.floor(b.y - BODY_H / 2)) === T.LIFT || this.world.get(x, Math.floor(b.y - 0.1)) === T.LIFT;
   }
 
   private hasSolidNeighbour(x: number, y: number): boolean {

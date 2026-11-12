@@ -79,7 +79,7 @@ export function computeLight(
       const y = y0 + j;
       const k = j * w + i;
       const t = world.get(x, y);
-      solid[k] = TILES[t]?.solid ? 1 : 0;
+      solid[k] = TILES[t]?.solid && !TILES[t]?.clear ? 1 : 0;
       if (sky > 0 && isSky(world, x, y)) {
         levels[k] = sky;
         buckets[sky].push(k);

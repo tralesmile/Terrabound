@@ -531,6 +531,16 @@ export class Renderer {
       this.drawLadder(ctx, dx, dy, ts);
       return;
     }
+    if (t === T.WINDOW) {
+      // The pane shows the live sky: drawn each frame by drawDynamic.
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      return;
+    }
+    if (t === T.LIFT) {
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      this.drawLiftShaft(ctx, dx, dy, ts);
+      return;
+    }
     if (t === T.PLATFORM) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
       ctx.fillStyle = '#9fb0c8';
@@ -802,6 +812,8 @@ export class Renderer {
       for (let tx = Math.max(0, x0); tx <= Math.min(world.w - 1, x1); tx++) {
         const t = world.tiles[ty * world.w + tx];
         if (t === T.TORCH) this.drawTorch(ctx, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time + tx);
+        else if (t === T.WINDOW) this.drawWindow(ctx, world, tx, ty, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time);
+        else if (t === T.LIFT) this.drawLiftGlow(ctx, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time, ty);
         else if (t === T.LAMP || t === T.SCREEN) this.drawFurnitureGlow(ctx, t, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time, tx);
         else if (t === T.TURRET) this.drawTurretTop(ctx, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, this.turretAim.get(ty * world.w + tx) ?? -Math.PI / 2, this.turretsOn, time);
         else if (t === T.BATTERY) {
@@ -1266,6 +1278,67 @@ export class Renderer {
     ctx.fillRect(dx + 11 * u, dy, 2 * u, ts);
     ctx.fillStyle = '#c9a35a';
     for (let r = 2; r < 16; r += 5) ctx.fillRect(dx + 3 * u, dy + r * u, 10 * u, 2 * u);
+  }
+
+  /** Lift shaft (cached): dark guide channel with two metal rails and rivets. */
+  private drawLiftShaft(ctx: CanvasRenderingContext2D, dx: number, dy: number, ts: number): void {
+    const u = ts / 16;
+    ctx.fillStyle = 'rgba(20,24,34,0.55)';
+    ctx.fillRect(dx + 3 * u, dy, 10 * u, ts);
+    ctx.fillStyle = '#55627a';
+    ctx.fillRect(dx + u, dy, 2 * u, ts);
+    ctx.fillRect(dx + 13 * u, dy, 2 * u, ts);
+    ctx.fillStyle = '#9fb0c8';
+    ctx.fillRect(dx + u, dy, u, ts);
+    ctx.fillRect(dx + 13 * u, dy, u, ts);
+    ctx.fillStyle = '#c9d4e8';
+    ctx.fillRect(dx + 2 * u, dy + 3 * u, u, u);
+    ctx.fillRect(dx + 13 * u, dy + 11 * u, u, u);
+  }
+
+  /** Lift shaft (per frame): cyan chevrons drifting upward so the shaft reads as powered. */
+  private drawLiftGlow(ctx: CanvasRenderingContext2D, dx: number, dy: number, ts: number, time: number, ty: number): void {
+    const u = ts / 16;
+    const off = ((time * 10 + ty * 16) % 16 + 16) % 16;
+    ctx.fillStyle = 'rgba(90,216,255,0.75)';
+    for (const base of [0, 8]) {
+      const cy = (((base - off) % 16) + 16) % 16;
+      ctx.fillRect(dx + 7 * u, dy + cy * u, 2 * u, u);
+      if (cy + 1 < 16) {
+        ctx.fillRect(dx + 5 * u, dy + (cy + 1) * u, 2 * u, u);
+        ctx.fillRect(dx + 9 * u, dy + (cy + 1) * u, 2 * u, u);
+      }
+    }
+  }
+
+  /**
+   * Window (per frame): metal frame and cross bar over a pane that shows the sky colour by day
+   * and glows warm at night, like a lit home seen from outside. Underground it is dark glass.
+   */
+  private drawWindow(ctx: CanvasRenderingContext2D, world: Game['world'], tx: number, ty: number, dx: number, dy: number, ts: number, time: number): void {
+    const u = ts / 16;
+    const above = ty < (world.surface[tx] ?? 0) + 2;
+    const night = Math.max(0, Math.min(1, (0.6 - this.day) / 0.4));
+    const pane = above ? mixHex(this.sky[1], '#ffc46e', night * 0.85) : '#1c2a3a';
+    ctx.fillStyle = '#55627a';
+    ctx.fillRect(dx, dy, ts, ts);
+    ctx.fillStyle = pane;
+    ctx.fillRect(dx + 2 * u, dy + 2 * u, 12 * u, 12 * u);
+    // Glint: two diagonal streaks that slide across slowly.
+    const g = Math.floor(((time * 0.6 + tx * 0.37) % 1) * 12);
+    ctx.fillStyle = `rgba(255,255,255,${(0.18 + 0.12 * (1 - night)).toFixed(3)})`;
+    for (let i = 0; i < 4; i++) {
+      const gx = 2 + ((g + i) % 12);
+      const gy = 2 + ((9 - i + 12) % 12);
+      ctx.fillRect(dx + gx * u, dy + gy * u, u, u);
+    }
+    ctx.fillStyle = '#8794a8';
+    ctx.fillRect(dx + 7.5 * u, dy + 2 * u, u, 12 * u);
+    ctx.fillRect(dx + 2 * u, dy + 7.5 * u, 12 * u, u);
+    ctx.fillStyle = '#9fb0c8';
+    ctx.fillRect(dx, dy, ts, u);
+    ctx.fillStyle = '#2a3346';
+    ctx.fillRect(dx, dy + 15 * u, ts, u);
   }
 
   private drawTorch(ctx: CanvasRenderingContext2D, dx: number, dy: number, ts: number, t: number): void {

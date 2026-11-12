@@ -31,16 +31,30 @@ export interface Room {
   light: boolean;
   table: boolean;
   bed: boolean;
-  /** 0..4: one per decoration kind, plus one when at least half the room has a back wall. */
+  /** 0..4: one per decoration kind, one when at least half the room has a back wall, one for a window. */
   comfort: number;
+  /** A window in the room's walls. */
+  view: boolean;
   valid: boolean;
   /** What a valid room still needs, in plain words ("a bed", "a light"). */
   missing: string[];
 }
 
-/** Doors and platforms close a room like walls do. */
+/** Doors, platforms and lift shafts close a room like walls do. */
 function bounds(t: number): boolean {
-  return TILES[t].solid || t === T.DOOR || t === T.PLATFORM;
+  return TILES[t].solid || t === T.DOOR || t === T.PLATFORM || t === T.LIFT;
+}
+
+/** Furniture that hangs on a wall: it needs a back wall behind it, or a block above or beside it. */
+export const WALL_MOUNTED: ReadonlySet<number> = new Set<number>([T.SCREEN, T.BANNER]);
+
+/**
+ * Whether `tile` may go at (x, y) as far as mounting goes: wall-mounted pieces need a back wall
+ * in that cell or a solid block above, left or right (a floor alone is not enough). Pure.
+ */
+export function mountOk(world: World, x: number, y: number, tile: number): boolean {
+  if (!WALL_MOUNTED.has(tile)) return true;
+  return world.wall(x, y) !== 0 || world.isSolid(x, y - 1) || world.isSolid(x - 1, y) || world.isSolid(x + 1, y);
 }
 
 /**
@@ -52,6 +66,7 @@ export function roomAt(world: World, x: number, y: number): Room | null {
   const seen = new Set<number>();
   const stack = [y * world.w + x];
   const cells: number[] = [];
+  let view = false;
   seen.add(stack[0]);
   while (stack.length) {
     const i = stack.pop() as number;
@@ -63,7 +78,9 @@ export function roomAt(world: World, x: number, y: number): Room | null {
       // Leaking off the top of the world (open sky) or off the sides means it is not enclosed.
       if (ny < 0 || nx < 0 || nx >= world.w) return null;
       const ni = ny * world.w + nx;
-      if (seen.has(ni) || bounds(world.get(nx, ny))) continue;
+      const nt = world.get(nx, ny);
+      if (nt === T.WINDOW) view = true;
+      if (seen.has(ni) || bounds(nt)) continue;
       seen.add(ni);
       stack.push(ni);
     }
@@ -91,13 +108,13 @@ export function roomAt(world: World, x: number, y: number): Room | null {
     if (DECOR.includes(t)) decor.add(t);
     if (world.wall(cx, cy) !== 0) walls++;
   }
-  const comfort = Math.min(COMFORT_MAX, decor.size + (walls * 2 >= cells.length ? 1 : 0));
+  const comfort = Math.min(COMFORT_MAX, decor.size + (walls * 2 >= cells.length ? 1 : 0) + (view ? 1 : 0));
   const missing: string[] = [];
   if (cells.length < ROOM_MIN) missing.push('more space');
   if (!light) missing.push('a light');
   if (!table) missing.push('a table');
   if (!bed) missing.push('a bed');
-  return { cells, x0, y0, x1, y1, light, table, bed, comfort, valid: missing.length === 0, missing };
+  return { cells, x0, y0, x1, y1, light, table, bed, comfort, view, valid: missing.length === 0, missing };
 }
 
 /** Every distinct enclosed room with a cell in the base strip (scan order: top-left first). Pure. */

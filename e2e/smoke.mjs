@@ -1227,6 +1227,61 @@ try {
     return { hp: Math.round(g.hp), kits: g.carried.medkit ?? 0 };
   });
   check('quick heal: H eats a medkit at low HP, and so does the HUD button', !!healBtn && heal1.kits === 1 && heal1.hp >= 75 && heal2.kits === 0 && heal2.hp >= 75, JSON.stringify({ healBtn: !!healBtn, heal1, heal2 }));
+  // Windows and a lift: glass panes in the tower's side walls (a view adds comfort), a lift shaft up the outside.
+  const winState = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const px = w.padX;
+    const py = w.padY;
+    const T = { METAL: 2, WINDOW: 55, LIFT: 56 };
+    const raids = g.raidsOn;
+    g.setRaids(false);
+    for (const y of [py - 3, py - 4, py - 8, py - 9]) {
+      w.set(px + 4, y, T.WINDOW);
+      if (y < py - 5) w.set(px - 4, y, T.WINDOW);
+    }
+    for (let y = py - 11; y <= py - 1; y++) {
+      w.set(px + 5, y, T.LIFT);
+      w.set(px + 6, y, T.METAL);
+    }
+    g.body.x = px + 0.5;
+    g.body.y = py;
+    g.body.vx = g.body.vy = 0;
+    const r = g.roomHere();
+    return { raids, view: !!r && r.view, comfort: r ? r.comfort : -1, valid: !!r && r.valid };
+  }).catch((e) => ({ err: String(e) }));
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(out, '38-windows.png') });
+  check('a window in a room wall gives it a view and keeps it a valid home', winState.view === true && winState.valid && winState.comfort === 4, JSON.stringify(winState));
+  const liftY0 = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.body.x = g.world.padX + 5.5;
+    g.body.y = g.world.padY;
+    g.body.vx = g.body.vy = 0;
+    return g.body.y;
+  });
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(450);
+  await page.keyboard.up('KeyW');
+  const liftY1 = await page.evaluate(() => window.__terrabound.game.body.y);
+  await page.screenshot({ path: path.join(out, '38b-lift.png') });
+  check('holding jump in a lift shaft rides up fast', liftY0 - liftY1 > 4, JSON.stringify({ liftY0, liftY1 }));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.time = 400;
+    g.body.x = g.world.padX + 8.5;
+    g.body.y = g.world.padY;
+    g.body.vx = g.body.vy = 0;
+  });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: path.join(out, '38c-windows-night.png') });
+  await page.evaluate((raids) => {
+    const g = window.__terrabound.game;
+    g.time = 30;
+    g.setRaids(raids);
+    const w = g.world;
+    for (let y = w.padY - 11; y <= w.padY - 1; y++) for (const x of [w.padX + 5, w.padX + 6]) w.set(x, y, 0);
+  }, winState.raids ?? true);
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     const w = g.world;

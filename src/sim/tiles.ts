@@ -42,7 +42,9 @@ export type ItemId =
   | 'potplant'
   | 'banner'
   | 'bed'
-  | 'chair';
+  | 'chair'
+  | 'window'
+  | 'lift';
 export const ITEM_IDS: ItemId[] = [
   'rust',
   'metal',
@@ -86,6 +88,8 @@ export const ITEM_IDS: ItemId[] = [
   'banner',
   'bed',
   'chair',
+  'window',
+  'lift',
 ];
 
 export const T = {
@@ -150,6 +154,10 @@ export const T = {
   BED_FOOT: 52,
   TABLE_END: 53,
   CHAIR: 54,
+  /** Glass window (solid, lets light through, shows the sky; a room wall with a view adds comfort). */
+  WINDOW: 55,
+  /** Lift shaft: climb tile that rides 3x ladder speed; closes rooms like a door. */
+  LIFT: 56,
 } as const;
 
 export interface TileDef {
@@ -174,6 +182,8 @@ export interface TileDef {
   liquid?: boolean;
   /** Damage per second while swimming in it (acid, magma). */
   dps?: number;
+  /** Solid but lets light through (windows). */
+  clear?: boolean;
 }
 
 export const TILES: TileDef[] = [
@@ -232,6 +242,8 @@ export const TILES: TileDef[] = [
   { name: 'Bunk bed', hardness: 0.2, solid: false, drop: 'bed', minable: true },
   { name: 'Table', hardness: 0.2, solid: false, drop: 'table', minable: true },
   { name: 'Chair', hardness: 0.1, solid: false, drop: 'chair', minable: true },
+  { name: 'Window', hardness: 0.4, solid: true, drop: 'window', clear: true },
+  { name: 'Lift shaft', hardness: 0.2, solid: false, drop: 'lift', minable: true, climb: true },
 ];
 
 export interface ItemDef {
@@ -289,9 +301,11 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   banner: { name: 'Banner', color: '#e04a5a', places: T.BANNER, kit: true },
   bed: { name: 'Bunk bed', color: '#6a8ad8', places: T.BED, kit: true },
   chair: { name: 'Chair', color: '#c9a35a', places: T.CHAIR, kit: true },
+  window: { name: 'Window', color: '#9fd8ff', places: T.WINDOW, kit: true },
+  lift: { name: 'Lift shaft', color: '#5ad8ff', places: T.LIFT, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair', 'window', 'lift'];
 
 /** Placeables worth showing in the hotbar: owned ones plus the selected one, in PLACEABLE order. */
 export function visiblePlaceables(inv: Inventory, selected: ItemId): ItemId[] {

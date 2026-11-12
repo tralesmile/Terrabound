@@ -398,6 +398,9 @@ function boot(): void {
       case 'nosoil':
         ui.toast('Seeds need soil underneath', '#ff9a3c');
         break;
+      case 'nomount':
+        ui.toast('Hang it on a wall: needs a back wall or a block beside it', '#ff9a3c');
+        break;
       case 'bossspawn':
         ui.toast(`${BOSSES[e.id].name} approaches!`, '#ff5a5a', 3);
         fx.addShake(0.8);

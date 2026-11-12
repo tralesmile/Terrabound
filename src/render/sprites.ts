@@ -243,6 +243,8 @@ export const TILE_COLORS: Record<number, string> = {
   [T.BED_FOOT]: '#6a8ad8',
   [T.TABLE_END]: '#a07a4a',
   [T.CHAIR]: '#c9a35a',
+  [T.WINDOW]: '#9fd8ff',
+  [T.LIFT]: '#5ad8ff',
 };
 
 export function makeCanvas(w: number, h: number): HTMLCanvasElement {
