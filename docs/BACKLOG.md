@@ -94,10 +94,12 @@ Living base and drones
 - [x] Raid follow-ups (run 17): red war-armour raiders (`raiderRemap`), 20 s warning (horn, countdown, edge arrow), map entry chevrons, drone rule "a raid is on"
 - [x] Raid polish (run 18): floor blocks on ground are never chewed (roofs still are); raid blueprints every 3 clears (Turret Mk II 3, Shield wall 6, Turret Mk III 9; derived from stats.raids); Turret core upgrade tiers; shield wall tile 45
 - [x] Furniture and decoration set + room detection (run 18, src/sim/rooms.ts, tiles 46-51): light + table + bed in an enclosed 12-80 cell pocket = robot home; comfort 0-4 from decor kinds and back walls
-- [ ] Furniture follow-ups: 2-tile beds and tables, chairs, wall-mounted placement rules, room outline overlay in build mode
+- [x] Room outline overlay (run 19): dashed outline of the room you stand in or point at, green home / amber incomplete (`roomEdges`)
+- [ ] Furniture follow-ups: 2-tile beds and tables, chairs, wall-mounted placement rules
 
 Characters
-- [ ] Robot NPCs who move in when a valid room exists: Trader (sells/buys at fixed visible prices), Gunsmith (weapon mods), Scientist (research tree), Medic (heals, cures); dialogue lines; happiness by biome
+- [x] Robot NPC slice 1 (run 19, src/sim/npcs.ts): Bolt the Trader moves into the first valid room (derived, no save change), paces, greets, E/tap opens the TRADE tab with 7 fixed barter rates from the stash
+- [ ] More robot NPCs in later valid rooms: Medic (heals, cures), Gunsmith (weapon mods), Scientist (research tree); comfort-based happiness (cozier room = better rates or bonus)
 - [ ] Wandering merchant drone with rotating, fully visible stock (seeded per day; no paid randomness)
 
 World

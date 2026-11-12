@@ -72,4 +72,6 @@
 - **Stale toasts contradicted each other** ("Raid repelled!" under a new "RAID!"). Guard: related messages share a toast group (`ui.toast(..., group)`), a test asserts replacement and the TOAST_MAX cap.
 - **Locked shop rows still lit the SHOP ! badge** once a gate (raid blueprints) was added to buy(). Guard: any new purchase gate must be applied in `affordableUpgrades` too; the blueprint test checks buy is refused before the gate.
 - **New gameplay gates belong in derived data when possible.** Blueprints derive from `stats.raids`, so no save bump; a test ties recipe/upgrade gates to `blueprintRaids`.
+- **Ran `npm ci && npm run check` bare again (run 19)** and the shell killed it at 2 min, despite two lessons. Guard: the run prompt's step "npm ci && npm run check" must be issued as two calls, the gate with `timeout: 600000` and output to a log.
+- **Derived state that announces itself needs a "first sync is silent" rule.** NPCs are derived from rooms each frame; without it every load would toast "moved in". Tests that expect the arrival event must step the game once before finishing the room.
 

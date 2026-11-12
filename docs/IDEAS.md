@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-12 run 19
+
+- Done this run: Bolt the Trader (rooms now pay off), room outline overlay.
+- Weakest UI: trade rows are plain text; draw item icons on both sides of the arrow (Core Keeper's merchant reads at a glance).
+- Weakest gameplay feel: robots only stand around; let them react (wave when you land, hide in bed during raids, cheer when a raid is cleared).
+- Progression: comfort should matter: comfort 3-4 gives the Trader one extra "cozy" rate (e.g. 2 fish -> 1 crystal).
+- Weakest graphics: interiors are flat back walls; window tiles that show the sky colour would make homes glow at night.
+
 ## 2026-11-12 run 18
 
 - Done this run: toast groups/cap, raid blueprints + turret tiers + shield wall, furniture and rooms.
@@ -8,12 +16,3 @@
 - Weakest UI: no way to see a room's shape; a faint outline of the room under the cursor in build mode (green valid, orange incomplete).
 - Weakest controls: PLACEABLE is now 25 items cycled one by one; a build palette grouped by category (blocks / machines / defence / furniture).
 - Progression: comfort could unlock a small base buff (e.g. +10% offline output per cozy room) to make decorating matter.
-
-## 2026-11-12 run 17
-
-- Done this run: raid defences (turret, spikes, reinforced wall), red raider armour, raid warning + map arrows, raid drone rule.
-- Weakest gameplay feel now: turrets are fire-and-forget; let the player place them during the 20 s warning with a ghost range circle (Dome Keeper's prep phase is the fun part).
-- Weakest graphics: the base is a bare strip on the surface; furniture, banners and lit windows (next backlog item) make it a home worth defending.
-- Weakest UI: toasts stack 4 deep during raids and cover the base; cap to 2 lines and merge raid messages into the HUD banner.
-- Weakest progression: raid rewards are flat; a raid-only blueprint every 3 nights (backlog "raid polish").
-- Performance: turrets run clearLine per enemy per shot; fine at 10 raiders, but cap targets checked to the 6 nearest if raids grow.

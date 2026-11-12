@@ -366,3 +366,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 
 **Known issues:** table and bed are 1 tile and read small; DAILY still replaces the world without a confirm; turrets draw 1 power even when idle.
 
+## 2026-11-12 Scheduled run 19
+
+**Done:** baseline green (384 tests). Creative review: rooms had no payoff and you could not see a room's shape. Dashed room outline (green home, amber incomplete) for the room you stand in or point at (`roomEdges`, 1 test). Robot NPC slice 1 (src/sim/npcs.ts): Bolt the Trader moves into the first valid room (derived from the world, no save change; silent on load, toast + chime when a home is finished, leaves when the room breaks), paces its floor, faces you, says rotating lines in the hint bar, name tag; E or tap opens a 4th workshop tab TRADE with 7 fixed barter rates (rust->metal is worse than a smelter so automation still pays). 15 x 20 trader sprite with walk cycle and blink. Screenshots 35b-trader, 36-trade, 09-mobile-shop (4 tabs fit) reviewed.
+
+**Numbers:** 397 unit tests, e2e all green (new: trader moves in, greeting, E opens TRADE, click swaps 8 rust for 1 metal), bundle 250 kB (86.4 kB gzip).
+
+**Next:** Medic robot in a second valid room (heals at the base, cures), then furniture follow-ups (2-tile bed/table, chairs), then wandering merchant drone.
+
+**Known issues:** trade rows are text only (no item icons); table and bed are 1 tile and read small; DAILY still replaces the world without a confirm; turrets draw 1 power even when idle.
+
