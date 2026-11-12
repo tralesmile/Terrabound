@@ -521,6 +521,26 @@ try {
   await page.screenshot({ path: path.join(out, '22-sky-jet.png') });
   check('V rides the Sky Jet and W flies up', flight.riding && flight.y < jetY0 - 5, JSON.stringify({ jetY0, ...flight }));
   await page.keyboard.press('KeyV');
+  // Hoverbike art check: ride it on the pad and screenshot (sprite map, not rectangles).
+  const bike = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.save.gear.equip.vehicle = 'hoverbike';
+    g.gearCache = null;
+    g.body.x = g.world.padX + 0.5;
+    g.body.y = g.world.padY;
+    g.body.vx = g.body.vy = 0;
+    if (!g.riding) g.toggleRide();
+    return g.vehicle;
+  });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: path.join(out, '22b-hoverbike.png') });
+  check('the hoverbike rides as a sprite', bike === 'hoverbike', String(bike));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    if (g.riding) g.toggleRide();
+    g.save.gear.equip.vehicle = 'sky_jet';
+    g.gearCache = null;
+  });
   // Grappling hook: tool 5, click a ceiling, swing.
   const hookAt = await page.evaluate(() => {
     const g = window.__terrabound.game;

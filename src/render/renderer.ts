@@ -17,7 +17,7 @@ import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
-import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas } from './sprites';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 
 /** Chunk size in tiles for the render cache. */
@@ -337,33 +337,15 @@ export class Renderer {
         ctx.fillRect(px - game.facing * 7 * scale - 1.5 * scale, py - 8 * scale, 3 * scale, (3 + (Math.floor(time * 40) % 3)) * scale);
       }
     }
-    if (veh === 'hoverbike') {
-      ctx.fillStyle = 'rgba(54,224,232,0.35)';
-      ctx.fillRect(px - 10 * scale, py + scale, 20 * scale, 2 * scale);
-      ctx.fillStyle = '#14181f';
-      ctx.fillRect(px - 11 * scale, py - 4 * scale, 22 * scale, 5 * scale);
-      ctx.fillStyle = GEAR.hoverbike.color;
-      ctx.fillRect(px - 10 * scale, py - 3 * scale, 20 * scale, 3 * scale);
-      ctx.fillStyle = GEAR.hoverbike.accent;
-      ctx.fillRect(px + game.facing * 7 * scale - scale, py - 3 * scale, 2 * scale, scale);
-    } else if (veh === 'sky_jet') {
-      ctx.fillStyle = '#14181f';
-      ctx.fillRect(px - 16 * scale, py - 9 * scale, 32 * scale, 6 * scale);
-      ctx.fillStyle = GEAR.sky_jet.color;
-      ctx.fillRect(px - 15 * scale, py - 8 * scale, 30 * scale, 4 * scale);
-      ctx.fillStyle = GEAR.sky_jet.accent;
-      ctx.fillRect(px - 4 * scale, py - 12 * scale, 8 * scale, 3 * scale);
-      ctx.fillRect(px + game.facing * 13 * scale - scale, py - 7 * scale, 2 * scale, 2 * scale);
-      // Nose cone, tail fin and swept wing so it reads as a small plane.
-      const f = game.facing;
-      ctx.fillStyle = GEAR.sky_jet.color;
-      ctx.fillRect(px + f * 15 * scale - (f < 0 ? 3 * scale : 0), py - 7 * scale, 3 * scale, 2 * scale);
-      ctx.fillStyle = '#14181f';
-      ctx.fillRect(px - f * 15 * scale - (f > 0 ? 2 * scale : 0), py - 15 * scale, 2 * scale, 7 * scale);
-      ctx.fillStyle = '#3a70c0';
-      ctx.fillRect(px - 6 * scale, py - 4 * scale, 12 * scale, 2 * scale);
-      ctx.fillStyle = game.jetting ? '#ffcf4a' : '#ff7a3c';
-      ctx.fillRect(px - f * 18 * scale - (f > 0 ? 3 * scale : 0), py - 7 * scale, (3 + (game.jetting ? Math.floor(time * 40) % 3 : 0)) * scale, 2 * scale);
+    if (veh === 'hoverbike' || veh === 'sky_jet') {
+      const vd = VEHICLES[veh];
+      if (veh === 'hoverbike') {
+        // Soft hover field on the ground under the pads.
+        ctx.fillStyle = 'rgba(54,224,232,0.22)';
+        ctx.fillRect(px - 11 * scale, py + 2 * scale, 22 * scale, 2 * scale);
+      }
+      const bob = veh === 'sky_jet' ? Math.round(Math.sin(time * 5)) * 0.5 : 0;
+      drawRows(ctx, vehicleRows(veh, time, game.jetting), px - (vd.w / 2) * scale, py - (vd.top - bob) * scale, scale, game.facing < 0, vd.w);
     }
     // Grappling rope.
     if (game.hook) {

@@ -38,3 +38,27 @@ describe('sprite maps', () => {
     expect(shapes.size).toBe(acts.length);
   });
 });
+
+describe('vehicle sprites', () => {
+  it('fit their width, use known keys and animate', async () => {
+    const { VEHICLES, vehicleRows } = await import('../src/render/sprites');
+    for (const id of ['hoverbike', 'sky_jet'] as const) {
+      const frames = new Set<string>();
+      for (const t of [0, 0.05, 0.1, 0.15]) {
+        for (const boost of [false, true]) {
+          const rows = vehicleRows(id, t, boost);
+          frames.add(rows.join('|'));
+          for (const r of rows) {
+            expect(r.length, `${id} '${r}'`).toBeLessThanOrEqual(VEHICLES[id].w);
+            for (const ch of r) if (ch !== ' ') expect(PAL[ch], `${id} '${ch}'`).toBeDefined();
+          }
+        }
+      }
+      expect(frames.size, id).toBeGreaterThan(1);
+      expect(VEHICLES[id].top).toBeGreaterThan(0);
+    }
+    // Boosting lengthens the jet's exhaust.
+    const flameLen = (rows: string[]): number => rows[7].slice(0, 3).replace(/ /g, '').length;
+    expect(flameLen(vehicleRows('sky_jet', 0, true))).toBeGreaterThan(flameLen(vehicleRows('sky_jet', 0, false)));
+  });
+});

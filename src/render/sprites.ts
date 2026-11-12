@@ -410,6 +410,11 @@ export const PAL: Record<string, string> = {
   m: '#6d4bd0',
   M: '#b48aff',
   w: '#ffffff',
+  a: '#5aa6ff',
+  A: '#2f64b4',
+  n: '#b4dcff',
+  y: '#ffe68a',
+  Y: '#ff7a3c',
 };
 
 export const PLAYER_W = 16;
@@ -516,6 +521,66 @@ export const DRONE_W = 16;
 export function droneRows(act: string, t: number): string[] {
   const rotor = DRONE_ROTORS[Math.floor(Math.max(0, t) * 24) % DRONE_ROTORS.length];
   return [rotor, ...DRONE_HULL, ...(DRONE_TOOLS[act] ?? [])];
+}
+
+/**
+ * Vehicle sprite maps, nose/handlebar facing right (flip for left). Rows are top-down; the
+ * renderer puts row 0 `VEHICLES[id].top` art px above the player's feet.
+ */
+const SKY_JET = [
+  '  oo',
+  '  oAo',
+  '  oaAo           oooooo',
+  '  oaaAo        ooVVVVwVoo',
+  '  oaaaAoooooooooVVVVVVVVVoooo',
+  ' oonnnnnnnnnnnnnnnnnnnnnnnnnnoo',
+  'oLaaaaaaaaaaaaaaaaaaaaaaaaaaaaaoo',
+  'oLaaaaaaaaaaaaaaaaaaaaaaaaaaaaawwo',
+  ' ooAAAAAAAAAAAAAAAAAAAAAAAAAAAAoo',
+  '   ooooAAAAAAAAAAAAAAAAAAAAoooo',
+  '        ooAAAAAAAAAAAAAoo',
+  '          ooooooooooooo',
+];
+const HOVERBIKE = [
+  '                    oo',
+  '                   oLo',
+  '  ooooooooooooooooooLoooo',
+  ' osssssssssssssssssssssbbo',
+  'oSssssssssssssssssssssssso',
+  'oSSSSSSSSSSSSSSSSSSSSSSSo',
+  ' oolllllllllllllllllllloo',
+];
+const HOVER_GLOW = ['    obbbo        obbbo', '     oVo          oVo', '     obo          obo'];
+const JET_FLAME = [
+  ['Y', 'yY'],
+  ['YYy', 'yyYYY'],
+  ['Yy', 'YyyY'],
+];
+
+export type VehicleSpriteId = 'hoverbike' | 'sky_jet';
+export const VEHICLES: Record<VehicleSpriteId, { w: number; top: number }> = {
+  hoverbike: { w: 26, top: 6 },
+  sky_jet: { w: 37, top: 13 },
+};
+
+/**
+ * Rows for a vehicle at time t: hover pads pulse, the jet's exhaust flickers (longer when boosting).
+ * Flame columns sit left of the tail so they flip with the vehicle. Pure.
+ */
+export function vehicleRows(id: VehicleSpriteId, t: number, boost: boolean): string[] {
+  const f = Math.floor(Math.max(0, t) * 20);
+  if (id === 'hoverbike') {
+    const glow = HOVER_GLOW.slice(0, 1 + (f % 3));
+    return [...HOVERBIKE, ...glow];
+  }
+  // Exhaust leaves the nozzle (rows 6 and 7) to the left, in a 3-column margin; boosting uses
+  // the long flame frames.
+  const flame = boost ? JET_FLAME[1 + (f % 2)] : JET_FLAME[0];
+  const flick = boost || f % 2 === 0;
+  return SKY_JET.map((r, i) => {
+    const fl = i === 6 && flick ? flame[0] : i === 7 && flick ? flame[1] : '';
+    return fl.slice(-3).padStart(3) + r;
+  });
 }
 
 export type EnemySpriteKind = 'crawler' | 'flyer';
