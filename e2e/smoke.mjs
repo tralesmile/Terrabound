@@ -781,6 +781,62 @@ try {
   }
   check('N cycles music off, all off, all on', soundStates.join(',') === '--,M-,-m', soundStates.join(','));
 
+  // Settings screen: the HUD cog opens it, the game pauses, steppers change UI size and shake, Esc closes and saves.
+  const cog = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'settings'));
+  const cogCss = await page.evaluate((r) => {
+    const c = document.getElementById('game');
+    const k = c.clientWidth / c.width;
+    return { x: (r.x + r.w / 2) * k, y: (r.y + r.h / 2) * k };
+  }, cog);
+  await holdClick(page, cogCss.x, cogCss.y);
+  await page.waitForTimeout(120);
+  const setA = await page.evaluate(() => {
+    const t = window.__terrabound;
+    return { open: t.ui.settingsOpen, time: t.game.time, rows: t.ui.rects.filter((r) => r.a.k === 'pref').length };
+  });
+  await page.waitForTimeout(300);
+  const pausedT = await page.evaluate(() => window.__terrabound.game.time);
+  const clickPref = async (key, d) => {
+    const r = await page.evaluate(([key, d]) => window.__terrabound.ui.rects.find((r) => r.a.k === 'pref' && r.a.key === key && r.a.d === d), [key, d]);
+    if (!r) return false;
+    const c = await page.evaluate((r) => {
+      const el = document.getElementById('game');
+      const k = el.clientWidth / el.width;
+      return { x: (r.x + r.w / 2) * k, y: (r.y + r.h / 2) * k };
+    }, r);
+    await holdClick(page, c.x, c.y);
+    await page.waitForTimeout(80);
+    return true;
+  };
+  await clickPref('uiSize', 1);
+  await clickPref('shake', -1);
+  await clickPref('shake', -1);
+  const setB = await page.evaluate(() => {
+    const t = window.__terrabound;
+    return { scale: t.ui.uiScale, shake: t.renderer.shakeMul, prefs: t.game.prefs };
+  });
+  await page.screenshot({ path: path.join(out, '44-settings.png') });
+  check('cog opens settings with its steppers (maxed ones disabled) and pauses the game', setA.open && setA.rows === 8 && Math.abs(pausedT - setA.time) < 1e-6, JSON.stringify({ ...setA, pausedT }));
+  check('settings steppers raise UI size and turn screen shake off', setB.scale > 1 && setB.shake === 0 && setB.prefs.uiSize === 1 && setB.prefs.shake === 0, JSON.stringify(setB));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: path.join(out, '44b-large-ui.png') });
+  const setC = await page.evaluate(() => {
+    const t = window.__terrabound;
+    const raw = JSON.parse(localStorage.getItem(Object.keys(localStorage).find((k) => k.includes('terrabound')) ?? '') || '{}');
+    return { open: t.ui.settingsOpen, saved: raw.settings ? raw.settings.uiSize : null };
+  });
+  check('Esc closes settings and the choice is saved', !setC.open && setC.saved === 1, JSON.stringify(setC));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.stepPref('uiSize', -1);
+    g.stepPref('shake', 1);
+    g.stepPref('shake', 1);
+  });
+  await page.keyboard.press('KeyO');
+  await page.keyboard.press('KeyO');
+  await page.waitForTimeout(100);
+
   // Weather: a dust storm and a meteor shower render without errors.
   for (const kind of ['dust', 'meteors']) {
     const t = await page.evaluate((k) => {
@@ -1998,6 +2054,27 @@ try {
   });
   check('drone rule panel fits a phone with three rules', !!dronesBtn && mpanel.open && mpanel.n === 3 * 3 + 3 && mpanel.inside, JSON.stringify(mpanel));
   await page.evaluate(() => { window.__terrabound.ui.dronesOpen = false; });
+  // Settings at the HUGE size still fits a phone (every stepper on screen).
+  const msettings = await page.evaluate(async () => {
+    const t = window.__terrabound;
+    t.game.stepPref('uiSize', 1);
+    t.game.stepPref('uiSize', 1);
+    t.ui.uiScale = 1.36;
+    t.ui.settingsOpen = true;
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const c = document.getElementById('game');
+    const rs = t.ui.rects.filter((r) => r.a.k === 'pref' || r.a.k === 'mute' || r.a.k === 'settings');
+    return { n: rs.length, inside: rs.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= c.width && r.y + r.h <= c.height) };
+  });
+  await page.screenshot({ path: path.join(out, '44c-mobile-settings.png') });
+  check('settings at HUGE size fits a phone', msettings.n >= 9 && msettings.inside, JSON.stringify(msettings));
+  await page.evaluate(() => {
+    const t = window.__terrabound;
+    t.ui.settingsOpen = false;
+    t.game.stepPref('uiSize', -1);
+    t.game.stepPref('uiSize', -1);
+    t.ui.uiScale = 1;
+  });
   check('no console or page errors on mobile', merrors.length === 0, merrors.join(' | '));
   await mctx.close();
   const gctx = await browser.newContext({ viewport: { width: 1100, height: 1040 } });

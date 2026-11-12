@@ -1,11 +1,26 @@
 import type { GameEvent } from '../sim/game';
 import { BEATS_PER_BAR, composeBar, tempo, type Mood } from './composer';
 
+const MASTER_GAIN = 0.44;
+
 /** Synthesised sound effects: no audio files to ship, license or load. Starts only after a user gesture (browser autoplay policy). */
 export class Sfx {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
+  /** Effects bus (tones and noise) under master; music has its own bus. */
+  private sfxBus: GainNode | null = null;
   muted = false;
+  /** Bus gains 0..1 from the settings screen (see sim/settings.ts audioGains). */
+  private vol = { master: 0.8, music: 0.7, sfx: 0.8 };
+
+  /** Apply settings-screen volumes; safe before unlock (stored and applied when the context starts). */
+  setVolumes(v: { master: number; music: number; sfx: number }): void {
+    this.vol = { ...v };
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this.master?.gain.setTargetAtTime(MASTER_GAIN * v.master, now, 0.05);
+    this.sfxBus?.gain.setTargetAtTime(v.sfx, now, 0.05);
+  }
   private noiseBuf: AudioBuffer | null = null;
   private last = new Map<string, number>();
 
@@ -19,8 +34,11 @@ export class Sfx {
       if (!Ctor) return;
       this.ctx = new Ctor();
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.35;
+      this.master.gain.value = MASTER_GAIN * this.vol.master;
       this.master.connect(this.ctx.destination);
+      this.sfxBus = this.ctx.createGain();
+      this.sfxBus.gain.value = this.vol.sfx;
+      this.sfxBus.connect(this.master);
       const len = this.ctx.sampleRate * 0.2;
       this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
       const d = this.noiseBuf.getChannelData(0);
@@ -28,6 +46,11 @@ export class Sfx {
     } catch {
       this.ctx = null;
     }
+  }
+
+  /** Short blip so the player hears a new effects volume. */
+  preview(): void {
+    this.tone(660, 0.09, 'square', 0.08, 990);
   }
 
   private tone(freq: number, dur: number, type: OscillatorType, vol: number, slideTo?: number, delay = 0): void {
@@ -40,7 +63,7 @@ export class Sfx {
     if (slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), t0 + dur);
     g.gain.setValueAtTime(vol, t0);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    o.connect(g).connect(this.master);
+    o.connect(g).connect(this.sfxBus ?? this.master);
     o.start(t0);
     o.stop(t0 + dur + 0.02);
   }
@@ -53,7 +76,7 @@ export class Sfx {
     s.buffer = this.noiseBuf;
     g.gain.setValueAtTime(vol, t0);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    s.connect(g).connect(this.master);
+    s.connect(g).connect(this.sfxBus ?? this.master);
     s.start(t0);
     s.stop(t0 + dur + 0.02);
   }
@@ -75,7 +98,7 @@ export class Sfx {
     }
     const on = this.musicOn && !this.muted;
     const now = this.ctx.currentTime;
-    this.musicGain.gain.setTargetAtTime(on ? 0.8 : 0, now, 0.4);
+    this.musicGain.gain.setTargetAtTime(on ? 0.8 * this.vol.music : 0, now, 0.4);
     if (!on) {
       this.nextBarAt = 0;
       return;

@@ -1,3 +1,4 @@
+import { audioGains, shakeMul, uiScale } from './sim/settings';
 import { CROPS } from './sim/farming';
 import { drawDecorGallery } from './render/decor';
 import { dailyCode } from './sim/daily';
@@ -68,6 +69,14 @@ function boot(): void {
   sfx.muted = game.muted;
   sfx.musicOn = game.musicOn;
   const renderer = new Renderer(ctx);
+  /** Push settings-screen prefs into audio, renderer and UI. */
+  const applyPrefs = (): void => {
+    const p = game.prefs;
+    sfx.setVolumes(audioGains(p, false));
+    renderer.shakeMul = shakeMul(p);
+    ui.uiScale = uiScale(p);
+  };
+  applyPrefs();
   ui.touch = window.matchMedia?.('(pointer: coarse)').matches === true || 'ontouchstart' in window;
   const input = new Input(canvas, ui, renderer, () => dpr);
 
@@ -125,9 +134,27 @@ function boot(): void {
         ui.screen = 'play';
         break;
       case 'shop':
-        if (game.isAtBase()) ui.shopOpen = true;
+        if (game.isAtBase() && !ui.settingsOpen) ui.shopOpen = true;
+        break;
+      case 'settings':
+        ui.settingsOpen = !ui.settingsOpen;
+        if (ui.settingsOpen) {
+          ui.mapOpen = false;
+          ui.shopOpen = false;
+          ui.invOpen = false;
+          ui.dronesOpen = false;
+        } else saveNow();
+        applyPrefs();
+        break;
+      case 'pref':
+        game.stepPref(a.key, a.d);
+        applyPrefs();
+        if (a.key === 'sfxVol' || a.key === 'master') sfx.preview();
         break;
       case 'close':
+        if (ui.settingsOpen) saveNow();
+        ui.settingsOpen = false;
+        applyPrefs();
         ui.shopOpen = false;
         ui.mapOpen = false;
         ui.invOpen = false;
@@ -641,7 +668,7 @@ function boot(): void {
         let steps = 0;
         while (acc >= FIXED_DT && steps < 6) {
           // The map pauses the dive (single player, no reason to punish looking).
-          if (!ui.mapOpen) game.step(FIXED_DT, ui.shopOpen || ui.invOpen || ui.dronesOpen ? NO_CONTROLS : input.read());
+          if (!ui.mapOpen && !ui.settingsOpen) game.step(FIXED_DT, ui.shopOpen || ui.invOpen || ui.dronesOpen ? NO_CONTROLS : input.read());
           acc -= FIXED_DT;
           steps++;
         }

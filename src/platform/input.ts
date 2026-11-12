@@ -40,6 +40,7 @@ export class Input {
       else if (e.code === 'KeyR') this.onAction({ k: 'recall' });
       else if (e.code === 'KeyH') this.onAction({ k: 'heal' });
       else if (e.code === 'Escape') this.onAction({ k: 'close' });
+      else if (e.code === 'KeyO') this.onAction({ k: 'settings' });
       else if (e.code === 'KeyQ') this.onAction({ k: 'tool' });
       else if (e.code === 'Digit1') this.onAction({ k: 'settool', t: 'drill' });
       else if (e.code === 'Digit2') this.onAction({ k: 'settool', t: 'blade' });
@@ -58,7 +59,7 @@ export class Input {
       } else if (e.code === 'KeyE') this.onAction({ k: 'interact' });
       else if (e.code === 'Digit0') this.onAction({ k: 'sel', i: 6 });
       else if (e.code === 'Minus') this.onAction({ k: 'sel', i: 7 });
-      else if (this.ui.screen === 'title') this.onAction({ k: 'start' });
+      else if (this.ui.screen === 'title' && !this.ui.settingsOpen) this.onAction({ k: 'start' });
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => {
@@ -91,6 +92,12 @@ export class Input {
       /* not all browsers allow capture on synthetic events */
     }
     if (this.ui.screen === 'title') {
+      // The title's cog and the settings panel take taps; anywhere else starts the game.
+      const t = this.ui.hit(x, y);
+      if (this.ui.settingsOpen || t?.k === 'settings') {
+        if (t) this.onAction(t);
+        return;
+      }
       this.onAction({ k: 'start' });
       return;
     }

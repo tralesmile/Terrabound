@@ -40,7 +40,7 @@ export type DecalKind = 'bone' | 'pipe' | 'pebbles' | 'skull';
 export function buriedDecal(tx: number, ty: number, depth: number): DecalKind | null {
   if (depth < 2 || depth > 22) return null;
   const h = hash2(tx, ty, 9137);
-  if (h > 0.06) return null;
+  if (h > 0.045) return null;
   const k = hash2(ty, tx, 9139);
   if (k < 0.35) return 'pebbles';
   if (k < 0.65) return 'bone';

@@ -1,3 +1,4 @@
+import { PREFS, prefValueLabel, type PrefKey } from '../sim/settings';
 import { recordLine } from '../sim/records';
 import type { Game, Tool } from '../sim/game';
 import { MAP_ZOOMS, MapView } from './map';
@@ -22,12 +23,20 @@ import { MODS, MOD_IDS, type ModId } from '../sim/mods';
 import { RESEARCH, RESEARCH_IDS, type ResearchId } from '../sim/research';
 import type { Trade } from '../sim/npcs';
 
+/** Base UI unit in canvas px for a screen size, times the settings-screen UI scale. */
+export function uiUnit(w: number, h: number, scale = 1): number {
+  const base = Math.max(11, Math.min(20, Math.round(Math.min(w, h) / 26)));
+  return Math.round(base * scale);
+}
+
 export type UiAction =
   | { k: 'start' }
   | { k: 'shop' }
   | { k: 'close' }
   | { k: 'mode' }
   | { k: 'mute' }
+  | { k: 'settings' }
+  | { k: 'pref'; key: PrefKey; d: number }
   | { k: 'buy'; id: string }
   | { k: 'craft'; id: string }
   | { k: 'trade'; id: string }
@@ -158,6 +167,10 @@ export class UI {
   /** Drone panel (roles and IF/THEN rules per bay) and which bay it shows. */
   dronesOpen = false;
   bayIdx = 0;
+  /** Settings screen (pauses the game like the map). */
+  settingsOpen = false;
+  /** UI size multiplier from the settings screen (uiScale in sim/settings.ts). */
+  uiScale = 1;
   /** Workshop tab: upgrades or Fabricator recipes (keeps the panel on screen however many rows exist). */
   shopTab: ShopTab = 'upgrades';
   /** Rows that fit on screen (set each frame by drawShop). */
@@ -214,7 +227,7 @@ export class UI {
 
   /** True when the pointer is over interactive UI (so the world should not dig underneath). */
   blocks(x: number, y: number): boolean {
-    return this.hit(x, y) !== null || this.screen === 'title' || this.shopOpen || this.dronesOpen;
+    return this.hit(x, y) !== null || this.screen === 'title' || this.shopOpen || this.dronesOpen || this.settingsOpen;
   }
 
   private text(ctx: CanvasRenderingContext2D, s: string, x: number, y: number, size: number, color = '#fff', align: CanvasTextAlign = 'left', maxW = 0): void {
@@ -243,6 +256,30 @@ export class UI {
     if (enabled) this.rects.push({ x, y, w, h, a });
   }
 
+  /** Square settings button with a drawn cog (no icon font needed). */
+  private gearButton(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
+    this.button(ctx, x, y, w, h, '', { k: 'settings' }, 1);
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const r = Math.min(w, h) * 0.26;
+    ctx.fillStyle = '#e6ecf8';
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      ctx.save();
+      ctx.translate(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+      ctx.rotate(a);
+      ctx.fillRect(-r * 0.28, -r * 0.24, r * 0.56, r * 0.48);
+      ctx.restore();
+    }
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1f6f78';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.42, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   private bar(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, frac: number, color: string, label: string, u: number): void {
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillRect(x, y, w, h);
@@ -253,7 +290,13 @@ export class UI {
 
   draw(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, time: number): void {
     this.rects = [];
-    const u = Math.max(11, Math.min(20, Math.round(Math.min(w, h) / 26)));
+    const u = uiUnit(w, h, this.uiScale);
+    if (this.settingsOpen) {
+      if (this.screen === 'title') this.drawTitle(ctx, game, w, h, u, time);
+      this.rects = [];
+      this.drawSettings(ctx, game, w, h, u);
+      return;
+    }
     if (this.screen === 'title') {
       this.drawTitle(ctx, game, w, h, u, time);
       return;
@@ -284,6 +327,57 @@ export class UI {
     else if (game.weather !== 'clear') this.text(ctx, WEATHER[game.weather].name.toUpperCase(), w / 2, u * 4.6, Math.round(u * 0.8), game.weather === 'eclipse' ? '#ff5aff' : '#ffcf4a', 'center');
     if (game.chestOpen) this.drawChest(ctx, game, w, h, u);
     if (this.dronesOpen) this.drawDrones(ctx, game, w, h, u);
+  }
+
+  /** Settings screen: one row per option with - and + steppers, plus the sound toggle. */
+  private drawSettings(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number): void {
+    ctx.fillStyle = 'rgba(4,4,10,0.6)';
+    ctx.fillRect(0, 0, w, h);
+    const prefs = game.prefs;
+    const rowH = u * 2.4;
+    const gap = u * 0.5;
+    const pw = Math.min(w - u * 2, u * 30);
+    // Narrow screens (phones, big UI): label on its own line above the steppers.
+    const stacked = pw < u * 26;
+    const labelH = stacked ? u * 1.5 : 0;
+    const ph = u * 4.4 + (PREFS.length + 1) * (rowH + gap + labelH) + u * 1.6;
+    const px = (w - pw) / 2;
+    const py = Math.max(u * 0.5, (h - ph) / 2);
+    this.panel(ctx, px, py, pw, ph);
+    this.text(ctx, 'SETTINGS', px + u, py + u * 1.5, Math.round(u * 1.1), '#ffcf4a');
+    this.button(ctx, px + pw - u * 5.5, py + u * 0.4, u * 5, u * 2.1, 'CLOSE', { k: 'settings' }, u * 0.8);
+    let y = py + u * 3.4;
+    const stepW = u * 2.6;
+    const valW = u * 6;
+    const xPlus = px + pw - u - stepW;
+    const xVal = xPlus - gap - valW;
+    const xMinus = stacked ? px + u : xVal - gap - stepW;
+    const xValS = stacked ? xMinus + stepW + gap : xVal;
+    const valWS = stacked ? xPlus - gap - xValS : valW;
+    for (const p of PREFS) {
+      const v = prefs[p.key];
+      if (stacked) {
+        this.text(ctx, p.label, px + u, y + labelH * 0.45, Math.round(u * 0.8), '#c9d0e4', 'left', pw - u * 2);
+        y += labelH;
+      } else this.text(ctx, p.label, px + u, y + rowH / 2, Math.round(u * 0.8), '#c9d0e4', 'left', xMinus - px - u * 1.5);
+      this.button(ctx, xMinus, y, stepW, rowH, '-', { k: 'pref', key: p.key, d: -1 }, u, { enabled: v > 0, color: '#2a3550' });
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(xValS, y, valWS, rowH);
+      if (!p.names) {
+        ctx.fillStyle = '#1f6f78';
+        ctx.fillRect(xValS + 2, y + rowH - 6, ((valWS - 4) * v) / p.max, 4);
+      }
+      this.text(ctx, prefValueLabel(prefs, p.key), xValS + valWS / 2, y + rowH / 2 - 1, Math.round(u * 0.8), '#ffffff', 'center', valWS - 4);
+      this.button(ctx, xPlus, y, stepW, rowH, '+', { k: 'pref', key: p.key, d: 1 }, u, { enabled: v < p.max, color: '#2a3550' });
+      y += rowH + gap;
+    }
+    if (stacked) {
+      this.text(ctx, 'SOUND', px + u, y + labelH * 0.45, Math.round(u * 0.8), '#c9d0e4');
+      y += labelH;
+    } else this.text(ctx, 'SOUND', px + u, y + rowH / 2, Math.round(u * 0.8), '#c9d0e4');
+    this.button(ctx, xMinus, y, xPlus + stepW - xMinus, rowH, game.muted ? 'ALL OFF' : game.musicOn ? 'MUSIC + EFFECTS' : 'EFFECTS ONLY', { k: 'mute' }, u * 0.8, { color: '#2a3550' });
+    y += rowH + gap;
+    this.text(ctx, this.touch ? 'Settings save on this device.' : 'O or Esc closes. Settings save on this device.', px + u, y + u * 0.6, Math.round(u * 0.68), '#8a90a2', 'left', pw - u * 2);
   }
 
   /** Raid warning: a countdown under the HUD and a pulsing arrow on the screen edge the wave comes from. */
@@ -615,6 +709,7 @@ export class UI {
     const bw = Math.min(w * 0.7, u * 16);
     const bh = u * 3;
     this.button(ctx, w / 2 - bw / 2, h * 0.55, bw, bh, this.touch ? 'TAP TO START' : 'CLICK OR PRESS ANY KEY', { k: 'start' }, u, { pulse: Math.floor(time * 2) % 2 === 0 });
+    this.gearButton(ctx, w - u * 3.6, u, u * 2.6, u * 2.6);
     const best = game.stats.deepest;
     if (best > 0) this.text(ctx, `Best depth ${best}m   Deaths ${game.stats.deaths}`, w / 2, h * 0.55 + bh + u * 1.6, Math.round(u * 0.9), '#c9d0e4', 'center');
     if (!this.touch) this.text(ctx, 'A/D move  W/Space jump  Hold click: dig  Right click: build  B: workshop  M: map  R: beam home  H: heal', w / 2, h - u * 1.6, Math.round(u * 0.7), '#8a90a2', 'center', w - u * 2);
@@ -677,7 +772,9 @@ export class UI {
     const bhgt = u * 2.4;
     let by = u;
     const bx = w - bwid - u;
+    const gw = bhgt;
     this.button(ctx, bx, by, bwid, bhgt, game.muted ? 'SOUND OFF' : game.musicOn ? 'SOUND ON' : 'MUSIC OFF', { k: 'mute' }, u * 0.8);
+    this.gearButton(ctx, bx - gw - u * 0.5, by, gw, bhgt);
     by += bhgt + u * 0.5;
     this.button(ctx, bx, by, bwid, bhgt, 'MAP', { k: 'map' }, u * 0.9);
     by += bhgt + u * 0.5;

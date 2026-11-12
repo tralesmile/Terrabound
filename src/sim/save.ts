@@ -1,3 +1,4 @@
+import { cleanPrefs, DEFAULT_PREFS, type Prefs } from './settings';
 import { ITEM_IDS, type Inventory } from './tiles';
 import { legacyWalls, sanitizeBase, sanitizeWalls, type BaseTiles } from './base';
 import { UPGRADES, type Levels } from './upgrades';
@@ -11,7 +12,7 @@ import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 18;
+export const SAVE_VERSION = 19;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -26,8 +27,8 @@ export interface SaveData {
   upgrades: Levels;
   /** v14 adds raids (night raids repelled). */
   stats: { deepest: number; deaths: number; playTime: number; banked: number; raids: number };
-  /** v11 adds music (background music on/off, default on); v14 adds raids (night base raids, default on). */
-  settings: { muted: boolean; music: boolean; raids: boolean };
+  /** v11 adds music (background music on/off, default on); v14 adds raids (night base raids, default on); v19 adds the settings screen prefs (volumes, shake, UI size). */
+  settings: { muted: boolean; music: boolean; raids: boolean } & Prefs;
   /** v2: persistent base tiles above the landing pad (see base.ts). */
   base: BaseTiles;
   /** v3: player-built back walls in the base strip (wall-layer ids). */
@@ -67,7 +68,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     carried: {},
     upgrades: {},
     stats: { deepest: 0, deaths: 0, playTime: 0, banked: 0, raids: 0 },
-    settings: { muted: false, music: true, raids: true },
+    settings: { muted: false, music: true, raids: true, ...DEFAULT_PREFS },
     base: [],
     walls: [],
     codex: [],
@@ -138,7 +139,8 @@ export function parseSave(raw: string | null | undefined): SaveData {
       raids: Math.floor(num(st.raids, 0, MAX_COUNT, 0)),
     },
     // v10 -> v11: music defaults to on. v13 -> v14: raids default to on (opt-out in the workshop).
-    settings: { muted: se.muted === true, music: se.music !== false, raids: se.raids !== false },
+    // v18 -> v19: prefs missing from old saves take DEFAULT_PREFS; out-of-range values are clamped.
+    settings: { muted: se.muted === true, music: se.music !== false, raids: se.raids !== false, ...cleanPrefs(se) },
     // v1 saves have no base field: sanitizeBase(undefined) yields an empty base (migration v1 -> v2).
     base: sanitizeBase(r.base),
     // v2 -> v3: back walls moved from base tiles to their own layer.

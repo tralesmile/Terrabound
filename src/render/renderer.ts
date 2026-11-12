@@ -76,6 +76,8 @@ export interface Aim {
 
 export class Renderer {
   private atlas = buildAtlas();
+  /** Screen shake multiplier from the settings screen (0 off, 0.45 low, 1 full). */
+  shakeMul = 1;
   private moss = buildMoss();
   private wallAtlas = buildWallAtlas();
   private decor = buildDecor();
@@ -153,8 +155,8 @@ export class Renderer {
     const ts = TS * scale;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
-    const shakeX = (Math.random() - 0.5) * fx.shake * 6 * scale;
-    const shakeY = (Math.random() - 0.5) * fx.shake * 6 * scale;
+    const shakeX = (Math.random() - 0.5) * fx.shake * this.shakeMul * 6 * scale;
+    const shakeY = (Math.random() - 0.5) * fx.shake * this.shakeMul * 6 * scale;
     const world = game.world;
 
     // Underground base colour, then the sky above the surface.
