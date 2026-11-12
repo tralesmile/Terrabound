@@ -54,8 +54,16 @@ describe('settings screen prefs', () => {
     const v18 = { ...defaultSave(), v: 18, settings: { muted: true, music: false, raids: false } };
     const s = parseSave(JSON.stringify(v18));
     expect(s.v).toBe(SAVE_VERSION);
-    expect(SAVE_VERSION).toBe(19);
+    expect(SAVE_VERSION).toBe(20);
     expect(s.settings).toEqual({ muted: true, music: false, raids: false, ...DEFAULT_PREFS });
+  });
+
+  it('a v19 save keeps its prefs and gets ore marks off, flashes full', () => {
+    const v19 = { ...defaultSave(), v: 19, settings: { muted: false, music: true, raids: true, master: 3, musicVol: 4, sfxVol: 5, shake: 1, uiSize: 2 } };
+    const s = parseSave(JSON.stringify(v19));
+    expect(s.settings).toEqual({ muted: false, music: true, raids: true, master: 3, musicVol: 4, sfxVol: 5, shake: 1, uiSize: 2, oreMarks: 0, flashes: 0 });
+    expect(prefValueLabel(s.settings, 'oreMarks')).toBe('OFF');
+    expect(prefValueLabel({ ...s.settings, flashes: 1 }, 'flashes')).toBe('REDUCED');
   });
 
   it('prefs round-trip through a save and junk values are clamped', () => {

@@ -12,7 +12,7 @@ import { ENEMIES } from '../sim/enemies';
 import { hash2 } from '../sim/rng';
 import { T } from '../sim/tiles';
 import { BODY_H } from '../sim/physics';
-import { HIT_SQUASH_TIME, hitSquash, hurtSquash, hurtVignette, magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx } from './fx';
+import { HIT_SQUASH_TIME, hitSquash, hurtSquash, hurtVignette, softFlash, magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx } from './fx';
 import type { PlayerGear } from './sprites';
 import { ICON, drawIcon } from './icons';
 import { GEAR, type RangedKind } from '../sim/gear';
@@ -26,6 +26,7 @@ import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
 import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
+import { drawGlyph, hasGlyph } from './glyphs';
 
 /** Chunk size in tiles for the render cache. */
 /** Per-robot colours: sprite remap, name tag, blanket. */
@@ -78,6 +79,16 @@ export class Renderer {
   private atlas = buildAtlas();
   /** Screen shake multiplier from the settings screen (0 off, 0.45 low, 1 full). */
   shakeMul = 1;
+  /** Settings: shape marks on ores and hazards (colour-blind assist). Set through setOreMarks. */
+  oreMarks = false;
+  /** Settings: no strobing (hurt blink, enemy hit flash, boss blink) and a softer red vignette. */
+  reduceFlash = false;
+
+  setOreMarks(on: boolean): void {
+    if (on === this.oreMarks) return;
+    this.oreMarks = on;
+    this.chunks.clear();
+  }
   private moss = buildMoss();
   private wallAtlas = buildWallAtlas();
   private decor = buildDecor();
@@ -306,7 +317,7 @@ export class Renderer {
         ctx.save();
         ctx.translate(ex, ey);
         ctx.scale(sq.sx, sq.sy);
-        drawEnemySprite(ctx, e.kind, 0, 0, scale * ENEMY_SCALE, e.dir, time, e.iframes > HIT_SQUASH_TIME * 0.4, !!e.raid);
+        drawEnemySprite(ctx, e.kind, 0, 0, scale * ENEMY_SCALE, e.dir, time, !this.reduceFlash && e.iframes > HIT_SQUASH_TIME * 0.4, !!e.raid);
         ctx.restore();
       } else drawEnemySprite(ctx, e.kind, ex, ey, scale * ENEMY_SCALE, e.dir, time, false, !!e.raid);
       if (e.raid) {
@@ -436,7 +447,7 @@ export class Renderer {
       airborne: !b.onGround,
       vy: b.vy,
       climbing: onLadder(game.world, b) && !b.onGround,
-      hurt: game.iframes > 0 && Math.floor(time * 20) % 2 === 0,
+      hurt: game.iframes > 0 && (this.reduceFlash ? game.iframes > 0.3 : Math.floor(time * 20) % 2 === 0),
       swing: game.swing > 0,
       tier: game.upgrades.armor ?? 0,
       gear: playerGear(game),
@@ -565,7 +576,7 @@ export class Renderer {
 
   /** Red screen-edge vignette: flashes on a hit, beats slowly while HP is low. */
   private drawHurt(ctx: CanvasRenderingContext2D, game: Game, fx: Fx, time: number): void {
-    const a = hurtVignette(fx.hurtLeft, fx.hurtPower, game.hp / Math.max(1, game.derived.maxHp), time);
+    const a = softFlash(hurtVignette(fx.hurtLeft, fx.hurtPower, game.hp / Math.max(1, game.derived.maxHp), time), this.reduceFlash);
     this.lastHurtAlpha = a;
     if (a <= 0.005) return;
     const r = Math.hypot(this.w, this.h) / 2;
@@ -709,6 +720,8 @@ export class Renderer {
         ctx.fillStyle = magma ? '#ffd27a' : acid ? '#c8ff8a' : '#9fd8ff';
         ctx.fillRect(dx, dy, ts, Math.max(1, ts / 8));
         if ((tx * 7) % 5 === 0) ctx.fillRect(dx + ts / 4, dy + ts / 4, ts / 8, ts / 16);
+        // Colour-blind assist: a warning mark on every third surface cell of acid and magma.
+        if (this.oreMarks && !(t === T.WATER) && tx % 3 === 0) drawGlyph(ctx, t, dx, dy, ts);
       }
       return;
     }
@@ -789,6 +802,7 @@ export class Renderer {
     if (mask !== 0) this.drawBack(ctx, world, tx, ty, dx, dy, ts);
     ctx.drawImage(this.atlas, atlasCol(v, mask) * TS, t * TS, TS, TS, dx, dy, ts, ts);
     if (hasStrata(t) && !world.edits.has(ty * world.w + tx)) this.drawStrata(ctx, tx, ty - world.surface[tx], ty, dx, dy, ts, mask);
+    if (this.oreMarks && hasGlyph(t)) drawGlyph(ctx, t, dx, dy, ts);
     if (mask & EDGE_N && ty <= world.surface[tx]) {
       if (growsMoss(t) && world.biome[tx] !== B.ASH) ctx.drawImage(this.moss, v * TS, 0, TS, MOSS_H, dx, dy, ts, MOSS_H * scale);
       else if (growsSnow(t)) ctx.drawImage(this.decor.snow, v * TS, 0, TS, SNOW_H, dx, dy, ts, SNOW_H * scale);
@@ -1545,7 +1559,7 @@ export class Renderer {
     const by = this.sy(bs.y, shakeY);
     const h = d.h * ts;
     const warn = bs.attack !== null && bs.at < 0;
-    const flash = bs.iframes > 0 || (warn && Math.floor(time * 12) % 2 === 0);
+    const flash = this.reduceFlash ? warn : bs.iframes > 0 || (warn && Math.floor(time * 12) % 2 === 0);
     const lift = !d.flying && bs.attack === 'slam' && bs.at < 0 ? Math.round(-bs.at * 10) : 0;
     const reach = bs.attack === 'charge' && bs.at >= 0 ? 8 : 0;
     drawBossArt(ctx, bs.id, cx, by, u, {

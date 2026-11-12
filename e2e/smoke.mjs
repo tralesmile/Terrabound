@@ -816,7 +816,7 @@ try {
     return { scale: t.ui.uiScale, shake: t.renderer.shakeMul, prefs: t.game.prefs };
   });
   await page.screenshot({ path: path.join(out, '44-settings.png') });
-  check('cog opens settings with its steppers (maxed ones disabled) and pauses the game', setA.open && setA.rows === 8 && Math.abs(pausedT - setA.time) < 1e-6, JSON.stringify({ ...setA, pausedT }));
+  check('cog opens settings with its steppers (maxed ones disabled) and pauses the game', setA.open && setA.rows === 10 && Math.abs(pausedT - setA.time) < 1e-6, JSON.stringify({ ...setA, pausedT }));
   check('settings steppers raise UI size and turn screen shake off', setB.scale > 1 && setB.shake === 0 && setB.prefs.uiSize === 1 && setB.prefs.shake === 0, JSON.stringify(setB));
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
@@ -836,6 +836,43 @@ try {
   await page.keyboard.press('KeyO');
   await page.keyboard.press('KeyO');
   await page.waitForTimeout(100);
+
+  // Settings slice 2: ORE AND HAZARD MARKS draws shape marks on ores; FLASHES REDUCED turns off strobing.
+  {
+    await page.keyboard.press('KeyO');
+    await page.waitForTimeout(100);
+    await clickPref('oreMarks', 1);
+    await clickPref('flashes', 1);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(100);
+    const saved = await page.evaluate(() => {
+      const t = window.__terrabound;
+      const g = t.game;
+      const bx = Math.floor(g.body.x);
+      const by = Math.floor(g.body.y);
+      const ores = [3, 4, 34, 36, 38, 3, 4, 34, 36, 38];
+      const keep = [];
+      for (let i = 0; i < ores.length; i++) for (let dy = 1; dy <= 2; dy++) {
+        const x = bx - 5 + i;
+        keep.push([x, by + dy, g.world.get(x, by + dy)]);
+        g.world.set(x, by + dy, ores[i]);
+      }
+      return { keep, marks: t.renderer.oreMarks, reduce: t.renderer.reduceFlash };
+    });
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: path.join(out, '45-ore-marks.png') });
+    check('settings turn on ore marks and reduced flashes', saved.marks === true && saved.reduce === true, JSON.stringify({ marks: saved.marks, reduce: saved.reduce }));
+    await page.evaluate((keep) => {
+      const t = window.__terrabound;
+      for (const [x, y, v] of keep) t.game.world.set(x, y, v);
+      t.game.stepPref('oreMarks', -1);
+      t.game.stepPref('flashes', -1);
+    }, saved.keep);
+    await page.keyboard.press('KeyO');
+    await page.keyboard.press('KeyO');
+    await page.waitForTimeout(100);
+    check('ore marks and flashes switch back off', await page.evaluate(() => !window.__terrabound.renderer.oreMarks && !window.__terrabound.renderer.reduceFlash));
+  }
 
   // Weather: a dust storm and a meteor shower render without errors.
   for (const kind of ['dust', 'meteors']) {
@@ -2085,7 +2122,7 @@ try {
     return { n: rs.length, inside: rs.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= c.width && r.y + r.h <= c.height) };
   });
   await page.screenshot({ path: path.join(out, '44c-mobile-settings.png') });
-  check('settings at HUGE size fits a phone', msettings.n >= 9 && msettings.inside, JSON.stringify(msettings));
+  check('settings at HUGE size fits a phone', msettings.n >= 12 && msettings.inside, JSON.stringify(msettings));
   await page.evaluate(() => {
     const t = window.__terrabound;
     t.ui.settingsOpen = false;

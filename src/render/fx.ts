@@ -99,6 +99,13 @@ export function hurtVignette(left: number, power: number, hpFrac: number, time: 
   return Math.min(0.6, Math.max(flash, beat));
 }
 
+/** Reduce-flashes cap for full-screen flashes (hurt vignette): never above 0.22 alpha. */
+export const SOFT_FLASH_MAX = 0.22;
+
+export function softFlash(alpha: number, reduce: boolean): number {
+  return reduce ? Math.min(SOFT_FLASH_MAX, alpha * 0.5) : alpha;
+}
+
 /** Player recoil on a hit: squeezed thin and tall for a beat (opposite of the landing squash). */
 export function hurtSquash(left: number): { sx: number; sy: number } {
   if (left <= 0) return { sx: 1, sy: 1 };

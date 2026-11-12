@@ -1,4 +1,4 @@
-/** Player options (settings screen): volumes, screen shake, UI size. Pure data + helpers, saved in SaveData.settings. */
+/** Player options (settings screen): volumes, screen shake, UI size, ore marks, reduced flashes. Pure data + helpers, saved in SaveData.settings. */
 
 export interface Prefs {
   /** 0..10 each. */
@@ -9,11 +9,15 @@ export interface Prefs {
   shake: number;
   /** 0 normal, 1 large, 2 huge. */
   uiSize: number;
+  /** 0 off, 1 on: shape marks on ores and hazards (colour-blind assist). */
+  oreMarks: number;
+  /** 0 full, 1 reduced: no strobing hit flashes, softer red vignette. */
+  flashes: number;
 }
 
 export type PrefKey = keyof Prefs;
 
-export const DEFAULT_PREFS: Prefs = { master: 8, musicVol: 7, sfxVol: 8, shake: 2, uiSize: 0 };
+export const DEFAULT_PREFS: Prefs = { master: 8, musicVol: 7, sfxVol: 8, shake: 2, uiSize: 0, oreMarks: 0, flashes: 0 };
 
 interface PrefDef {
   key: PrefKey;
@@ -29,6 +33,8 @@ export const PREFS: readonly PrefDef[] = [
   { key: 'sfxVol', label: 'EFFECTS', max: 10 },
   { key: 'shake', label: 'SCREEN SHAKE', max: 2, names: ['OFF', 'LOW', 'FULL'] },
   { key: 'uiSize', label: 'UI SIZE (TEXT AND BUTTONS)', max: 2, names: ['NORMAL', 'LARGE', 'HUGE'] },
+  { key: 'oreMarks', label: 'ORE AND HAZARD MARKS', max: 1, names: ['OFF', 'ON'] },
+  { key: 'flashes', label: 'FLASHES', max: 1, names: ['FULL', 'REDUCED'] },
 ];
 
 function def(key: PrefKey): PrefDef {

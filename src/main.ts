@@ -74,6 +74,8 @@ function boot(): void {
     const p = game.prefs;
     sfx.setVolumes(audioGains(p, false));
     renderer.shakeMul = shakeMul(p);
+    renderer.setOreMarks(p.oreMarks === 1);
+    renderer.reduceFlash = p.flashes === 1;
     ui.uiScale = uiScale(p);
   };
   applyPrefs();
