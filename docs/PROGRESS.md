@@ -487,3 +487,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** FTUE (guided first 2 minutes), achievements (30+), codex screen; mobile polish (thumb-sized hotbar, hold-to-reel, safe-area insets).
 
 **Known issues:** digits 1-0 and Minus (hotbar) are not remappable; toast kinds are guessed from the text (a new message family may get the info icon); a very long toast body shrinks its second line instead of truncating; ore marks are 5 px; strata bands subtle under cave darkness; offline crop growth ignores robot gardeners; growing crops restart their stage when the base moves; upgrade BUY rows refuse while you shop upstairs off the pad; turrets draw 1 power idle; e2e farm uses raw tile ids (57-67).
+
+## 2026-11-12 Scheduled run 31
+
+**Done:** baseline green (562 tests). Creative review: water and acid were flat translucent rectangles (17-water, 27-deep-layer). Living liquids (src/render/liquidfx.ts): travelling-wave surface crest with foam, drifting glints, darker deep cells, swaying caustic light bands, rising acid bubbles; surface cells leave the top 2 art px open in the chunk and the crest fills them per frame (17-water). Backlog: awards (44 achievements from game-event counters, AWARDS page in the inventory with progress bars and paging, Award toast + tiered chime; save v23 with v22 fixture seeded from stats/bosses/codex/research, unlocked quietly on load; 48-awards, 48b, 48c-mobile-awards). Guided goals: 7-step GOAL card above the toasts (drill, 15 m, bank, upgrade, chest, 3 kills, craft) read from the award counters; "Goal done" toast + chime (49-goal, 06-mobile-play).
+
+**Numbers:** 579 unit tests (new: liquidfx 6, achievements 8, ftue 3), 145 e2e checks all green (new: water crest rolls, AWARDS page + paging + unlock toast, phone fit, goal card clear of buttons + advances), bundle 333 kB (114.9 kB gzip).
+
+**Next:** codex screen (lore logs, enemy entries); cosmetic suit colours for gold awards; mobile polish (thumb hotbar, hold-to-reel, safe-area insets).
+
+**Known issues:** drone mining counts toward the "mined" awards; awards have no reward yet beyond the star; caustic bands are vertical stripes (could wave); digits 1-0 not remappable; toast kinds guessed from text; ore marks 5 px; strata subtle in caves; offline crop growth ignores robot gardeners; crops restart their stage when the base moves; upgrade BUY refuses upstairs off the pad; turrets draw 1 power idle; e2e farm uses raw tile ids (57-67).

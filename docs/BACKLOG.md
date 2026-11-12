@@ -129,7 +129,9 @@ Polish
 - [x] Settings slice 2 (run 29): ORE AND HAZARD MARKS (shape glyph per ore, acid/magma warning marks), FLASHES REDUCED (no hurt blink / enemy white flash / boss strobe, capped vignette), TOUCH MOVE STICK LEFT/RIGHT (left-handed); save v20/v21
 - [x] Settings slice 3 (run 30): CONTROLS page remaps 15 desktop keys (src/sim/keys.ts, swap on conflict, save v22); left-handed touch mirrors the HUD (buttons left, status right; src/ui/hudlayout.ts)
 - [x] Toast rework (run 30, src/ui/toastfx.ts): max 2 left-aligned pills under the HUD text, kind icon, head label, 2-line wrap, slide-in
-- [ ] Guided first 2 minutes (FTUE), achievements (30+), codex screen with lore logs and enemy entries
+- [x] Achievements (run 31, src/sim/achievements.ts): 44 bronze/silver/gold awards counted from game events, AWARDS page in the inventory (paged, phone fit), Award toast + chime, save v23 seeded from older saves
+- [x] Guided first minutes (run 31, src/sim/ftue.ts): 7-step GOAL card above the toasts, read from award counters (no save field)
+- [ ] Codex screen with lore logs and enemy entries; cosmetic suit colours unlocked by gold awards (visible in the inventory preview)
 - [ ] Mobile polish: on-screen hotbar sized for thumbs, hook hold-to-reel button, safe-area insets; real-device check listed in NEEDS_FROM_USER
 
 Money (ethical, no paywalls)

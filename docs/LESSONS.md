@@ -119,3 +119,8 @@
 - **Keyword regexes need word boundaries.** "follows" matched `low` and gave a harmless drone toast a red warning icon. Guard: toastfx rules use `\b...\b` and tests/toast.test.ts pins a "follows" case.
 - **Tests that pin `SAVE_VERSION` or whole `settings` objects must change with every save bump** (settings.test v18/v19). That is expected, not weakening: update the pinned value and add the new field's default to the expectation.
 - **Retro:** three slices, three ships (~4 min each). Full `npx vitest run` takes over 2 min here, so run it with a 5-minute timeout or filter to the touched test files while iterating.
+
+- **The swimmer hid the water crest in a 1-tile e2e sample** (same frame for 4 draw times). Guard: sample a 5-tile strip around the pool; any e2e that samples pixels near the player must look wider than the player sprite.
+- **Pinned `SAVE_VERSION` in settings.test broke again on a bump.** It now asserts `>= 22`; the exact pin lives only in the newest migration test (achievements.test.ts). Next bump: update that one test.
+- **New systems that only listen to events stay cheap:** awards and goals hook `Game.emit` (countEvent) plus one depth high-water mark, so no other system changed. Prefer that over sprinkling counters through game.ts.
+- **Retro:** three slices, three ships (~4-5 min each). Writing the phone-fit e2e with the first UI draft caught nothing this time but cost little; keep doing it.

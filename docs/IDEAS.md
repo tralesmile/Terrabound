@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-12 run 31
+
+- Done this run: living water/acid (rolling crest, glints, depth shade, caustics, bubbles); 44 awards with an AWARDS page; 7-step guided GOAL card.
+- Weakest progression: awards give only a star; gold awards should unlock suit colours shown in the inventory preview (Terraria vanity), promoted to BACKLOG with the codex screen.
+- Weakest graphics (carried): cave darkness flattens strata; a faint rim light on tile edges facing the lamp (Core Keeper).
+- Weakest feel: entering water has no splash ring or slowed bubbles from the suit; a splash burst + air bubbles while submerged would sell swimming.
+- Weakest controls: hold right click to sow a row (carried); hotbar digits not remappable.
+
 ## 2026-11-12 run 30
 
 - Done this run: toast pills (icon, head label, wrap, slide-in, max 2, top-left); key remap; mirrored HUD for left-handed touch.
@@ -24,12 +32,3 @@
 - Weakest controls: one seed per right click (carried); hold right click to sow along a row.
 - Weakest UI: toasts are full sentences mid-screen (carried); cap 2, icon + 4 words, plant timer on aim.
 - Weakest accessibility: ore colours (iron vs copper vs crystal) rely on hue alone; a colour-blind palette plus ore glyphs is the next settings slice.
-
-## 2026-11-12 run 27
-
-- Done this run: crop sway, ripe twinkle, sprinkler spray; robot gardeners; local world records with personal-best toasts.
-- Weakest UI (vs Core Keeper/Terraria): toasts are full sentences stacked mid-screen; cap at 2, shorten to "icon + 4 words", and move the plant timer to an aim tooltip.
-- Weakest graphics: surface dirt is one flat noise; darker strata bands and buried bones/pipes in the top rows (carried over, still the cheapest big visual win).
-- Weakest controls: one seed per right click; hold right click to sow along a row (Stardew style).
-- Weakest progression/retention: records exist but are only a footer line; a small RECORDS screen with the last 10 codes and a share-card variant ("beat my 152m on 1MVE-X89G") would make Daily Dive social without a backend.
-- Weakest feel: harvesting gives no burst; a pop of produce icons arcing into the pack would sell farming.
