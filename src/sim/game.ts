@@ -1,5 +1,5 @@
 import { activePaint, nextPaint, type PaintDef } from './paints';
-import { codexRows, noteCodexEvent, type CodexRow } from './codex';
+import { CREW_KINDS, codexRows, noteCodexEvent, type CodexRow } from './codex';
 import { currentGoal, FTUE_STEPS, goalIndex } from './ftue';
 import { checkAwards, countEvent, newAwards, noteMax, sanitizeAwards, type Awards, type Tier } from './achievements';
 import { stepPref, type PrefKey, type Prefs } from './settings';
@@ -832,7 +832,7 @@ export class Game {
 
   /** Codex screen rows (places, creatures, logs) from what this save knows. */
   get codexRows(): CodexRow[] {
-    return codexRows({ codex: this.save.codex, bosses: this.save.bosses, awards: this.save.awards });
+    return codexRows({ codex: this.save.codex, bosses: this.save.bosses, awards: this.save.awards, present: CREW_KINDS.filter((k) => this.hasNpc(k)) });
   }
 
   /** Award progress (read-only view for the AWARDS page). */

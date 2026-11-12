@@ -641,6 +641,31 @@ try {
   });
   await page.screenshot({ path: path.join(out, '51c-codex-logs.png') });
   check('LOGS tab shows read logs in full and missing ones as gaps', codex3.sec === 'logs' && codex3.shown >= 6 && codex3.log === true, JSON.stringify(codex3));
+  // Log reader: click a read log, page to the next read one in story order, back to the list.
+  await page.evaluate(() => window.__terrabound.game.emit({ t: 'lore', text: 'LOG 21: Ash falls up here. It comes from a fire far below.' }));
+  await page.waitForTimeout(100);
+  const openedLog = await clickAct("r.a.k === 'logread' && r.a.i === 2");
+  const reader1 = await page.evaluate(() => {
+    const { ui } = window.__terrabound;
+    return { open: ui.logOpen, next: ui.rects.find((r) => r.a.k === 'logread' && r.a.i !== null && r.y > 300)?.a.i ?? null, cards: ui.rects.filter((r) => r.a.k === 'logread' && r.h > 40).length };
+  });
+  await page.screenshot({ path: path.join(out, '51f-log-reader.png') });
+  check('a read log opens in the reader with NEXT to the next read log', openedLog && reader1.open === 2 && reader1.next === 7 && reader1.cards === 0, JSON.stringify(reader1));
+  await clickAct("r.a.k === 'logread' && r.a.i === 7");
+  const reader2 = await page.evaluate(() => window.__terrabound.ui.logOpen);
+  await clickAct("r.a.k === 'logread' && r.a.i === null");
+  const reader3 = await page.evaluate(() => ({ open: window.__terrabound.ui.logOpen, shown: window.__terrabound.ui.codexShown }));
+  check('NEXT pages the story and ALL LOGS returns to the list', reader2 === 7 && reader3.open === null && reader3.shown >= 6, JSON.stringify({ reader2, reader3 }));
+  // Crew tab: Dex once seen over the pad; unknown robots keep their names hidden.
+  await page.evaluate(() => window.__terrabound.game.emit({ t: 'merchant', here: true }));
+  await clickAct("r.a.k === 'codexsec' && r.a.sec === 'crew'");
+  const crew = await page.evaluate(() => {
+    const { ui, game } = window.__terrabound;
+    const rows = game.codexRows.filter((r) => r.section === 'crew');
+    return { sec: ui.codexSec, shown: ui.codexShown, dex: rows.find((r) => r.id === 'crew:merchant')?.title, hidden: rows.filter((r) => !r.found).every((r) => r.title.startsWith('???')) };
+  });
+  await page.screenshot({ path: path.join(out, '51g-codex-crew.png') });
+  check('CREW tab lists the robots and Dex; met ones are named', crew.sec === 'crew' && crew.shown === 5 && /Dex/.test(crew.dex ?? '') && crew.hidden, JSON.stringify(crew));
   await clickAct("r.a.k === 'codex' && r.a.open === false");
   check('< ITEMS leaves the codex', (await page.evaluate(() => window.__terrabound.ui.invPage)) === 'items');
   // Suit paint: locked until a gold award; earning one lets PAINT cycle it on, the preview and the save follow.
@@ -2470,6 +2495,23 @@ try {
     return { n: rs.length, inside, shown: ui.codexShown };
   });
   await page.screenshot({ path: path.join(out, '51d-mobile-codex.png') });
+  const mReader = await page.evaluate(() => {
+    const { ui, game } = window.__terrabound;
+    game.emit({ t: 'lore', text: 'LOG 01: Survey team landed. The planet hums under our boots.' });
+    ui.logOpen = 0;
+    return true;
+  });
+  await page.waitForTimeout(250);
+  const mrFit = await page.evaluate(() => {
+    const { ui } = window.__terrabound;
+    const c = document.getElementById('game');
+    const W = c.clientWidth, H = c.clientHeight;
+    const rs = ui.rects.filter((r) => ['logread', 'codexsec'].includes(r.a.k));
+    return { n: rs.length, open: ui.logOpen, inside: rs.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= W + 1 && r.y + r.h <= H + 1) };
+  });
+  await page.screenshot({ path: path.join(out, '51h-mobile-log-reader.png') });
+  check('the log reader fits a phone', mReader && mrFit.open === 0 && mrFit.inside && mrFit.n >= 5, JSON.stringify(mrFit));
+  await page.evaluate(() => { window.__terrabound.ui.logOpen = null; });
   await page.evaluate(() => { window.__terrabound.ui.invPage = 'items'; });
   await page.waitForTimeout(200);
   await page.screenshot({ path: path.join(out, '51e-mobile-inventory.png') });

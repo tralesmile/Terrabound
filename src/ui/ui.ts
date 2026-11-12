@@ -1,5 +1,5 @@
 import { PAINTS, unlockedPaints } from '../sim/paints';
-import { codexCounts, type CodexSection } from '../sim/codex';
+import { codexCounts, logParts, readLogs, stepLog, type CodexSection } from '../sim/codex';
 import { AWARDS, awardProgress } from '../sim/achievements';
 import { FTUE_STEPS } from '../sim/ftue';
 import { PREFS, prefValueLabel, type PrefKey } from '../sim/settings';
@@ -19,7 +19,7 @@ import { BIOMES, type BiomeId } from '../sim/biomes';
 import { LAYERS } from '../sim/layers';
 import { MAX_PART, PART_IDS, VEHICLES, VEHICLE_IDS, partCost, vehicleStats, type PartId, type VehicleId } from '../sim/garage';
 import { WEATHER } from '../sim/weather';
-import { CODEX, RECALL_TIME } from '../sim/explore';
+import { CODEX, LORE, RECALL_TIME } from '../sim/explore';
 import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type Inventory, type ItemId } from '../sim/tiles';
 import { UPGRADES } from '../sim/upgrades';
 import { RECIPES } from '../sim/recipes';
@@ -74,6 +74,7 @@ export type UiAction =
   | { k: 'codex'; open: boolean }
   | { k: 'codexsec'; sec: CodexSection }
   | { k: 'codexpage'; d: number }
+  | { k: 'logread'; i: number | null }
   | { k: 'paint' }
   | { k: 'interact' }
   | { k: 'invsel'; id: ItemId }
@@ -175,6 +176,8 @@ export class UI {
   invPage: 'items' | 'awards' | 'codex' = 'items';
   /** CODEX page: which section is listed and its first row (paged like AWARDS). */
   codexSec: CodexSection = 'places';
+  /** LORE index open in the log reader, or null for the card list. */
+  logOpen: number | null = null;
   codexFirst = 0;
   /** Rows drawn on the CODEX page last frame (e2e). */
   codexShown = 0;
@@ -714,10 +717,11 @@ export class UI {
     const all = game.codexRows;
     const secs: { id: CodexSection; label: string; color: string }[] = [
       { id: 'places', label: 'PLACES', color: '#36e0e8' },
+      { id: 'crew', label: 'CREW', color: '#7ee08a' },
       { id: 'creatures', label: 'CREATURES', color: '#ff7a6a' },
       { id: 'logs', label: 'LOGS', color: '#b48cff' },
     ];
-    const tabW = (pw - u * 2 - u * 0.8) / 3;
+    const tabW = (pw - u * 2 - u * 0.4 * (secs.length - 1)) / secs.length;
     secs.forEach((sc, i) => {
       const c = codexCounts(all.filter((r) => r.section === sc.id));
       const on = this.codexSec === sc.id;
@@ -726,6 +730,11 @@ export class UI {
     const rows = all.filter((r) => r.section === this.codexSec);
     const color = secs.find((sc) => sc.id === this.codexSec)?.color ?? '#36e0e8';
     const top = py + u * 5.4;
+    if (this.codexSec === 'logs' && this.logOpen !== null && readLogs(game.awards).includes(this.logOpen)) {
+      this.drawLogReader(ctx, game, px, top, pw, py + ph - top, u, color);
+      return;
+    }
+    this.logOpen = null;
     const foot = u * 2.8;
     const cols = pw < u * 30 ? 1 : 2;
     const cardH = u * 3.2;
@@ -760,6 +769,11 @@ export class UI {
         ctx.stroke();
       }
       this.text(ctx, r.title, x + u * 2.1, y + u * 1.05, Math.round(u * 0.8), r.found ? '#fff' : '#6c7388', 'left', cw - u * 2.8);
+      // Read logs open in the reader.
+      if (r.found && r.section === 'logs') {
+        this.text(ctx, 'READ >', x + cw - u * 0.6, y + u * 1.05, Math.round(u * 0.6), color, 'right', u * 4);
+        this.rects.push({ x, y, w: cw, h: cardH, a: { k: 'logread', i: Number(r.id.slice(5)) } });
+      }
       const size = Math.round(u * 0.62);
       this.wrapLines(ctx, r.detail, cw - u * 2.8, size, 2).forEach((ln, j) => {
         this.text(ctx, ln, x + u * 2.1, y + u * (2.0 + j * 0.85), size, r.found ? '#b8c4dc' : '#5a6276', 'left', cw - u * 2.8);
@@ -773,6 +787,54 @@ export class UI {
     this.button(ctx, px + u, fy, u * 5, u * 2, '< PREV', { k: 'codexpage', d: -1 }, u * 0.75, { enabled: cur > 1, color: '#2a3550' });
     this.button(ctx, px + pw - u * 6, fy, u * 5, u * 2, 'NEXT >', { k: 'codexpage', d: 1 }, u * 0.75, { enabled: cur < pages, color: '#2a3550' });
     this.text(ctx, `Page ${cur}/${pages}  -  ${tot.found} of ${tot.total} known`, px + pw / 2, fy + u * 1.3, Math.round(u * 0.7), '#8a90a2', 'center', pw - u * 14);
+  }
+
+  /** Log reader: one recovered log in full, paged through the read logs in story order. */
+  private drawLogReader(ctx: CanvasRenderingContext2D, game: Game, px: number, top: number, pw: number, h: number, u: number, color: string): void {
+    const i = this.logOpen ?? 0;
+    const aw = game.awards;
+    const read = readLogs(aw);
+    const { head, body } = logParts(i);
+    const x = px + u;
+    const w = pw - u * 2;
+    const foot = u * 2.8;
+    ctx.fillStyle = 'rgba(20,16,36,0.96)';
+    ctx.fillRect(x, top, w, h - foot);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, u * 0.1);
+    ctx.strokeRect(x + 0.5, top + 0.5, w - 1, h - foot - 1);
+    // Terminal scanlines, so the page reads as a recovered screen.
+    ctx.fillStyle = 'rgba(180,140,255,0.05)';
+    for (let yy = top + u * 0.5; yy < top + h - foot; yy += u * 0.5) ctx.fillRect(x, yy, w, Math.max(1, u * 0.12));
+    this.text(ctx, head, x + u * 1.2, top + u * 1.6, Math.round(u * 1.1), color, 'left', w - u * 10);
+    this.text(ctx, `${read.indexOf(i) + 1} of ${read.length} recovered`, x + w - u * 1.2, top + u * 1.6, Math.round(u * 0.65), '#8a90a2', 'right', u * 12);
+    const size = Math.round(u * (w < u * 28 ? 0.9 : 1.05));
+    this.wrapLines(ctx, body, w - u * 2.4, size, 6).forEach((ln, j) => {
+      this.text(ctx, ln, x + u * 1.2, top + u * 3.6 + j * size * 1.45, size, '#e8e0ff', 'left', w - u * 2.4);
+    });
+    // Story strip: one cell per log in order; read ones lit, this one ringed, gaps stay dark.
+    const n = LORE.length;
+    const cell = Math.min(u * 2.2, (w - u * 2.4) / n);
+    const sx0 = x + w / 2 - (cell * n) / 2;
+    const sy0 = top + h - foot - u * 2.6;
+    this.text(ctx, 'STORY', x + w / 2, sy0 - u * 0.9, Math.round(u * 0.6), '#6c7388', 'center', w);
+    for (let j = 0; j < n; j++) {
+      const cx = sx0 + j * cell + cell * 0.12;
+      const cw2 = cell * 0.76;
+      ctx.fillStyle = read.includes(j) ? color : '#262a3c';
+      ctx.fillRect(cx, sy0, cw2, u * 0.9);
+      if (j === i) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = Math.max(1, u * 0.14);
+        ctx.strokeRect(cx - u * 0.15, sy0 - u * 0.15, cw2 + u * 0.3, u * 1.2);
+      }
+    }
+    const fy = top + h - foot + u * 0.4;
+    const prev = stepLog(aw, i, -1);
+    const next = stepLog(aw, i, 1);
+    this.button(ctx, px + u, fy, u * 5, u * 2, '< PREV', { k: 'logread', i: prev }, u * 0.75, { enabled: prev !== null, color: '#2a3550' });
+    this.button(ctx, px + pw / 2 - u * 3.5, fy, u * 7, u * 2, 'ALL LOGS', { k: 'logread', i: null }, u * 0.75, { color: '#3a2a5a' });
+    this.button(ctx, px + pw - u * 6, fy, u * 5, u * 2, 'NEXT >', { k: 'logread', i: next }, u * 0.75, { enabled: next !== null, color: '#2a3550' });
   }
 
   /** AWARDS page: a card per award with a tier star, progress bar and count; paged to fit. */

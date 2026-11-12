@@ -368,9 +368,13 @@ function boot(): void {
       case 'codexsec':
         ui.codexSec = a.sec;
         ui.codexFirst = 0;
+        ui.logOpen = null;
         break;
       case 'codexpage':
         ui.codexPage(a.d);
+        break;
+      case 'logread':
+        ui.logOpen = a.i;
         break;
       case 'paint': {
         const pt = game.cyclePaint();
