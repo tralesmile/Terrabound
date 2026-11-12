@@ -9,7 +9,7 @@ import { ENEMIES } from '../sim/enemies';
 import { hash2 } from '../sim/rng';
 import { T } from '../sim/tiles';
 import { BODY_H } from '../sim/physics';
-import { HIT_SQUASH_TIME, hitSquash, magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx } from './fx';
+import { HIT_SQUASH_TIME, hitSquash, hurtSquash, hurtVignette, magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx } from './fx';
 import type { PlayerGear } from './sprites';
 import { ICON, drawIcon } from './icons';
 import { GEAR, type RangedKind } from '../sim/gear';
@@ -71,6 +71,8 @@ export class Renderer {
   scale = 3;
   camX = 0;
   camY = 0;
+  /** Last frame's hurt vignette alpha (read by e2e). */
+  lastHurtAlpha = 0;
   private snapped = false;
 
   constructor(private ctx: CanvasRenderingContext2D) {}
@@ -407,7 +409,7 @@ export class Renderer {
       tier: game.upgrades.armor ?? 0,
       gear: playerGear(game),
       held: game.tool,
-      squash: squashScale(fx.squashLeft, fx.squashPower),
+      squash: fx.hurtLeft > 0 ? hurtSquash(fx.hurtLeft) : squashScale(fx.squashLeft, fx.squashPower),
     });
 
     // Items on the ground: bobbing icons with a soft glow so they read as pickups.
@@ -526,6 +528,20 @@ export class Renderer {
     this.drawDarkness(ctx, game, px, py - 14 * scale, time);
     // Bolts are light sources: drawn over the darkness with an additive glow so they read in deep caves.
     this.drawBolts(ctx, game, shakeX, shakeY, time);
+    this.drawHurt(ctx, game, fx, time);
+  }
+
+  /** Red screen-edge vignette: flashes on a hit, beats slowly while HP is low. */
+  private drawHurt(ctx: CanvasRenderingContext2D, game: Game, fx: Fx, time: number): void {
+    const a = hurtVignette(fx.hurtLeft, fx.hurtPower, game.hp / Math.max(1, game.derived.maxHp), time);
+    this.lastHurtAlpha = a;
+    if (a <= 0.005) return;
+    const r = Math.hypot(this.w, this.h) / 2;
+    const g = ctx.createRadialGradient(this.w / 2, this.h / 2, r * 0.45, this.w / 2, this.h / 2, r);
+    g.addColorStop(0, 'rgba(200,20,30,0)');
+    g.addColorStop(1, `rgba(200,20,30,${a.toFixed(3)})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, this.w, this.h);
   }
 
   /** Player bolts: additive glow, then the tracer itself (bombs are plain shells). */

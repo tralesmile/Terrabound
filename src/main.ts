@@ -357,6 +357,7 @@ function boot(): void {
         break;
       case 'hurt':
         fx.addShake(0.5);
+        fx.hurt(game.body.x, game.body.y - 2.2, e.amount, game.derived.maxHp);
         fx.burst(game.body.x, game.body.y - 1, '#ff5a5a', 8, 5);
         break;
       case 'steam':

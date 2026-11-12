@@ -1415,6 +1415,21 @@ try {
     return { hp: Math.round(g.hp), kits: g.carried.medkit ?? 0 };
   });
   check('quick heal: H eats a medkit at low HP, and so does the HUD button', !!healBtn && heal1.kits === 1 && heal1.hp >= 75 && heal2.kits === 0 && heal2.hp >= 75, JSON.stringify({ healBtn: !!healBtn, heal1, heal2 }));
+  // Hurt feedback: a hit flashes the screen edge red, shows a damage number and recoils the suit.
+  const hurtFx = await page.evaluate(async () => {
+    const t = window.__terrabound;
+    const g = t.game;
+    g.hp = g.derived.maxHp;
+    const before = t.renderer.lastHurtAlpha;
+    g.hurt(30);
+    await new Promise((r) => setTimeout(r, 70));
+    return { before, after: t.renderer.lastHurtAlpha };
+  });
+  await page.screenshot({ path: path.join(out, '37b-hurt.png') });
+  check('a hit flashes a red screen-edge vignette that then fades', hurtFx.before < 0.05 && hurtFx.after > 0.2, JSON.stringify(hurtFx));
+  await page.waitForTimeout(600);
+  const hurtGone = await page.evaluate(() => window.__terrabound.renderer.lastHurtAlpha);
+  check('the hurt vignette is gone after half a second at full HP', hurtGone < 0.02, JSON.stringify({ hurtGone }));
   // Windows and a lift: glass panes in the tower's side walls (a view adds comfort), a lift shaft up the outside.
   const winState = await page.evaluate(() => {
     const g = window.__terrabound.game;
