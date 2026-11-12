@@ -1543,6 +1543,36 @@ try {
     g.body.vx = g.body.vy = 0;
   });
   await page.waitForTimeout(300);
+
+  // Soil strata: cut an open pit beside the base so the cross-section (bands, seams, buried bones) is on screen.
+  const pit = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const x0 = w.padX + 24;
+    const saved = [];
+    let top = w.h;
+    for (let x = x0; x < x0 + 5; x++) top = Math.min(top, w.surface[x]);
+    for (let x = x0; x < x0 + 5; x++) for (let y = top - 3; y < top + 14; y++) { saved.push([x, y, w.get(x, y)]); w.set(x, y, 0); }
+    for (let x = x0; x < x0 + 5; x++) { saved.push([x, top + 14, w.get(x, top + 14)]); w.set(x, top + 14, 1); }
+    window.__pitSaved = saved;
+    g.time = 30;
+    g.body.x = x0 + 2.5;
+    g.body.y = top + 13.9;
+    g.body.vx = g.body.vy = 0;
+    return { x0, top };
+  });
+  await page.waitForTimeout(700);
+  const inPit = await page.evaluate(({ top }) => window.__terrabound.game.body.y > top + 10, pit);
+  await page.screenshot({ path: path.join(out, '43-strata.png') });
+  check('soil strata pit renders with the player at its floor', inPit, JSON.stringify(pit));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    for (const [x, y, t] of window.__pitSaved.reverse()) g.world.set(x, y, t);
+    g.body.x = g.world.padX + 0.5;
+    g.body.y = g.world.padY;
+    g.body.vx = g.body.vy = 0;
+  });
+  await page.waitForTimeout(300);
   // Cooking: a pot in the base unlocks meals in FABRICATE; eating one shows a buff chip under the bars.
   const cook = await page.evaluate(() => {
     const t = window.__terrabound;

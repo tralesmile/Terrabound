@@ -1,3 +1,4 @@
+import { buriedDecal, decalRects, hasStrata, strataShade } from './strata';
 import type { Game, Shot } from '../sim/game';
 import { cropAt, isCropTile, isWatered } from '../sim/farming';
 import { cropSway, drawCropTile, ripeSparkle, sprinklerDrops } from './crops';
@@ -780,9 +781,36 @@ export class Renderer {
     // Rounded corners are transparent: show the cave wall behind them underground.
     if (mask !== 0) this.drawBack(ctx, world, tx, ty, dx, dy, ts);
     ctx.drawImage(this.atlas, atlasCol(v, mask) * TS, t * TS, TS, TS, dx, dy, ts, ts);
+    if (hasStrata(t) && !world.edits.has(ty * world.w + tx)) this.drawStrata(ctx, tx, ty - world.surface[tx], ty, dx, dy, ts, mask);
     if (mask & EDGE_N && ty <= world.surface[tx]) {
       if (growsMoss(t) && world.biome[tx] !== B.ASH) ctx.drawImage(this.moss, v * TS, 0, TS, MOSS_H, dx, dy, ts, MOSS_H * scale);
       else if (growsSnow(t)) ctx.drawImage(this.decor.snow, v * TS, 0, TS, SNOW_H, dx, dy, ts, SNOW_H * scale);
+    }
+  }
+
+  /** Soil strata bands, band seams and rare buried bones / pipes in natural ground near the surface. */
+  private drawStrata(ctx: CanvasRenderingContext2D, tx: number, depth: number, ty: number, dx: number, dy: number, ts: number, mask: number): void {
+    const sh = strataShade(depth, tx);
+    const u = ts / 16;
+    if (sh.dark > 0) {
+      ctx.fillStyle = `rgba(10,6,14,${sh.dark.toFixed(3)})`;
+      if (mask === 0) ctx.fillRect(dx, dy, ts, ts);
+      else {
+        // Edge tiles have cut (transparent) corner pixels: a cross shape keeps the overlay off them.
+        ctx.fillRect(dx, dy + u, ts, ts - 2 * u);
+        ctx.fillRect(dx + u, dy, ts - 2 * u, u);
+        ctx.fillRect(dx + u, dy + ts - u, ts - 2 * u, u);
+      }
+    }
+    if (sh.seam > 0) {
+      ctx.fillStyle = `rgba(255,226,190,${sh.seam.toFixed(3)})`;
+      ctx.fillRect(dx, dy, ts, Math.max(1, ts / 8));
+    }
+    const decal = buriedDecal(tx, ty, depth);
+    if (!decal || mask !== 0) return;
+    for (const [x, y, w, h, c] of decalRects(decal, ((tx + ty) & 1) === 1)) {
+      ctx.fillStyle = c;
+      ctx.fillRect(dx + x * u, dy + y * u, w * u, h * u);
     }
   }
 
