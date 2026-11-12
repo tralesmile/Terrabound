@@ -918,6 +918,69 @@ try {
     for (let dx = -4; dx <= 4; dx++) if (dx !== 0) w.set(w.padX + dx, w.padY - 1, 0);
   });
 
+  // Night raid: a raid-worthy base at the pad, start the wave, screenshot raiders, clear it for the reward.
+  const raidOn = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    g.body.x = w.padX + 0.5;
+    g.body.y = w.padY;
+    g.body.vx = g.body.vy = 0;
+    g.hp = g.derived.maxHp;
+    w.set(w.padX + 3, w.padY - 1, 27);
+    w.set(w.padX + 4, w.padY - 1, 28);
+    for (let dy = 1; dy <= 3; dy++) w.set(w.padX - 6, w.padY - dy, 2);
+    g.raid = null;
+    return g.startRaid();
+  });
+  await page.waitForTimeout(3500);
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    // Bring the first raiders to the wall so the screenshot shows the fight.
+    const rs = g.enemies.filter((e) => e.raid);
+    rs.forEach((e, i) => {
+      e.x = w.padX - 8.5 - i * 1.2;
+      if (!e.kind.includes('flyer') && e.kind !== 'ember') e.y = w.surface[Math.floor(e.x)];
+    });
+  });
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: path.join(out, '34-raid.png') });
+  const raidState = await page.evaluate(() => ({ raid: !!window.__terrabound.game.raid, n: window.__terrabound.game.enemies.filter((e) => e.raid).length }));
+  check('a night raid starts at a raid-worthy base and raiders survive at the pad', raidOn && raidState.raid && raidState.n > 0, JSON.stringify({ raidOn, ...raidState }));
+  const raidsBefore = await page.evaluate(() => window.__terrabound.game.stats.raids);
+  for (let i = 0; i < 40; i++) {
+    const done = await page.evaluate(() => {
+      const g = window.__terrabound.game;
+      for (const e of g.enemies) if (e.raid) e.hp = 0;
+      return !g.raid;
+    });
+    if (done) break;
+    await page.waitForTimeout(250);
+  }
+  const raidsAfter = await page.evaluate(() => ({ raid: !!window.__terrabound.game.raid, raids: window.__terrabound.game.stats.raids }));
+  check('clearing every raider repels the raid', !raidsAfter.raid && raidsAfter.raids === raidsBefore + 1, JSON.stringify({ raidsBefore, ...raidsAfter }));
+  await page.keyboard.press('KeyB');
+  await page.waitForTimeout(200);
+  const raidBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'raids'));
+  if (raidBtn) await page.mouse.click(raidBtn.x + raidBtn.w / 2, raidBtn.y + raidBtn.h / 2);
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: path.join(out, '34b-raids-toggle.png') });
+  const raidsOff = await page.evaluate(() => window.__terrabound.game.raidsOn);
+  if (raidBtn) await page.mouse.click(raidBtn.x + raidBtn.w / 2, raidBtn.y + raidBtn.h / 2);
+  await page.waitForTimeout(150);
+  const raidsBack = await page.evaluate(() => window.__terrabound.game.raidsOn);
+  check('the workshop RAIDS button opts out and back in', !!raidBtn && raidsOff === false && raidsBack === true, JSON.stringify({ raidBtn: !!raidBtn, raidsOff, raidsBack }));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(100);
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    w.set(w.padX + 3, w.padY - 1, 0);
+    w.set(w.padX + 4, w.padY - 1, 0);
+    for (let dy = 1; dy <= 3; dy++) w.set(w.padX - 6, w.padY - dy, 0);
+    g.drops.length = 0;
+  });
+
   // Share card: SHARE on the map downloads a PNG in a headless browser (no Web Share there).
   await page.keyboard.press('KeyM');
   await page.waitForTimeout(200);

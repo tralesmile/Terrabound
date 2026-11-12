@@ -245,6 +245,11 @@ function boot(): void {
           ui.mapOpen = false;
         }
         break;
+      case 'raids':
+        game.setRaids(!game.raidsOn);
+        ui.toast(game.raidsOn ? 'Night raids on: defend the base for rewards' : 'Night raids off', '#c9d0e4', 2);
+        saveNow();
+        break;
       case 'drones':
         if (ui.screen === 'play' && !ui.shopOpen && !ui.invOpen) ui.dronesOpen = !ui.dronesOpen && game.isAtBase() && game.bays().length > 0;
         break;
@@ -475,6 +480,24 @@ function boot(): void {
       case 'dawn':
         ui.toast('Dawn breaks', '#ffcf4a');
         break;
+      case 'raidstart':
+        ui.toast(`RAID! ${e.n} raiders from the ${e.side < 0 ? 'west' : 'east'}: defend the base`, '#ff5a5a', 4);
+        break;
+      case 'raidchew':
+        fx.burst(e.x + 0.5, e.y + 0.5, TILE_COLORS[e.tile] ?? '#888', 8, 4);
+        ui.toast('A raider knocked a block loose', '#ff9a3c', 1.5);
+        break;
+      case 'raidclear': {
+        const parts = Object.entries(e.reward).filter(([, n]) => (n ?? 0) > 0).map(([k, n]) => `+${n} ${ITEMS[k as ItemId].name.toLowerCase()}`);
+        ui.toast(`Raid repelled! ${parts.join(', ')}`, '#7dffb0', 4);
+        fx.burst(game.body.x, game.body.y - 1.5, '#7dffb0', 16, 5);
+        saveNow();
+        break;
+      }
+      case 'raidend':
+        ui.toast('The raiders retreat', '#c9d0e4', 2);
+        break;
+
       case 'recallstart':
         ui.toast('Beaming home... hold still', '#36e0e8');
         break;

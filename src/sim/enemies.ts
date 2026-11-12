@@ -57,6 +57,10 @@ export interface Enemy {
   age: number;
   /** Phase offset for the flyer hover. */
   phase: number;
+  /** Night raider (raids.ts): marches on its target instead of patrolling, climbs walls by hopping. */
+  raid?: boolean;
+  /** Seconds spent chewing the base block in front of it. */
+  chew?: number;
 }
 
 const EPS = 1e-9;
@@ -104,7 +108,7 @@ export function stepEnemy(world: World, e: Enemy, dt: number, px: number, py: nu
     const dx = px - e.x;
     const dy = py - 0.9 + Math.sin(e.age * 3 + e.phase) * 0.8 - e.y;
     const dist = Math.hypot(dx, dy);
-    const chase = dist < 12 && dist > 0.01;
+    const chase = (e.raid || dist < 12) && dist > 0.01;
     const tvx = chase ? (dx / dist) * d.speed : Math.sin(e.age + e.phase) * d.speed * 0.4;
     const tvy = chase ? (dy / dist) * d.speed : Math.cos(e.age * 1.3 + e.phase) * d.speed * 0.3;
     const k = Math.min(1, 4 * dt);
@@ -117,7 +121,7 @@ export function stepEnemy(world: World, e: Enemy, dt: number, px: number, py: nu
     return;
   }
   // Crawler: patrol, turn at walls and ledges, chase when the player is level and near.
-  const near = Math.abs(px - e.x) < 7 && Math.abs(py - e.y) < 2.5;
+  const near = e.raid ? Math.abs(px - e.x) > 0.3 : Math.abs(px - e.x) < 7 && Math.abs(py - e.y) < 2.5;
   if (near) e.dir = px > e.x ? 1 : -1;
   const knock = Math.abs(e.vx) > d.speed * 1.5;
   if (!knock) e.vx = e.dir * d.speed * (near ? 1.2 : 0.7);
@@ -128,6 +132,11 @@ export function stepEnemy(world: World, e: Enemy, dt: number, px: number, py: nu
   if (d.hop && grounded && near && Math.floor((e.age + e.phase) / 1.6) !== Math.floor((e.age + e.phase - dt) / 1.6)) e.vy = -11;
   const r = moveAxis(world, e, e.vx * dt, e.vy * dt);
   if (r.hitY) e.vy = 0;
+  if (e.raid) {
+    // Raiders never turn back: they hop up steps and walls in their way and walk off ledges.
+    if (r.hitX && grounded) e.vy = -11;
+    return;
+  }
   if (r.hitX) {
     e.dir = -e.dir;
     e.vx = 0;

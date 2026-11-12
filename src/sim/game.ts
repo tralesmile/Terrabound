@@ -33,11 +33,12 @@ import { awaySeconds, simulateOffline, OFFLINE_MIN, type OfflineResult } from '.
 import { automationHint, stepGrid, newPower, scanMachines, stepSmelting, stepMining, stepDrones, SMELT_RUST, type PowerState } from './power';
 import { DRONE_ROLES, ENEMY_NEAR, HP_LOW, DEEP_AT, RULE_MAX, ROLE_INFO, sanitizeRules, type DroneRule, listBays, nextRole, roleOf, stepFieldDrones, surveyBays, syncDrones, type DroneEvent, type DroneRole, type FieldDrone, GUARD_DMG } from './drones';
 import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
-import { isNight } from './daynight';
+import { isNight, DAY_LENGTH } from './daynight';
+import { CHEW_TIME, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
 import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
-import { captureBase, captureWalls, stampBase, stampWalls } from './base';
+import { BASE_HALF, captureBase, captureWalls, stampBase, stampWalls } from './base';
 import { PAD_HALF, SPAWN_LIGHT_MAX, W, World, generateWorld } from './world';
 
 export const GRAVITY = 42;
@@ -85,6 +86,10 @@ export type GameEvent =
   | { t: 'recallcancel' }
   | { t: 'recall' }
   | { t: 'nightfall' }
+  | { t: 'raidstart'; n: number; side: number }
+  | { t: 'raidchew'; x: number; y: number; tile: number }
+  | { t: 'raidclear'; n: number; reward: Inventory }
+  | { t: 'raidend' }
   | { t: 'lore'; text: string }
   | { t: 'eat'; item: ItemId }
   | { t: 'cast'; x: number; y: number }
@@ -219,6 +224,8 @@ export class Game {
   recallT = 0;
   private discoverCd = 0;
   private wasNight = false;
+  /** Tonight's base raid, if one is under way (raids.ts). */
+  raid: Raid | null = null;
   private gearCache: GearStats | null = null;
   /** The pet's position (render) and zap cooldown. */
   pet = { x: 0, y: 0, cd: 0 };
@@ -411,6 +418,16 @@ export class Game {
     this.save.settings.muted = m;
   }
 
+  get raidsOn(): boolean {
+    return this.save.settings.raids;
+  }
+
+  /** Opt in or out of night base raids; turning them off sends tonight's raiders away. */
+  setRaids(on: boolean): void {
+    this.save.settings.raids = on;
+    if (!on) this.endRaid();
+  }
+
   get musicOn(): boolean {
     return this.save.settings.music !== false;
   }
@@ -481,6 +498,7 @@ export class Game {
     this.battery = d.maxBattery;
     this.mining = null;
     this.enemies = [];
+    this.raid = null;
     this.iframes = 0;
     this.swing = 0;
     this.bladeCd = 0;
@@ -697,6 +715,8 @@ export class Game {
     if (night !== this.wasNight) {
       this.wasNight = night;
       this.emit({ t: night ? 'nightfall' : 'dawn' });
+      if (night) this.startRaid();
+      else this.endRaid();
     }
     this.fog.reveal(b.x, b.y - BODY_H / 2);
     this.discoverCd -= dt;
@@ -1388,7 +1408,14 @@ export class Game {
     const b = this.body;
     const atBase = this.isAtBase();
     for (const e of this.enemies) {
-      stepEnemy(this.world, e, dt, b.x, b.y);
+      if (e.raid && chewTarget(this.world, e) && e.iframes === 0) {
+        // Raider at a base block: it holds still and chews (stepRaid) instead of hopping over it.
+        e.age += dt;
+        e.vx = 0;
+      } else if (e.raid) {
+        const tg = raidTarget(e, b.x, b.y, this.world.padX, this.world.padY, atBase);
+        stepEnemy(this.world, e, dt, tg.x, tg.y);
+      } else stepEnemy(this.world, e, dt, b.x, b.y);
       if (!atBase && this.iframes === 0 && enemyOverlapsBox(e, b.x, b.y, HALF_W, BODY_H)) {
         this.hurt(ENEMIES[e.kind].contact);
         this.iframes = IFRAMES;
@@ -1411,14 +1438,82 @@ export class Game {
       }
     }
     this.enemies = alive;
+    this.stepRaid(dt);
     if (atBase) {
-      this.enemies = [];
+      // The pad is safe: wild enemies vanish, raiders keep coming for the base.
+      this.enemies = this.enemies.filter((e) => e.raid);
       return;
     }
     this.spawnCd -= dt;
     if (this.spawnCd <= 0) {
       this.spawnCd = 4 + this.rng() * 4;
       this.trySpawn();
+    }
+  }
+
+  /** Nightfall: start a raid when raids are on, the player is home on the surface and the base is worth it. */
+  startRaid(): boolean {
+    if (!this.save.settings.raids || this.raid || this.boss || this.depth >= 8) return false;
+    if (Math.abs(this.body.x - this.world.padX) > NIGHT_SAFE) return false;
+    const n = raidSize(baseValue(this.world), this.save.stats.raids);
+    if (n === 0) return false;
+    const plan = raidPlan(this.world.seed, Math.floor(this.time / DAY_LENGTH), n);
+    this.raid = { plan, t: 0, next: 0, ids: [], total: n };
+    this.emit({ t: 'raidstart', n, side: plan[0].side });
+    return true;
+  }
+
+  /** Dawn (or raids switched off): surviving raiders slink away, no reward. */
+  endRaid(): void {
+    if (!this.raid) return;
+    this.raid = null;
+    this.enemies = this.enemies.filter((e) => !e.raid);
+    this.emit({ t: 'raidend' });
+  }
+
+  private stepRaid(dt: number): void {
+    const r = this.raid;
+    if (!r) return;
+    r.t += dt;
+    const w = this.world;
+    while (r.next < r.plan.length && r.plan[r.next].at <= r.t) {
+      const sp = r.plan[r.next++];
+      const x = Math.max(2, Math.min(w.w - 3, w.padX + sp.side * (BASE_HALF + RAID_ENTRY)));
+      const flying = ENEMIES[sp.kind].flying;
+      const e = makeEnemy(this.nextEnemyId++, sp.kind, x + 0.5, w.surface[x] - (flying ? 3 : 0), r.next);
+      e.raid = true;
+      e.dir = -sp.side;
+      e.hp *= weatherEnemy(this.weather).hp;
+      unstickEnemy(w, e);
+      this.enemies.push(e);
+      r.ids.push(e.id);
+    }
+    // Chew base blocks loose: the block drops as an item, so nothing is lost for good.
+    for (const e of this.enemies) {
+      if (!e.raid) continue;
+      const c = chewTarget(w, e);
+      if (!c) {
+        e.chew = 0;
+        continue;
+      }
+      e.chew = (e.chew ?? 0) + dt;
+      if (e.chew >= CHEW_TIME) {
+        e.chew = 0;
+        const tile = w.get(c.x, c.y);
+        const item = TILES[tile].drop;
+        w.set(c.x, c.y, T.AIR);
+        if (item) addDrop(this.drops, makeDrop(item, 1, c.x + 0.5, c.y + 0.5, 0, -4));
+        this.emit({ t: 'raidchew', x: c.x, y: c.y, tile });
+      }
+    }
+    const alive = new Set(this.enemies.map((e) => e.id));
+    r.ids = r.ids.filter((id) => alive.has(id));
+    if (r.next >= r.plan.length && r.ids.length === 0) {
+      const reward = raidReward(r.total);
+      for (const k in reward) invAdd(this.stash, k as ItemId, reward[k as ItemId] ?? 0);
+      this.save.stats.raids++;
+      this.raid = null;
+      this.emit({ t: 'raidclear', n: r.total, reward });
     }
   }
 

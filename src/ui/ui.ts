@@ -51,6 +51,7 @@ export type UiAction =
   | { k: 'victoryclose' }
   | { k: 'share' }
   | { k: 'drones' }
+  | { k: 'raids' }
   | { k: 'baynext'; d: number }
   | { k: 'bayrole' }
   | { k: 'rulecond'; i: number }
@@ -249,6 +250,10 @@ export class UI {
     }
     this.drawHud(ctx, game, w, h, u, time);
     if (game.boss) this.drawBossBar(ctx, game, w, u);
+    else if (game.raid) {
+      const left = game.raid.ids.length + game.raid.plan.length - game.raid.next;
+      this.text(ctx, `RAID: ${left} RAIDER${left === 1 ? '' : 'S'} LEFT`, w / 2, u * 4.6, Math.round(u * 0.85), Math.floor(time * 2) % 2 ? '#ff5a5a' : '#ff9a7a', 'center');
+    }
     else if (game.weather !== 'clear') this.text(ctx, WEATHER[game.weather].name.toUpperCase(), w / 2, u * 4.6, Math.round(u * 0.8), game.weather === 'eclipse' ? '#ff5aff' : '#ffcf4a', 'center');
     if (game.chestOpen) this.drawChest(ctx, game, w, h, u);
     if (this.dronesOpen) this.drawDrones(ctx, game, w, h, u);
@@ -688,7 +693,9 @@ export class UI {
     ctx.strokeStyle = '#36e0e8';
     ctx.lineWidth = 2;
     ctx.strokeRect(px + 1, py + 1, pw - 2, ph - 2);
-    this.text(ctx, 'BASE WORKSHOP', px + u, py + u * 1.4, Math.round(u * 1.4), '#36e0e8');
+    this.text(ctx, 'BASE WORKSHOP', px + u, py + u * 1.4, Math.round(u * 1.4), '#36e0e8', 'left', pw - u * 10);
+    // Night raids are opt-out, right here where the base is built.
+    this.button(ctx, px + pw - u * 8.6, py + u * 0.35, u * 7.8, u * 1.9, game.raidsOn ? 'RAIDS: ON' : 'RAIDS: OFF', { k: 'raids' }, u * 0.75, { color: game.raidsOn ? '#6a2a2a' : '#23262f' });
 
     // Stash line.
     let sx = px + u;

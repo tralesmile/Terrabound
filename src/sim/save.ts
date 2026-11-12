@@ -7,7 +7,7 @@ import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 13;
+export const SAVE_VERSION = 14;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -20,9 +20,10 @@ export interface SaveData {
   /** Loot carried when the game was last saved; banked on load so a refresh or crash never loses a dive. */
   carried: Inventory;
   upgrades: Levels;
-  stats: { deepest: number; deaths: number; playTime: number; banked: number };
-  /** v11 adds music (background music on/off, default on). */
-  settings: { muted: boolean; music: boolean };
+  /** v14 adds raids (night raids repelled). */
+  stats: { deepest: number; deaths: number; playTime: number; banked: number; raids: number };
+  /** v11 adds music (background music on/off, default on); v14 adds raids (night base raids, default on). */
+  settings: { muted: boolean; music: boolean; raids: boolean };
   /** v2: persistent base tiles above the landing pad (see base.ts). */
   base: BaseTiles;
   /** v3: player-built back walls in the base strip (wall-layer ids). */
@@ -53,8 +54,8 @@ export function defaultSave(seedBase = 1337): SaveData {
     stash: {},
     carried: {},
     upgrades: {},
-    stats: { deepest: 0, deaths: 0, playTime: 0, banked: 0 },
-    settings: { muted: false, music: true },
+    stats: { deepest: 0, deaths: 0, playTime: 0, banked: 0, raids: 0 },
+    settings: { muted: false, music: true, raids: true },
     base: [],
     walls: [],
     codex: [],
@@ -117,9 +118,11 @@ export function parseSave(raw: string | null | undefined): SaveData {
       deaths: Math.floor(num(st.deaths, 0, MAX_COUNT, 0)),
       playTime: num(st.playTime, 0, 1e10, 0),
       banked: Math.floor(num(st.banked, 0, MAX_COUNT, 0)),
+      // v13 -> v14: no raids repelled yet.
+      raids: Math.floor(num(st.raids, 0, MAX_COUNT, 0)),
     },
-    // v10 -> v11: music defaults to on.
-    settings: { muted: se.muted === true, music: se.music !== false },
+    // v10 -> v11: music defaults to on. v13 -> v14: raids default to on (opt-out in the workshop).
+    settings: { muted: se.muted === true, music: se.music !== false, raids: se.raids !== false },
     // v1 saves have no base field: sanitizeBase(undefined) yields an empty base (migration v1 -> v2).
     base: sanitizeBase(r.base),
     // v2 -> v3: back walls moved from base tiles to their own layer.

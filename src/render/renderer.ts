@@ -236,7 +236,21 @@ export class Renderer {
       const ey = this.sy(e.y, shakeY);
       const w = d.halfW * 2 * ts;
       const h = d.h * ts;
+      if (e.raid) {
+        // Raiders carry a red war-glow and a bobbing chevron so they read as tonight's wave.
+        ctx.fillStyle = 'rgba(255,60,50,0.22)';
+        ctx.beginPath();
+        ctx.arc(ex, ey - h / 2, Math.max(w, h) * 0.9, 0, Math.PI * 2);
+        ctx.fill();
+      }
       drawEnemySprite(ctx, e.kind, ex, ey, scale * ENEMY_SCALE, e.dir, time, e.iframes > 0);
+      if (e.raid) {
+        const cy = ey - h - 7 * scale + Math.round(Math.sin(time * 6 + e.id) * scale);
+        ctx.fillStyle = (e.chew ?? 0) > 0 && Math.floor(time * 8) % 2 ? '#ffcf4a' : '#ff4a3a';
+        ctx.fillRect(ex - 2 * scale, cy, scale, scale);
+        ctx.fillRect(ex - scale, cy + scale, 2 * scale, scale);
+        ctx.fillRect(ex + scale, cy, scale, scale);
+      }
       if (e.hp < d.hp) {
         ctx.fillStyle = '#300';
         ctx.fillRect(ex - w / 2, ey - h - 4 * scale, w, 2 * scale);

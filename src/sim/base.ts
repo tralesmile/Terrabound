@@ -8,7 +8,7 @@ export const BASE_ROWS = 10;
 export type BaseTiles = number[];
 
 /** T.WALL is legacy (v2 saves stored back walls as tiles); v3 keeps them in the wall layer. */
-const KEEP = new Set<number>([T.RUST, T.METAL, T.TORCH, T.LADDER, T.SCAFFOLD, T.PLATFORM, T.DOOR, T.SOLAR, T.SMELTER, T.BATTERY, T.MINER, T.DRONE]);
+export const BASE_KEEP: ReadonlySet<number> = new Set<number>([T.RUST, T.METAL, T.TORCH, T.LADDER, T.SCAFFOLD, T.PLATFORM, T.DOOR, T.SOLAR, T.SMELTER, T.BATTERY, T.MINER, T.DRONE]);
 const KEEP_WALLS = new Set<number>([W.PLATE]);
 export const BASE_MAX_TILES = (BASE_HALF * 2 + 1) * BASE_ROWS;
 
@@ -17,7 +17,7 @@ export function captureBase(world: World): BaseTiles {
   for (let dy = 1; dy <= BASE_ROWS; dy++) {
     for (let dx = -BASE_HALF; dx <= BASE_HALF; dx++) {
       const t = world.get(world.padX + dx, world.padY - dy);
-      if (KEEP.has(t)) out.push(dx, dy, t);
+      if (BASE_KEEP.has(t)) out.push(dx, dy, t);
     }
   }
   return out;
@@ -61,10 +61,10 @@ export function legacyWalls(v: unknown): BaseTiles {
 
 /** Never throws; drops anything out of range or not a keepable tile; dedupes cells. */
 export function sanitizeBase(v: unknown): BaseTiles {
-  return sanitizeTriples(v, KEEP);
+  return sanitizeTriples(v, BASE_KEEP);
 }
 
-function sanitizeTriples(v: unknown, keep: Set<number>): BaseTiles {
+function sanitizeTriples(v: unknown, keep: ReadonlySet<number>): BaseTiles {
   if (!Array.isArray(v)) return [];
   const seen = new Set<number>();
   const out: BaseTiles = [];
