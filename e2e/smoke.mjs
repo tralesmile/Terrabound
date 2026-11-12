@@ -1288,7 +1288,8 @@ try {
   await page.screenshot({ path: path.join(out, '36e-mod-fitted.png') });
   check('talking to the Gunsmith opens its chips; BUILD fits an overcharge chip and the pistol hits harder', gunShop.open && gunShop.tab === 'trade' && gunShop.scroll > 0 && !!gunShop.btn && gunAfter.fitted === 'overcharge' && gunAfter.dmg > dmg0 && gunAfter.fitBtn, JSON.stringify({ gunShop, dmg0, gunAfter }));
   await page.keyboard.press('Escape');
-  await page.waitForTimeout(150);
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: path.join(out, '36f-hotbar-chip.png') });
   // Clean up: take the chip out and restore every tile the Gunsmith's room changed (later checks use the pad's right end).
   await page.evaluate(() => {
     const g = window.__terrabound.game;

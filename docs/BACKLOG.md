@@ -104,7 +104,9 @@ Characters
 - [x] Medic robot (run 20): Patch moves into the second valid room; medkit trades into the pack (+60 HP, eat from inventory); while home you keep 3/4 of the pack on death; robots never move house when a new room appears; trade rows show item icons
 - [x] Comfort pays (run 22): each robot posts one cozy rate while its room has comfort 3+ (`COZY`, `tradeOpen`, `game.npcComfort`); locked rows say what the room needs
 - [x] Robots live (run 23): sit on the chair by day, sleep in bed at night (a nearby player wakes them), hurry to bed and hide in raids, wave when you bank loot, cheer when a raid is beaten (`npcSpots`, `reactNpcs`)
-- [ ] More robot NPCs: Gunsmith (weapon mods), Scientist (research tree)
+- [x] Gunsmith (run 24, src/sim/mods.ts): Rook moves into the third valid room and builds 7 mod chips (overcharge, hair trigger, piercer, ricochet, keen edge, leech, quick grip); one per weapon slot, owned forever, free swap at the base; save v15
+- [ ] Scientist robot (research tree: spend materials on permanent small perks, visible costs) in a fourth room; needs the base strip widened or a second row of rooms (BASE_ROWS 10 fits two floors)
+- [ ] TRADE tab grouping: one header per robot with its portrait, collapse locked rows (TRADE now has 21 rows)
 - [x] Quick heal (run 21): H or the HUD heal button beside the bars eats the smallest healing item that covers the missing HP (`bestHeal`); pulses red under 35% HP
 - [x] Wandering merchant drone (run 23, src/sim/merchant.ts): Dex parks over the pad sunrise to mid-afternoon, 3 offers/day from a 10-offer pool by seed+day, shown in full even while away; no-loop test over all rates
 

@@ -1,5 +1,14 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-12 run 24
+
+- Done this run: glowing bolt tracers (light up caves, colour by behaviour), Rook the Gunsmith with 7 mod chips, chip pip on the hotbar.
+- Weakest gameplay feel: enemies take hits silently except numbers; a short white flash on the sprite and a knockback squash (Dead Cells style) would sell every chip.
+- Weakest progression: base strip fits ~3 rooms, so robots cap out; widen the build area once the Scientist arrives (backlog).
+- Weakest graphics: chip icons are tiny dice; a 2x core and a per-chip glyph (flame, arrow, bounce) would read at a glance.
+- Weakest UI: TRADE is 21 rows; group per robot with portrait headers (backlog).
+- New: an "ember" chip (burn over time) once enemies have status effects; chips as rare chest loot so dives can drop a build-changer.
+
 ## 2026-11-12 run 23
 
 - Done this run: robots sit/sleep/hide/wave/cheer, metal wall trims, Dex the merchant drone.
@@ -16,11 +25,3 @@
 - Weakest graphics: the tower's outer walls are one stone texture; a metal-frame trim on built blocks that border air would read as architecture (backlog window follow-ups).
 - Weakest controls: a lift needs jump held the whole way; tap-to-ride (one press carries you to the next floor) would feel like Core Keeper's minecarts.
 - Weakest UI: TRADE needs scrolling to find cozy rows on a phone; group rows per robot with a small portrait header.
-
-## 2026-11-12 run 21
-
-- Done this run: 2-tile bed and long table with props, chairs, quick heal (H / HUD button).
-- Weakest graphics: interior back walls are one flat dark panel; window tiles that show the sky (and glow warm at night from outside) would make the base look lived in.
-- Weakest gameplay feel: robots still pace silently; a sit/sleep animation (Bolt sits on the chair, sleeps in the bed at night) is cheap and charming.
-- Weakest UI: the toast stack under the title repeats "moved in" lines on every load-in fixture; robots arriving could be one portrait card instead.
-- Weakest progression: comfort is computed but pays nothing yet; comfort 3+ unlocks a "cozy" trade row (merged into the NPC backlog line).

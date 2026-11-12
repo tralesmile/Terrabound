@@ -693,6 +693,19 @@ export class UI {
     TOOL_SLOTS.forEach((ts, i) => {
       this.cell(ctx, sx, sy, slot, ts.tool, null, game.tool === ts.tool, { k: 'settool', t: ts.tool });
       if (!this.touch) this.text(ctx, ts.key, sx + 4, sy + slot * 0.28, Math.round(slot * 0.22), '#8a90a2');
+      // A fitted mod chip shows as a small glowing chip in the weapon slot's corner.
+      const chip = ts.tool === 'blade' ? game.fittedMod('melee') : ts.tool === 'pistol' ? game.fittedMod('ranged') : undefined;
+      if (chip) {
+        const cz = Math.round(slot * 0.28);
+        const cx = sx + slot - cz - 3;
+        const cy = sy + 3;
+        ctx.fillStyle = '#14181f';
+        ctx.fillRect(cx - 1, cy - 1, cz + 2, cz + 2);
+        ctx.fillStyle = MODS[chip].color;
+        ctx.fillRect(cx, cy, cz, cz);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(cx + cz * 0.35, cy + cz * 0.35, Math.max(2, cz * 0.3), Math.max(2, cz * 0.3));
+      }
       sx += slot + gap + (i === TOOL_SLOTS.length - 1 ? gap * 2 : 0);
     });
     shown.forEach((id) => {

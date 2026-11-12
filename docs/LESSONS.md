@@ -89,3 +89,6 @@
 - **Two posted rates can loop into free goods** (5 biomass -> 3 seed, 4 seed -> 8 biomass = 1.2x). Guard: tests/merchant.test.ts checks every A -> B -> A pair over all robot and merchant rates loses.
 - **Disabled buttons are not in `ui.rects`.** An e2e that counts TRADE buttons must give the stash enough to afford every row first.
 
+
+- **The base strip is only 15 x 10 tiles (BASE_HALF 7, BASE_ROWS 10).** A third room stacked on two others is outside `findRooms`, so the Gunsmith test never saw it. Guard: tests build rooms side by side with `rowHomes` (tests/mods.test.ts); any 4th robot needs a wider strip first.
+- **Things drawn before `drawDarkness` are dimmed by it.** Bolts looked dull in caves; anything that should glow (bolts, sparks) goes in a pass after the darkness (`drawBolts`).

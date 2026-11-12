@@ -417,3 +417,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 
 **Known issues:** upgrade BUY rows refuse while you shop upstairs off the pad; trade rows on a phone are tight (TRADE now has 14 rows, scrolls); DAILY still replaces the world without a confirm; turrets draw 1 power even when idle; a chair has no flip; mounted screens stay up if their wall is later removed; the merchant hovers inside whatever is built over the right end of the pad.
 
+
+## 2026-11-12 Scheduled run 24
+
+**Done:** baseline green (437 tests). Creative review: combat had no loadout choice past crafting tiers, and pistol bolts were thin lines swallowed by cave darkness (06-pistol). Bolts now glow: tracers drawn over the darkness with an additive halo, a white-hot head, colour by behaviour (gold pulse, orange scatter, blue piercing, green ricochet), muzzle flash and impact sparks. Backlog P1.8: Rook the Gunsmith (orange visor, chip badge) moves into the third valid room; TRADE lists 7 mod chips (src/sim/mods.ts) with fixed costs: overcharge +35% shot damage, hair trigger 30% faster, piercer (bolts pass through), ricochet (2 wall bounces), keen edge (+30% damage, +0.6 reach), leech (3 HP per melee hit), quick grip (25% faster swings). One chip per weapon slot, owned forever, fit/take out free while you can shop; a fitted chip shows on the hotbar weapon slot. Save v15 (`mods`), migration + v14 fixture test. Screenshots 35d-gunsmith, 36d-gunsmith-mods, 36e-mod-fitted, 36f-hotbar-chip, 06-pistol reviewed.
+
+**Numbers:** 453 unit tests (new tests/mods.test.ts: 15, sprites: 1), e2e all green (new: Gunsmith moves in + hint, E opens its chip rows, BUILD fits overcharge and raises pistol damage), bundle 275 kB (94.7 kB gzip).
+
+**Next:** Scientist research tree (needs room space: base strip holds 3 rooms comfortably), TRADE tab grouping per robot, then farming.
+
+**Known issues:** base strip (15x10) fits about 3 robot rooms; upgrade BUY rows refuse while you shop upstairs off the pad; TRADE has 21 rows (scrolls); DAILY still replaces the world without a confirm; turrets draw 1 power even when idle; mounted screens stay up if their wall is removed; the merchant hovers inside whatever is built over the right end of the pad; piercer chip does nothing extra on the rail rifle (already pierces).
