@@ -77,6 +77,7 @@ function boot(): void {
     renderer.setOreMarks(p.oreMarks === 1);
     renderer.reduceFlash = p.flashes === 1;
     input.stickSide = p.stickSide;
+    input.keymap = game.keys;
     ui.stickSide = p.stickSide;
     ui.uiScale = uiScale(p);
   };
@@ -142,6 +143,8 @@ function boot(): void {
         break;
       case 'settings':
         ui.settingsOpen = !ui.settingsOpen;
+        ui.settingsPage = 'main';
+        ui.rebinding = null;
         if (ui.settingsOpen) {
           ui.mapOpen = false;
           ui.shopOpen = false;
@@ -150,6 +153,23 @@ function boot(): void {
         } else saveNow();
         applyPrefs();
         break;
+      case 'keyspage':
+        ui.settingsPage = a.open ? 'keys' : 'main';
+        ui.rebinding = null;
+        break;
+      case 'bindarm':
+        ui.rebinding = ui.rebinding === a.id ? null : a.id;
+        break;
+      case 'bindkey':
+        input.keymap = game.rebindKey(a.id, a.code);
+        ui.rebinding = null;
+        saveNow();
+        break;
+      case 'resetkeys':
+        input.keymap = game.resetKeys();
+        ui.rebinding = null;
+        saveNow();
+        break;
       case 'pref':
         game.stepPref(a.key, a.d);
         applyPrefs();
@@ -157,6 +177,12 @@ function boot(): void {
         break;
       case 'close':
         if (ui.settingsOpen) saveNow();
+        // Esc on the CONTROLS page goes back to the option rows first.
+        if (ui.settingsOpen && ui.settingsPage === 'keys') {
+          ui.settingsPage = 'main';
+          ui.rebinding = null;
+          break;
+        }
         ui.settingsOpen = false;
         applyPrefs();
         ui.shopOpen = false;

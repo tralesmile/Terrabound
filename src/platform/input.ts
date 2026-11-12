@@ -1,5 +1,6 @@
 import type { Controls } from '../sim/game';
 import { inStickZone } from '../sim/settings';
+import { boundTo, DEFAULT_KEYS, type BindId, type KeyMap } from '../sim/keys';
 import type { Renderer } from '../render/renderer';
 import type { UI, UiAction } from '../ui/ui';
 
@@ -20,6 +21,8 @@ export class Input {
   mouse = { x: 0, y: 0, has: false };
   /** Settings: 0 move stick on the left third, 1 on the right third (left-handed). */
   stickSide = 0;
+  /** Settings: desktop key bindings (arrows and Space always move as well). */
+  keymap: KeyMap = { ...DEFAULT_KEYS };
   /** Called when the player acts on UI. */
   onAction: (a: UiAction) => void = () => undefined;
   onAnyInput: () => void = () => undefined;
@@ -34,17 +37,26 @@ export class Input {
       this.onAnyInput();
       if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(e.code)) e.preventDefault();
       if (e.repeat) return;
+      // CONTROLS panel waiting for a key: the next key is the new binding (Esc cancels).
+      const arm = this.ui.rebinding;
+      if (arm) {
+        e.preventDefault();
+        if (e.code === 'Escape') this.ui.rebinding = null;
+        else this.onAction({ k: 'bindkey', id: arm, code: e.code });
+        return;
+      }
       this.keys.add(e.code);
-      if (e.code === 'KeyB' || e.code === 'Tab') {
+      const bound = boundTo(this.keymap, e.code);
+      const act = bound ? this.bindAction(bound) : null;
+      if (act) {
+        e.preventDefault();
+        this.onAction(act);
+      } else if (bound && this.ui.screen !== 'title') {
+        // Movement keys are read every frame in read() (on the title they start the game below).
+      } else if (e.code === 'Tab') {
         e.preventDefault();
         this.onAction({ k: this.ui.shopOpen ? 'close' : 'shop' });
-      } else if (e.code === 'KeyM') this.onAction({ k: 'map' });
-      else if (e.code === 'KeyN') this.onAction({ k: 'mute' });
-      else if (e.code === 'KeyR') this.onAction({ k: 'recall' });
-      else if (e.code === 'KeyH') this.onAction({ k: 'heal' });
-      else if (e.code === 'Escape') this.onAction({ k: 'close' });
-      else if (e.code === 'KeyO') this.onAction({ k: 'settings' });
-      else if (e.code === 'KeyQ') this.onAction({ k: 'tool' });
+      } else if (e.code === 'Escape') this.onAction({ k: 'close' });
       else if (e.code === 'Digit1') this.onAction({ k: 'settool', t: 'drill' });
       else if (e.code === 'Digit2') this.onAction({ k: 'settool', t: 'blade' });
       else if (e.code === 'Digit3') this.onAction({ k: 'settool', t: 'pistol' });
@@ -55,12 +67,6 @@ export class Input {
       else if (e.code === 'Digit8') this.onAction({ k: 'sel', i: 2 });
       else if (e.code === 'Digit9') this.onAction({ k: 'sel', i: 3 });
       else if (e.code === 'Digit0') this.onAction({ k: 'sel', i: 4 });
-      else if (e.code === 'KeyV') this.onAction({ k: 'ride' });
-      else if (e.code === 'KeyI' || e.code === 'Tab') {
-        e.preventDefault();
-        this.onAction({ k: 'inv' });
-      } else if (e.code === 'KeyE') this.onAction({ k: 'interact' });
-      else if (e.code === 'Digit0') this.onAction({ k: 'sel', i: 6 });
       else if (e.code === 'Minus') this.onAction({ k: 'sel', i: 7 });
       else if (this.ui.screen === 'title' && !this.ui.settingsOpen) this.onAction({ k: 'start' });
     });
@@ -78,6 +84,34 @@ export class Input {
     canvas.addEventListener('pointerleave', () => {
       this.mouse.has = false;
     });
+  }
+
+  /** The UI action a bound key fires on press (movement binds return null: they are held, not pressed). */
+  private bindAction(id: BindId): UiAction | null {
+    switch (id) {
+      case 'interact':
+        return { k: 'interact' };
+      case 'inventory':
+        return { k: 'inv' };
+      case 'shop':
+        return { k: this.ui.shopOpen ? 'close' : 'shop' };
+      case 'map':
+        return { k: 'map' };
+      case 'heal':
+        return { k: 'heal' };
+      case 'recall':
+        return { k: 'recall' };
+      case 'ride':
+        return { k: 'ride' };
+      case 'tool':
+        return { k: 'tool' };
+      case 'settings':
+        return { k: 'settings' };
+      case 'mute':
+        return { k: 'mute' };
+      default:
+        return null;
+    }
   }
 
   private css(e: PointerEvent): { x: number; y: number } {
@@ -145,10 +179,11 @@ export class Input {
   read(): Controls {
     const k = this.keys;
     let moveX = 0;
-    if (k.has('KeyA') || k.has('ArrowLeft')) moveX -= 1;
-    if (k.has('KeyD') || k.has('ArrowRight')) moveX += 1;
-    let jump = k.has('KeyW') || k.has('ArrowUp') || k.has('Space');
-    let down = k.has('KeyS') || k.has('ArrowDown');
+    const km = this.keymap;
+    if (k.has(km.left) || k.has('ArrowLeft')) moveX -= 1;
+    if (k.has(km.right) || k.has('ArrowRight')) moveX += 1;
+    let jump = k.has(km.jump) || k.has('ArrowUp') || k.has('Space');
+    let down = k.has(km.down) || k.has('ArrowDown');
     let dig = false;
     let place = false;
     let aimCss: { x: number; y: number } | null = this.mouse.has ? { x: this.mouse.x, y: this.mouse.y } : null;
@@ -175,7 +210,7 @@ export class Input {
       const t = this.renderer.screenToTile(aimCss.x * d, aimCss.y * d);
       aim = { tx: t.tx, ty: t.ty };
     }
-    const dash = k.has('ShiftLeft') || k.has('ShiftRight') || this.dashTap;
+    const dash = k.has(km.dash) || (km.dash === 'ShiftLeft' && k.has('ShiftRight')) || this.dashTap;
     this.dashTap = false;
     return { moveX, jump, dig, place, aim, down, dash };
   }

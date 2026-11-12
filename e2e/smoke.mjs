@@ -851,6 +851,63 @@ try {
     return { open: t.ui.settingsOpen, saved: raw.settings ? raw.settings.uiSize : null };
   });
   check('Esc closes settings and the choice is saved', !setC.open && setC.saved === 1, JSON.stringify(setC));
+
+  // Settings slice 3: CONTROLS page remaps keys; the new key works in play and is saved.
+  {
+    const clickAct = async (pred) => {
+      const r = await page.evaluate((src) => window.__terrabound.ui.rects.find(new Function('r', `return ${src}`)), pred);
+      if (!r) return false;
+      const c = await page.evaluate((r) => {
+        const el = document.getElementById('game');
+        const k = el.clientWidth / el.width;
+        return { x: (r.x + r.w / 2) * k, y: (r.y + r.h / 2) * k };
+      }, r);
+      await holdClick(page, c.x, c.y);
+      await page.waitForTimeout(80);
+      return true;
+    };
+    await page.keyboard.press('KeyO');
+    await page.waitForTimeout(100);
+    const toKeys = await clickAct("r.a.k === 'keyspage' && r.a.open");
+    const rowsK = await page.evaluate(() => ({ page: window.__terrabound.ui.settingsPage, n: window.__terrabound.ui.rects.filter((r) => r.a.k === 'bindarm').length }));
+    await page.screenshot({ path: path.join(out, '47-controls.png') });
+    const armed = await clickAct("r.a.k === 'bindarm' && r.a.id === 'jump'");
+    const armState = await page.evaluate(() => window.__terrabound.ui.rebinding);
+    await page.waitForTimeout(100);
+    await page.screenshot({ path: path.join(out, '47b-controls-armed.png') });
+    await page.keyboard.press('KeyK');
+    await page.waitForTimeout(80);
+    const after = await page.evaluate(() => {
+      const t = window.__terrabound;
+      const raw = JSON.parse(localStorage.getItem(Object.keys(localStorage).find((k) => k.includes('terrabound')) ?? '') || '{}');
+      return { jump: t.game.keys.jump, armed: t.ui.rebinding, saved: raw.settings && raw.settings.keys ? raw.settings.keys.jump : null };
+    });
+    check('CONTROLS page lists every binding', toKeys && rowsK.page === 'keys' && rowsK.n === 15, JSON.stringify(rowsK));
+    check('clicking a binding arms it and the next key rebinds it (saved)', armed && armState === 'jump' && after.jump === 'KeyK' && after.armed === null && after.saved === 'KeyK', JSON.stringify({ armState, ...after }));
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(80);
+    const backMain = await page.evaluate(() => ({ open: window.__terrabound.ui.settingsOpen, page: window.__terrabound.ui.settingsPage }));
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(80);
+    check('Esc on CONTROLS goes back to the option rows first', backMain.open && backMain.page === 'main', JSON.stringify(backMain));
+    // The rebound key jumps in play.
+    await page.evaluate(() => {
+      const g = window.__terrabound.game;
+      g.enemies = [];
+      g.body.vx = 0;
+      g.body.vy = 0;
+    });
+    await page.waitForTimeout(250);
+    const y0 = await page.evaluate(() => window.__terrabound.game.body.y);
+    await page.keyboard.down('KeyK');
+    await page.waitForTimeout(200);
+    const y1 = await page.evaluate(() => window.__terrabound.game.body.y);
+    await page.keyboard.up('KeyK');
+    check('the rebound jump key lifts the player', y1 < y0 - 0.3, JSON.stringify({ y0, y1 }));
+    await page.waitForTimeout(600);
+    await page.evaluate(() => window.__terrabound.act({ k: 'resetkeys' }));
+    check('RESET KEYS restores W for jump', (await page.evaluate(() => window.__terrabound.game.keys.jump)) === 'KeyW');
+  }
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     g.stepPref('uiSize', -1);

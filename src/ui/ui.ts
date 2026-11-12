@@ -1,4 +1,5 @@
 import { PREFS, prefValueLabel, type PrefKey } from '../sim/settings';
+import { BINDS, keyLabel, type BindId } from '../sim/keys';
 import { recordLine } from '../sim/records';
 import type { Game, Tool } from '../sim/game';
 import { MAP_ZOOMS, MapView } from './map';
@@ -39,6 +40,10 @@ export type UiAction =
   | { k: 'mute' }
   | { k: 'settings' }
   | { k: 'pref'; key: PrefKey; d: number }
+  | { k: 'keyspage'; open: boolean }
+  | { k: 'bindarm'; id: BindId }
+  | { k: 'bindkey'; id: BindId; code: string }
+  | { k: 'resetkeys' }
   | { k: 'buy'; id: string }
   | { k: 'craft'; id: string }
   | { k: 'trade'; id: string }
@@ -162,6 +167,10 @@ export class UI {
   bayIdx = 0;
   /** Settings screen (pauses the game like the map). */
   settingsOpen = false;
+  /** Settings sub-page: the option rows, or the desktop CONTROLS (key bindings) list. */
+  settingsPage: 'main' | 'keys' = 'main';
+  /** CONTROLS: the action waiting for its new key, if any. */
+  rebinding: BindId | null = null;
   /** UI size multiplier from the settings screen (uiScale in sim/settings.ts). */
   uiScale = 1;
   /** Workshop tab: upgrades or Fabricator recipes (keeps the panel on screen however many rows exist). */
@@ -305,7 +314,8 @@ export class UI {
     if (this.settingsOpen) {
       if (this.screen === 'title') this.drawTitle(ctx, game, w, h, u, time);
       this.rects = [];
-      this.drawSettings(ctx, game, w, h, u);
+      if (this.settingsPage === 'keys' && !this.touch) this.drawKeys(ctx, game, w, h, u);
+      else this.drawSettings(ctx, game, w, h, u);
       return;
     }
     if (this.screen === 'title') {
@@ -351,11 +361,13 @@ export class UI {
     // Rows shrink (down to 70%) when every option would not fit the screen height.
     const fixed = u * 6;
     const perRow = u * (2.4 + 0.5 + (stacked ? 1.5 : 0));
-    const fit = Math.max(0.7, Math.min(1, (h - u - fixed) / ((PREFS.length + 1) * perRow)));
+    // Rows: every option, SOUND, and CONTROLS on desktop.
+    const rows = PREFS.length + (this.touch ? 1 : 2);
+    const fit = Math.max(0.7, Math.min(1, (h - u - fixed) / (rows * perRow)));
     const rowH = u * 2.4 * fit;
     const gap = u * 0.5 * fit;
     const labelH = stacked ? u * 1.5 * fit : 0;
-    const ph = u * 4.4 + (PREFS.length + 1) * (rowH + gap + labelH) + u * 1.6;
+    const ph = u * 4.4 + rows * (rowH + gap + labelH) + u * 1.6;
     const px = (w - pw) / 2;
     const py = Math.max(u * 0.5, (h - ph) / 2);
     this.panel(ctx, px, py, pw, ph);
@@ -392,7 +404,45 @@ export class UI {
     } else this.text(ctx, 'SOUND', px + u, y + rowH / 2, Math.round(u * 0.8), '#c9d0e4');
     this.button(ctx, xMinus, y, xPlus + stepW - xMinus, rowH, game.muted ? 'ALL OFF' : game.musicOn ? 'MUSIC + EFFECTS' : 'EFFECTS ONLY', { k: 'mute' }, u * 0.8, { color: '#2a3550' });
     y += rowH + gap;
-    this.text(ctx, this.touch ? 'Settings save on this device.' : 'O or Esc closes. Settings save on this device.', px + u, y + u * 0.6, Math.round(u * 0.68), '#8a90a2', 'left', pw - u * 2);
+    if (!this.touch) {
+      this.text(ctx, 'KEYBOARD', px + u, y + rowH / 2, Math.round(u * 0.8), '#c9d0e4');
+      this.button(ctx, xMinus, y, xPlus + stepW - xMinus, rowH, 'CONTROLS >', { k: 'keyspage', open: true }, u * 0.8, { color: '#2a3550' });
+      y += rowH + gap;
+    }
+    this.text(ctx, this.touch ? 'Settings save on this device.' : `${keyLabel(game.keys.settings)} or Esc closes. Settings save on this device.`, px + u, y + u * 0.6, Math.round(u * 0.68), '#8a90a2', 'left', pw - u * 2);
+  }
+
+  /** CONTROLS: one row per bindable action (two columns when wide); click a key, then press the new one. */
+  private drawKeys(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number): void {
+    ctx.fillStyle = 'rgba(4,4,10,0.6)';
+    ctx.fillRect(0, 0, w, h);
+    const pw = Math.min(w - u * 2, u * 40);
+    const cols = pw >= u * 34 ? 2 : 1;
+    const per = Math.ceil(BINDS.length / cols);
+    const fixed = u * 8.6;
+    const fit = Math.max(0.6, Math.min(1, (h - u - fixed) / (per * u * 2.3)));
+    const rowH = u * 1.9 * fit;
+    const gap = u * 0.4 * fit;
+    const ph = fixed + per * (rowH + gap);
+    const px = (w - pw) / 2;
+    const py = Math.max(u * 0.5, (h - ph) / 2);
+    this.panel(ctx, px, py, pw, ph);
+    this.text(ctx, 'CONTROLS', px + u, py + u * 1.5, Math.round(u * 1.1), '#ffcf4a');
+    this.button(ctx, px + pw - u * 5.5, py + u * 0.4, u * 5, u * 2.1, 'BACK', { k: 'keyspage', open: false }, u * 0.8);
+    const colW = (pw - u * (cols + 1)) / cols;
+    const keyW = Math.min(u * 7, colW * 0.45);
+    const top = py + u * 3.4;
+    BINDS.forEach((b, i) => {
+      const cx = px + u + Math.floor(i / per) * (colW + u);
+      const y = top + (i % per) * (rowH + gap);
+      const armed = this.rebinding === b.id;
+      this.text(ctx, b.label, cx, y + rowH / 2, Math.round(u * 0.75), armed ? '#ffcf4a' : '#c9d0e4', 'left', colW - keyW - u * 0.5);
+      const pulse = armed && Math.floor(performance.now() / 300) % 2 === 0;
+      this.button(ctx, cx + colW - keyW, y, keyW, rowH, armed ? 'PRESS A KEY' : keyLabel(game.keys[b.id]), { k: 'bindarm', id: b.id }, u * 0.75, { color: armed ? (pulse ? '#6b5a1a' : '#4a3f14') : '#2a3550' });
+    });
+    const by = top + per * (rowH + gap) + u * 0.4;
+    this.button(ctx, px + u, by, u * 8, u * 2, 'RESET KEYS', { k: 'resetkeys' }, u * 0.75, { color: '#4a2a30' });
+    this.text(ctx, this.rebinding ? 'Press the new key. Esc cancels.' : 'Click a key to change it. A key already in use swaps over. Arrows and Space always move.', px + u * 9.6, by + u, Math.round(u * 0.65), '#8a90a2', 'left', pw - u * 10.6);
   }
 
   /** Raid warning: a countdown under the HUD and a pulsing arrow on the screen edge the wave comes from. */
@@ -884,7 +934,7 @@ export class UI {
     const auto = game.stats.playTime >= 40 ? game.hintAutomation(this.touch) : null;
     if (auto) this.text(ctx, auto, w / 2, h - u * 0.7, Math.round(u * 0.75), '#7dffb0', 'center', w - u * 2);
     if (game.stats.playTime < 40) {
-      const hint = this.touch ? (this.stickSide === 1 ? 'Right thumb: move, drag up to jump. Left side: dig.' : 'Left thumb: move, drag up to jump. Right side: dig.') : 'A/D move, W jump. Click: dig / open chests. Right click: build. 1-4 or wheel: tools. I: inventory. E: open chest.';
+      const hint = this.touch ? (this.stickSide === 1 ? 'Right thumb: move, drag up to jump. Left side: dig.' : 'Left thumb: move, drag up to jump. Right side: dig.') : `${keyLabel(game.keys.left)}/${keyLabel(game.keys.right)} move, ${keyLabel(game.keys.jump)} jump. Click: dig / open chests. Right click: build. 1-5 or wheel: tools. ${keyLabel(game.keys.inventory)}: inventory. ${keyLabel(game.keys.interact)}: open chest.`;
       this.text(ctx, hint, w / 2, h - u * 0.7, Math.round(u * 0.75), '#c9d0e4', 'center', w - u * 2);
     }
   }

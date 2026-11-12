@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_KEYS } from '../src/sim/keys';
 import { defaultSave, parseSave, SAVE_VERSION } from '../src/sim/save';
 import { audioGains, inStickZone, STICK_ZONE, cleanPref, DEFAULT_PREFS, PREFS, prefValueLabel, shakeMul, stepPref, uiScale } from '../src/sim/settings';
 import { Game } from '../src/sim/game';
@@ -54,14 +55,14 @@ describe('settings screen prefs', () => {
     const v18 = { ...defaultSave(), v: 18, settings: { muted: true, music: false, raids: false } };
     const s = parseSave(JSON.stringify(v18));
     expect(s.v).toBe(SAVE_VERSION);
-    expect(SAVE_VERSION).toBe(21);
-    expect(s.settings).toEqual({ muted: true, music: false, raids: false, ...DEFAULT_PREFS });
+    expect(SAVE_VERSION).toBe(22);
+    expect(s.settings).toEqual({ muted: true, music: false, raids: false, keys: DEFAULT_KEYS, ...DEFAULT_PREFS });
   });
 
   it('a v19 save keeps its prefs and gets ore marks off, flashes full', () => {
     const v19 = { ...defaultSave(), v: 19, settings: { muted: false, music: true, raids: true, master: 3, musicVol: 4, sfxVol: 5, shake: 1, uiSize: 2 } };
     const s = parseSave(JSON.stringify(v19));
-    expect(s.settings).toEqual({ muted: false, music: true, raids: true, master: 3, musicVol: 4, sfxVol: 5, shake: 1, uiSize: 2, oreMarks: 0, flashes: 0, stickSide: 0 });
+    expect(s.settings).toEqual({ muted: false, music: true, raids: true, master: 3, musicVol: 4, sfxVol: 5, shake: 1, uiSize: 2, oreMarks: 0, flashes: 0, stickSide: 0, keys: DEFAULT_KEYS });
     expect(prefValueLabel(s.settings, 'oreMarks')).toBe('OFF');
     expect(prefValueLabel({ ...s.settings, flashes: 1 }, 'flashes')).toBe('REDUCED');
   });

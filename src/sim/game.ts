@@ -1,4 +1,5 @@
 import { stepPref, type PrefKey, type Prefs } from './settings';
+import { DEFAULT_KEYS, rebind, type BindId, type KeyMap } from './keys';
 import { decodeSeed, encodeSeed } from './seedcode';
 import { noteBoss, noteDepth, noteLoot, startAttempt, type RecordBeat, type WorldRecord } from './records';
 import { hash2, mixSeed, mulberry32 } from './rng';
@@ -529,6 +530,21 @@ export class Game {
   get prefs(): Prefs {
     const s = this.save.settings;
     return { master: s.master, musicVol: s.musicVol, sfxVol: s.sfxVol, shake: s.shake, uiSize: s.uiSize, oreMarks: s.oreMarks, flashes: s.flashes, stickSide: s.stickSide };
+  }
+
+  /** Desktop key bindings. */
+  get keys(): KeyMap {
+    return this.save.settings.keys;
+  }
+
+  rebindKey(id: BindId, code: string): KeyMap {
+    this.save.settings.keys = rebind(this.save.settings.keys, id, code);
+    return this.keys;
+  }
+
+  resetKeys(): KeyMap {
+    this.save.settings.keys = { ...DEFAULT_KEYS };
+    return this.keys;
   }
 
   /** Step one option by d (clamped); returns the new prefs. */
