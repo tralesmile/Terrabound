@@ -62,3 +62,7 @@
 - **Sprite rows over the width are easy to type** (a 17-char drone rotor). The width test caught it; add every new sprite map to tests/sprites.test.ts the moment you write it.
 - **Rule/role systems need a per-frame "acting" field** (`FieldDrone.act`) so the renderer and panel show what the drone does now, not its saved role; switching acts must drop half-finished targets.
 
+- **Check a tile's `solid` flag before writing path/dock tests.** I assumed drone bays were solid; they are not (T.DRONE is minable, non-solid). Guard: tests that need a solid block place T.RUST themselves.
+- **The world is open above row 0** (`get` returns air off the top, rock off the sides), so A* can route over a wall's top. Guard: path tests assert "detour" (length), not a specific route.
+- **Hopping walkers jump over the thing they should attack.** Raiders hopped over a 1-tile block instead of chewing it. Guard: raiders with a chew target hold still (game.stepEnemies) and a test checks the block comes loose.
+- **The pad clears all enemies every frame** (`atBase`). Any enemy meant to threaten the base must be exempt (raiders keep `e.raid`).

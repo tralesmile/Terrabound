@@ -335,3 +335,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 
 **Known issues:** drones still fly through rock; DAILY still replaces the world without a confirm; toasts show faintly through open panels.
 
+
+## 2026-11-12 Scheduled run 16
+
+**Done:** baseline green (325 tests). Creative review: vehicles were the last rectangle art; the hoverbike and Sky Jet are now outlined, shaded sprite maps (`vehicleRows`: canopy, swept wing, tail fin, flickering exhaust that lengthens on boost, flight bob, pulsing hover pads; screenshots 22-sky-jet, new 22b-hoverbike). Backlog: drone pathing (src/sim/dronepath.ts: clearLine + 8-way bounded A*, 300 nodes, re-plan 0.5 s, falls back to straight flight; miners hover at an open ore face; 9 tests). Night base raids slice 1 (src/sim/raids.ts, save v14): waves sized by base value march on the pad at nightfall when you are home, chew base blocks loose as items, clearing pays metal/wire/crystal; RAIDS ON/OFF in the workshop; HUD counter, siren, red chevrons (12 tests, 3 e2e checks, 34-raid.png, 34b-raids-toggle.png).
+
+**Numbers:** 347 unit tests, e2e all green, bundle 225 kB (78.4 kB gzip).
+
+**Next:** raid defences (turret, spike trap, reinforced wall), then raid follow-ups, then furniture.
+
+**Known issues:** raiders are ordinary enemy sprites with a glow; a raider standing on a base floor block chews down through it; DAILY still replaces the world without a confirm; toasts show faintly through open panels.
