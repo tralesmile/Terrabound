@@ -950,6 +950,26 @@ try {
   await page.waitForTimeout(700);
   await page.screenshot({ path: path.join(out, '22d-lava-pool.png') });
   check('the Ash Dunes have a surface lava pool', !!lava && lava.mid === 40, JSON.stringify(lava));
+  if (lava) {
+    // Molten look: the pool shows crust, melt and glowing cracks (many colours, not a flat fill),
+    // and the air above it shimmers (rows copied with a wobble).
+    const molten = await page.evaluate((lv) => {
+      const { renderer } = window.__terrabound;
+      const c = document.getElementById('game');
+      const ctx = c.getContext('2d');
+      const a = renderer.worldToScreen(lv.x0 + 1, lv.y + 0.2);
+      const b = renderer.worldToScreen(lv.x1 - 1, lv.y + 1.8);
+      const w = Math.max(1, Math.round(b.x - a.x));
+      const h = Math.max(1, Math.round(b.y - a.y));
+      const d = ctx.getImageData(Math.round(a.x), Math.round(a.y), w, h).data;
+      const cols = new Set();
+      for (let i = 0; i < d.length; i += 4 * 7) cols.add(`${d[i] >> 4},${d[i + 1] >> 4},${d[i + 2] >> 4}`);
+      return { lava: renderer.lavaShown, shimmer: renderer.shimmerRows, colours: cols.size, box: [Math.round(a.x), Math.round(a.y), w, h] };
+    }, lava);
+    check('surface lava flows with crust and cracks and the air above shimmers', molten.lava > 4 && molten.shimmer > 0 && molten.colours >= 4, JSON.stringify(molten));
+    const [bx, by, bw, bh] = molten.box;
+    await page.screenshot({ path: path.join(out, '22e-lava-close.png'), clip: { x: Math.max(0, bx / 1 - 40), y: Math.max(0, by - 120), width: Math.min(600, bw + 80), height: 260 } });
+  }
   // Grappling hook: tool 5, click a ceiling, swing.
   const hookAt = await page.evaluate(() => {
     const g = window.__terrabound.game;

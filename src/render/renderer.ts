@@ -2,6 +2,7 @@ import { aoRects } from './ao';
 import { computeRims, type Rim } from './rimlight';
 import { buriedDecal, decalRects, hasStrata, strataShade } from './strata';
 import type { Game, Hook, Shot } from '../sim/game';
+import { LAVA_BLOCK, SHIMMER_ROW, SHIMMER_ROWS, lavaDepthShade, lavaShade, shimmerRuns, shimmerShift } from './lavafx';
 import { acidBubble, causticBand, depthShade, surfaceGlint, waveOffsets } from './liquidfx';
 import { cropAt, isCropTile, isWatered } from '../sim/farming';
 import { cropSway, drawCropTile, ripeSparkle, sprinklerDrops } from './crops';
@@ -98,6 +99,8 @@ export const CHUNK = 32;
 export const MAX_CHUNKS = 48;
 /** Liquid body colours (chunk fill and the per-frame crest fill must match). */
 const LIQUID_FILL = { water: 'rgba(40,130,220,0.6)', acid: 'rgba(120,255,80,0.55)' } as const;
+/** Lava crust shades by lavaShade value (1 = base melt, not drawn). */
+const LAVA_SHADES = ['rgba(96,22,12,0.78)', '', '#ffa53a', '#ffe8a0'] as const;
 const chunkKey = (cx: number, cy: number): number => cy * 4096 + cx;
 
 /** Gear levels shown on the character (shared by the world view and the inventory preview). */
@@ -704,6 +707,8 @@ export class Renderer {
       ctx.fillRect(mx - scale * 2, my - scale * 2, scale * 4, scale * 4);
     }
 
+    this.drawShimmer(ctx, shakeX, shakeY, time);
+
     // Dust storm haze on the surface (fades out underground).
     if (game.weather === 'dust' && game.depth < 20) {
       const k = Math.max(0, 1 - game.depth / 20);
@@ -907,16 +912,7 @@ export class Renderer {
       // Water and acid surface cells leave the top 2 art px open: the rolling crest fills them per frame.
       const open = !magma && aboveT !== T.WATER && aboveT !== T.ACID_POOL && aboveT !== T.MAGMA ? (ts / 16) * 2 : 0;
       ctx.fillRect(dx, dy + open, ts, ts - open);
-      if (magma && hash2(tx, ty, 5) < 0.3) {
-        // Dark crust flecks so a magma pool reads as molten rock, not orange water.
-        ctx.fillStyle = 'rgba(90,20,10,0.55)';
-        ctx.fillRect(dx + ts * hash2(tx, ty, 6) * 0.7, dy + ts * hash2(tx, ty, 7) * 0.7, ts / 4, ts / 8);
-      }
-      if (magma) {
-        // Hot core: a brighter band through the middle of each cell.
-        ctx.fillStyle = 'rgba(255,190,70,0.45)';
-        ctx.fillRect(dx, dy + ts * 0.3, ts, ts * 0.35);
-      }
+      // Magma crust, veins and depth are drawn per frame (drawMagma, lavafx.ts) so the pool flows.
       const above = world.get(tx, ty - 1);
       if (above !== T.WATER && above !== T.ACID_POOL && above !== T.MAGMA) {
         // Surface: magma keeps a static bright line; water and acid crests roll per frame (drawLiquid).
@@ -1199,6 +1195,8 @@ export class Renderer {
     const ts = TS * this.scale;
     this.farmShown = 0;
     this.liquidShown = 0;
+    this.lavaShown = 0;
+    this.shimmerCells.length = 0;
     for (let ty = Math.max(0, y0); ty <= Math.min(world.h - 1, y1); ty++) {
       for (let tx = Math.max(0, x0); tx <= Math.min(world.w - 1, x1); tx++) {
         const t = world.tiles[ty * world.w + tx];
@@ -1586,22 +1584,72 @@ export class Renderer {
 
   /** Liquid cells drawn last frame (e2e). */
   liquidShown = 0;
+  /** Lava cells drawn last frame and shimmer rows copied (e2e). */
+  lavaShown = 0;
+  shimmerRows = 0;
+  private shimmerCells: { tx: number; ty: number }[] = [];
+
+  /**
+   * Heat shimmer: the picture just above surface lava is copied back onto itself in thin rows,
+   * each nudged a whole art px left or right, so the air over a lava pool wobbles.
+   */
+  private drawShimmer(ctx: CanvasRenderingContext2D, shakeX: number, shakeY: number, time: number): void {
+    this.shimmerRows = 0;
+    if (this.shimmerCells.length === 0) return;
+    const u = this.scale;
+    const canvas = ctx.canvas;
+    const rh = SHIMMER_ROW * u;
+    for (const run of shimmerRuns(this.shimmerCells)) {
+      const x = this.sx(run.tx, shakeX);
+      const w = run.n * TS * u;
+      const top = this.sy(run.ty, shakeY);
+      for (let r = 0; r < SHIMMER_ROWS / SHIMMER_ROW; r++) {
+        const off = shimmerShift(time, r, run.tx);
+        if (off === 0) continue;
+        const y = top - (r + 1) * rh;
+        if (y < 0 || y + rh > this.h || x + w < 0 || x > this.w) continue;
+        const sx = Math.max(0, x);
+        const sw = Math.min(this.w, x + w) - sx;
+        if (sw <= 0) continue;
+        ctx.drawImage(canvas, sx, y, sw, rh, sx + off * u, y, sw, rh);
+        this.shimmerRows++;
+      }
+    }
+    this.shimmerCells.length = 0;
+  }
 
   private drawMagma(ctx: CanvasRenderingContext2D, world: Game['world'], tx: number, ty: number, dx: number, dy: number, ts: number, time: number): void {
     const p = magmaPulse(tx, ty, time);
-    ctx.fillStyle = `rgba(255,${200 + 40 * p | 0},90,${0.12 + 0.28 * p})`;
-    ctx.fillRect(dx, dy + ts * (0.2 + 0.25 * p), ts, ts * 0.22);
-    const above = world.get(tx, ty - 1);
-    if (above === T.MAGMA) return;
     const u = ts / 16;
+    let depth = 0;
+    while (depth < 3 && world.get(tx, ty - depth - 1) === T.MAGMA) depth++;
+    this.lavaShown++;
+    // Flowing crust: world-space ridged noise, so plates and glowing cracks run across cell edges.
+    const surface = depth === 0;
+    for (let by = 0; by < 16; by += LAVA_BLOCK) {
+      for (let bx = 0; bx < 16; bx += LAVA_BLOCK) {
+        const s = lavaShade(tx * 16 + bx, ty * 16 + by, time, surface);
+        if (s === 1) continue;
+        ctx.fillStyle = LAVA_SHADES[s];
+        ctx.fillRect(dx + bx * u, dy + by * u, LAVA_BLOCK * u, LAVA_BLOCK * u);
+      }
+    }
+    const shade = lavaDepthShade(depth);
+    if (shade > 0) {
+      ctx.fillStyle = `rgba(70,0,0,${shade})`;
+      ctx.fillRect(dx, dy, ts, ts);
+    }
+    if (!surface) return;
+    const above = world.get(tx, ty - 1);
     // Rolling crest: the bright surface line rises and falls a pixel.
     const crest = Math.sin(time * 2.4 + tx * 1.3) > 0 ? u : 0;
     ctx.fillStyle = '#fff0b0';
     ctx.fillRect(dx, dy - crest, ts, Math.max(1, u));
     if (above !== T.AIR) return;
-    // Heat shimmer: a faint warm haze one tile tall.
+    // Heat haze: a faint warm glow one tile tall; the picture above also wobbles (drawShimmer).
     ctx.fillStyle = `rgba(255,140,60,${0.05 + 0.05 * p})`;
     ctx.fillRect(dx, dy - ts, ts, ts);
+    this.shimmerCells.push({ tx, ty });
     const b = magmaBubble(tx, ty, time);
     if (b) {
       const bx = dx + b.x * ts;
