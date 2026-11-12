@@ -1,5 +1,6 @@
 import { buriedDecal, decalRects, hasStrata, strataShade } from './strata';
 import type { Game, Shot } from '../sim/game';
+import { acidBubble, causticBand, depthShade, surfaceGlint, waveOffsets } from './liquidfx';
 import { cropAt, isCropTile, isWatered } from '../sim/farming';
 import { cropSway, drawCropTile, ripeSparkle, sprinklerDrops } from './crops';
 import { NPC_INFO, type Mood, type Npc } from '../sim/npcs';
@@ -62,6 +63,8 @@ export function boltColor(sh: Shot, ranged: RangedKind): string {
 export const CHUNK = 32;
 /** Cache size before far chunks are evicted. */
 export const MAX_CHUNKS = 48;
+/** Liquid body colours (chunk fill and the per-frame crest fill must match). */
+const LIQUID_FILL = { water: 'rgba(40,130,220,0.6)', acid: 'rgba(120,255,80,0.55)' } as const;
 const chunkKey = (cx: number, cy: number): number => cy * 4096 + cx;
 
 /** Gear levels shown on the character (shared by the world view and the inventory preview). */
@@ -702,8 +705,11 @@ export class Renderer {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
       const acid = t === T.ACID_POOL;
       const magma = t === T.MAGMA;
-      ctx.fillStyle = magma ? '#ff5a1f' : acid ? 'rgba(120,255,80,0.55)' : 'rgba(40,130,220,0.6)';
-      ctx.fillRect(dx, dy, ts, ts);
+      ctx.fillStyle = magma ? '#ff5a1f' : acid ? LIQUID_FILL.acid : LIQUID_FILL.water;
+      const aboveT = world.get(tx, ty - 1);
+      // Water and acid surface cells leave the top 2 art px open: the rolling crest fills them per frame.
+      const open = !magma && aboveT !== T.WATER && aboveT !== T.ACID_POOL && aboveT !== T.MAGMA ? (ts / 16) * 2 : 0;
+      ctx.fillRect(dx, dy + open, ts, ts - open);
       if (magma && hash2(tx, ty, 5) < 0.3) {
         // Dark crust flecks so a magma pool reads as molten rock, not orange water.
         ctx.fillStyle = 'rgba(90,20,10,0.55)';
@@ -716,10 +722,11 @@ export class Renderer {
       }
       const above = world.get(tx, ty - 1);
       if (above !== T.WATER && above !== T.ACID_POOL && above !== T.MAGMA) {
-        // Surface: bright line and a little sparkle.
-        ctx.fillStyle = magma ? '#ffd27a' : acid ? '#c8ff8a' : '#9fd8ff';
-        ctx.fillRect(dx, dy, ts, Math.max(1, ts / 8));
-        if ((tx * 7) % 5 === 0) ctx.fillRect(dx + ts / 4, dy + ts / 4, ts / 8, ts / 16);
+        // Surface: magma keeps a static bright line; water and acid crests roll per frame (drawLiquid).
+        if (magma) {
+          ctx.fillStyle = '#ffd27a';
+          ctx.fillRect(dx, dy, ts, Math.max(1, ts / 8));
+        }
         // Colour-blind assist: a warning mark on every third surface cell of acid and magma.
         if (this.oreMarks && !(t === T.WATER) && tx % 3 === 0) drawGlyph(ctx, t, dx, dy, ts);
       }
@@ -978,6 +985,7 @@ export class Renderer {
   private drawDynamic(ctx: CanvasRenderingContext2D, world: Game['world'], x0: number, y0: number, x1: number, y1: number, shakeX: number, shakeY: number, time: number): void {
     const ts = TS * this.scale;
     this.farmShown = 0;
+    this.liquidShown = 0;
     for (let ty = Math.max(0, y0); ty <= Math.min(world.h - 1, y1); ty++) {
       for (let tx = Math.max(0, x0); tx <= Math.min(world.w - 1, x1); tx++) {
         const t = world.tiles[ty * world.w + tx];
@@ -1010,6 +1018,8 @@ export class Renderer {
           ctx.fillStyle = 'rgba(159,216,255,0.35)';
           const gx = this.sx(tx, shakeX) + ts * (0.1 + 0.8 * ((time * 0.4 + tx * 0.37) % 1));
           ctx.fillRect(gx, this.sy(ty, shakeY) + ts * 0.2, ts * 0.12, ts * 0.45);
+        } else if (t === T.WATER || t === T.ACID_POOL) {
+          this.drawLiquid(ctx, world, t, tx, ty, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time);
         } else if (t === T.MAGMA) {
           this.drawMagma(ctx, world, tx, ty, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time);
         } else if (t === T.CHEST) {
@@ -1267,6 +1277,59 @@ export class Renderer {
   }
 
   /** Molten rock moves: a travelling heat band, bubbles that swell and pop, embers and shimmer above the surface. */
+  /** Water and acid per frame: depth shade, rolling crest, drifting glint, caustics, acid bubbles. */
+  private drawLiquid(ctx: CanvasRenderingContext2D, world: Game['world'], t: number, tx: number, ty: number, dx: number, dy: number, ts: number, time: number): void {
+    const u = ts / 16;
+    const acid = t === T.ACID_POOL;
+    let depth = 0;
+    while (depth < 4 && world.get(tx, ty - depth - 1) === t) depth++;
+    this.liquidShown++;
+    const shade = depthShade(depth);
+    if (shade > 0) {
+      ctx.fillStyle = acid ? `rgba(10,40,10,${shade})` : `rgba(4,16,48,${shade})`;
+      ctx.fillRect(dx, dy, ts, ts);
+    }
+    if (acid) {
+      const b = acidBubble(time, tx, ty);
+      if (b && !(depth === 0 && b.y < 3)) {
+        ctx.fillStyle = 'rgba(220,255,160,0.8)';
+        ctx.fillRect(dx + b.x * u, dy + b.y * u, b.r * u, b.r * u);
+      }
+    }
+    if (depth > 0) {
+      const c = causticBand(time, tx, depth);
+      if (c) {
+        ctx.fillStyle = acid ? `rgba(220,255,160,${c.a})` : `rgba(170,225,255,${c.a})`;
+        ctx.fillRect(dx + c.x * u, dy, c.w * u, ts);
+      }
+      return;
+    }
+    const above = world.get(tx, ty - 1);
+    if (above === T.MAGMA) return;
+    const crest = acid ? '#c8ff8a' : '#bfe6ff';
+    const offs = waveOffsets(time, tx);
+    for (let c = 0; c < 4; c++) {
+      const o = offs[c] ?? 1;
+      if (o < 2) {
+        ctx.fillStyle = acid ? LIQUID_FILL.acid : LIQUID_FILL.water;
+        ctx.fillRect(dx + c * 4 * u, dy + o * u, 4 * u, (2 - o) * u);
+      }
+      ctx.fillStyle = crest;
+      ctx.fillRect(dx + c * 4 * u, dy + o * u, 4 * u, u);
+      // Softer foam under the crest; above it the tile shows the air it sits in.
+      ctx.fillStyle = acid ? 'rgba(200,255,140,0.35)' : 'rgba(160,215,255,0.35)';
+      ctx.fillRect(dx + c * 4 * u, dy + (o + 1) * u, 4 * u, u);
+    }
+    const g = surfaceGlint(time, tx);
+    if (g) {
+      ctx.fillStyle = `rgba(255,255,255,${0.9 * g.a})`;
+      ctx.fillRect(dx + g.x * u, dy + ((offs[Math.min(3, g.x >> 2)] ?? 1) + 1) * u, 2 * u, u);
+    }
+  }
+
+  /** Liquid cells drawn last frame (e2e). */
+  liquidShown = 0;
+
   private drawMagma(ctx: CanvasRenderingContext2D, world: Game['world'], tx: number, ty: number, dx: number, dy: number, ts: number, time: number): void {
     const p = magmaPulse(tx, ty, time);
     ctx.fillStyle = `rgba(255,${200 + 40 * p | 0},90,${0.12 + 0.28 * p})`;

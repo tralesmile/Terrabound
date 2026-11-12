@@ -423,6 +423,27 @@ try {
   await page.waitForTimeout(500);
   const swim = await page.evaluate(() => ({ inLiquid: window.__terrabound.game.inLiquid, y: window.__terrabound.game.body.y }));
   await page.screenshot({ path: path.join(out, '17-water.png') });
+  // Living water: the pool's surface crest rolls (two draws at different times differ) and deep cells shade darker.
+  const waves = poolAt ? await page.evaluate(({ x, y }) => {
+    const t = window.__terrabound;
+    const g = t.game;
+    const w = g.world;
+    let top = y;
+    while (w.get(x, top - 1) === 25) top--;
+    const r = t.renderer;
+    const ts = 16 * r.scale;
+    const ctx = document.getElementById('game').getContext('2d');
+    const px = Math.round(r.w / 2 + (x - r.camX) * ts);
+    const py = Math.round(r.h / 2 + (top - r.camY) * ts);
+    const strip = () => Array.from(ctx.getImageData(px, py, Math.round(ts), Math.round(ts / 4)).data).join(',');
+    const frames = [];
+    for (const time of [1, 1.4, 1.8, 2.2]) {
+      r.draw(g, t.fx, null, time);
+      frames.push(strip());
+    }
+    return { shown: r.liquidShown, top, changed: new Set(frames).size > 1 };
+  }, poolAt) : null;
+  check('water surface crest rolls over time and liquid cells draw per frame', !!waves && waves.changed && waves.shown > 0, JSON.stringify(waves));
   await page.keyboard.down('KeyW');
   let swamUp = swim.y;
   for (let i = 0; i < 8; i++) {
