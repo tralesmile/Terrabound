@@ -9,7 +9,8 @@ import { magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx } from './fx'
 import type { PlayerGear } from './sprites';
 import { ICON, drawIcon } from './icons';
 import { GEAR } from '../sim/gear';
-import { BOSSES } from '../sim/bosses';
+import { BOSSES, phase as bossPhase } from '../sim/bosses';
+import { drawBossArt } from './bossart';
 import { ROLE_INFO } from '../sim/drones';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, leafMask } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape } from './decor';
@@ -1051,59 +1052,21 @@ export class Renderer {
     const u = this.scale;
     const cx = this.sx(bs.x, shakeX);
     const by = this.sy(bs.y, shakeY);
-    const w = d.halfW * 2 * ts;
     const h = d.h * ts;
-    const warn = bs.attack && bs.at < 0;
+    const warn = bs.attack !== null && bs.at < 0;
     const flash = bs.iframes > 0 || (warn && Math.floor(time * 12) % 2 === 0);
-    const body = flash ? '#ffffff' : d.color;
-    const f = bs.facing;
-    if (d.flying) {
-      // Wyrm: segmented body trailing behind the head on a sine.
-      for (let i = 6; i >= 0; i--) {
-        const sx2 = cx - f * i * ts * 0.7;
-        const sy2 = by - h / 2 + Math.sin(bs.age * 5 - i * 0.8) * ts * 0.5;
-        const r = (h / 2) * (1 - i * 0.08);
-        ctx.fillStyle = '#14181f';
-        ctx.beginPath();
-        ctx.arc(sx2, sy2, r + u, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = i === 0 ? body : i % 2 ? d.accent : body;
-        ctx.beginPath();
-        ctx.arc(sx2, sy2, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.fillStyle = d.eye;
-      ctx.fillRect(cx + f * h * 0.2 - u * 2, by - h * 0.65, u * 4, u * 3);
-    } else {
-      const lift = bs.attack === 'slam' && bs.at < 0 ? -bs.at * ts * 0.6 : 0;
-      const top = by - h - lift;
-      // Legs.
-      const step = Math.sin(bs.age * 6) * u * 3;
-      ctx.fillStyle = '#14181f';
-      ctx.fillRect(cx - w * 0.4 - u, by - h * 0.3 - u + step - lift, w * 0.25 + 2 * u, h * 0.3 + u);
-      ctx.fillRect(cx + w * 0.15 - u, by - h * 0.3 - u - step - lift, w * 0.25 + 2 * u, h * 0.3 + u);
-      ctx.fillStyle = d.accent;
-      ctx.fillRect(cx - w * 0.4, by - h * 0.3 + step - lift, w * 0.25, h * 0.3);
-      ctx.fillRect(cx + w * 0.15, by - h * 0.3 - step - lift, w * 0.25, h * 0.3);
-      // Torso with plates.
-      ctx.fillStyle = '#14181f';
-      ctx.fillRect(cx - w / 2 - u, top - u, w + 2 * u, h * 0.72 + 2 * u);
-      ctx.fillStyle = body;
-      ctx.fillRect(cx - w / 2, top, w, h * 0.72);
-      ctx.fillStyle = d.accent;
-      for (let i = 0; i < 3; i++) ctx.fillRect(cx - w / 2 + u * 2, top + h * (0.18 + i * 0.17), w - u * 4, u * 2);
-      // Arms swing on charge.
-      const arm = bs.attack === 'charge' && bs.at >= 0 ? f * ts * 0.6 : 0;
-      ctx.fillStyle = '#14181f';
-      ctx.fillRect(cx + f * (w / 2) - (f < 0 ? ts * 0.6 : 0) + arm, top + h * 0.15, ts * 0.6, h * 0.45);
-      ctx.fillStyle = body;
-      ctx.fillRect(cx + f * (w / 2) - (f < 0 ? ts * 0.6 : 0) + arm + u, top + h * 0.15 + u, ts * 0.6 - 2 * u, h * 0.45 - 2 * u);
-      // Eyes.
-      ctx.fillStyle = d.eye;
-      ctx.fillRect(cx + f * w * 0.15 - u * 3, top + h * 0.08, u * 6, u * 3);
-      ctx.fillStyle = 'rgba(255,255,255,0.8)';
-      ctx.fillRect(cx + f * w * 0.15 - u, top + h * 0.08 + u, u * 2, u);
-    }
+    const lift = !d.flying && bs.attack === 'slam' && bs.at < 0 ? Math.round(-bs.at * 10) : 0;
+    const reach = bs.attack === 'charge' && bs.at >= 0 ? 8 : 0;
+    drawBossArt(ctx, bs.id, cx, by, u, {
+      facing: bs.facing,
+      age: bs.age,
+      flash,
+      lift,
+      reach,
+      enraged: bossPhase(bs) === 2,
+      lookX: game.body.x - bs.x,
+      lookY: game.body.y - BODY_H / 2 - (bs.y - d.h / 2),
+    });
     if (warn) {
       ctx.fillStyle = '#ffcf4a';
       ctx.font = `bold ${Math.round(u * 10)}px monospace`;

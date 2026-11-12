@@ -2,6 +2,8 @@ import { hash2 } from '../sim/rng';
 import { T, TILES } from '../sim/tiles';
 import type { EnemyKind } from '../sim/enemies';
 import { drawIcon } from './icons';
+import { drawBossArt } from './bossart';
+import type { BossId } from '../sim/bosses';
 import { EDGE_N, MASKS, edgeMask, edgePixel, growsMoss } from './autotile';
 
 /** Tile size in logical pixels. All art is generated in code: zero asset files, zero asset cost, tiny bundle. */
@@ -764,4 +766,13 @@ export function drawGallery(canvas: HTMLCanvasElement): void {
     drawEnemySprite(ctx, k, ex, 210 + 10 * z, z, 1, 0.4, false);
     ex += ENEMY_W * z * ENEMY_LOOKS[k].size + 12;
   }
+  // Bosses at 2x in the free space bottom right: four walkers, then the wyrm and the core.
+  const pose = { facing: 1, age: 0.3, flash: false, lift: 0, reach: 0, enraged: false, lookX: -1, lookY: 0.4 };
+  let bx = 600;
+  for (const id of ['colossus', 'vine_queen', 'golem', 'titan'] as BossId[]) {
+    drawBossArt(ctx, id, bx, 820, 2, pose);
+    bx += 130;
+  }
+  drawBossArt(ctx, 'wyrm', 900, 990, 2, { ...pose, facing: 1 });
+  drawBossArt(ctx, 'hollow_ai', 640, 1010, 2, pose);
 }
