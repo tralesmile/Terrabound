@@ -147,6 +147,22 @@ export interface WorldStats {
   copper: number;
 }
 
+/** Iron forms stretched seams; each large region of rock has its own seam angle (not round blobs). */
+export function ironSeam(x: number, y: number, seed: number): boolean {
+  const k = Math.min(SEAM_DIRS.length - 1, Math.floor(valueNoise(x / 60, y / 45, seed + 21) * SEAM_DIRS.length));
+  const [c, sn] = SEAM_DIRS[k];
+  return valueNoise((x * c + y * sn) / 8, (y * c - x * sn) / 2.4, seed + 2 + k) > IRON_CUT;
+}
+/** Seam directions (cos, sin): shallow left, flat, shallow right, steep. */
+const SEAM_DIRS: [number, number][] = [-0.45, 0, 0.4, 1.1].map((a) => [Math.cos(a), Math.sin(a)]);
+
+/** Copper runs in thin winding veins (a ridge of smooth noise), broken into lengths. */
+export function copperVein(x: number, y: number, seed: number): boolean {
+  return Math.abs(valueNoise(x / 9, y / 9, seed + 3) - 0.5) < COPPER_W && valueNoise(x / 4, y / 4, seed + 23) > 0.3;
+}
+const IRON_CUT = 0.761;
+const COPPER_W = 0.027;
+
 export function generateWorld(seed: number, w = WORLD_W, h = WORLD_H): World {
   const world = new World(w, h, seed);
   const cx = world.padX;
@@ -208,8 +224,8 @@ export function generateWorld(seed: number, w = WORLD_W, h = WORLD_H): World {
       // Ores replace solid rock only.
       if (t !== T.AIR) {
         if (layer.ore !== T.IRON && valueNoise(x / 2.5, y / 2.5, seed + 9) > 0.8) t = layer.ore;
-        else if (d > 4 && valueNoise(x / 2.5, y / 2.5, seed + 2) > 0.76) t = T.IRON;
-        else if (d > 22 && valueNoise(x / 2.5, y / 2.5, seed + 3) > 0.82) t = T.COPPER;
+        else if (d > 4 && ironSeam(x, y, seed)) t = T.IRON;
+        else if (d > 22 && copperVein(x, y, seed)) t = T.COPPER;
         else if (
           (def.crystalNearSurface && d > 2 && valueNoise(x / 3, y / 3, seed + 4) > 0.8) ||
           (d > 70 && valueNoise(x / 3, y / 3, seed + 4) > 0.86)
