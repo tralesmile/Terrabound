@@ -7,6 +7,7 @@
  * previous entry's last index (first entry: from -1); run (default 1) repeats the value on consecutive indices.
  * Fog format: base36 run lengths joined by ",", alternating unseen/seen, starting with unseen.
  */
+import { STAGE_TIME, cropAt } from './farming';
 import { ITEM_IDS, T, TILES, type Inventory } from './tiles';
 import type { World } from './world';
 import { W } from './world';
@@ -126,9 +127,16 @@ export function decodeChests(s: unknown, size: number): Map<number, Inventory> {
   return m;
 }
 
+function growingCrop(tile: number): boolean {
+  const c = cropAt(tile);
+  return c !== null && c.stage < 2;
+}
+
 export function captureDiff(world: World, fog: FogMap): WorldDiff {
   const sap = new Map<number, number>();
   for (const [i, t] of world.saplings) sap.set(i, Math.max(1, Math.ceil(t)));
+  // Crop stage timers share the sapling diff (the tile at the index says which it is; no save field change).
+  for (const [i, t] of world.crops) sap.set(i, Math.max(1, Math.ceil(t)));
   return { tiles: encodeEdits(world.edits), walls: encodeEdits(world.wallEdits), fog: encodeFog(fog.seen), chests: encodeChests(world.chests), saplings: encodeEdits(sap) };
 }
 
@@ -142,7 +150,12 @@ export function applyDiff(world: World, fog: FogMap, diff: WorldDiff | null): vo
   decodeFog(diff.fog, fog);
   // Chests and saplings only count where the tile still is one (edits were replayed above).
   for (const [i, inv] of decodeChests(diff.chests, size)) if (world.tiles[i] === T.CHEST) world.chests.set(i, inv);
-  for (const [i, t] of decodeEdits(diff.saplings, size, 10_000)) if (world.tiles[i] === T.SAPLING) world.saplings.set(i, t);
+  for (const [i, t] of decodeEdits(diff.saplings, size, 10_000)) {
+    if (world.tiles[i] === T.SAPLING) world.saplings.set(i, t);
+    else if (growingCrop(world.tiles[i])) world.crops.set(i, Math.min(t, STAGE_TIME));
+  }
+  // A growing crop that lost its timer (older diff) restarts its stage instead of stalling forever.
+  for (const [i, t] of world.edits) if (growingCrop(t) && world.tiles[i] === t && !world.crops.has(i)) world.crops.set(i, STAGE_TIME);
 }
 
 export function sanitizeDiff(v: unknown): WorldDiff | null {

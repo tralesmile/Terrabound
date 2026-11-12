@@ -1,4 +1,6 @@
 import type { Game, Shot } from '../sim/game';
+import { isCropTile, isWatered } from '../sim/farming';
+import { drawCropTile } from './crops';
 import { NPC_INFO, type Mood, type Npc } from '../sim/npcs';
 import { roomEdges } from '../sim/rooms';
 import { furnitureArt, screenLines } from './furniture';
@@ -695,6 +697,11 @@ export class Renderer {
         ctx.fillRect(dx, dy, ts, Math.max(1, ts / 8));
         if ((tx * 7) % 5 === 0) ctx.fillRect(dx + ts / 4, dy + ts / 4, ts / 8, ts / 16);
       }
+      return;
+    }
+    if (t === T.SPRINKLER || isCropTile(t)) {
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      drawCropTile(ctx, t, dx, dy, ts, isCropTile(t) && isWatered(world, tx, ty), t === T.SPRINKLER);
       return;
     }
     if (t === T.SAPLING) {

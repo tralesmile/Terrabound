@@ -44,6 +44,7 @@ export const RECIPES: Recipe[] = [
   { id: 'chair', name: 'Chair x2', out: 'chair', qty: 2, cost: { rust: 3 } },
   { id: 'window', name: 'Window x4', out: 'window', qty: 4, cost: { rust: 2, crystal: 1 } },
   { id: 'lift', name: 'Lift shaft x4', out: 'lift', qty: 4, cost: { metal: 2, copper_wire: 1 }, fab: 1 },
+  { id: 'sprinkler', name: 'Sprinkler x1', out: 'sprinkler', qty: 1, cost: { rust: 4, iron_scrap: 2 } },
   { id: 'banner', name: 'Banner x1', out: 'banner', qty: 1, cost: { biomass: 2, rust: 1 } },
   { id: 'smelter', name: 'Smelter x1', out: 'smelter', qty: 1, cost: { metal: 4, copper_wire: 2 }, fab: 2 },
 ];

@@ -1460,6 +1460,71 @@ try {
   await page.waitForTimeout(600);
   const hurtGone = await page.evaluate(() => window.__terrabound.renderer.lastHurtAlpha);
   check('the hurt vignette is gone after half a second at full HP', hurtGone < 0.02, JSON.stringify({ hurtGone }));
+  // Farming: a small field outside the base (every crop stage, a sprinkler); right click plants a seed, the drill harvests.
+  const farm = await page.evaluate(() => {
+    const { game: g } = window.__terrabound;
+    const T = { AIR: 0, RUST: 1, SPRINKLER: 66 };
+    const x0 = g.world.padX + 22;
+    const y = g.world.padY;
+    window.__farmSaved = [];
+    for (let x = x0 - 2; x <= x0 + 16; x++) {
+      for (let yy = y - 10; yy < y; yy++) {
+        window.__farmSaved.push([x, yy, g.world.get(x, yy)]);
+        g.world.set(x, yy, T.AIR);
+      }
+      window.__farmSaved.push([x, y, g.world.get(x, y)]);
+      g.world.set(x, y, T.RUST);
+    }
+    const crops = [57, 58, 59, 60, 61, 62, 63, 64, 65];
+    crops.forEach((t, i) => g.world.set(x0 + 4 + i, y - 1, t));
+    g.world.set(x0 + 13, y - 1, T.SPRINKLER);
+    g.body.x = x0 + 2.5;
+    g.body.y = y;
+    g.body.vx = g.body.vy = 0;
+    g.carried.corn_seed = 1;
+    g.selected = 'corn_seed';
+    return { x0, y };
+  });
+  await page.waitForTimeout(500);
+  const farmPos = await page.evaluate(({ x0, y }) => {
+    const r = window.__terrabound.renderer;
+    const ts = 16 * r.scale;
+    const at = (tx, ty) => ({ sx: r.w / 2 + (tx + 0.5 - r.camX) * ts, sy: r.h / 2 + (ty + 0.5 - r.camY) * ts });
+    return { plant: at(x0 + 1, y - 1), ripe: at(x0 + 6, y - 1) };
+  }, farm);
+  await page.mouse.move(farmPos.plant.sx, farmPos.plant.sy);
+  await page.mouse.down({ button: 'right' });
+  await page.waitForTimeout(150);
+  await page.mouse.up({ button: 'right' });
+  await page.waitForTimeout(200);
+  const planted = await page.evaluate(({ x0, y }) => {
+    const g = window.__terrabound.game;
+    return { tile: g.world.get(x0 + 1, y - 1), timers: g.world.crops.size, seeds: g.carried.corn_seed ?? 0 };
+  }, farm);
+  await page.screenshot({ path: path.join(out, '41-farm.png') });
+  check('right click plants a glowcorn seed on soil (sprout with a growth timer)', planted.tile === 57 && planted.timers >= 1 && planted.seeds === 0, JSON.stringify(planted));
+  await page.evaluate(() => { window.__terrabound.game.tool = 'drill'; });
+  await page.mouse.move(farmPos.ripe.sx, farmPos.ripe.sy);
+  await page.mouse.down();
+  await page.waitForTimeout(450);
+  await page.mouse.up();
+  await page.waitForTimeout(150);
+  const reaped = await page.evaluate(({ x0, y }) => {
+    const g = window.__terrabound.game;
+    return { tile: g.world.get(x0 + 6, y - 1), corn: g.carried.glowcorn ?? 0, seeds: g.carried.corn_seed ?? 0 };
+  }, farm);
+  await page.screenshot({ path: path.join(out, '41b-harvest.png') });
+  check('drilling ripe glowcorn harvests 2+ corn and a seed into the pack', reaped.tile === 0 && reaped.corn >= 2 && reaped.seeds >= 1, JSON.stringify(reaped));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    for (const [x, y, t] of window.__farmSaved.reverse()) g.world.set(x, y, t);
+    delete g.carried.glowcorn;
+    delete g.carried.corn_seed;
+    g.body.x = g.world.padX + 0.5;
+    g.body.y = g.world.padY;
+    g.body.vx = g.body.vy = 0;
+  });
+  await page.waitForTimeout(300);
   // Windows and a lift: glass panes in the tower's side walls (a view adds comfort), a lift shaft up the outside.
   const winState = await page.evaluate(() => {
     const g = window.__terrabound.game;

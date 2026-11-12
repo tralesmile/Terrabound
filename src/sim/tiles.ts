@@ -44,7 +44,14 @@ export type ItemId =
   | 'bed'
   | 'chair'
   | 'window'
-  | 'lift';
+  | 'lift'
+  | 'corn_seed'
+  | 'root_seed'
+  | 'berry_seed'
+  | 'glowcorn'
+  | 'rustroot'
+  | 'frostberry'
+  | 'sprinkler';
 export const ITEM_IDS: ItemId[] = [
   'rust',
   'metal',
@@ -90,6 +97,13 @@ export const ITEM_IDS: ItemId[] = [
   'chair',
   'window',
   'lift',
+  'corn_seed',
+  'root_seed',
+  'berry_seed',
+  'glowcorn',
+  'rustroot',
+  'frostberry',
+  'sprinkler',
 ];
 
 export const T = {
@@ -158,6 +172,18 @@ export const T = {
   WINDOW: 55,
   /** Lift shaft: climb tile that rides 3x ladder speed; closes rooms like a door. */
   LIFT: 56,
+  /** Crops (farming.ts): sprout, growing, ripe for each kind. Non-solid, cut to harvest. */
+  CORN_1: 57,
+  CORN_2: 58,
+  CORN_3: 59,
+  ROOT_1: 60,
+  ROOT_2: 61,
+  ROOT_3: 62,
+  BERRY_1: 63,
+  BERRY_2: 64,
+  BERRY_3: 65,
+  /** Waters crops within 4 columns (farming.ts). */
+  SPRINKLER: 66,
 } as const;
 
 export interface TileDef {
@@ -244,6 +270,17 @@ export const TILES: TileDef[] = [
   { name: 'Chair', hardness: 0.1, solid: false, drop: 'chair', minable: true },
   { name: 'Window', hardness: 0.4, solid: true, drop: 'window', clear: true },
   { name: 'Lift shaft', hardness: 0.2, solid: false, drop: 'lift', minable: true, climb: true },
+  // Crops drop through farming.ts harvestYield (ripe ones give produce and seeds).
+  { name: 'Glowcorn sprout', hardness: 0.05, solid: false, drop: null, minable: true },
+  { name: 'Glowcorn', hardness: 0.05, solid: false, drop: null, minable: true },
+  { name: 'Ripe glowcorn', hardness: 0.05, solid: false, drop: null, minable: true, glow: true },
+  { name: 'Rustroot sprout', hardness: 0.05, solid: false, drop: null, minable: true },
+  { name: 'Rustroot', hardness: 0.05, solid: false, drop: null, minable: true },
+  { name: 'Ripe rustroot', hardness: 0.05, solid: false, drop: null, minable: true },
+  { name: 'Frostberry sprout', hardness: 0.05, solid: false, drop: null, minable: true },
+  { name: 'Frostberry bush', hardness: 0.05, solid: false, drop: null, minable: true },
+  { name: 'Ripe frostberry', hardness: 0.05, solid: false, drop: null, minable: true },
+  { name: 'Sprinkler', hardness: 0.3, solid: false, drop: 'sprinkler', minable: true },
 ];
 
 export interface ItemDef {
@@ -303,9 +340,17 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   chair: { name: 'Chair', color: '#c9a35a', places: T.CHAIR, kit: true },
   window: { name: 'Window', color: '#9fd8ff', places: T.WINDOW, kit: true },
   lift: { name: 'Lift shaft', color: '#5ad8ff', places: T.LIFT, kit: true },
+  // Crop seeds are kit (they stay in the pack to plant at home); produce is food and banks.
+  corn_seed: { name: 'Glowcorn seed', color: '#ffe36a', places: T.CORN_1, kit: true },
+  root_seed: { name: 'Rustroot seed', color: '#c77a5e', places: T.ROOT_1, kit: true },
+  berry_seed: { name: 'Frostberry seed', color: '#8ad8ff', places: T.BERRY_1, kit: true },
+  glowcorn: { name: 'Glowcorn', color: '#ffe36a', places: null },
+  rustroot: { name: 'Rustroot', color: '#d8704a', places: null },
+  frostberry: { name: 'Frostberry', color: '#7ac8ff', places: null },
+  sprinkler: { name: 'Sprinkler', color: '#5aa6ff', places: T.SPRINKLER, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair', 'window', 'lift'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair', 'window', 'lift', 'corn_seed', 'root_seed', 'berry_seed', 'sprinkler'];
 
 /** Placeables worth showing in the hotbar: owned ones plus the selected one, in PLACEABLE order. */
 export function visiblePlaceables(inv: Inventory, selected: ItemId): ItemId[] {

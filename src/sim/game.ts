@@ -38,6 +38,7 @@ import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims
 import { findRooms, mountOk, roomHint, type Room } from './rooms';
 import { RESEARCH, applyResearch, researchMissing, type ResearchId } from './research';
 import { MODS, applyMods, bounce, fitMod, type ModId, type ModSlot } from './mods';
+import { cropAt, cropOfSeed, grassSeed, harvestYield, isCropTile, isWatered, plantCrop, ripeIn, stepCrops, type CropId } from './farming';
 import { NPC_INFO, NPC_ORDER, TRADES, deathKeep, doTrade, moodGive, npcLine, npcMood, type Mood, npcSpots, reactNpcs, roomFloor, stepNpc, syncNpcs, tradeOpen, type Npc, type NpcKind, type Trade } from './npcs';
 import { merchantDay, merchantPresent, merchantStock } from './merchant';
 import { placement, removeTile } from './wide';
@@ -140,6 +141,8 @@ export type GameEvent =
   | { t: 'zap'; x: number; y: number; tx: number; ty: number }
   | { t: 'victory'; first: boolean }
   | { t: 'grow' }
+  | { t: 'plant'; crop: CropId; secs: number; wet: boolean }
+  | { t: 'harvest'; crop: CropId; n: number; x: number; y: number }
   | { t: 'dawn' }
   | { t: 'fell'; x: number; y: number; tiles: number }
   | { t: 'hurt'; amount: number }
@@ -1121,6 +1124,7 @@ export class Game {
     for (const p of stepDrops(this.world, this.drops, dt, b.x, b.y, (item) => (invTotal(this.carried) < this.derived.packCap ? this.derived.packCap - invTotal(this.carried) : 0) * (ITEMS[item] ? 1 : 0), (item, n) => invAdd(this.carried, item, n), this.gear.magnet))
       this.emit({ t: 'pickup', item: p.item, x: b.x, y: b.y - 1 });
     if (this.world.saplings.size > 0 && stepSaplings(this.world, dt) > 0) this.emit({ t: 'grow' });
+    if (this.world.crops.size > 0) stepCrops(this.world, dt);
     this.liquidAcc += dt;
     if (this.liquidAcc >= 1 / LIQUID_HZ) {
       this.liquidAcc = 0;
@@ -1187,6 +1191,11 @@ export class Game {
               this.emit({ t: 'pickup', item: def.drop, x: tx, y: ty });
             }
             if (tile === T.TERMINAL) this.emit({ t: 'lore', text: loreAt(this.world.seed, tx, ty) });
+            if (isCropTile(tile)) this.harvest(tile, tx, ty, d.packCap);
+            if (tile === T.PLANT) {
+              const wild = grassSeed(this.world.biome[tx] ?? 0, tx, ty, this.world.seed);
+              if (wild) this.gain(wild, 1, tx, ty, d.packCap);
+            }
             if (tile === T.TRUNK) this.fellTree(tx, ty, d.packCap);
             this.mining = null;
           }
@@ -1207,7 +1216,7 @@ export class Game {
         (this.hasSolidNeighbour(tx, ty) || (item.places === T.LIFT && this.liftNeighbour(tx, ty))) &&
         !this.overlapsPlayer(tx, ty)
       ) {
-        if (item.places === T.SAPLING && !SOIL_TILES.has(this.world.get(tx, ty + 1))) {
+        if ((item.places === T.SAPLING || cropOfSeed(this.selected)) && !SOIL_TILES.has(this.world.get(tx, ty + 1))) {
           // Seeds need soil underneath (not metal, ore or built blocks).
           if (this.placeCd === 0) this.emit({ t: 'nosoil' });
           this.placeCd = 0.5;
@@ -1222,6 +1231,11 @@ export class Game {
           if (this.validRooms() > homeBefore) this.emit({ t: 'roomready', x: tx, y: ty });
           const i = ty * this.world.w + tx;
           if (item.places === T.SAPLING) this.world.saplings.set(i, growTime(this.world, i));
+          const crop = cropOfSeed(this.selected);
+          if (crop) {
+            plantCrop(this.world, tx, ty, crop);
+            this.emit({ t: 'plant', crop, secs: Math.round(ripeIn(this.world, tx, ty)), wet: isWatered(this.world, tx, ty) });
+          }
           if (item.places === T.CHEST) this.world.chests.set(i, {});
           invAdd(this.carried, this.selected, -1);
           this.placeCd = 0.12;
@@ -2042,6 +2056,24 @@ export class Game {
     invAdd(this.carried, id, -k);
     addDrop(this.drops, makeDrop(id, k, this.body.x + this.facing * 0.8, this.body.y - 1.2, this.facing * 5, -4, 1.5));
     return k;
+  }
+
+  /** Item into the pack (with a pickup toast), or onto the ground beside (x, y) when the pack is full. */
+  private gain(item: ItemId, n: number, x: number, y: number, cap: number): void {
+    const room = ITEMS[item].kit ? n : Math.min(n, Math.max(0, cap - invTotal(this.carried)));
+    if (room > 0) {
+      invAdd(this.carried, item, room);
+      this.emit({ t: 'pickup', item, x, y });
+    }
+    if (n > room) addDrop(this.drops, makeDrop(item, n - room, x + 0.5, y + 0.5, 0, -2));
+  }
+
+  /** Cutting a crop: ripe ones give produce and seeds, unripe ones their seed back. */
+  private harvest(tile: number, x: number, y: number, cap: number): void {
+    const got = harvestYield(tile, x, y, this.world.seed);
+    for (const g of got) this.gain(g.item, g.n, x, y, cap);
+    const c = cropAt(tile);
+    if (c && c.stage >= 2) this.emit({ t: 'harvest', crop: c.crop, n: got[0]?.n ?? 0, x, y });
   }
 
   /** Cutting a trunk fells the whole connected tree: biomass for each trunk, a little for leaves. */

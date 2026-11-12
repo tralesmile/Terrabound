@@ -27,6 +27,10 @@ export const FOOD: Partial<Record<ItemId, { hp: number; battery: number }>> = {
   fish: { hp: 25, battery: 0 },
   glowfish: { hp: 50, battery: 40 },
   medkit: { hp: 60, battery: 0 },
+  // Farm produce (farming.ts): small heals, glowcorn also tops up the battery.
+  glowcorn: { hp: 15, battery: 25 },
+  rustroot: { hp: 30, battery: 0 },
+  frostberry: { hp: 20, battery: 10 },
 };
 
 /**

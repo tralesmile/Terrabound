@@ -1,3 +1,4 @@
+import { CROPS } from './sim/farming';
 import { drawDecorGallery } from './render/decor';
 import { dailyCode } from './sim/daily';
 import { Input } from './platform/input';
@@ -515,6 +516,16 @@ function boot(): void {
         break;
       case 'grow':
         ui.toast('A sapling grew into a tree', '#7fcf5a');
+        break;
+      case 'plant': {
+        const m = Math.floor(e.secs / 60);
+        const sec = String(e.secs % 60).padStart(2, '0');
+        ui.toast(`Planted ${CROPS[e.crop].name.toLowerCase()}: ripe in ${m}:${sec}${e.wet ? ' (watered, 2x)' : ' (a sprinkler or pond nearby doubles speed)'}`, '#9fe07a', 2.4, 'plant');
+        break;
+      }
+      case 'harvest':
+        fx.burst(e.x + 0.5, e.y + 0.5, ITEMS[CROPS[e.crop].produce].color, 10, 4);
+        fx.ring(e.x + 0.5, e.y + 0.5, 1.2, '#9fe07a');
         break;
       case 'fell':
         fx.addShake(0.35);

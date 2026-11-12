@@ -36,6 +36,8 @@ export class World {
   readonly structures: Structure[] = [];
   /** Growing saplings: tile index -> seconds until they become a tree. */
   readonly saplings = new Map<number, number>();
+  /** Growing crops (farming.ts): tile index -> seconds left in the current stage. */
+  readonly crops = new Map<number, number>();
   /** Chest contents by tile index (world chests appear here once opened; placed chests start empty). */
   readonly chests = new Map<number, Inventory>();
   /** Bumped when any chest's contents change (saves pick it up through the diff). */
@@ -77,6 +79,7 @@ export class World {
     if (this.tiles[i] === T.TORCH || this.tiles[i] === T.LAMP) this.torches.delete(i);
     if (t === T.TORCH || t === T.LAMP) this.torches.add(i);
     if (t !== T.SAPLING) this.saplings.delete(i);
+    this.crops.delete(i); // a new stage (or anything else) restarts the stage timer; plantCrop / stepCrops set it
     if (t !== T.CHEST && this.chests.delete(i)) this.chestVersion++;
     this.tiles[i] = t;
     this.version++;
