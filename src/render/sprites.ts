@@ -42,6 +42,7 @@ const LOOK: Record<number, Look> = {
   [T.CORE_ROCK]: { base: '#1e1028', light: '#2e1a3e', dark: '#12081a', speck: '#9a2aa8', speckCount: 2, detail: 'cracks' },
   [T.CORE_ORE]: { base: '#1e1028', light: '#ff9aff', dark: '#12081a', speck: '#ff5aff', speckCount: 6, glint: '#ffffff', detail: 'facets' },
   [T.BASALT]: { base: '#24232b', light: '#3a3842', dark: '#141319', speck: '#ff6028', speckCount: 1, detail: 'cracks' },
+  [T.REINFORCED]: { base: '#3f4a5e', light: '#8a9ab8', dark: '#262d3c', speck: '#ffb03a', speckCount: 2, glint: '#e6eeff', detail: 'rivets' },
   [T.GATE]: { base: '#0b2a3a', light: '#36e0e8', dark: '#061620', speck: '#c8ffff', speckCount: 4, detail: 'pad' },
   [T.WRECK]: { base: '#3a3f4a', light: '#6b7080', dark: '#22252c', speck: '#e8a33d', speckCount: 2, glint: '#36e0e8', detail: 'rivets' },
 };
@@ -228,6 +229,9 @@ export const TILE_COLORS: Record<number, string> = {
   [T.ACID_POOL]: '#7fff4a',
   [T.MAGMA]: '#ff6028',
   [T.BASALT]: '#3a3842',
+  [T.TURRET]: '#ff6a4a',
+  [T.SPIKES]: '#c9d0e4',
+  [T.REINFORCED]: '#8a9ab8',
 };
 
 export function makeCanvas(w: number, h: number): HTMLCanvasElement {
@@ -765,6 +769,15 @@ export const ENEMY_LOOKS: Record<EnemyKind, EnemyLook> = {
   hulk: { sprite: 'crawler', remap: { c: '#9fcbe8', C: '#4e6a88', d: '#f4fbff', e: '#36e0e8', E: '#c8ffff' }, size: 1.45, burst: '#cfe8ff' },
 };
 
+/**
+ * Raiders wear red war-armour over their usual body: crawler shells and flyer wings go crimson with
+ * steel highlights and a hot gold eye, so the night's wave reads at a glance. Pure.
+ */
+export function raiderRemap(kind: EnemyKind): Record<string, string> {
+  const flyer = ENEMY_LOOKS[kind].sprite === 'flyer';
+  return flyer ? { m: '#5a1418', M: '#e0463a', w: '#c9d0e4', e: '#ffcf4a', b: '#ffcf4a' } : { c: '#a8322a', C: '#4a1418', d: '#d9dde8', e: '#ffcf4a', E: '#fff2b0' };
+}
+
 export function drawEnemySprite(
   ctx: CanvasRenderingContext2D,
   kind: EnemyKind,
@@ -774,8 +787,10 @@ export function drawEnemySprite(
   dir: number,
   t: number,
   flash: boolean,
+  raider = false,
 ): void {
-  const look = ENEMY_LOOKS[kind];
+  const base = ENEMY_LOOKS[kind];
+  const look = raider ? { ...base, remap: { ...(base.remap ?? {}), ...raiderRemap(kind) } } : base;
   const rows = enemyFrame(look.sprite, t);
   const sz = s * look.size;
   // Flyer eye blinks off briefly every 1.5 s; crawler eye pulses brighter.

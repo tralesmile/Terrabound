@@ -151,6 +151,9 @@ export class Renderer {
     this.minersOn = game.power.miners > 0 && game.power.ratio > 0;
     this.dronesOn = game.power.drones > 0 && game.power.ratio > 0;
     this.machinesSun = game.power.supply > 0;
+    this.turretsOn = game.power.ratio > 0;
+    this.turretAim.clear();
+    for (const tu of game.turrets) this.turretAim.set(tu.y * world.w + tu.x, tu.aim);
     this.batteryFill = game.power.cap > 0 ? game.power.charge / game.power.cap : 0;
     this.drawDynamic(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
 
@@ -243,7 +246,7 @@ export class Renderer {
         ctx.arc(ex, ey - h / 2, Math.max(w, h) * 0.9, 0, Math.PI * 2);
         ctx.fill();
       }
-      drawEnemySprite(ctx, e.kind, ex, ey, scale * ENEMY_SCALE, e.dir, time, e.iframes > 0);
+      drawEnemySprite(ctx, e.kind, ex, ey, scale * ENEMY_SCALE, e.dir, time, e.iframes > 0, !!e.raid);
       if (e.raid) {
         const cy = ey - h - 7 * scale + Math.round(Math.sin(time * 6 + e.id) * scale);
         ctx.fillStyle = (e.chew ?? 0) > 0 && Math.floor(time * 8) % 2 ? '#ffcf4a' : '#ff4a3a';
@@ -469,6 +472,17 @@ export class Renderer {
       ctx.fillRect(this.sx(p.x, shakeX), this.sy(p.y, shakeY), p.size * scale, p.size * scale);
     }
     ctx.globalAlpha = 1;
+    for (const tr of fx.tracers) {
+      const k = tr.life / tr.max;
+      ctx.globalAlpha = Math.max(0, k);
+      ctx.strokeStyle = tr.color;
+      ctx.lineWidth = scale * (1 + k);
+      ctx.beginPath();
+      ctx.moveTo(this.sx(tr.x, shakeX), this.sy(tr.y, shakeY));
+      ctx.lineTo(this.sx(tr.tx, shakeX), this.sy(tr.ty, shakeY));
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
     for (const r of fx.rings) {
       const k = 1 - r.life / r.max;
       ctx.globalAlpha = Math.max(0, 1 - k);
@@ -519,7 +533,12 @@ export class Renderer {
       ctx.fillRect(dx, dy + Math.max(2, ts * 0.22), ts, Math.max(1, ts * 0.08));
       return;
     }
-    if (t === T.SOLAR || t === T.SMELTER || t === T.BATTERY || t === T.MINER || t === T.DRONE) {
+    if (t === T.SPIKES) {
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      this.drawSpikes(ctx, dx, dy, ts);
+      return;
+    }
+    if (t === T.SOLAR || t === T.SMELTER || t === T.BATTERY || t === T.MINER || t === T.DRONE || t === T.TURRET) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
       this.drawMachine(ctx, t, dx, dy, ts);
       return;
@@ -659,6 +678,21 @@ export class Renderer {
       ctx.fillRect(dx + 5 * u, dy + 5 * u, 6 * u, 9 * u);
       return;
     }
+    if (t === T.TURRET) {
+      // Tripod mount and a domed housing; the barrel is drawn per frame so it can track its target.
+      ctx.fillStyle = '#2b3447';
+      ctx.fillRect(dx + 3 * u, dy + 14 * u, 10 * u, 2 * u);
+      ctx.fillRect(dx + 7 * u, dy + 10 * u, 2 * u, 4 * u);
+      ctx.fillStyle = '#161a24';
+      ctx.fillRect(dx + 3 * u, dy + 5 * u, 10 * u, 6 * u);
+      ctx.fillStyle = '#5d6a80';
+      ctx.fillRect(dx + 4 * u, dy + 6 * u, 8 * u, 4 * u);
+      ctx.fillStyle = '#8e98b0';
+      ctx.fillRect(dx + 4 * u, dy + 6 * u, 8 * u, 1 * u);
+      ctx.fillStyle = '#566078';
+      ctx.fillRect(dx + 2 * u, dy + 15 * u, 12 * u, 1 * u);
+      return;
+    }
     if (t === T.DRONE) {
       ctx.fillStyle = '#3d4458';
       ctx.fillRect(dx + 1 * u, dy + 13 * u, 14 * u, 3 * u);
@@ -680,6 +714,45 @@ export class Renderer {
     ctx.fillRect(dx + 4 * u, dy + 8 * u, 8 * u, 6 * u);
   }
 
+  /** Floor spikes: a dark plate with five steel teeth, lit on the left edge. */
+  private drawSpikes(ctx: CanvasRenderingContext2D, dx: number, dy: number, ts: number): void {
+    const u = ts / 16;
+    ctx.fillStyle = '#161a24';
+    ctx.fillRect(dx, dy + 13 * u, ts, 3 * u);
+    ctx.fillStyle = '#3d4458';
+    ctx.fillRect(dx, dy + 14 * u, ts, 2 * u);
+    for (let i = 0; i < 5; i++) {
+      const x = dx + (1 + i * 3) * u;
+      ctx.fillStyle = '#161a24';
+      ctx.fillRect(x, dy + 8 * u, 3 * u, 5 * u);
+      ctx.fillStyle = '#9aa3b8';
+      ctx.fillRect(x + 0.5 * u, dy + 9 * u, 2 * u, 4 * u);
+      ctx.fillStyle = '#e6eeff';
+      ctx.fillRect(x + 1 * u, dy + 7 * u, 1 * u, 3 * u);
+    }
+  }
+
+  /** Turret barrel and status light: aims at the last target, red eye when powered, dim when not. */
+  private drawTurretTop(ctx: CanvasRenderingContext2D, x: number, y: number, ts: number, aim: number, on: boolean, time: number): void {
+    const u = ts / 16;
+    const cx = x + 8 * u;
+    const cy = y + 6 * u;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(aim);
+    ctx.fillStyle = '#161a24';
+    ctx.fillRect(-1 * u, -2 * u, 10 * u, 4 * u);
+    ctx.fillStyle = '#9aa3b8';
+    ctx.fillRect(0, -1 * u, 9 * u, 2 * u);
+    ctx.fillStyle = '#e6eeff';
+    ctx.fillRect(0, -1 * u, 9 * u, 0.7 * u);
+    ctx.restore();
+    ctx.fillStyle = on ? (Math.floor(time * 3) % 3 === 0 ? '#ffcf4a' : '#ff4a3a') : '#3a2a2a';
+    ctx.fillRect(x + 7 * u, y + 8 * u, 2 * u, 1.5 * u);
+  }
+
+  private turretAim = new Map<number, number>();
+  private turretsOn = false;
   private machinesOn = false;
   private minersOn = false;
   private dronesOn = false;
@@ -693,6 +766,7 @@ export class Renderer {
       for (let tx = Math.max(0, x0); tx <= Math.min(world.w - 1, x1); tx++) {
         const t = world.tiles[ty * world.w + tx];
         if (t === T.TORCH) this.drawTorch(ctx, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time + tx);
+        else if (t === T.TURRET) this.drawTurretTop(ctx, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, this.turretAim.get(ty * world.w + tx) ?? -Math.PI / 2, this.turretsOn, time);
         else if (t === T.BATTERY) {
           const n = Math.round(this.batteryFill * 4);
           const bx = this.sx(tx, shakeX);

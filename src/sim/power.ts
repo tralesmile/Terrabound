@@ -14,6 +14,8 @@ export const MINE_TIME = 5;
 /** Drone bay: a survey drone flies out and hauls back one load per DRONE_TIME powered seconds (copper wire, every 5th load a crystal). */
 export const DRONE_DRAW = 3;
 export const DRONE_TIME = 12;
+/** Grid draw per base turret (defences.ts). */
+export const TURRET_DRAW = 1;
 export const MACHINE_TILES: ReadonlySet<number> = new Set([T.SOLAR, T.SMELTER, T.BATTERY, T.MINER, T.DRONE]);
 
 export interface PowerState {
@@ -58,9 +60,9 @@ export function scanMachines(world: World): { solars: number; smelters: number; 
 }
 
 /** Pure: grid numbers for a machine count and daylight (0..1). Solar only works above ground in the base, so daylight scales it. */
-export function gridState(solars: number, smelters: number, daylight: number, wantSmelt: boolean, miners = 0, drones = 0): PowerState {
+export function gridState(solars: number, smelters: number, daylight: number, wantSmelt: boolean, miners = 0, drones = 0, turrets = 0): PowerState {
   const supply = solars * SOLAR_OUTPUT * Math.max(0, Math.min(1, daylight));
-  const demand = (wantSmelt ? smelters * SMELTER_DRAW : 0) + miners * MINER_DRAW + drones * DRONE_DRAW;
+  const demand = (wantSmelt ? smelters * SMELTER_DRAW : 0) + miners * MINER_DRAW + drones * DRONE_DRAW + turrets * TURRET_DRAW;
   const ratio = demand <= 0 ? 0 : Math.min(1, supply / demand);
   return { solars, smelters, batteries: 0, miners, drones, charge: 0, cap: 0, supply, demand, ratio, working: ratio > 0 && wantSmelt };
 }
@@ -69,8 +71,8 @@ export function gridState(solars: number, smelters: number, daylight: number, wa
  * Pure: one time step with batteries. Surplus solar charges them; a deficit (night, too many smelters) drains them.
  * Returns the grid state for this step and the new stored charge (clamped to capacity, so removing batteries drops it).
  */
-export function stepGrid(solars: number, smelters: number, batteries: number, daylight: number, wantSmelt: boolean, charge: number, dt: number, miners = 0, drones = 0): PowerState {
-  const base = gridState(solars, smelters, daylight, wantSmelt, miners, drones);
+export function stepGrid(solars: number, smelters: number, batteries: number, daylight: number, wantSmelt: boolean, charge: number, dt: number, miners = 0, drones = 0, turrets = 0): PowerState {
+  const base = gridState(solars, smelters, daylight, wantSmelt, miners, drones, turrets);
   const cap = batteries * BATTERY_CAP;
   let c = Math.max(0, Math.min(cap, charge));
   let ratio = base.ratio;

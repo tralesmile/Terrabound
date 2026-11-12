@@ -34,7 +34,8 @@ import { automationHint, stepGrid, newPower, scanMachines, stepSmelting, stepMin
 import { DRONE_ROLES, ENEMY_NEAR, HP_LOW, DEEP_AT, RULE_MAX, ROLE_INFO, sanitizeRules, type DroneRule, listBays, nextRole, roleOf, stepFieldDrones, surveyBays, syncDrones, type DroneEvent, type DroneRole, type FieldDrone, GUARD_DMG } from './drones';
 import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight, DAY_LENGTH } from './daynight';
-import { CHEW_TIME, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
+import { SPIKE_DMG, SPIKE_TICK, TURRET_DMG, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
+import { RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
 import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
@@ -90,6 +91,8 @@ export type GameEvent =
   | { t: 'raidchew'; x: number; y: number; tile: number }
   | { t: 'raidclear'; n: number; reward: Inventory }
   | { t: 'raidend' }
+  | { t: 'turretshot'; x: number; y: number; tx: number; ty: number }
+  | { t: 'spikehit'; x: number; y: number }
   | { t: 'lore'; text: string }
   | { t: 'eat'; item: ItemId }
   | { t: 'cast'; x: number; y: number }
@@ -275,6 +278,9 @@ export class Game {
   private machineAcc = 0;
   /** Field drones launched from bays with a non-survey role (drones.ts). */
   drones: FieldDrone[] = [];
+  /** Base turrets with their cooldown and barrel aim (defences.ts), re-synced with the machine scan. */
+  turrets: Turret[] = [];
+  private spikeAcc = 0;
   private surveyCount = 0;
   private liquidAcc = 0;
   private liquidTick = 0;
@@ -779,10 +785,11 @@ export class Game {
       const bays = listBays(this.world);
       this.surveyCount = surveyBays(bays, this.save.drones);
       this.drones = syncDrones(this.drones, bays, this.save.drones);
+      this.turrets = syncTurrets(this.world, this.turrets);
     }
     const m = this.machineCounts;
     const want = (this.stash.rust ?? 0) >= SMELT_RUST || this.smeltProgress > 0;
-    this.power = stepGrid(m.solars, m.smelters, m.batteries, daylight(this.time), want, this.power.charge, dt, m.miners, m.drones);
+    this.power = stepGrid(m.solars, m.smelters, m.batteries, daylight(this.time), want, this.power.charge, dt, m.miners, m.drones, this.turrets.length);
     const mined = stepMining(this.stash, this.power, this.mineProgress, this.mineCount, dt);
     this.mineProgress = mined.progress;
     this.mineCount = mined.count;
@@ -1242,13 +1249,14 @@ export class Game {
     return false;
   }
 
-  damageEnemy(e: Enemy, dmg: number, dir: number): void {
+  /** Hit an enemy. `stop` freezes the frame for juice; base defences pass false so they do not stutter the game. */
+  damageEnemy(e: Enemy, dmg: number, dir: number, stop = true): void {
     if (e.iframes > 0 || e.hp <= 0) return;
     e.hp -= dmg;
     e.iframes = 0.15;
     e.vx = dir * 9;
     e.vy = ENEMIES[e.kind].flying ? e.vy : -5;
-    this.hitStop = HITSTOP;
+    if (stop) this.hitStop = HITSTOP;
     this.emit({ t: 'enemyhit', x: e.x, y: e.y - 0.5, dmg });
   }
 
@@ -1413,7 +1421,9 @@ export class Game {
         e.age += dt;
         e.vx = 0;
       } else if (e.raid) {
-        const tg = raidTarget(e, b.x, b.y, this.world.padX, this.world.padY, atBase);
+        // Raiders go for the nearest machine first, then the pad.
+        const goal = machineGoal(this.world, e.x);
+        const tg = goal ? raidTarget(e, b.x, b.y, goal.x - 0.5, goal.y, atBase) : raidTarget(e, b.x, b.y, this.world.padX, this.world.padY, atBase);
         stepEnemy(this.world, e, dt, tg.x, tg.y);
       } else stepEnemy(this.world, e, dt, b.x, b.y);
       if (!atBase && this.iframes === 0 && enemyOverlapsBox(e, b.x, b.y, HALF_W, BODY_H)) {
@@ -1423,6 +1433,7 @@ export class Game {
         b.vy = Math.min(b.vy, -6);
       }
     }
+    this.stepDefences(dt);
     // Deaths and drops.
     const alive: Enemy[] = [];
     for (const e of this.enemies) {
@@ -1471,6 +1482,24 @@ export class Game {
     this.emit({ t: 'raidend' });
   }
 
+  /** Base turrets shoot, spike traps bite (defences.ts). */
+  private stepDefences(dt: number): void {
+    if (this.turrets.length > 0) {
+      for (const sh of stepTurrets(this.world, this.turrets, this.enemies, this.power.ratio, dt)) {
+        const en = this.enemies.find((x) => x.id === sh.id);
+        if (en) this.damageEnemy(en, TURRET_DMG, Math.sign(sh.tx - sh.x) || 1, false);
+        this.emit({ t: 'turretshot', x: sh.x, y: sh.y, tx: sh.tx, ty: sh.ty });
+      }
+    }
+    this.spikeAcc += dt;
+    if (this.spikeAcc < SPIKE_TICK) return;
+    this.spikeAcc -= SPIKE_TICK;
+    for (const e of spikeVictims(this.world, this.enemies)) {
+      this.damageEnemy(e, SPIKE_DMG, -e.dir || 1, false);
+      this.emit({ t: 'spikehit', x: e.x, y: e.y });
+    }
+  }
+
   private stepRaid(dt: number): void {
     const r = this.raid;
     if (!r) return;
@@ -1497,9 +1526,9 @@ export class Game {
         continue;
       }
       e.chew = (e.chew ?? 0) + dt;
-      if (e.chew >= CHEW_TIME) {
+      const tile = w.get(c.x, c.y);
+      if (e.chew >= chewTime(tile)) {
         e.chew = 0;
-        const tile = w.get(c.x, c.y);
         const item = TILES[tile].drop;
         w.set(c.x, c.y, T.AIR);
         if (item) addDrop(this.drops, makeDrop(item, 1, c.x + 0.5, c.y + 0.5, 0, -4));

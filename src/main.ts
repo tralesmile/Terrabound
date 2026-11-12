@@ -410,6 +410,13 @@ function boot(): void {
         if (e.kind !== 'clear') ui.toast(`${WEATHER[e.kind].name}: ${WEATHER[e.kind].desc}`, e.kind === 'eclipse' ? '#ff5aff' : e.kind === 'meteors' ? '#ffcf4a' : '#c9a35a', 4);
         else ui.toast('The sky clears', '#c9d0e4', 2);
         break;
+      case 'turretshot':
+        fx.tracer(e.x, e.y, e.tx, e.ty, '#ff8a5a');
+        fx.burst(e.tx, e.ty, '#ffb03a', 4, 3);
+        break;
+      case 'spikehit':
+        fx.burst(e.x, e.y - 0.2, '#e6eeff', 4, 3);
+        break;
       case 'zap':
         fx.burst(e.tx, e.ty, '#ffcf4a', 6, 3);
         break;

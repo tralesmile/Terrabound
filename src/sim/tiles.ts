@@ -30,7 +30,10 @@ export type ItemId =
   | 'smelter'
   | 'battery'
   | 'miner'
-  | 'drone';
+  | 'drone'
+  | 'turret'
+  | 'spikes'
+  | 'reinforced';
 export const ITEM_IDS: ItemId[] = [
   'rust',
   'metal',
@@ -62,6 +65,9 @@ export const ITEM_IDS: ItemId[] = [
   'battery',
   'miner',
   'drone',
+  'turret',
+  'spikes',
+  'reinforced',
 ];
 
 export const T = {
@@ -109,6 +115,10 @@ export const T = {
   MAGMA: 40,
   /** Magma cooled by water: very hard, drops metal. */
   BASALT: 41,
+  /** Raid defences (defences.ts): powered turret, floor spikes, reinforced wall. */
+  TURRET: 42,
+  SPIKES: 43,
+  REINFORCED: 44,
 } as const;
 
 export interface TileDef {
@@ -178,6 +188,9 @@ export const TILES: TileDef[] = [
   { name: 'Energy gate', hardness: Infinity, solid: true, drop: null },
   { name: 'Plasma magma', hardness: Infinity, solid: false, drop: null, liquid: true, glow: true, dps: 60 },
   { name: 'Cooled basalt', hardness: 2.4, solid: true, drop: 'metal' },
+  { name: 'Turret', hardness: 0.6, solid: false, drop: 'turret', minable: true },
+  { name: 'Spike trap', hardness: 0.4, solid: false, drop: 'spikes', minable: true },
+  { name: 'Reinforced wall', hardness: 1.6, solid: true, drop: 'reinforced' },
 ];
 
 export interface ItemDef {
@@ -223,9 +236,12 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   battery: { name: 'Battery', color: '#7dff9a', places: T.BATTERY, kit: true },
   miner: { name: 'Miner rig', color: '#ffd23a', places: T.MINER, kit: true },
   drone: { name: 'Drone bay', color: '#8ad8ff', places: T.DRONE, kit: true },
+  turret: { name: 'Turret', color: '#ff6a4a', places: T.TURRET, kit: true },
+  spikes: { name: 'Spike trap', color: '#c9d0e4', places: T.SPIKES, kit: true },
+  reinforced: { name: 'Reinforced wall', color: '#8a9ab8', places: T.REINFORCED, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced'];
 
 /** Placeables worth showing in the hotbar: owned ones plus the selected one, in PLACEABLE order. */
 export function visiblePlaceables(inv: Inventory, selected: ItemId): ItemId[] {

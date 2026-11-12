@@ -62,8 +62,21 @@ export function landPower(speed: number): number {
 const MAX_TEXTS = 24;
 const MAX_RINGS = 16;
 
+/** A short glowing line from a muzzle to a hit (turret shots). */
+export interface Tracer {
+  x: number;
+  y: number;
+  tx: number;
+  ty: number;
+  color: string;
+  life: number;
+  max: number;
+}
+const MAX_TRACERS = 24;
+
 export class Fx {
   particles: Particle[] = [];
+  tracers: Tracer[] = [];
   texts: FloatText[] = [];
   rings: Ring[] = [];
   shake = 0;
@@ -171,6 +184,11 @@ export class Fx {
     }
   }
 
+  tracer(x: number, y: number, tx: number, ty: number, color: string, life = 0.12): void {
+    if (this.tracers.length >= MAX_TRACERS) this.tracers.shift();
+    this.tracers.push({ x, y, tx, ty, color, life, max: life });
+  }
+
   ring(x: number, y: number, r: number, color: string, life = 0.3): void {
     if (this.rings.length >= MAX_RINGS) this.rings.shift();
     this.rings.push({ x, y, r, color, life, max: life });
@@ -215,6 +233,8 @@ export class Fx {
       t.y -= 1.6 * dt;
     }
     this.texts = this.texts.filter((t) => t.life > 0);
+    for (const tr of this.tracers) tr.life -= dt;
+    this.tracers = this.tracers.filter((tr) => tr.life > 0);
     for (const r of this.rings) r.life -= dt;
     this.rings = this.rings.filter((r) => r.life > 0);
     this.shake = Math.max(0, this.shake - dt * 2.5);

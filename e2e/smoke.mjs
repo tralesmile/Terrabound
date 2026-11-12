@@ -981,6 +981,56 @@ try {
     g.drops.length = 0;
   });
 
+  // Raid defences: a turret, spike traps and a reinforced wall at the west edge; raiders walk into them.
+  const defOk = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    g.body.x = w.padX + 0.5;
+    g.body.y = w.padY;
+    g.body.vx = g.body.vy = 0;
+    g.hp = g.derived.maxHp;
+    const T = { SOLAR: 27, SMELTER: 28, BATTERY: 29, TURRET: 42, SPIKES: 43, REINFORCED: 44 };
+    w.set(w.padX + 3, w.padY - 1, T.SOLAR);
+    w.set(w.padX + 4, w.padY - 1, T.SMELTER);
+    w.set(w.padX + 5, w.padY - 1, T.BATTERY);
+    w.set(w.padX + 6, w.padY - 1, T.BATTERY);
+    w.set(w.padX - 4, w.padY - 1, T.TURRET);
+    w.set(w.padX + 2, w.padY - 1, T.TURRET);
+    for (let dx = -7; dx <= -5; dx++) w.set(w.padX + dx, w.padY - 1, T.SPIKES);
+    for (let dy = 2; dy <= 3; dy++) w.set(w.padX - 6, w.padY - dy, T.REINFORCED);
+    g.power.charge = 120;
+    g.raid = null;
+    return g.startRaid();
+  });
+  await page.waitForTimeout(700);
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    g.power.charge = 120;
+    const rs = g.enemies.filter((e) => e.raid);
+    rs.forEach((e, i) => {
+      e.hp0 = e.hp;
+      e.x = w.padX - 6.5 - i * 1.3;
+      if (e.kind !== 'flyer' && e.kind !== 'ember') e.y = w.padY;
+      else e.y = w.padY - 3;
+    });
+  });
+  await page.waitForTimeout(1200);
+  await page.screenshot({ path: path.join(out, '34c-defences.png') });
+  const defState = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const rs = g.enemies.filter((e) => e.raid);
+    return { turrets: g.turrets.length, hurt: rs.filter((e) => e.hp < e.hp0).length, n: rs.length, total: g.raid ? g.raid.total : 0, ratio: g.power.ratio };
+  });
+  check('powered turrets and spikes hurt raiders at the base edge', defOk && defState.turrets === 2 && (defState.hurt > 0 || defState.n < defState.total), JSON.stringify(defState));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    g.endRaid();
+    for (let dx = -7; dx <= 6; dx++) for (let dy = 1; dy <= 3; dy++) if (dx !== 0) w.set(w.padX + dx, w.padY - dy, 0);
+    g.drops.length = 0;
+  });
+
   // Share card: SHARE on the map downloads a PNG in a headless browser (no Web Share there).
   await page.keyboard.press('KeyM');
   await page.waitForTimeout(200);

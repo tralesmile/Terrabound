@@ -8,7 +8,7 @@ import { BASE_HALF, BASE_KEEP, BASE_ROWS } from './base';
 import { ENEMIES, enemyBoxHits, type Enemy, type EnemyKind } from './enemies';
 import { MACHINE_TILES } from './power';
 import { hash2 } from './rng';
-import type { Inventory } from './tiles';
+import { T, type Inventory } from './tiles';
 import type { World } from './world';
 
 /** Base value needed before raids start (two machines, or one machine and a dozen blocks). */
@@ -98,7 +98,7 @@ export function chewTarget(world: World, e: Enemy): { x: number; y: number } | n
   const cells: [number, number][] = [];
   for (let y = y0; y <= y1; y++) cells.push([e.dir > 0 ? xr : xl, y], [e.dir > 0 ? xl : xr, y]);
   cells.push([Math.floor(e.x), Math.floor(e.y + 0.05)]);
-  for (const [x, y] of cells) if (inBase(x, y) && BASE_KEEP.has(world.get(x, y))) return { x, y };
+  for (const [x, y] of cells) if (inBase(x, y) && BASE_KEEP.has(world.get(x, y)) && world.get(x, y) !== T.SPIKES) return { x, y };
   return null;
 }
 

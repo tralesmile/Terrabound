@@ -233,6 +233,12 @@ export class Sfx {
       case 'full':
         this.tone(120, 0.15, 'square', 0.12);
         break;
+      case 'turretshot':
+        if (this.ok('turret', 110)) this.tone(640, 0.07, 'square', 0.05, 220);
+        break;
+      case 'spikehit':
+        if (this.ok('spike', 150)) this.noise(0.04, 0.12);
+        break;
       case 'shoot':
         if (this.ok('shoot', 80)) this.tone(900, 0.09, 'square', 0.07, 300);
         break;
