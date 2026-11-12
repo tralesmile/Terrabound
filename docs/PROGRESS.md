@@ -457,3 +457,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** online leaderboard needs a hosting decision (NEEDS_FROM_USER); co-op spike; settings screen (volume, shake, colour-blind, text size); shorter toasts with icons.
 
 **Known issues:** offline crop growth ignores robot gardeners (robots are derived after load); growing crops restart their current stage when the base moves to a new world; upgrade BUY rows refuse while you shop upstairs off the pad; turrets draw 1 power even when idle; the merchant hovers inside whatever is built over the right end of the pad; e2e farm uses raw tile ids (57-67).
+
+## 2026-11-12 Scheduled run 28
+
+**Done:** baseline green (515 tests). Creative review: surface dirt and scrap rock were one flat noise (carried over two runs) and harvest labels overprinted. Soil strata (src/render/strata.ts): wavy alternating bands that darken with depth, light seams at band edges, rare buried pebbles/bones/pipes/skulls in the top 22 rows, natural tiles only (`world.edits` skips built ones); e2e pit screenshot 43-strata. Floating text: repeat pickups merge ("+2 Glowcorn"), different labels stack instead of overprinting (41b-harvest). Backlog: settings screen slice 1 (cog button beside SOUND and on the title, O key; pauses; master/music/effects volume on separate audio buses, screen shake off/low/full, UI size normal/large/huge, sound toggle; phone layout stacks labels), save v19 prefs with v18 fixture test. Screenshots 43-strata, 44-settings, 44b-large-ui, 44c-mobile-settings, 06-mobile-play reviewed.
+
+**Numbers:** 532 unit tests (new: strata 6, settings 7, floattext 4), e2e all green (new: strata pit, cog opens + pauses, steppers change scale/shake, Esc saves, HUGE fits a phone), bundle 309 kB (105.9 kB gzip).
+
+**Next:** settings slice 2 (colour-blind palette, key remap, left-handed touch, reduce flashes); FTUE / achievements; mobile polish; co-op spike.
+
+**Known issues:** strata bands are subtle under cave darkness; offline crop growth ignores robot gardeners; growing crops restart their stage when the base moves to a new world; upgrade BUY rows refuse while you shop upstairs off the pad; turrets draw 1 power even when idle; the merchant hovers inside whatever is built over the right end of the pad; e2e farm uses raw tile ids (57-67).

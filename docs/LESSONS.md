@@ -104,3 +104,8 @@
 - **E2e polls for periodic visuals must cover a full period plus margin.** The heart shows 1.4 s of every 4.5 s; a 3 s poll missed it sometimes. Guard: poll for two periods and print the state that gates the visual on failure.
 - **Base positions are pad-relative and every world has its own pad height.** A test that checked `padY - 3` of the old world in the new one read air. Guard: recompute `padX/padY` from the new world after any world change.
 - **Retro:** four small slices each shipped through `npm run ship` (one gate each, ~3-4 min) kept every step safe; the run's slowest part is the full gate, so batch e2e edits before the gate and run `npm run e2e` alone while iterating.
+
+- **Rounded tile corners are 1 px cut-outs on edge tiles.** A full-tile overlay painted on an edge tile darkens the transparent corner and the backdrop behind it. Guard: overlays on edge tiles (`mask !== 0`) use a cross shape that skips the 4 corner pixels (renderer `drawStrata`).
+- **The surface dirt layer is only 3-4 tiles thick; the scrap layer rock (T.METAL) is right under it** and is also a player build block. Guard: natural-only visuals check `world.edits` (placed tiles are in it), not the tile id.
+- **Disabled buttons are not in `ui.rects` (again):** the settings e2e expected 10 steppers but maxed ones were disabled. Count with the current values in mind.
+- **Retro:** three slices, each gated by `npm run ship` (~4 min each). Writing the mobile fit check first would have caught the squeezed labels before the screenshot review.

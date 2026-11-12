@@ -1,5 +1,14 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-12 run 28
+
+- Done this run: soil strata + buried bones/pipes, merged pickup labels, settings screen (volumes, shake, UI size).
+- Weakest feel: harvest and ore pickups have no arc into the pack; a 0.4 s icon arc to the hotbar (Core Keeper style) would make every pickup land.
+- Weakest graphics: cave darkness flattens the new strata; a faint rim light on exposed tile edges near the player's lamp would make caves read in 3D.
+- Weakest controls: one seed per right click (carried); hold right click to sow along a row.
+- Weakest UI: toasts are full sentences mid-screen (carried); cap 2, icon + 4 words, plant timer on aim.
+- Weakest accessibility: ore colours (iron vs copper vs crystal) rely on hue alone; a colour-blind palette plus ore glyphs is the next settings slice.
+
 ## 2026-11-12 run 27
 
 - Done this run: crop sway, ripe twinkle, sprinkler spray; robot gardeners; local world records with personal-best toasts.
@@ -26,13 +35,4 @@
 - Weakest graphics: research flasks and mod chips are 12 px icons inside large cells; drawing them at 2x with a glow ring would read better.
 - Weakest UI: the workshop is one big modal; a small "robot is talking" speech bubble over the NPC (instead of the bottom hint line) would feel more alive.
 - New: farming next (backlog), with crops that robots water when they are happy.
-
-## 2026-11-12 run 24
-
-- Done this run: glowing bolt tracers (light up caves, colour by behaviour), Rook the Gunsmith with 7 mod chips, chip pip on the hotbar.
-- Weakest gameplay feel: enemies take hits silently except numbers; a short white flash on the sprite and a knockback squash (Dead Cells style) would sell every chip.
-- Weakest progression: base strip fits ~3 rooms, so robots cap out; widen the build area once the Scientist arrives (backlog).
-- Weakest graphics: chip icons are tiny dice; a 2x core and a per-chip glyph (flame, arrow, bounce) would read at a glance.
-- Weakest UI: TRADE is 21 rows; group per robot with portrait headers (backlog).
-- New: an "ember" chip (burn over time) once enemies have status effects; chips as rare chest loot so dives can drop a build-changer.
 

@@ -125,7 +125,8 @@ Together
 
 Polish
 - [x] Procedural music per biome, depth, night and boss fights (src/platform/composer.ts); SOUND button cycles all on / music off / all off (save v11). Volume sliders move to the settings screen item.
-- [ ] Settings screen: master/music/sfx volume, screen shake, key remap, colour-blind palette, text size, left-handed touch layout
+- [x] Settings screen slice 1 (run 28, src/sim/settings.ts): cog beside SOUND / on the title, or O; pauses the game; master/music/effects volume (separate buses), screen shake off/low/full, UI size normal/large/huge, sound toggle; stacked layout on phones; save v19
+- [ ] Settings slice 2: colour-blind ore/hazard palette, key remap (desktop), left-handed touch layout, reduce-flashes toggle
 - [ ] Guided first 2 minutes (FTUE), achievements (30+), codex screen with lore logs and enemy entries
 - [ ] Mobile polish: on-screen hotbar sized for thumbs, hook hold-to-reel button, safe-area insets; real-device check listed in NEEDS_FROM_USER
 
