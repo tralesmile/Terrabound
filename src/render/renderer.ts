@@ -1,4 +1,4 @@
-import type { Game } from '../sim/game';
+import type { Game, Shot } from '../sim/game';
 import { NPC_INFO, type Npc } from '../sim/npcs';
 import { roomEdges } from '../sim/rooms';
 import { furnitureArt, screenLines } from './furniture';
@@ -12,7 +12,7 @@ import { BODY_H } from '../sim/physics';
 import { magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx } from './fx';
 import type { PlayerGear } from './sprites';
 import { ICON, drawIcon } from './icons';
-import { GEAR } from '../sim/gear';
+import { GEAR, type RangedKind } from '../sim/gear';
 import { BOSSES, phase as bossPhase } from '../sim/bosses';
 import { drawBossArt } from './bossart';
 import { ACT_INFO } from '../sim/drones';
@@ -21,10 +21,24 @@ import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
-import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, traderRows, medicRows, MEDIC_REMAP, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 
 /** Chunk size in tiles for the render cache. */
+/** Per-robot colours: sprite remap, name tag, blanket. */
+const ROBOT_LOOK: Record<RobotKind, { remap?: Record<string, string>; tag: string; blanket: Record<string, string> }> = {
+  trader: { tag: '#ffd23a', blanket: { a: '#4a6ab8', b: '#a8c0ff', e: '#34508f' } },
+  medic: { remap: MEDIC_REMAP, tag: '#ff8a8a', blanket: { a: '#d8dee8', b: '#ffffff', e: '#9aa4b4' } },
+  gunsmith: { remap: GUNSMITH_REMAP, tag: '#ffb23a', blanket: { a: '#8a4a2a', b: '#d88a4a', e: '#5a2e1a' } },
+};
+
+/** Tracer colour of a player bolt: ricochet green, piercing blue, scatter orange, plain pulse gold. Pure. */
+export function boltColor(sh: Shot, ranged: RangedKind): string {
+  if (sh.bounces !== undefined) return '#7dffb0';
+  if (sh.pierce) return ranged === 'rail' ? '#8fd0ff' : '#5aa6ff';
+  return ranged === 'scatter' ? '#ff9a3c' : '#ffd24a';
+}
+
 export const CHUNK = 32;
 /** Cache size before far chunks are evicted. */
 export const MAX_CHUNKS = 48;
@@ -266,17 +280,6 @@ export class Renderer {
         ctx.fillRect(ex - w / 2, ey - h - 4 * scale, (w * Math.max(0, e.hp)) / d.hp, 2 * scale);
       }
     }
-    for (const sh of game.shots) {
-      const sxp = this.sx(sh.x, shakeX);
-      const syp = this.sy(sh.y, shakeY);
-      const len = Math.hypot(sh.vx, sh.vy) || 1;
-      ctx.strokeStyle = '#ffd24a';
-      ctx.lineWidth = scale * 1.6;
-      ctx.beginPath();
-      ctx.moveTo(sxp - (sh.vx / len) * ts * 0.7, syp - (sh.vy / len) * ts * 0.7);
-      ctx.lineTo(sxp, syp);
-      ctx.stroke();
-    }
     if (game.swing > 0) {
       const k = 1 - game.swing / 0.18;
       ctx.strokeStyle = `rgba(120,255,255,${1 - k})`;
@@ -512,6 +515,67 @@ export class Renderer {
     ctx.globalAlpha = 1;
 
     this.drawDarkness(ctx, game, px, py - 14 * scale, time);
+    // Bolts are light sources: drawn over the darkness with an additive glow so they read in deep caves.
+    this.drawBolts(ctx, game, shakeX, shakeY, time);
+  }
+
+  /** Player bolts: additive glow, then the tracer itself (bombs are plain shells). */
+  private drawBolts(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
+    const scale = this.scale;
+    const ts = TS * scale;
+    ctx.globalCompositeOperation = 'lighter';
+    for (const sh of game.shots) {
+      if (sh.bomb) continue;
+      const gx = this.sx(sh.x, shakeX);
+      const gy = this.sy(sh.y, shakeY);
+      const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, ts * 1.1);
+      g.addColorStop(0, boltColor(sh, game.gear.ranged) + '5a');
+      g.addColorStop(1, boltColor(sh, game.gear.ranged) + '00');
+      ctx.fillStyle = g;
+      ctx.fillRect(gx - ts * 1.1, gy - ts * 1.1, ts * 2.2, ts * 2.2);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    for (const sh of game.shots) {
+      const sxp = this.sx(sh.x, shakeX);
+      const syp = this.sy(sh.y, shakeY);
+      const len = Math.hypot(sh.vx, sh.vy) || 1;
+      if (sh.bomb) {
+        // A dark shell with a blinking fuse light.
+        ctx.fillStyle = '#2b3a2a';
+        ctx.beginPath();
+        ctx.arc(sxp, syp, scale * 2.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = Math.floor(time * 12) % 2 ? '#ff5a5a' : '#ffd24a';
+        ctx.fillRect(sxp - scale * 0.6, syp - scale * 2.8, scale * 1.4, scale * 1.4);
+        continue;
+      }
+      // Glowing tracer: a soft wide halo, a coloured body and a white-hot head (colour says what the bolt does).
+      const col = boltColor(sh, game.gear.ranged);
+      const tail = ts * (sh.pierce ? 1.5 : 1.05);
+      const tx0 = sxp - (sh.vx / len) * tail;
+      const ty0 = syp - (sh.vy / len) * tail;
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.28;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = scale * 5;
+      ctx.beginPath();
+      ctx.moveTo(tx0, ty0);
+      ctx.lineTo(sxp, syp);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      const grad = ctx.createLinearGradient(tx0, ty0, sxp, syp);
+      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      grad.addColorStop(1, col);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = scale * 2;
+      ctx.beginPath();
+      ctx.moveTo(tx0, ty0);
+      ctx.lineTo(sxp, syp);
+      ctx.stroke();
+      ctx.lineCap = 'butt';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(sxp - scale, syp - scale, scale * 2, scale * 2);
+    }
   }
 
   /** Static art of one tile (cached in chunks): back wall, block, decor, lichen. */
@@ -893,15 +957,16 @@ export class Renderer {
       const hop = n.react && n.pose !== 'sit' ? npcHop(n.react, n.reactT ?? 0) * s : 0;
       const y = this.sy(n.y, shakeY) - hop;
       const info = NPC_INFO[n.kind];
-      const medic = n.kind === 'medic';
-      const remap = medic ? MEDIC_REMAP : undefined;
+      const kind = n.kind === 'merchant' ? 'trader' : n.kind;
+      const look = ROBOT_LOOK[kind];
+      const remap = look.remap;
       const t = time + n.home * 0.01;
-      if (n.pose === 'sleep') this.drawNpcAsleep(ctx, game, n, x, y, t, medic, game.raid !== null);
+      if (n.pose === 'sleep') this.drawNpcAsleep(ctx, game, n, x, y, t, kind, game.raid !== null);
       else if (n.pose === 'sit') {
         // On the chair seat, shifted forward so the chair back shows behind; legs bend towards the table.
-        drawRows(ctx, npcSitRows(medic ? 'medic' : 'trader', t), Math.round(x - (TRADER_W / 2 - 4) * s), Math.round(y - 21 * s), s, false, TRADER_W, undefined, remap);
+        drawRows(ctx, npcSitRows(kind, t), Math.round(x - (TRADER_W / 2 - 4) * s), Math.round(y - 21 * s), s, false, TRADER_W, undefined, remap);
       } else {
-        const rows = (medic ? medicRows : traderRows)(t, n.to !== null);
+        const rows = robotRows(kind, t, n.to !== null);
         drawRows(ctx, rows, Math.round(x - (TRADER_W / 2) * s), Math.round(y - 20 * s), s, n.face < 0, TRADER_W, undefined, remap);
       }
       if (n.react) this.drawNpcBubble(ctx, x, y - (n.pose === 'sit' ? 23 : 22) * s, n.react === 'cheer' ? 'Yay!' : 'Hi!', n.react === 'cheer' ? '#7dffb0' : '#ffffff', time);
@@ -912,10 +977,10 @@ export class Renderer {
         const ty = y - 26 * s + Math.sin(time * 3) * s;
         ctx.fillStyle = 'rgba(10,12,20,0.8)';
         ctx.fillRect(x - tw / 2, ty - s * 3.5, tw, s * 5);
-        ctx.strokeStyle = medic ? '#ff8a8a' : '#ffd23a';
+        ctx.strokeStyle = look.tag;
         ctx.lineWidth = Math.max(1, s * 0.5);
         ctx.strokeRect(x - tw / 2, ty - s * 3.5, tw, s * 5);
-        ctx.fillStyle = medic ? '#ff8a8a' : '#ffd23a';
+        ctx.fillStyle = look.tag;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(label, x, ty - s);
@@ -978,19 +1043,19 @@ export class Renderer {
    * A robot in bed: its head on the pillow under a blanket mound that runs to the foot of the bed,
    * with drifting z's. In a raid it is wide awake and trembling under the covers, with a "!" over it.
    */
-  private drawNpcAsleep(ctx: CanvasRenderingContext2D, game: Game, n: Npc, x: number, y: number, t: number, medic: boolean, raid: boolean): void {
+  private drawNpcAsleep(ctx: CanvasRenderingContext2D, game: Game, n: Npc, x: number, y: number, t: number, kind: RobotKind, raid: boolean): void {
     const s = this.scale;
     const bed = Math.floor(n.x);
     const left = x - 8 * s;
     const top = y - 16 * s;
     const jit = raid ? Math.round(Math.sin(t * 40)) * s * 0.5 : 0;
-    const remap = medic ? MEDIC_REMAP : undefined;
+    const remap = ROBOT_LOOK[kind].remap;
     drawRows(ctx, npcBedHeadRows(raid), Math.round(left + s + jit), Math.round(top - 1 * s), s, false, TRADER_W, undefined, { ...remap, q: '#2a6878' });
     // The blanket covers the body from the pillow's edge to the foot (one cell for an old 1-tile bed).
     const wide = game.world.get(bed + 1, Math.floor(n.y) - 1) === T.BED_FOOT;
     const bw = wide ? 18 : 6;
     const bx = wide ? 11 : 10;
-    const pal = medic ? { a: '#d8dee8', b: '#ffffff', e: '#9aa4b4' } : { a: '#4a6ab8', b: '#a8c0ff', e: '#34508f' };
+    const pal = ROBOT_LOOK[kind].blanket;
     drawRows(ctx, blanketRows(bw), Math.round(left + bx * s + jit), Math.round(top + 5 * s), s, false, bw, undefined, pal);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';

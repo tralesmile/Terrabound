@@ -16,7 +16,8 @@ import { WEATHER } from './sim/weather';
 import { shareCard } from './ui/share';
 import { BOSSES } from './sim/bosses';
 import { ROLE_INFO, nextAct, nextCond } from './sim/drones';
-import { UI, type UiAction } from './ui/ui';
+import { UI, tradeEntries, type UiAction } from './ui/ui';
+import { MODS } from './sim/mods';
 import { NPC_INFO } from './sim/npcs';
 
 const TOOL_NAMES: Record<Tool, string> = { drill: 'Mining drill', blade: 'Energy blade', pistol: 'Pulse pistol', rod: 'Fishing rod: click water to cast', hook: 'Grappling hook: click a ceiling, swing, jump to let go' };
@@ -191,6 +192,16 @@ function boot(): void {
         break;
       case 'trade':
         if (game.trade(a.id)) saveNow();
+        break;
+      case 'modbuy':
+        if (game.buyMod(a.id)) saveNow();
+        break;
+      case 'modfit':
+        if (game.fitMod(a.id)) {
+          const fit = game.fittedMod(MODS[a.id].slot) === a.id;
+          ui.toast(fit ? `${MODS[a.id].name} fitted` : `${MODS[a.id].name} taken out`, fit ? '#ffb23a' : '#8a90a2', 1.6, 'mod');
+          saveNow();
+        }
         break;
       case 'dive':
         // Abandoning a world you have explored is a big step: ask for a second tap within 3 s.
@@ -462,6 +473,24 @@ function boot(): void {
       case 'nosummon':
         ui.toast(e.reason, '#ff9a3c');
         break;
+      case 'modbuy':
+        ui.toast(`Rook built a ${MODS[e.id].name.toLowerCase()} and fitted it`, '#ffb23a', 3, 'mod');
+        fx.burst(game.body.x, game.body.y - 1, MODS[e.id].color, 24, 6);
+        break;
+      case 'shoot':
+        // Muzzle flash: a quick bright puff at the barrel.
+        fx.ring(e.x + game.facing * 0.55, e.y, 0.35, '#fff0a0', 0.08);
+        fx.burst(e.x + game.facing * 0.55, e.y, '#fff0a0', 3, 3);
+        break;
+      case 'shothit':
+        fx.burst(e.x, e.y, '#ffe8a0', 3, 3);
+        break;
+      case 'leech':
+        fx.text(e.x, e.y - 0.3, `+${e.n}`, '#7dffb0');
+        break;
+      case 'ricochet':
+        fx.burst(e.x, e.y, '#7dffb0', 4, 4);
+        break;
       case 'craftgear':
         ui.toast(`Built: ${GEAR[e.id].name}`, '#ffcf4a');
         fx.burst(game.body.x, game.body.y - 1, '#ffcf4a', 24, 6);
@@ -530,7 +559,7 @@ function boot(): void {
           ui.shopOpen = true;
           ui.setShopTab('trade');
           // Jump to the rows this robot posts (the Medic's sit below the Trader's).
-          ui.shopScroll = Math.max(0, game.tradeList().findIndex((t) => t.npc === e.kind));
+          ui.shopScroll = Math.max(0, tradeEntries(game).findIndex((t) => (typeof t === 'string' ? e.kind === 'gunsmith' : t.npc === e.kind)));
         }
         break;
       case 'trade':

@@ -636,6 +636,26 @@ export function medicRows(t: number, walking: boolean): string[] {
   return rows;
 }
 
+/** Gunsmith colours over the trader rig: gunmetal apron, orange trim and amber visor (V), chip badge. */
+export const GUNSMITH_REMAP: Record<string, string> = { g: '#5d6470', y: '#ff9a3c', Y: '#ffd8a8', P: '#ff9a3c', S: '#343944', V: '#ffb23a' };
+
+/** Rows for the Gunsmith: the trader rig with a welding visor and a mod chip on the chest. Pure. */
+export function gunsmithRows(t: number, walking: boolean): string[] {
+  const rows = traderRows(t, walking);
+  rows[5] = '  ohoVVVVVVVhHo';
+  rows[12] = ' oPogSyyyySgoPo';
+  rows[13] = ' oPogSySSySgoPo';
+  rows[14] = ' oHogSyyyySgoHo';
+  return rows;
+}
+
+export type RobotKind = 'trader' | 'medic' | 'gunsmith';
+
+/** Standing rows for any room robot. Pure. */
+export function robotRows(kind: RobotKind, t: number, walking: boolean): string[] {
+  return (kind === 'medic' ? medicRows : kind === 'gunsmith' ? gunsmithRows : traderRows)(t, walking);
+}
+
 /** Merchant drone colours over the field-drone hull: gold plating, cyan eye band. */
 export const MERCHANT_REMAP: Record<string, string> = { P: '#ffd23a', p: '#b8862a', e: '#5ad8ff', H: '#c99a2a', h: '#ffe8a0' };
 /** Cargo crate the merchant carries under its claws (11 px wide). */
@@ -652,8 +672,8 @@ export function npcHop(react: 'wave' | 'cheer', left: number): number {
 /** Bent legs for a robot sitting on a chair (thighs forward over the seat, shins down to the floor). */
 const SIT_LEGS = ['    oLLLLLLLLLo', '    ooooooooLLo', '           oLLo', '           oLLo', '          ooooo'];
 /** Rows of a robot sitting (facing right): top half of its standing rig over bent legs. Pure. */
-export function npcSitRows(kind: 'trader' | 'medic', t: number): string[] {
-  const rows = (kind === 'medic' ? medicRows : traderRows)(t, false);
+export function npcSitRows(kind: RobotKind, t: number): string[] {
+  const rows = robotRows(kind, t, false);
   return [...rows.slice(0, TRADER_TOP.length), ...SIT_LEGS];
 }
 

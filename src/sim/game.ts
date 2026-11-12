@@ -36,6 +36,7 @@ import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight, DAY_LENGTH } from './daynight';
 import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
 import { findRooms, mountOk, roomHint, type Room } from './rooms';
+import { MODS, applyMods, bounce, fitMod, type ModId, type ModSlot } from './mods';
 import { NPC_INFO, TRADES, deathKeep, doTrade, npcLine, npcSpots, reactNpcs, roomFloor, stepNpc, syncNpcs, tradeOpen, type Npc, type NpcKind, type Trade } from './npcs';
 import { merchantDay, merchantPresent, merchantStock } from './merchant';
 import { placement, removeTile } from './wide';
@@ -103,6 +104,9 @@ export type GameEvent =
   | { t: 'npctalk'; kind: NpcKind }
   | { t: 'merchant'; here: boolean }
   | { t: 'trade'; id: string }
+  | { t: 'modbuy'; id: ModId }
+  | { t: 'leech'; x: number; y: number; n: number }
+  | { t: 'ricochet'; x: number; y: number }
   | { t: 'raidwarn'; n: number; side: number; secs: number }
   | { t: 'turretshot'; x: number; y: number; tx: number; ty: number }
   | { t: 'spikehit'; x: number; y: number }
@@ -179,6 +183,8 @@ export interface Shot {
   pierce?: boolean;
   /** Bombs fall and explode. */
   bomb?: boolean;
+  /** Ricochet chip: wall bounces left. */
+  bounces?: number;
   hit?: number[];
 }
 
@@ -382,8 +388,38 @@ export class Game {
 
   /** Combined stats of the equipped gear (cached until the loadout changes). */
   get gear(): GearStats {
-    if (!this.gearCache) this.gearCache = gearStats(this.save.gear.equip);
+    if (!this.gearCache) this.gearCache = applyMods(gearStats(this.save.gear.equip), this.save.mods.fit);
     return this.gearCache;
+  }
+
+  ownsMod(id: ModId): boolean {
+    return this.save.mods.owned.includes(id);
+  }
+
+  fittedMod(slot: ModSlot): ModId | undefined {
+    return this.save.mods.fit[slot];
+  }
+
+  /** The Gunsmith builds a chip: it must live in the base, you must be able to shop and pay from the stash. */
+  canBuyMod(id: ModId): boolean {
+    return !this.ownsMod(id) && this.hasNpc('gunsmith') && this.canShop() && canAfford(this.stash, MODS[id].cost);
+  }
+
+  /** Buy a chip and fit it right away (like crafted gear is equipped right away). */
+  buyMod(id: ModId): boolean {
+    if (!this.canBuyMod(id)) return false;
+    pay(this.stash, MODS[id].cost);
+    this.save.mods.owned.push(id);
+    this.fitMod(id);
+    this.emit({ t: 'modbuy', id });
+    return true;
+  }
+
+  /** Fit or take out an owned chip; free, wherever the workshop is open. */
+  fitMod(id: ModId): boolean {
+    if (!this.canShop() || !fitMod(this.save.mods, id)) return false;
+    this.gearCache = null;
+    return true;
   }
 
   ownsGear(id: GearId): boolean {
@@ -1203,14 +1239,25 @@ export class Game {
     for (const e of this.enemies) {
       const dx = (e.x - b.x) * this.facing;
       if (dx < -0.4 || dx > g.meleeRange || Math.abs(e.y - b.y) > 1.8) continue;
+      if (e.iframes <= 0 && e.hp > 0 && g.leech > 0) this.leechHeal(g.leech);
       this.damageEnemy(e, g.meleeDmg, this.facing);
     }
     const bs = this.boss;
     if (bs) {
       const bd = BOSSES[bs.id];
       const dx = (bs.x - b.x) * this.facing;
-      if (dx > -bd.halfW && dx < g.meleeRange + bd.halfW && b.y > bs.y - bd.h - 1 && b.y - BODY_H < bs.y + 0.5) this.damageBoss(g.meleeDmg);
+      if (dx > -bd.halfW && dx < g.meleeRange + bd.halfW && b.y > bs.y - bd.h - 1 && b.y - BODY_H < bs.y + 0.5) {
+        if (g.leech > 0) this.leechHeal(g.leech);
+        this.damageBoss(g.meleeDmg);
+      }
     }
+  }
+
+  /** Leech chip: a melee hit heals a little (never past max HP). */
+  private leechHeal(n: number): void {
+    const before = this.hp;
+    this.hp = Math.min(this.derived.maxHp, this.hp + n);
+    if (this.hp > before) this.emit({ t: 'leech', x: this.body.x, y: this.body.y - BODY_H, n: this.hp - before });
   }
 
   /** Bomb blast: damages enemies in the radius and breaks minable solid tiles (their drops land as pickups). */
@@ -1325,6 +1372,7 @@ export class Game {
     this.pistolCd = g.rangedCd;
     const ux = dx / len;
     const uy = dy / len;
+    const first = this.shots.length;
     if (g.ranged === 'scatter') {
       for (const a of [-0.18, 0, 0.18]) {
         const c = Math.cos(a);
@@ -1336,6 +1384,18 @@ export class Game {
     } else if (g.ranged === 'bomb') {
       this.shots.push({ x: ox, y: oy, vx: ux * 13, vy: uy * 13 - 4, life: 3, dmg: g.rangedDmg, bomb: true });
     } else this.shots.push({ x: ox, y: oy, vx: ux * PISTOL_SPEED, vy: uy * PISTOL_SPEED, life: PISTOL_LIFE, dmg: g.rangedDmg });
+    // Mod chips change how bolts fly (bombs keep their own rules).
+    for (const sh of this.shots.slice(first)) {
+      if (sh.bomb) continue;
+      if (g.pierce && !sh.pierce) {
+        sh.pierce = true;
+        sh.hit = [];
+      }
+      if (g.bounces > 0) {
+        sh.bounces = g.bounces;
+        sh.life += 0.35 * g.bounces;
+      }
+    }
     this.emit({ t: 'shoot', x: ox, y: oy });
   }
 
@@ -1350,9 +1410,22 @@ export class Game {
       let alive = s.life > 0;
       if (s.bomb) s.vy = Math.min(25, s.vy + GRAVITY * 0.6 * dt);
       for (let i = 0; i < n && alive; i++) {
+        const px = s.x;
+        const py = s.y;
         s.x += (s.vx * dt) / n;
         s.y += (s.vy * dt) / n;
         if (this.world.isSolid(Math.floor(s.x), Math.floor(s.y))) {
+          if (!s.bomb && (s.bounces ?? 0) > 0) {
+            // Ricochet: step back out of the wall and reflect off the face it hit.
+            const v = bounce(s.vx, s.vy, px, py, s.x, s.y, (x, y) => this.world.isSolid(x, y));
+            s.vx = v.vx;
+            s.vy = v.vy;
+            s.x = px;
+            s.y = py;
+            s.bounces = (s.bounces ?? 0) - 1;
+            this.emit({ t: 'ricochet', x: px, y: py });
+            continue;
+          }
           if (s.bomb) this.explode(s.x, s.y, s.dmg ?? 20);
           else this.emit({ t: 'shothit', x: s.x, y: s.y });
           alive = false;
@@ -2032,7 +2105,7 @@ export class Game {
     const npc = this.npcNear();
     if (npc) {
       const info = NPC_INFO[npc.kind];
-      const act = `${touch ? 'Tap' : 'E'} to ${npc.kind === 'medic' ? 'get medkits' : 'trade'}`;
+      const act = `${touch ? 'Tap' : 'E'} to ${npc.kind === 'medic' ? 'get medkits' : npc.kind === 'gunsmith' ? 'fit weapon mods' : 'trade'}`;
       if (npc.pose === 'sleep' && this.raid) return `${info.name} hides under the covers: "Tell me when it is over!"  ${act}`;
       return `${info.name} the ${info.title}: "${npcLine(npc.kind, this.time)}"  ${act}`;
     }

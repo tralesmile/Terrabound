@@ -32,6 +32,10 @@ export interface GearStats {
   ranged: RangedKind;
   rangedDmg: number;
   rangedCd: number;
+  /** Mod chips (mods.ts): every bolt pierces, bolts bounce off walls this many times, HP healed per melee hit. */
+  pierce: boolean;
+  bounces: number;
+  leech: number;
 }
 
 export interface GearDef {
@@ -133,6 +137,9 @@ export const BASE_STATS: GearStats = {
   ranged: 'pulse',
   rangedDmg: 8,
   rangedCd: 0.3,
+  pierce: false,
+  bounces: 0,
+  leech: 0,
 };
 
 /** Combine the equipped gear into one stat block. */

@@ -5,6 +5,7 @@
 import type { ItemId } from '../sim/tiles';
 import type { Tool } from '../sim/game';
 import { GEAR, type GearId } from '../sim/gear';
+import { MODS, type ModId } from '../sim/mods';
 
 export const ICON = 12;
 
@@ -699,6 +700,8 @@ const SHAPES: Record<string, string[]> = {
   jet: ['            ', '     oo     ', '    oaao    ', '   oaaaao   ', 'ooooabbaoooo', 'oaaaaaaaaaao', 'ooooaaaaoooo', '    oaao    ', '   oaooao   ', '   oo  oo   ', '            ', '            '],
   beacon: ['     bb     ', '    bwwb    ', '     bb     ', '    oooo    ', '   oaaaao   ', '   oabbao   ', '   oaaaao   ', '   oabbao   ', '  oaaaaaao  ', '  oaaaaaao  ', ' oooooooooo ', '            '],
   pet: ['            ', '  o      o  ', ' oao    oao ', ' oaaooooaao ', ' oaaaaaaaao ', ' oabwaabwao ', ' oaaaaaaaao ', '  oaabbaao  ', '   oaaaao   ', '   oo  oo   ', '            ', '            '],
+  // Mod chip: a square die with gold pins on every side and a coloured core (a) with a bright pip (b).
+  chip: ['            ', '   h h h h  ', '  oooooooo  ', ' hoddddddoh ', '  odaaaado  ', ' hodabbadoh ', '  odabaado  ', ' hodaaaadoh ', '  oddddddo  ', '  oooooooo  ', '   h h h h  ', '            '],
   hook: ['            ', '   oooo     ', '  obbbbo    ', ' obo  obo   ', ' obo   oo   ', ' obo        ', '  obo   oo  ', '   obooobo  ', '    obbbo   ', '     ooo  a ', '         a  ', '        a   '],
 };
 const SLOT_SHAPE: Record<string, string> = { head: 'helm', body: 'vest', feet: 'boot', vehicle: 'bike', pet: 'pet' };
@@ -718,6 +721,10 @@ export function iconDef(id: ItemId | Tool | string): IconDef {
   if (id.startsWith('beacon_')) {
     const col = { beacon_colossus: '#c77a5e', beacon_vine: '#7fcf5a', beacon_golem: '#d8b8ff', beacon_wyrm: '#ff8a3c', beacon_titan: '#e6f6ff', beacon_ai: '#ff5aff' }[id] ?? '#ffcf4a';
     return { pal: { a: '#5d6a80', b: col }, rows: SHAPES.beacon };
+  }
+  if (id.startsWith('mod_') && MODS[id.slice(4) as ModId]) {
+    const m = MODS[id.slice(4) as ModId];
+    return { pal: { a: m.color, b: '#ffffff', d: '#2b3a4a', h: '#e8c33d' }, rows: SHAPES.chip };
   }
   if (id === 'hook') return { pal: { a: '#e6f6ff', b: '#9aa3b8' }, rows: SHAPES.hook };
   return FALLBACK;

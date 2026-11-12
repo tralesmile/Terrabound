@@ -10,7 +10,7 @@ import type { Room } from './rooms';
 import type { World } from './world';
 
 /** Robots that live in rooms, plus the merchant drone that visits the pad (merchant.ts). */
-export type NpcKind = 'trader' | 'medic' | 'merchant';
+export type NpcKind = 'trader' | 'medic' | 'gunsmith' | 'merchant';
 
 export interface NpcInfo {
   name: string;
@@ -40,6 +40,16 @@ export const NPC_INFO: Record<NpcKind, NpcInfo> = {
       'Two homes in one base. Bolt finally has a neighbour.',
     ],
   },
+  gunsmith: {
+    name: 'Rook',
+    title: 'Gunsmith',
+    lines: [
+      'One chip per weapon. Swap them for free whenever you are home.',
+      'Ricochet chip. Shoot round corners. You are welcome.',
+      'A leech chip keeps you standing in a long fight.',
+      'Three homes! This base is turning into a proper town.',
+    ],
+  },
   merchant: {
     name: 'Dex',
     title: 'Merchant drone',
@@ -52,7 +62,7 @@ export const NPC_INFO: Record<NpcKind, NpcInfo> = {
 };
 
 /** Order robots move in: the first valid room gets the first kind. */
-export const NPC_ORDER: readonly NpcKind[] = ['trader', 'medic']; // the merchant never moves in
+export const NPC_ORDER: readonly NpcKind[] = ['trader', 'medic', 'gunsmith']; // the merchant never moves in
 
 export interface Trade {
   id: string;

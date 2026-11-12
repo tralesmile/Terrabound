@@ -1222,6 +1222,83 @@ try {
   check('talking to the Medic opens TRADE at its rows; buying a medkit puts it in the pack', medShop.open && medShop.tab === 'trade' && medShop.scroll > 0 && !!medBtn && kits1 === kits0 + 1, JSON.stringify({ medShop, medBtn: !!medBtn, kits0, kits1 }));
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
+  // Rook the Gunsmith moves into a third home (right of the first room) and builds weapon mod chips.
+  const gunState = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const px = w.padX;
+    const py = w.padY;
+    const T = { AIR: 0, METAL: 2, TABLE: 46, LAMP: 47, BED: 51, CHAIR: 54 };
+    const saved = [];
+    const put = (x, y, t) => {
+      saved.push([x, y, w.get(x, y)]);
+      w.set(x, y, t);
+    };
+    for (let x = px + 4; x <= px + 8; x++) {
+      put(x, py - 5, T.METAL);
+      put(x, py, T.METAL);
+    }
+    for (let y = py - 4; y <= py - 1; y++) put(px + 8, y, T.METAL);
+    for (let y = py - 4; y <= py - 1; y++) for (let x = px + 5; x <= px + 7; x++) put(x, y, T.AIR);
+    put(px + 5, py - 1, T.BED);
+    put(px + 7, py - 1, T.TABLE);
+    put(px + 6, py - 4, T.LAMP);
+    window.__gunSaved = saved;
+    g.body.x = px + 6.5;
+    g.body.y = py;
+    g.body.vx = g.body.vy = 0;
+    g.stash.copper_wire = (g.stash.copper_wire ?? 0) + 12;
+    g.stash.crystal = (g.stash.crystal ?? 0) + 6;
+    return { valid: g.rooms.filter((r) => r.valid).length };
+  });
+  await page.waitForTimeout(400);
+  const gunNear = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const r = g.npcs.find((n) => n.kind === 'gunsmith');
+    if (r) {
+      g.body.x = r.x + 0.6;
+      g.body.y = r.y;
+      g.body.vx = g.body.vy = 0;
+    }
+    return { gunsmith: !!r, kinds: g.npcs.map((n) => n.kind), hint: g.hintAutomation(false) };
+  });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(out, '35d-gunsmith.png') });
+  const gunHint = await page.evaluate(() => window.__terrabound.game.hintAutomation(false));
+  check('Rook the Gunsmith moves into a third home and offers weapon mods', gunState.valid >= 3 && gunNear.gunsmith && /Rook the Gunsmith/.test(gunHint || '') && /weapon mods/.test(gunHint || ''), JSON.stringify({ gunState, gunNear, gunHint }));
+  await page.keyboard.down('KeyE');
+  await page.waitForTimeout(80);
+  await page.keyboard.up('KeyE');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(out, '36d-gunsmith-mods.png') });
+  const gunShop = await page.evaluate(() => {
+    const { ui } = window.__terrabound;
+    const b = ui.rects.find((r) => r.a.k === 'modbuy' && r.a.id === 'overcharge');
+    return { open: ui.shopOpen, tab: ui.shopTab, scroll: ui.shopScroll, btn: b ? { x: b.x + b.w / 2, y: b.y + b.h / 2 } : null };
+  });
+  const dmg0 = await page.evaluate(() => window.__terrabound.game.gear.rangedDmg);
+  if (gunShop.btn) {
+    await page.mouse.click(gunShop.btn.x, gunShop.btn.y);
+    await page.waitForTimeout(200);
+  }
+  const gunAfter = await page.evaluate(() => {
+    const { game, ui } = window.__terrabound;
+    return { fitted: game.fittedMod('ranged'), dmg: game.gear.rangedDmg, fitBtn: !!ui.rects.find((r) => r.a.k === 'modfit' && r.a.id === 'overcharge') };
+  });
+  await page.screenshot({ path: path.join(out, '36e-mod-fitted.png') });
+  check('talking to the Gunsmith opens its chips; BUILD fits an overcharge chip and the pistol hits harder', gunShop.open && gunShop.tab === 'trade' && gunShop.scroll > 0 && !!gunShop.btn && gunAfter.fitted === 'overcharge' && gunAfter.dmg > dmg0 && gunAfter.fitBtn, JSON.stringify({ gunShop, dmg0, gunAfter }));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(150);
+  // Clean up: take the chip out and restore every tile the Gunsmith's room changed (later checks use the pad's right end).
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.fitMod('overcharge');
+    for (const [x, y, t] of window.__gunSaved.reverse()) g.world.set(x, y, t);
+    g.body.x = g.world.padX + 0.5;
+    g.body.y = g.world.padY;
+    g.body.vx = g.body.vy = 0;
+  });
+  await page.waitForTimeout(200);
   // Quick heal: low HP shows a pulsing heal button by the bars; H eats a medkit, so does clicking the button.
   // (Medkits are kit items: a hauler drone from an earlier check would bank loose fish.)
   await page.evaluate(() => {

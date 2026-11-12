@@ -3,11 +3,12 @@ import { legacyWalls, sanitizeBase, sanitizeWalls, type BaseTiles } from './base
 import { UPGRADES, type Levels } from './upgrades';
 import { CODEX_IDS } from './explore';
 import { defaultGear, sanitizeGear, type GearSave } from './gear';
+import { defaultMods, sanitizeMods, type ModSave } from './mods';
 import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 14;
+export const SAVE_VERSION = 15;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -44,6 +45,8 @@ export interface SaveData {
   drones: Record<string, DroneRole>;
   /** v13: IF/THEN rules per drone bay (same keys as `drones`); missing = no rules. */
   droneRules: Record<string, DroneRule[]>;
+  /** v15: weapon mod chips owned and fitted (the Gunsmith). */
+  mods: ModSave;
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -66,6 +69,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     bosses: [],
     drones: {},
     droneRules: {},
+    mods: defaultMods(),
   };
 }
 
@@ -143,6 +147,8 @@ export function parseSave(raw: string | null | undefined): SaveData {
     drones: sanitizeDrones(r.drones),
     // v12 -> v13: no drone rules yet.
     droneRules: sanitizeDroneRules(r.droneRules),
+    // v14 -> v15: no mod chips yet.
+    mods: sanitizeMods(r.mods),
   };
 }
 

@@ -16,6 +16,8 @@ import { RECIPES } from '../sim/recipes';
 import { ACT_INFO, COND_INFO, RULE_MAX, ROLE_INFO } from '../sim/drones';
 import { NPC_INFO, TRADES, tradeOpen } from '../sim/npcs';
 import { MERCHANT_STOCK } from '../sim/merchant';
+import { MODS, MOD_IDS, type ModId } from '../sim/mods';
+import type { Trade } from '../sim/npcs';
 
 export type UiAction =
   | { k: 'start' }
@@ -26,6 +28,8 @@ export type UiAction =
   | { k: 'buy'; id: string }
   | { k: 'craft'; id: string }
   | { k: 'trade'; id: string }
+  | { k: 'modbuy'; id: ModId }
+  | { k: 'modfit'; id: ModId }
   | { k: 'tab'; t: ShopTab }
   | { k: 'scroll'; d: number }
   | { k: 'copyseed' }
@@ -157,7 +161,7 @@ export class UI {
 
   /** Row count of the current shop tab. */
   shopRows(): number {
-    return this.shopTab === 'upgrades' ? UPGRADES.length : this.shopTab === 'gear' ? GEAR_IDS.length : this.shopTab === 'trade' ? TRADES.length + MERCHANT_STOCK : RECIPES.length;
+    return this.shopTab === 'upgrades' ? UPGRADES.length : this.shopTab === 'gear' ? GEAR_IDS.length : this.shopTab === 'trade' ? TRADES.length + MOD_IDS.length + MERCHANT_STOCK : RECIPES.length;
   }
 
   scrollShop(d: number): void {
@@ -830,7 +834,12 @@ export class UI {
       ry += rowH;
     }
 
-    for (const tr of this.shopTab === 'trade' ? game.tradeList().slice(this.shopScroll, this.shopScroll + vis) : []) {
+    for (const tr of this.shopTab === 'trade' ? tradeEntries(game).slice(this.shopScroll, this.shopScroll + vis) : []) {
+      if (typeof tr === 'string') {
+        this.modRow(ctx, game, tr, px, ry, pw, rowH, u);
+        ry += rowH;
+        continue;
+      }
       const comfort = game.npcComfort(tr.npc);
       const home = tradeOpen(tr, game.hasNpc(tr.npc), comfort);
       const afford = home && ITEM_IDS.every((k) => (game.stash[k] ?? 0) >= (tr.give[k] ?? 0));
@@ -879,6 +888,40 @@ export class UI {
     this.button(ctx, px + u * 2 + bw, fy, bw, u * 2.4, 'CLOSE', { k: 'close' }, u);
     this.text(ctx, `World ${game.seedCode}   Best ${game.stats.deepest}m   Dives ${game.runs}   Deaths ${game.stats.deaths}`, px + pw / 2, py + ph - u * 0.9, Math.round(u * 0.65), '#8a90a2', 'center', pw - u);
   }
+  /** One Gunsmith chip row: chip icon, what it does, then BUILD (not owned), FIT or FITTED. */
+  private modRow(ctx: CanvasRenderingContext2D, game: Game, id: ModId, px: number, ry: number, pw: number, rowH: number, u: number): void {
+    const m = MODS[id];
+    const owned = game.ownsMod(id);
+    const fitted = game.fittedMod(m.slot) === id;
+    const home = game.hasNpc('gunsmith');
+    const afford = !owned && game.canBuyMod(id);
+    ctx.fillStyle = fitted ? 'rgba(255,178,58,0.14)' : 'rgba(255,154,60,0.06)';
+    ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
+    const isz = rowH - u * 0.8;
+    this.cell(ctx, px + u * 0.8, ry + u * 0.25, isz, `mod_${id}` as ItemId, null, fitted, null, !owned && !home);
+    const tx2 = px + u * 1.4 + isz;
+    const tw2 = pw - isz - u * 9;
+    const weapon = GEAR[game.equipped(m.slot) ?? (m.slot === 'melee' ? 'energy_blade' : 'pulse_pistol')].name;
+    this.text(ctx, `${m.name}  [${m.slot} chip]`, tx2, ry + rowH * 0.3, Math.round(u * 0.85), '#fff', 'left', tw2);
+    const sub = owned
+      ? fitted
+        ? `${m.desc}. Fitted to your ${weapon.toLowerCase()} (tap to take out)`
+        : `${m.desc}. Owned: fit it to your ${weapon.toLowerCase()} for free`
+      : home
+        ? `${m.desc}. Rook builds it for ${costText(m.cost)}`
+        : `${m.desc}. No gunsmith yet: furnish a third room (light, table, bed)`;
+    this.text(ctx, sub, tx2, ry + rowH * 0.68, Math.round(u * 0.64), owned ? (fitted ? '#ffd8a8' : '#9aa3b8') : afford ? '#9ff6a0' : '#ff8a8a', 'left', tw2);
+    const bw = u * 5.5;
+    const bx = px + pw - bw - u * 0.8;
+    if (owned) this.button(ctx, bx, ry + u * 0.3, bw, rowH - u * 0.9, fitted ? 'FITTED' : 'FIT', { k: 'modfit', id }, u * 0.85, { color: fitted ? '#8a5a1f' : '#1f6f78' });
+    else this.button(ctx, bx, ry + u * 0.3, bw, rowH - u * 0.9, 'BUILD', { k: 'modbuy', id }, u * 0.85, { enabled: afford });
+  }
+}
+
+/** TRADE tab rows in order: the room robots' rates, the Gunsmith's chips, then the merchant's stock. */
+export function tradeEntries(game: Game): (Trade | ModId)[] {
+  const list = game.tradeList();
+  return [...list.slice(0, TRADES.length), ...MOD_IDS, ...list.slice(TRADES.length)];
 }
 
 /** The non-zero entries of a trade side, in ITEM_IDS order. */

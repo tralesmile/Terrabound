@@ -77,4 +77,21 @@ describe('vehicle sprites', () => {
     expect(traderRows(3.1, false)[5]).not.toContain('b');
     expect(traderRows(0, false)[5]).toContain('b');
   });
+
+  it('gunsmith frames fit TRADER_W, keep the walk cycle and show a visor and chip badge', async () => {
+    const { gunsmithRows, robotRows, npcSitRows, GUNSMITH_REMAP } = await import('../src/render/sprites');
+    for (const walking of [false, true]) {
+      for (const t of [0, 0.13, 0.5, 3.1]) {
+        const rows = gunsmithRows(t, walking);
+        expect(rows.length).toBe(traderRows(t, walking).length);
+        for (const r of rows) {
+          expect(r.length).toBeLessThanOrEqual(TRADER_W);
+          for (const ch of r) if (ch !== ' ') expect(ch in PAL || ch in GUNSMITH_REMAP || 'oHhbEPgSyYL'.includes(ch), `key ${ch}`).toBe(true);
+        }
+      }
+    }
+    expect(gunsmithRows(0, false)[5]).toContain('VVV');
+    expect(robotRows('gunsmith', 0, false)).toEqual(gunsmithRows(0, false));
+    expect(npcSitRows('gunsmith', 0)[5]).toContain('V');
+  });
 });
