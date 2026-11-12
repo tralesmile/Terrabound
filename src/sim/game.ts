@@ -38,7 +38,7 @@ import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims
 import { findRooms, mountOk, roomHint, type Room } from './rooms';
 import { RESEARCH, applyResearch, researchMissing, type ResearchId } from './research';
 import { MODS, applyMods, bounce, fitMod, type ModId, type ModSlot } from './mods';
-import { BUFF_TIME, CHARGED_DRAIN, MEAL_BUFF, STURDY_TAKEN, SWIFT_SPEED, hasPotIn, stepBuffs, type Buffs, GARDENER_MOODS, cropAt, cropOfSeed, grassSeed, harvestYield, isCropTile, isWatered, plantCrop, ripeIn, stepCrops, type CropId } from './farming';
+import { BUFF_TIME, CHARGED_DRAIN, MEAL_BUFF, STURDY_TAKEN, SWIFT_SPEED, hasPotIn, stepBuffs, type Buffs, GARDENER_MOODS, cropAt, cropOfSeed, grassSeed, growCrops, harvestYield, isCropTile, isWatered, plantCrop, ripeIn, stepCrops, type CropId } from './farming';
 import { NPC_INFO, NPC_ORDER, TRADES, deathKeep, doTrade, moodGive, npcLine, npcMood, type Mood, npcSpots, reactNpcs, roomFloor, stepNpc, syncNpcs, tradeOpen, type Npc, type NpcKind, type Trade } from './npcs';
 import { merchantDay, merchantPresent, merchantStock } from './merchant';
 import { placement, removeTile } from './wide';
@@ -369,10 +369,15 @@ export class Game {
    * Run base machines for the time spent away (cap 8 h, clock-skew safe). Call once after loading, with the wall clock in ms.
    * Returns the summary, or null if the player was away less than a minute or there is nothing to run.
    */
+  /** Crops that ripened during the last applyOffline (main.ts toasts it). */
+  offlineRipe = 0;
+
   applyOffline(now: number): OfflineResult | null {
     const secs = awaySeconds(this.save.away.savedAt, now);
     this.save.away.savedAt = 0; // never apply the same absence twice
     if (secs < OFFLINE_MIN) return null;
+    // Crops keep growing while you are away (robots are not synced yet, so only ponds and sprinklers water).
+    this.offlineRipe = this.world.crops.size > 0 ? growCrops(this.world, secs) : 0;
     this.machineCounts = scanMachines(this.world);
     // Field drones idle while you are away; only survey bays keep working (and drawing power).
     const m = { ...this.machineCounts, drones: surveyBays(listBays(this.world), this.save.drones) };

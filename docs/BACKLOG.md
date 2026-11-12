@@ -115,7 +115,7 @@ World
 - [x] Weather and events (src/sim/weather.ts): seeded per in-game day; dust storms (haze), meteor showers (craters, crystal and plasma drops), eclipses (dark noon, surface spawns, 1.5x enemy health, bonus crystals)
 - [x] Pets (gear slot "pet"): scout bot (7-tile loot magnet), glow moth (+4 light), spark pup (zaps enemies); they follow the player
 - [x] Farming slice 1 (run 26, src/sim/farming.ts): glowcorn / rustroot / frostberry seeds from wild grass by biome, 2 growth stages on soil, 2x near a pond or sprinkler, ripe gives produce + seeds; cooking pot + 3 meals with 3-minute buffs (Charged, Sturdy, Swift)
-- [ ] Farming follow-ups: happy robots water crops in the base; sprinkler spray fx; save buffs across reload; crops kept with the base across worlds; a seed offer in the merchant pool; offline crop growth
+- [x] Farming follow-ups (run 27): happy robots water every crop in the base strip; crops sway, ripe ones twinkle, sprinklers spray; meal buffs saved (v17); base crops kept across worlds (BASE_SAVE); Dex seed packet; offline crop growth (`growCrops`) with a welcome-back toast
 
 Together
 - [ ] Daily world leaderboard (local first, then free-tier backend behind the Leaderboard interface): deepest, most loot, fastest boss

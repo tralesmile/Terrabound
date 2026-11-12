@@ -61,6 +61,7 @@ function boot(): void {
     const parts = [`${away.rust} rust`, `${away.scrap} scrap`, `${away.metal} metal`, `${away.wire} wire`, `${away.crystal} crystal`].filter((x) => !x.startsWith('0 '));
     ui.toast(`While you were away (${h > 0 ? h + ' h ' : ''}${m} min): ${parts.join(', ')}`, '#7dffb0', 6);
   }
+  if (game.offlineRipe > 0) ui.toast(`Your farm grew while you were away: ${game.offlineRipe} crop${game.offlineRipe === 1 ? ' is' : 's are'} ripe`, '#ffe36a', 6);
   const fx = new Fx();
   const sfx = new Sfx();
   sfx.muted = game.muted;

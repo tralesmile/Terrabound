@@ -112,6 +112,36 @@ export function stepCrops(world: World, dt: number, wet: WetFn = isWatered): num
   return grew;
 }
 
+/**
+ * Grow every crop by a long stretch (time away): carries leftover time across stages, unlike the
+ * per-frame stepCrops. Returns how many crops became ripe. Pure apart from the world it edits.
+ */
+export function growCrops(world: World, secs: number, wet: WetFn = isWatered): number {
+  if (!(secs > 0)) return 0;
+  let ripened = 0;
+  for (const [i, left] of [...world.crops]) {
+    const x = i % world.w;
+    const y = Math.floor(i / world.w);
+    const c = cropAt(world.get(x, y));
+    if (!c || c.stage >= 2) {
+      world.crops.delete(i);
+      continue;
+    }
+    let t = secs * (wet(world, x, y) ? WET_MUL : 1);
+    let stage = c.stage;
+    let l = left;
+    while (stage < 2 && t >= l) {
+      t -= l;
+      stage++;
+      l = STAGE_TIME;
+    }
+    if (stage !== c.stage) world.set(x, y, CROPS[c.crop].tiles[stage]);
+    if (stage < 2) world.crops.set(i, l - t);
+    else ripened++;
+  }
+  return ripened;
+}
+
 /** What cutting a crop gives: ripe 2-3 produce and 1-2 seeds (hashed per cell), otherwise its seed back. Pure. */
 export function harvestYield(tile: number, x: number, y: number, seed: number): { item: ItemId; n: number }[] {
   const c = cropAt(tile);

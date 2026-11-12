@@ -366,3 +366,34 @@ describe('robot gardeners and the seed packet (run 27)', () => {
     for (const c of CROP_IDS) expect(ITEMS[CROPS[c].seed].kit).toBe(true);
   });
 });
+
+describe('offline crop growth (run 27)', () => {
+  it('growCrops carries leftover time across stages and counts ripe crops', async () => {
+    const { growCrops } = await import('../src/sim/farming');
+    const { w, y } = field();
+    plantCrop(w, 10, y, 'glowcorn');
+    plantCrop(w, 30, y, 'rustroot');
+    // 1.5 stages: the first goes to stage 1 with half a stage left; nothing is ripe yet.
+    expect(growCrops(w, STAGE_TIME * 1.5)).toBe(0);
+    expect(cropAt(w.get(10, y))?.stage).toBe(1);
+    expect(w.crops.get(y * w.w + 10)).toBeCloseTo(STAGE_TIME / 2, 5);
+    expect(growCrops(w, STAGE_TIME)).toBe(2);
+    expect(cropAt(w.get(30, y))?.stage).toBe(2);
+    expect(w.crops.size).toBe(0);
+    expect(growCrops(w, -5)).toBe(0);
+  });
+
+  it('a game loaded after hours away finds its crops ripe', () => {
+    const g = new Game(defaultSave(11));
+    const { x, y } = flat(g, 30);
+    plantCrop(g.world, x + 3, y - 1, 'frostberry');
+    const s = g.toSave(1_000_000);
+    const r = new Game(parseSave(serializeSave(s)));
+    r.applyOffline(1_000_000 + 3600 * 1000);
+    expect(r.offlineRipe).toBe(1);
+    expect(cropAt(r.world.get(x + 3, y - 1))?.stage).toBe(2);
+    // Applying the same absence again does nothing.
+    r.applyOffline(1_000_000 + 7200 * 1000);
+    expect(r.offlineRipe).toBe(1);
+  });
+});
