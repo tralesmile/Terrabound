@@ -1191,6 +1191,8 @@ try {
     if (hearts === 0) why = await page.evaluate(() => { const g = window.__terrabound.game; return JSON.stringify(g.npcs.map((n) => ({ k: n.kind, pose: n.pose, react: n.react, mood: g.npcMood(n.kind), near: g.npcNear() === n }))); });
     await page.screenshot({ path: path.join(out, '36i-happy-heart.png') });
     check('a happy robot floats a heart when you step back', hearts > 0, JSON.stringify({ hearts, why }));
+    const garden = await page.evaluate(() => { const g = window.__terrabound.game; return { gardener: g.gardener(), wetIn: g.cropWatered(g.world.padX + 1, g.world.padY - 1), wetOut: g.cropWatered(g.world.padX + 60, g.world.padY - 1) }; });
+    check('a happy robot gardens: crops in the base strip count as watered, outside do not', garden.gardener !== null && garden.wetIn && !garden.wetOut, JSON.stringify(garden));
     await page.evaluate((p) => {
       const { ui, game } = window.__terrabound;
       game.body.x = p.x;

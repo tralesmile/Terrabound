@@ -38,7 +38,7 @@ import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims
 import { findRooms, mountOk, roomHint, type Room } from './rooms';
 import { RESEARCH, applyResearch, researchMissing, type ResearchId } from './research';
 import { MODS, applyMods, bounce, fitMod, type ModId, type ModSlot } from './mods';
-import { BUFF_TIME, CHARGED_DRAIN, MEAL_BUFF, STURDY_TAKEN, SWIFT_SPEED, hasPotIn, stepBuffs, type Buffs, cropAt, cropOfSeed, grassSeed, harvestYield, isCropTile, isWatered, plantCrop, ripeIn, stepCrops, type CropId } from './farming';
+import { BUFF_TIME, CHARGED_DRAIN, MEAL_BUFF, STURDY_TAKEN, SWIFT_SPEED, hasPotIn, stepBuffs, type Buffs, GARDENER_MOODS, cropAt, cropOfSeed, grassSeed, harvestYield, isCropTile, isWatered, plantCrop, ripeIn, stepCrops, type CropId } from './farming';
 import { NPC_INFO, NPC_ORDER, TRADES, deathKeep, doTrade, moodGive, npcLine, npcMood, type Mood, npcSpots, reactNpcs, roomFloor, stepNpc, syncNpcs, tradeOpen, type Npc, type NpcKind, type Trade } from './npcs';
 import { merchantDay, merchantPresent, merchantStock } from './merchant';
 import { placement, removeTile } from './wide';
@@ -225,7 +225,7 @@ export class Game {
   enemies: Enemy[] = [];
   /** Seconds of player invulnerability after a hit. */
   iframes = 0;
-  /** Meal buffs with seconds left (farming.ts); not saved. */
+  /** Meal buffs with seconds left (farming.ts); saved since v17. */
   buffs: Buffs = {};
   /** Remaining swing animation time (render only). */
   swing = 0;
@@ -337,6 +337,7 @@ export class Game {
     if (!this.save.droneRules || typeof this.save.droneRules !== 'object') this.save.droneRules = {};
     this.stash = { ...save.stash };
     this.upgrades = { ...save.upgrades };
+    this.buffs = { ...(this.save.buffs ?? {}) };
     // Crash/refresh safety: loot carried at last save is banked, never lost.
     const carried = { ...save.carried };
     let bankedTotal = 0;
@@ -1133,7 +1134,7 @@ export class Game {
     for (const p of stepDrops(this.world, this.drops, dt, b.x, b.y, (item) => (invTotal(this.carried) < this.derived.packCap ? this.derived.packCap - invTotal(this.carried) : 0) * (ITEMS[item] ? 1 : 0), (item, n) => invAdd(this.carried, item, n), this.gear.magnet))
       this.emit({ t: 'pickup', item: p.item, x: b.x, y: b.y - 1 });
     if (this.world.saplings.size > 0 && stepSaplings(this.world, dt) > 0) this.emit({ t: 'grow' });
-    if (this.world.crops.size > 0) stepCrops(this.world, dt);
+    if (this.world.crops.size > 0) stepCrops(this.world, dt, this.wetFn);
     stepBuffs(this.buffs, dt);
     this.liquidAcc += dt;
     if (this.liquidAcc >= 1 / LIQUID_HZ) {
@@ -1244,7 +1245,7 @@ export class Game {
           const crop = cropOfSeed(this.selected);
           if (crop) {
             plantCrop(this.world, tx, ty, crop);
-            this.emit({ t: 'plant', crop, secs: Math.round(ripeIn(this.world, tx, ty)), wet: isWatered(this.world, tx, ty) });
+            this.emit({ t: 'plant', crop, secs: Math.round(ripeIn(this.world, tx, ty, this.wetFn)), wet: this.cropWatered(tx, ty) });
           }
           if (item.places === T.CHEST) this.world.chests.set(i, {});
           invAdd(this.carried, this.selected, -1);
@@ -2169,6 +2170,7 @@ export class Game {
       bosses: [...this.save.bosses],
       drones: { ...this.save.drones },
       research: [...this.save.research],
+      buffs: { ...this.buffs },
       world: captureDiff(this.world, this.fog),
     };
   }
@@ -2322,6 +2324,21 @@ export class Game {
   }
 
   /** How a robot feels about its home (comfort + neighbours); 'content' for the merchant or a robot not home. */
+  /** A happy or delighted robot living in the base: it waters every crop in the base strip. */
+  gardener(): NpcKind | null {
+    for (const n of this.npcs) if (NPC_ORDER.includes(n.kind) && GARDENER_MOODS.includes(this.npcMood(n.kind))) return n.kind;
+    return null;
+  }
+
+  /** Watered by a pond or sprinkler, or (inside the base strip) by a happy robot gardener. */
+  cropWatered(x: number, y: number): boolean {
+    if (isWatered(this.world, x, y)) return true;
+    const w = this.world;
+    return Math.abs(x - w.padX) <= BASE_HALF && y < w.padY && y >= w.padY - BASE_ROWS && this.gardener() !== null;
+  }
+
+  private readonly wetFn = (_w: World, x: number, y: number): boolean => this.cropWatered(x, y);
+
   npcMood(kind: NpcKind): Mood {
     if (kind === 'merchant' || !this.hasNpc(kind)) return 'content';
     return npcMood(this.npcComfort(kind), this.npcNeighbours(kind));

@@ -67,6 +67,12 @@ export function isWatered(world: World, x: number, y: number): boolean {
   return false;
 }
 
+/** Whether a crop cell counts as watered (the game adds robot gardeners on top of isWatered). */
+export type WetFn = (world: World, x: number, y: number) => boolean;
+
+/** Moods at which a robot tends the base garden (waters every crop in the base strip). */
+export const GARDENER_MOODS: readonly string[] = ['happy', 'delighted'];
+
 /** Plant a crop: the tile and its first stage timer. Caller checks soil and space. */
 export function plantCrop(world: World, x: number, y: number, crop: CropId): void {
   world.set(x, y, CROPS[crop].tiles[0]);
@@ -74,16 +80,16 @@ export function plantCrop(world: World, x: number, y: number, crop: CropId): voi
 }
 
 /** Seconds until a crop at (x, y) is ripe at its current watering, or 0 when ripe / not a crop. Pure. */
-export function ripeIn(world: World, x: number, y: number): number {
+export function ripeIn(world: World, x: number, y: number, wet: WetFn = isWatered): number {
   const c = cropAt(world.get(x, y));
   if (!c || c.stage >= 2) return 0;
   const left = world.crops.get(y * world.w + x) ?? STAGE_TIME;
   const rest = (1 - c.stage) * STAGE_TIME;
-  return (left + rest) / (isWatered(world, x, y) ? WET_MUL : 1);
+  return (left + rest) / (wet(world, x, y) ? WET_MUL : 1);
 }
 
 /** Advance every growing crop by dt seconds; returns how many reached a new stage. */
-export function stepCrops(world: World, dt: number): number {
+export function stepCrops(world: World, dt: number, wet: WetFn = isWatered): number {
   let grew = 0;
   for (const [i, left] of [...world.crops]) {
     const x = i % world.w;
@@ -93,7 +99,7 @@ export function stepCrops(world: World, dt: number): number {
       world.crops.delete(i);
       continue;
     }
-    const t = left - dt * (isWatered(world, x, y) ? WET_MUL : 1);
+    const t = left - dt * (wet(world, x, y) ? WET_MUL : 1);
     if (t > 0) {
       world.crops.set(i, t);
       continue;
@@ -125,7 +131,7 @@ export function grassSeed(biome: number, x: number, y: number, seed: number): It
   return CROPS[crop].seed;
 }
 
-/** Meal buffs (cooking pot recipes): timed, never saved (a reload ends them). */
+/** Meal buffs (cooking pot recipes): timed, saved with seconds left (save v17). */
 export type BuffId = 'charged' | 'sturdy' | 'swift';
 export const BUFF_IDS: readonly BuffId[] = ['charged', 'sturdy', 'swift'];
 

@@ -21,6 +21,8 @@ export const MERCHANT_POOL: readonly Trade[] = [
   { id: 'm_plasma_core', npc: 'merchant', give: { plasma: 2 }, get: { core_shard: 1 } },
   { id: 'm_seed_bio', npc: 'merchant', give: { seed: 4 }, get: { biomass: 5 } },
   { id: 'm_circuit_crystal', npc: 'merchant', give: { circuit: 2 }, get: { crystal: 4 } },
+  // A seed packet: one of each crop seed, so a farm can start without hunting every biome's grass.
+  { id: 'm_seed_packet', npc: 'merchant', give: { biomass: 6 }, get: { corn_seed: 1, root_seed: 1, berry_seed: 1 }, toPack: true },
 ];
 
 /** Offers posted per day. */

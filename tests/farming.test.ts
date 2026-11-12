@@ -265,3 +265,104 @@ describe('cooking and meal buffs', () => {
     expect(CHARGED_DRAIN).toBeLessThan(1);
   });
 });
+
+describe('farming follow-ups (run 27)', () => {
+  it('crops on built soil in the base follow you into a new world; growing ones keep their stage', () => {
+    const g = new Game(defaultSave(7));
+    const w = g.world;
+    const y = w.padY - 3;
+    const x = w.padX + 6;
+    // A built rust planter bed with a ripe glowcorn and a growing rustroot on it.
+    for (let i = 0; i < 3; i++) w.set(x + i, y + 1, T.RUST);
+    w.set(x, y, CROPS.glowcorn.tiles[2]);
+    plantCrop(w, x + 1, y, 'rustroot');
+    w.set(x + 1, y, CROPS.rustroot.tiles[1]);
+    w.crops.set(y * w.w + x + 1, 5);
+    expect(g.newDive()).toBe(true);
+    const n = g.world;
+    expect(n).not.toBe(w);
+    // The base is stored relative to the pad, and each world has its own pad height.
+    const nx = n.padX + 6;
+    const ny = n.padY - 3;
+    expect(n.get(nx, ny)).toBe(CROPS.glowcorn.tiles[2]);
+    expect(n.get(nx + 1, ny)).toBe(CROPS.rustroot.tiles[1]);
+    // The growing crop has a fresh stage timer so it keeps growing.
+    expect(n.crops.get(ny * n.w + nx + 1)).toBe(STAGE_TIME);
+    expect(n.get(nx, ny + 1)).toBe(T.RUST);
+  });
+
+  it('raids still ignore crops (they are saved with the base, not counted as base blocks)', async () => {
+    const { BASE_KEEP, BASE_SAVE, sanitizeBase } = await import('../src/sim/base');
+    for (const c of CROP_IDS) for (const t of CROPS[c].tiles) {
+      expect(BASE_KEEP.has(t)).toBe(false);
+      expect(BASE_SAVE.has(t)).toBe(true);
+    }
+    expect(sanitizeBase([2, 3, CROPS.frostberry.tiles[2], 1, 1, T.CRYSTAL])).toEqual([2, 3, CROPS.frostberry.tiles[2]]);
+  });
+
+  it('meal buffs survive a reload with their time left (save v17)', () => {
+    const g = new Game(defaultSave(3));
+    g.buffs.swift = 100;
+    g.buffs.sturdy = 12.5;
+    const r = reload(g);
+    expect(r.buffs.swift).toBeCloseTo(100, 5);
+    expect(r.buffs.sturdy).toBeCloseTo(12.5, 5);
+    expect(r.buffs.charged).toBeUndefined();
+  });
+
+  it('a v16 save without buffs loads with none; tampered buffs are clamped or dropped', () => {
+    const old = { ...defaultSave(), v: 16 } as Record<string, unknown>;
+    delete old.buffs;
+    expect(parseSave(JSON.stringify(old)).buffs).toEqual({});
+    const bad = { ...defaultSave(), buffs: { swift: 1e9, sturdy: -4, charged: 'x', bogus: 50 } };
+    expect(parseSave(JSON.stringify(bad)).buffs).toEqual({ swift: 180 });
+    expect(() => parseSave(JSON.stringify({ buffs: [1, 2] }))).not.toThrow();
+  });
+});
+
+describe('robot gardeners and the seed packet (run 27)', () => {
+  it('a happy robot waters crops inside the base strip, not outside it', async () => {
+    const { BASE_HALF } = await import('../src/sim/base');
+    const g = new Game(defaultSave(5));
+    const w = g.world;
+    const inX = w.padX + 3;
+    const inY = w.padY - 2;
+    const outX = w.padX + BASE_HALF + 8;
+    // Make sure no pond or sprinkler is near either spot.
+    for (const [x, y] of [[inX, inY], [outX, inY]]) for (let dy = -3; dy <= 3; dy++) for (let dx = -5; dx <= 5; dx++) if (w.get(x + dx, y + dy) === T.WATER || w.get(x + dx, y + dy) === T.SPRINKLER) w.set(x + dx, y + dy, T.AIR);
+    expect(g.gardener()).toBeNull();
+    expect(g.cropWatered(inX, inY)).toBe(false);
+    // Fake a happy Trader at home.
+    g.npcs = [{ kind: 'trader', x: w.padX, y: w.padY, face: 1, home: 0, to: null } as unknown as (typeof g.npcs)[number]];
+    g.npcMood = (k) => (k === 'trader' ? 'happy' : 'content');
+    expect(g.gardener()).toBe('trader');
+    expect(g.cropWatered(inX, inY)).toBe(true);
+    expect(g.cropWatered(outX, inY)).toBe(false);
+    // A lonely or content robot does not garden.
+    g.npcMood = () => 'content';
+    expect(g.gardener()).toBeNull();
+  });
+
+  it('gardened crops grow twice as fast through stepCrops', () => {
+    const { w, y } = field();
+    plantCrop(w, 10, y, 'glowcorn');
+    plantCrop(w, 40, y, 'glowcorn');
+    const tended = (_w: World, x: number): boolean => x < 20;
+    stepCrops(w, STAGE_TIME / WET_MUL + 0.01, tended);
+    expect(cropAt(w.get(10, y))?.stage).toBe(1);
+    expect(cropAt(w.get(40, y))?.stage).toBe(0);
+    expect(ripeIn(w, 40, y, tended)).toBeGreaterThan(ripeIn(w, 10, y, tended));
+  });
+
+  it('Dex can sell a seed packet: one of each crop seed into the pack', async () => {
+    const { MERCHANT_POOL } = await import('../src/sim/merchant');
+    const { doTrade } = await import('../src/sim/npcs');
+    const t = MERCHANT_POOL.find((k) => k.id === 'm_seed_packet');
+    expect(t).toBeDefined();
+    const stash = { biomass: 6 };
+    const pack = {};
+    expect(doTrade(stash, t!, pack)).toBe(true);
+    expect(pack).toEqual({ corn_seed: 1, root_seed: 1, berry_seed: 1 });
+    for (const c of CROP_IDS) expect(ITEMS[CROPS[c].seed].kit).toBe(true);
+  });
+});

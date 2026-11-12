@@ -4,12 +4,13 @@ import { UPGRADES, type Levels } from './upgrades';
 import { CODEX_IDS } from './explore';
 import { defaultGear, sanitizeGear, type GearSave } from './gear';
 import { defaultMods, sanitizeMods, type ModSave } from './mods';
+import { BUFF_IDS, BUFF_TIME, type Buffs } from './farming';
 import { sanitizeResearch, type ResearchId } from './research';
 import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 16;
+export const SAVE_VERSION = 17;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -50,6 +51,8 @@ export interface SaveData {
   mods: ModSave;
   /** v16: perks researched by the Scientist (research.ts); v15 saves load with none. */
   research: ResearchId[];
+  /** v17: meal buffs with seconds left (farming.ts); v16 saves load with none. */
+  buffs: Buffs;
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -74,6 +77,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     droneRules: {},
     mods: defaultMods(),
     research: [],
+    buffs: {},
   };
 }
 
@@ -154,6 +158,8 @@ export function parseSave(raw: string | null | undefined): SaveData {
     // v14 -> v15: no mod chips yet.
     mods: sanitizeMods(r.mods),
     research: sanitizeResearch(r.research),
+    // v16 -> v17: no meal buffs (they used to end on reload).
+    buffs: sanitizeBuffs(r.buffs),
   };
 }
 
@@ -181,6 +187,17 @@ function sanitizeDroneRules(v: unknown): Record<string, DroneRule[]> {
     if (clean.length === 0) continue;
     out[k] = clean;
     n++;
+  }
+  return out;
+}
+
+function sanitizeBuffs(v: unknown): Buffs {
+  const out: Buffs = {};
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return out;
+  const rec = v as Record<string, unknown>;
+  for (const id of BUFF_IDS) {
+    const t = num(rec[id], 0, BUFF_TIME, 0);
+    if (t > 0) out[id] = t;
   }
   return out;
 }

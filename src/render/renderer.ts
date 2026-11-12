@@ -94,6 +94,8 @@ export class Renderer {
   heartsShown = 0;
   /** Crops and sprinklers drawn by the per-frame pass last frame (read by e2e). */
   farmShown = 0;
+  /** Watered test for crops this frame (sprinklers, ponds, robot gardeners in the base). */
+  private cropWet: ((x: number, y: number) => boolean) | null = null;
   private snapped = false;
 
   constructor(private ctx: CanvasRenderingContext2D) {}
@@ -197,6 +199,7 @@ export class Renderer {
     this.turretAim.clear();
     for (const tu of game.turrets) this.turretAim.set(tu.y * world.w + tu.x, tu.aim);
     this.batteryFill = game.power.cap > 0 ? game.power.charge / game.power.cap : 0;
+    this.cropWet = (x, y) => game.cropWatered(x, y);
     this.drawDynamic(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
 
     // Aim highlight and crack overlay.
@@ -984,7 +987,7 @@ export class Renderer {
     }
     const c = cropAt(t);
     if (!c) return;
-    drawCropTile(ctx, t, dx, dy, ts, isWatered(world, tx, ty), false, false, cropSway(time, tx, c.stage));
+    drawCropTile(ctx, t, dx, dy, ts, this.cropWet ? this.cropWet(tx, ty) : isWatered(world, tx, ty), false, false, cropSway(time, tx, c.stage));
     this.farmShown++;
     if (c.stage === 2) {
       const sp = ripeSparkle(time, tx);
