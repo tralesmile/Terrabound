@@ -1,6 +1,7 @@
 import { BASE_HALF, BASE_ROWS } from './base';
 import { ITEMS, T, TILES, invAdd, type Inventory, type ItemId } from './tiles';
 import type { World } from './world';
+import { REPATH_S, clearLine, findPath, type Pt } from './dronepath';
 
 /**
  * Field drones (P1.8 "Programmable drones", slice 1). Every drone bay in the base launches one drone
@@ -144,6 +145,10 @@ export interface FieldDrone {
   cd: number;
   /** What it is doing this frame (role or a rule's action); for drawing and the panel. */
   act: RuleAct;
+  /** Planned route around rock (open cell centres), the goal cell it was planned for, and seconds to the next re-plan. */
+  path?: Pt[] | null;
+  pathKey?: string;
+  repath?: number;
 }
 
 export interface Bay {
@@ -264,6 +269,40 @@ function fly(d: FieldDrone, tx: number, ty: number, dt: number): boolean {
   return false;
 }
 
+/**
+ * Fly toward (tx, ty) around rock: straight when the line is clear, else along a bounded A* path
+ * (re-planned every REPATH_S or when the goal cell changes). With no path (sealed goal, too far,
+ * already inside rock) it falls back to straight flight, which phases through (drawn faint).
+ * Returns true on arrival at (tx, ty).
+ */
+function go(d: FieldDrone, world: World, tx: number, ty: number, dt: number): boolean {
+  if (Math.hypot(tx - d.x, ty - d.y) > DRONE_LEASH || clearLine(world, d.x, d.y, tx, ty)) {
+    d.path = null;
+    return fly(d, tx, ty, dt);
+  }
+  const key = Math.floor(tx) + ',' + Math.floor(ty);
+  d.repath = (d.repath ?? 0) - dt;
+  if (!d.path || d.pathKey !== key || d.repath <= 0) {
+    d.path = findPath(world, d.x, d.y, tx, ty);
+    d.pathKey = key;
+    d.repath = REPATH_S;
+  }
+  const path = d.path;
+  if (!path || path.length === 0) return fly(d, tx, ty, dt);
+  // Skip a waypoint when the next one is already in plain sight (smooths the cell zig-zag).
+  if (path.length > 1 && clearLine(world, d.x, d.y, path[1].x, path[1].y)) path.shift();
+  if (fly(d, path[0].x, path[0].y, dt)) path.shift();
+  return false;
+}
+
+/** Open spot a miner hovers at to drill (x, y): above if open, else a side, else below. */
+function drillSpot(world: World, x: number, y: number): Pt {
+  if (!TILES[world.get(x, y - 1)].solid) return { x: x + 0.5, y: y - 0.2 };
+  if (!TILES[world.get(x - 1, y)].solid) return { x: x - 0.3, y: y + 0.5 };
+  if (!TILES[world.get(x + 1, y)].solid) return { x: x + 1.3, y: y + 0.5 };
+  return { x: x + 0.5, y: y + 1.3 };
+}
+
 /** True if a tile touches air or a non-solid tile (so the drone can reach a face of it). */
 function exposed(world: World, x: number, y: number): boolean {
   return !TILES[world.get(x - 1, y)].solid || !TILES[world.get(x + 1, y)].solid || !TILES[world.get(x, y - 1)].solid || !TILES[world.get(x, y + 1)].solid;
@@ -291,7 +330,10 @@ export function findOre(world: World, px: number, py: number, taken: readonly { 
 
 function followPoint(i: number, ctx: DroneCtx): { x: number; y: number } {
   const side = i % 2 === 0 ? -1 : 1;
-  return { x: ctx.px + side * (1.2 + 0.5 * (i >> 1)), y: ctx.py - 2.6 - 0.4 * (i >> 1) };
+  const p = { x: ctx.px + side * (1.2 + 0.5 * (i >> 1)), y: ctx.py - 2.6 - 0.4 * (i >> 1) };
+  // In a tight tunnel the formation spot is rock: tuck in at the player's shoulder instead.
+  if (TILES[ctx.world.get(Math.floor(p.x), Math.floor(p.y))].solid) return { x: ctx.px + side * 0.3, y: ctx.py - 1.3 };
+  return p;
 }
 
 /** Advance every field drone one step. Mutates drones, world (drilled ore), carried and stash. Returns events for the game to apply. */
@@ -316,7 +358,7 @@ export function stepFieldDrones(drones: FieldDrone[], ctx: DroneCtx, dt: number)
     if (d.mode === 'home' || (goHome && d.mode !== 'dock')) {
       d.mode = 'home';
       d.target = null;
-      if (fly(d, dockX(d), dockY(d), dt)) {
+      if (go(d, ctx.world, dockX(d), dockY(d), dt)) {
         const n = total(d.cargo);
         if (n > 0) {
           for (const k in d.cargo) invAdd(ctx.stash, k as ItemId, d.cargo[k as ItemId] ?? 0);
@@ -337,7 +379,7 @@ export function stepFieldDrones(drones: FieldDrone[], ctx: DroneCtx, dt: number)
     }
     if (act === 'repair') {
       const p = followPoint(i, ctx);
-      const there = fly(d, p.x, p.y, dt);
+      const there = go(d, ctx.world, p.x, p.y, dt);
       const missing = (ctx.maxHp ?? 0) - (ctx.hp ?? 0);
       if (there && missing > 0) {
         const hp = Math.min(missing, REPAIR_HPS * dt);
@@ -348,7 +390,7 @@ export function stepFieldDrones(drones: FieldDrone[], ctx: DroneCtx, dt: number)
     }
     if (act === 'hauler') {
       const p = followPoint(i, ctx);
-      if (fly(d, p.x, p.y, dt)) {
+      if (go(d, ctx.world, p.x, p.y, dt)) {
         let n = 0;
         // Take the biggest stacks first (stable order by item table) up to one load.
         const ids = (Object.keys(ctx.carried) as ItemId[]).filter((k) => !ITEMS[k].kit && (ctx.carried[k] ?? 0) > 0);
@@ -367,7 +409,7 @@ export function stepFieldDrones(drones: FieldDrone[], ctx: DroneCtx, dt: number)
     }
     if (act === 'guard') {
       const p = followPoint(i, ctx);
-      fly(d, p.x, p.y, dt);
+      go(d, ctx.world, p.x, p.y, dt);
       if (d.cd > 0) return;
       let best: DroneTarget | null = null;
       let bd = GUARD_RANGE;
@@ -396,7 +438,7 @@ export function stepFieldDrones(drones: FieldDrone[], ctx: DroneCtx, dt: number)
         // The player took it, or walked away: pick again.
         d.target = null;
         d.mode = 'follow';
-      } else if (fly(d, t.x + 0.5, t.y - 0.2, dt)) {
+      } else if (go(d, ctx.world, drillSpot(ctx.world, t.x, t.y).x, drillSpot(ctx.world, t.x, t.y).y, dt)) {
         d.work += dt;
         if (d.work >= DRONE_DRILL) {
           const tile = ctx.world.get(t.x, t.y);
@@ -422,7 +464,7 @@ export function stepFieldDrones(drones: FieldDrone[], ctx: DroneCtx, dt: number)
       return;
     }
     const p = followPoint(i, ctx);
-    fly(d, p.x, p.y, dt);
+    go(d, ctx.world, p.x, p.y, dt);
   });
   return ev;
 }

@@ -88,7 +88,7 @@ Bosses and goals
 Living base and drones
 - [x] Field drones slice 1 (src/sim/drones.ts, save v12): E/tap at a bay cycles Survey (abstract, offline) / Miner (drills exposed ore near you, flies it home) / Guard (shoots enemies) / Hauler (banks a load from a filling pack); powered by the base grid
 - [x] Drone rules (run 15, save v13): 3 IF/THEN rules per bay (night / enemy near / pack half / hp low / deep -> mine / guard / haul / repair / home), DRONES panel at the base, Repair role with a heal beam, 16 px drone sprites per job
-- [ ] Drone pathing: bounded A* over air tiles so drones stop phasing through rock (IDEAS run 14)
+- [x] Drone pathing: bounded A* over air tiles so drones stop phasing through rock (IDEAS run 14; run 16, src/sim/dronepath.ts)
 - [ ] Night base raids (opt-out in settings): waves scale with base value; turrets (craftable), traps, reinforced walls
 - [ ] Furniture and decoration set (tables, lamps, screens, plants, banners, beds); house "room" detection
 
