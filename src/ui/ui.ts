@@ -1,3 +1,4 @@
+import { codexCounts, type CodexSection } from '../sim/codex';
 import { AWARDS, awardProgress } from '../sim/achievements';
 import { FTUE_STEPS } from '../sim/ftue';
 import { PREFS, prefValueLabel, type PrefKey } from '../sim/settings';
@@ -67,6 +68,9 @@ export type UiAction =
   | { k: 'inv' }
   | { k: 'awards'; open: boolean }
   | { k: 'awardpage'; d: number }
+  | { k: 'codex'; open: boolean }
+  | { k: 'codexsec'; sec: CodexSection }
+  | { k: 'codexpage'; d: number }
   | { k: 'interact' }
   | { k: 'invsel'; id: ItemId }
   | { k: 'use'; id: ItemId }
@@ -159,7 +163,14 @@ export class UI {
   /** Item highlighted in the inventory. */
   invSel: ItemId | null = null;
   /** Inventory screen page: items or the AWARDS list. */
-  invPage: 'items' | 'awards' = 'items';
+  invPage: 'items' | 'awards' | 'codex' = 'items';
+  /** CODEX page: which section is listed and its first row (paged like AWARDS). */
+  codexSec: CodexSection = 'places';
+  codexFirst = 0;
+  /** Rows drawn on the CODEX page last frame (e2e). */
+  codexShown = 0;
+  private codexPer = 8;
+  private codexTotal = 0;
   /** First award row on the AWARDS page (paged by the PREV / NEXT buttons). */
   awardFirst = 0;
   /** Award cards shown on the current page (set each frame; e2e). */
@@ -642,6 +653,97 @@ export class UI {
 
   private awardsPer = 12;
 
+  /** Change the CODEX page by `d` pages (clamped to the current section). */
+  codexPage(d: number): void {
+    const per = Math.max(1, this.codexPer);
+    const last = Math.max(0, Math.floor((this.codexTotal - 1) / per) * per);
+    this.codexFirst = Math.max(0, Math.min(this.codexFirst + d * per, last));
+  }
+
+  /** Word-wrap `s` into at most `max` lines that fit `w` at the current font. */
+  private wrapLines(ctx: CanvasRenderingContext2D, s: string, w: number, size: number, max: number): string[] {
+    ctx.font = `bold ${size}px ${FONT}`;
+    const out: string[] = [];
+    let line = '';
+    for (const word of s.split(' ')) {
+      const next = line ? `${line} ${word}` : word;
+      if (line && ctx.measureText(next).width > w) {
+        out.push(line);
+        line = word;
+      } else line = next;
+    }
+    if (line) out.push(line);
+    // Overflow joins the last line (text() then shrinks it to fit).
+    if (out.length > max) out.splice(max - 1, out.length, out.slice(max - 1).join(' '));
+    return out;
+  }
+
+  /** CODEX page: section tabs (places, creatures, logs), a card per row, paged to fit. */
+  private drawCodex(ctx: CanvasRenderingContext2D, game: Game, px: number, py: number, pw: number, ph: number, u: number): void {
+    const all = game.codexRows;
+    const secs: { id: CodexSection; label: string; color: string }[] = [
+      { id: 'places', label: 'PLACES', color: '#36e0e8' },
+      { id: 'creatures', label: 'CREATURES', color: '#ff7a6a' },
+      { id: 'logs', label: 'LOGS', color: '#b48cff' },
+    ];
+    const tabW = (pw - u * 2 - u * 0.8) / 3;
+    secs.forEach((sc, i) => {
+      const c = codexCounts(all.filter((r) => r.section === sc.id));
+      const on = this.codexSec === sc.id;
+      this.button(ctx, px + u + i * (tabW + u * 0.4), py + u * 3, tabW, u * 1.9, `${sc.label} ${c.found}/${c.total}`, { k: 'codexsec', sec: sc.id }, u * 0.68, { color: on ? '#2f5a78' : '#1c2436' });
+    });
+    const rows = all.filter((r) => r.section === this.codexSec);
+    const color = secs.find((sc) => sc.id === this.codexSec)?.color ?? '#36e0e8';
+    const top = py + u * 5.4;
+    const foot = u * 2.8;
+    const cols = pw < u * 30 ? 1 : 2;
+    const cardH = u * 3.2;
+    const gap = u * 0.4;
+    const fit = Math.max(1, Math.floor((ph - (top - py) - foot) / (cardH + gap)));
+    this.codexPer = fit * cols;
+    this.codexTotal = rows.length;
+    this.codexFirst = Math.min(this.codexFirst, Math.max(0, Math.floor((rows.length - 1) / this.codexPer) * this.codexPer));
+    const cw = (pw - u * 2 - gap * (cols - 1)) / cols;
+    const page = rows.slice(this.codexFirst, this.codexFirst + this.codexPer);
+    page.forEach((r, i) => {
+      const x = px + u + (i % cols) * (cw + gap);
+      const y = top + Math.floor(i / cols) * (cardH + gap);
+      ctx.fillStyle = r.found ? 'rgba(26,38,58,0.95)' : 'rgba(18,22,34,0.9)';
+      ctx.fillRect(x, y, cw, cardH);
+      // Section mark: a filled diamond once found, a hollow grey one before.
+      const mx = x + u * 1.1;
+      const my = y + u * 1.05;
+      const mr = u * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(mx, my - mr);
+      ctx.lineTo(mx + mr, my);
+      ctx.lineTo(mx, my + mr);
+      ctx.lineTo(mx - mr, my);
+      ctx.closePath();
+      if (r.found) {
+        ctx.fillStyle = color;
+        ctx.fill();
+      } else {
+        ctx.strokeStyle = '#3a4056';
+        ctx.lineWidth = Math.max(1, u * 0.12);
+        ctx.stroke();
+      }
+      this.text(ctx, r.title, x + u * 2.1, y + u * 1.05, Math.round(u * 0.8), r.found ? '#fff' : '#6c7388', 'left', cw - u * 2.8);
+      const size = Math.round(u * 0.62);
+      this.wrapLines(ctx, r.detail, cw - u * 2.8, size, 2).forEach((ln, j) => {
+        this.text(ctx, ln, x + u * 2.1, y + u * (2.0 + j * 0.85), size, r.found ? '#b8c4dc' : '#5a6276', 'left', cw - u * 2.8);
+      });
+    });
+    this.codexShown = page.length;
+    const fy = py + ph - foot + u * 0.4;
+    const pages = Math.max(1, Math.ceil(rows.length / this.codexPer));
+    const cur = Math.floor(this.codexFirst / this.codexPer) + 1;
+    const tot = codexCounts(all);
+    this.button(ctx, px + u, fy, u * 5, u * 2, '< PREV', { k: 'codexpage', d: -1 }, u * 0.75, { enabled: cur > 1, color: '#2a3550' });
+    this.button(ctx, px + pw - u * 6, fy, u * 5, u * 2, 'NEXT >', { k: 'codexpage', d: 1 }, u * 0.75, { enabled: cur < pages, color: '#2a3550' });
+    this.text(ctx, `Page ${cur}/${pages}  -  ${tot.found} of ${tot.total} known`, px + pw / 2, fy + u * 1.3, Math.round(u * 0.7), '#8a90a2', 'center', pw - u * 14);
+  }
+
   /** AWARDS page: a card per award with a tier star, progress bar and count; paged to fit. */
   private drawAwards(ctx: CanvasRenderingContext2D, game: Game, px: number, py: number, pw: number, ph: number, u: number, time: number): void {
     const aw = game.awards;
@@ -707,15 +809,23 @@ export class UI {
     const px = (w - pw) / 2;
     const py = (h - ph) / 2;
     this.panel(ctx, px, py, pw, ph);
-    const awardsOn = this.invPage === 'awards';
-    this.text(ctx, awardsOn ? 'AWARDS' : 'INVENTORY', px + u, py + u * 1.6, Math.round(u * 1.3), awardsOn ? '#ffd23a' : '#36e0e8');
+    const pg = this.invPage;
+    const titles = { items: ['INVENTORY', '#36e0e8'], awards: ['AWARDS', '#ffd23a'], codex: ['CODEX', '#b48cff'] } as const;
+    const narrowHead = pw < u * 34;
+    // Phones: the page buttons need the room, so the title is dropped there (the open tab names the page).
+    if (!narrowHead || pg !== 'items') this.text(ctx, titles[pg][0], px + u, py + u * 1.6, Math.round(u * 1.3), titles[pg][1], 'left', narrowHead ? pw - u * 15.5 : 0);
     this.button(ctx, px + pw - u * 6.5, py + u * 0.5, u * 6, u * 2.1, 'CLOSE', { k: 'inv' }, u * 0.9);
-    const got = game.awards.done.length;
-    this.button(ctx, px + pw - u * 15, py + u * 0.5, u * 8, u * 2.1, awardsOn ? '< ITEMS' : `AWARDS ${got}/${AWARDS.length}`, { k: 'awards', open: !awardsOn }, u * 0.75, { color: '#5a4a1a' });
-    if (awardsOn) {
-      this.drawAwards(ctx, game, px, py, pw, ph, u, time);
+    if (pg !== 'items') {
+      this.button(ctx, px + pw - u * 15, py + u * 0.5, u * 8, u * 2.1, '< ITEMS', pg === 'awards' ? { k: 'awards', open: false } : { k: 'codex', open: false }, u * 0.75, { color: pg === 'awards' ? '#5a4a1a' : '#3a2a5a' });
+      if (pg === 'awards') this.drawAwards(ctx, game, px, py, pw, ph, u, time);
+      else this.drawCodex(ctx, game, px, py, pw, ph, u);
       return;
     }
+    const got = game.awards.done.length;
+    const bw = narrowHead ? u * 7.6 : u * 8;
+    this.button(ctx, px + pw - u * 7 - bw, py + u * 0.5, bw, u * 2.1, `AWARDS ${got}/${AWARDS.length}`, { k: 'awards', open: true }, u * 0.72, { color: '#5a4a1a' });
+    const known = codexCounts(game.codexRows);
+    this.button(ctx, px + pw - u * 7.5 - bw * 2, py + u * 0.5, bw, u * 2.1, `CODEX ${known.found}/${known.total}`, { k: 'codex', open: true }, u * 0.72, { color: '#3a2a5a' });
     const narrow = pw < u * 30;
     // Character preview with gear.
     const cw = narrow ? pw - u * 2 : pw * 0.36;

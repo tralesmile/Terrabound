@@ -556,6 +556,43 @@ try {
   const unlocked = await page.evaluate(() => ({ done: window.__terrabound.game.awards.done.includes('dash1'), toast: window.__terrabound.ui.toasts.some((t) => t.text === 'Award: Blink') }));
   await page.screenshot({ path: path.join(out, '48b-award-unlock.png') });
   check('reaching a goal unlocks the award with an Award toast', unlocked.done && unlocked.toast, JSON.stringify(unlocked));
+  // Codex: back to items, open CODEX; places found so far are named, the tabs switch sections, a kill and a log are learnt.
+  const clickAct = async (pred) => {
+    const r = await page.evaluate((src) => window.__terrabound.ui.rects.find(new Function('r', `return ${src}`)), pred);
+    if (r) await holdClick(page, r.x + r.w / 2, r.y + r.h / 2);
+    await page.waitForTimeout(150);
+    return !!r;
+  };
+  await clickAct("r.a.k === 'awards' && r.a.open === false");
+  const codexBtn = await clickAct("r.a.k === 'codex' && r.a.open === true");
+  const codex1 = await page.evaluate(() => {
+    const { ui, game } = window.__terrabound;
+    const rows = game.codexRows;
+    return { btn: true, page: ui.invPage, shown: ui.codexShown, places: rows.filter((r) => r.section === 'places' && r.found).length };
+  });
+  await page.screenshot({ path: path.join(out, '51-codex.png') });
+  check('CODEX in the inventory lists places, with the ones found so far named', codexBtn && codex1.page === 'codex' && codex1.shown >= 6 && codex1.places >= 1, JSON.stringify(codex1));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.emit({ t: 'enemykill', x: 0, y: 0, kind: 'hulk' });
+  });
+  await clickAct("r.a.k === 'codexsec' && r.a.sec === 'creatures'");
+  const codex2 = await page.evaluate(() => {
+    const { ui, game } = window.__terrabound;
+    return { sec: ui.codexSec, shown: ui.codexShown, hulk: game.codexRows.find((r) => r.id === 'enemy:hulk')?.found };
+  });
+  await page.screenshot({ path: path.join(out, '51b-codex-creatures.png') });
+  check('CREATURES tab lists enemies and bosses; a kill reveals its entry', codex2.sec === 'creatures' && codex2.shown >= 6 && codex2.hulk === true, JSON.stringify(codex2));
+  await page.evaluate(() => window.__terrabound.game.emit({ t: 'lore', text: 'LOG 07: Drones refuse orders below 60m. Something talks to them.' }));
+  await clickAct("r.a.k === 'codexsec' && r.a.sec === 'logs'");
+  const codex3 = await page.evaluate(() => {
+    const { ui, game } = window.__terrabound;
+    return { sec: ui.codexSec, shown: ui.codexShown, log: game.codexRows.find((r) => r.id === 'lore:2')?.found };
+  });
+  await page.screenshot({ path: path.join(out, '51c-codex-logs.png') });
+  check('LOGS tab shows read logs in full and missing ones as gaps', codex3.sec === 'logs' && codex3.shown >= 6 && codex3.log === true, JSON.stringify(codex3));
+  await clickAct("r.a.k === 'codex' && r.a.open === false");
+  check('< ITEMS leaves the codex', (await page.evaluate(() => window.__terrabound.ui.invPage)) === 'items');
   await page.keyboard.press('KeyI');
   check('I closes the inventory', !(await page.evaluate(() => window.__terrabound.ui.invOpen)));
   // Tools: mouse wheel cycles to the fishing rod; casting at a pond and clicking on the bite lands a catch.
@@ -2262,6 +2299,32 @@ try {
   });
   await page.screenshot({ path: path.join(out, '48c-mobile-awards.png') });
   check('awards page fits a phone', mAwards && mFit.inside && mFit.apart && mFit.shown >= 3, JSON.stringify(mFit));
+  // Codex fits a phone too: tabs, cards and page buttons inside the screen; on the items page the two header buttons and CLOSE never overlap.
+  const mCodex = await page.evaluate(() => {
+    const { ui } = window.__terrabound;
+    ui.invPage = 'codex';
+    ui.codexSec = 'logs';
+    return true;
+  });
+  await page.waitForTimeout(250);
+  const mcFit = await page.evaluate(() => {
+    const { ui } = window.__terrabound;
+    const c = document.getElementById('game');
+    const W = c.clientWidth, H = c.clientHeight;
+    const rs = ui.rects.filter((r) => ['codex', 'codexsec', 'codexpage', 'inv'].includes(r.a.k));
+    const inside = rs.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= W + 1 && r.y + r.h <= H + 1);
+    return { n: rs.length, inside, shown: ui.codexShown };
+  });
+  await page.screenshot({ path: path.join(out, '51d-mobile-codex.png') });
+  await page.evaluate(() => { window.__terrabound.ui.invPage = 'items'; });
+  await page.waitForTimeout(200);
+  const mHead = await page.evaluate(() => {
+    const { ui } = window.__terrabound;
+    const hdr = ui.rects.filter((r) => (r.a.k === 'awards' || r.a.k === 'codex' || r.a.k === 'inv'));
+    const apart = hdr.every((a, i) => hdr.every((b, j) => i === j || a.x + a.w <= b.x || b.x + b.w <= a.x));
+    return { n: hdr.length, apart, left: Math.min(...hdr.map((r) => r.x)) };
+  });
+  check('codex fits a phone and the inventory header buttons stay apart', mCodex && mcFit.inside && mcFit.shown >= 3 && mHead.n === 3 && mHead.apart && mHead.left >= 0, JSON.stringify({ mcFit, mHead }));
   await page.evaluate(() => { const { ui } = window.__terrabound; ui.invOpen = false; ui.invPage = 'items'; });
   // Drone rule panel fits a phone: build two bays, open it, add three rules, every button on screen.
   await page.evaluate(() => {

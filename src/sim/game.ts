@@ -1,3 +1,4 @@
+import { codexRows, noteCodexEvent, type CodexRow } from './codex';
 import { currentGoal, FTUE_STEPS, goalIndex } from './ftue';
 import { checkAwards, countEvent, newAwards, noteMax, sanitizeAwards, type Awards, type Tier } from './achievements';
 import { stepPref, type PrefKey, type Prefs } from './settings';
@@ -627,6 +628,7 @@ export class Game {
     if (this.events.length < 256) this.events.push(e);
     if (e.t === 'award' || e.t === 'goal') return;
     countEvent(this.save.awards, e);
+    noteCodexEvent(this.save.awards, e);
     this.awardCheck();
   }
 
@@ -647,6 +649,11 @@ export class Game {
   /** The current guided goal with progress, or null once the chain is done. */
   get goal(): ReturnType<typeof currentGoal> {
     return currentGoal(this.save.awards);
+  }
+
+  /** Codex screen rows (places, creatures, logs) from what this save knows. */
+  get codexRows(): CodexRow[] {
+    return codexRows({ codex: this.save.codex, bosses: this.save.bosses, awards: this.save.awards });
   }
 
   /** Award progress (read-only view for the AWARDS page). */

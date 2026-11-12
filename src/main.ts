@@ -343,6 +343,16 @@ function boot(): void {
       case 'awardpage':
         ui.awardPage(a.d);
         break;
+      case 'codex':
+        ui.invPage = a.open ? 'codex' : 'items';
+        break;
+      case 'codexsec':
+        ui.codexSec = a.sec;
+        ui.codexFirst = 0;
+        break;
+      case 'codexpage':
+        ui.codexPage(a.d);
+        break;
       case 'raids':
         game.setRaids(!game.raidsOn);
         ui.toast(game.raidsOn ? 'Night raids on: defend the base for rewards' : 'Night raids off', '#c9d0e4', 2);
