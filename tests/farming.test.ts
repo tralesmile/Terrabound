@@ -196,3 +196,72 @@ describe('farming in the game', () => {
     expect(g.hp).toBeGreaterThan(10);
   });
 });
+
+describe('cooking and meal buffs', () => {
+  it('meal recipes need a cooking pot in the base, take farm produce, and every meal gives a buff', async () => {
+    const { MEAL_BUFF, BUFFS } = await import('../src/sim/farming');
+    const meals = RECIPES.filter((r) => r.pot);
+    expect(meals.length).toBe(3);
+    for (const r of meals) {
+      expect(MEAL_BUFF[r.out]).toBeDefined();
+      expect(BUFFS[MEAL_BUFF[r.out] as keyof typeof BUFFS].desc.length).toBeGreaterThan(5);
+      expect(ITEMS[r.out].kit).toBe(true);
+      expect(Object.keys(r.cost).some((k) => CROP_IDS.some((c) => CROPS[c].produce === k))).toBe(true);
+    }
+    const g = new Game(defaultSave());
+    g.body.x = g.world.padX + 0.5;
+    g.body.y = g.world.padY;
+    g.step(1 / 30, NO_CONTROLS);
+    g.stash.rustroot = 4;
+    g.stash.biomass = 2;
+    expect(g.hasPot()).toBe(false);
+    expect(g.craft('stew')).toBe(false);
+    g.world.set(g.world.padX + 3, g.world.padY - 1, T.POT);
+    expect(g.hasPot()).toBe(true);
+    expect(g.craft('stew')).toBe(true);
+    expect(g.carried.stew).toBe(1);
+    expect(g.stash.rustroot).toBe(2);
+    // A pot outside the base strip does not count.
+    g.world.set(g.world.padX + 3, g.world.padY - 1, T.AIR);
+    g.world.set(g.world.padX + 40, g.world.padY - 1, T.POT);
+    expect(g.hasPot()).toBe(false);
+  });
+
+  it('a stew makes you sturdy for 3 minutes: hits hurt 25% less, then it wears off', async () => {
+    const { BUFF_TIME, STURDY_TAKEN } = await import('../src/sim/farming');
+    const hitFor = (g: Game): number => {
+      g.hp = 100;
+      (g as unknown as { hurt(n: number): void }).hurt(20);
+      return 100 - g.hp;
+    };
+    const g = new Game(defaultSave());
+    const plain = hitFor(g);
+    g.carried = { stew: 1 };
+    expect(g.useItem('stew')).toBe(true);
+    expect(g.buffs.sturdy).toBe(BUFF_TIME);
+    expect(hitFor(g)).toBeCloseTo(plain * STURDY_TAKEN);
+    run(g, 1);
+    expect(g.buffs.sturdy).toBeLessThan(BUFF_TIME);
+    g.buffs.sturdy = 0.5;
+    run(g, 1);
+    expect(g.buffs.sturdy).toBeUndefined();
+    expect(hitFor(g)).toBeCloseTo(plain);
+  });
+
+  it('a tart makes you run faster; chowder slows deep battery drain', async () => {
+    const { SWIFT_SPEED, CHARGED_DRAIN } = await import('../src/sim/farming');
+    const runDist = (swift: boolean): number => {
+      const g = new Game(defaultSave());
+      const { x } = flat(g, 70, 30);
+      g.body.x = x - 20 + 0.5;
+      if (swift) g.buffs.swift = 100;
+      run(g, 1.5, { moveX: 1 });
+      return g.body.x;
+    };
+    const a = runDist(false);
+    const b = runDist(true);
+    expect(b).toBeGreaterThan(a);
+    expect(SWIFT_SPEED).toBeGreaterThan(1);
+    expect(CHARGED_DRAIN).toBeLessThan(1);
+  });
+});

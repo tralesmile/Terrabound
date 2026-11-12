@@ -38,7 +38,7 @@ import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims
 import { findRooms, mountOk, roomHint, type Room } from './rooms';
 import { RESEARCH, applyResearch, researchMissing, type ResearchId } from './research';
 import { MODS, applyMods, bounce, fitMod, type ModId, type ModSlot } from './mods';
-import { cropAt, cropOfSeed, grassSeed, harvestYield, isCropTile, isWatered, plantCrop, ripeIn, stepCrops, type CropId } from './farming';
+import { BUFF_TIME, CHARGED_DRAIN, MEAL_BUFF, STURDY_TAKEN, SWIFT_SPEED, hasPotIn, stepBuffs, type Buffs, cropAt, cropOfSeed, grassSeed, harvestYield, isCropTile, isWatered, plantCrop, ripeIn, stepCrops, type CropId } from './farming';
 import { NPC_INFO, NPC_ORDER, TRADES, deathKeep, doTrade, moodGive, npcLine, npcMood, type Mood, npcSpots, reactNpcs, roomFloor, stepNpc, syncNpcs, tradeOpen, type Npc, type NpcKind, type Trade } from './npcs';
 import { merchantDay, merchantPresent, merchantStock } from './merchant';
 import { placement, removeTile } from './wide';
@@ -46,7 +46,7 @@ import { blueprintDrop, RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, r
 import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
-import { BASE_HALF, captureBase, captureWalls, stampBase, stampWalls } from './base';
+import { BASE_HALF, BASE_ROWS, captureBase, captureWalls, stampBase, stampWalls } from './base';
 import { PAD_HALF, SPAWN_LIGHT_MAX, W, World, generateWorld } from './world';
 
 export const GRAVITY = 42;
@@ -225,6 +225,8 @@ export class Game {
   enemies: Enemy[] = [];
   /** Seconds of player invulnerability after a hit. */
   iframes = 0;
+  /** Meal buffs with seconds left (farming.ts); not saved. */
+  buffs: Buffs = {};
   /** Remaining swing animation time (render only). */
   swing = 0;
   private rng = mulberry32(1);
@@ -665,10 +667,16 @@ export class Game {
     return true;
   }
 
+  /** A cooking pot stands in the base strip (meal recipes need one). */
+  hasPot(): boolean {
+    const w = this.world;
+    return hasPotIn(w, w.padX - BASE_HALF, w.padX + BASE_HALF, w.padY - BASE_ROWS, w.padY - 1);
+  }
+
   /** Craft at the base: pay from the stash, output goes to the pack (needs room). */
   craft(id: string): boolean {
     const r = recipeById(id);
-    if (!r || !this.isAtBase() || (this.upgrades.fab ?? 0) < (r.fab ?? 0) || this.save.stats.raids < (r.raids ?? 0) || !canAfford(this.stash, r.cost)) return false;
+    if (!r || !this.isAtBase() || (this.upgrades.fab ?? 0) < (r.fab ?? 0) || this.save.stats.raids < (r.raids ?? 0) || (r.pot && !this.hasPot()) || !canAfford(this.stash, r.cost)) return false;
     if (invTotal(this.carried) + r.qty > this.derived.packCap) return false;
     pay(this.stash, r.cost);
     invAdd(this.carried, r.out, r.qty);
@@ -862,6 +870,7 @@ export class Game {
   private hurt(amount: number): void {
     this.cancelRecall();
     amount *= 1 - this.gear.armor;
+    if (this.buffs.sturdy) amount *= STURDY_TAKEN;
     this.hp -= amount;
     this.emit({ t: 'hurt', amount });
   }
@@ -1009,7 +1018,7 @@ export class Game {
     const mx = Math.max(-1, Math.min(1, c.moveX));
     const veh = this.vehicle;
     const g = this.gear;
-    const speed = d.speed * (veh === 'hoverbike' ? 1.9 : veh === 'sky_jet' ? 2.2 : 1);
+    const speed = d.speed * (veh === 'hoverbike' ? 1.9 : veh === 'sky_jet' ? 2.2 : 1) * (this.buffs.swift && !veh ? SWIFT_SPEED : 1);
     if (this.hook) b.vx += mx * 22 * dt;
     else if (this.dashT <= 0) b.vx += (mx * speed - b.vx) * Math.min(1, 20 * dt);
     if (Math.abs(mx) > 0.1) this.facing = mx > 0 ? 1 : -1;
@@ -1125,6 +1134,7 @@ export class Game {
       this.emit({ t: 'pickup', item: p.item, x: b.x, y: b.y - 1 });
     if (this.world.saplings.size > 0 && stepSaplings(this.world, dt) > 0) this.emit({ t: 'grow' });
     if (this.world.crops.size > 0) stepCrops(this.world, dt);
+    stepBuffs(this.buffs, dt);
     this.liquidAcc += dt;
     if (this.liquidAcc >= 1 / LIQUID_HZ) {
       this.liquidAcc = 0;
@@ -1262,7 +1272,7 @@ export class Game {
       this.lowWarned = false;
       this.bank();
     } else if (this.depth > 1.5) {
-      this.battery = Math.max(0, this.battery - dt * this.gear.drainMul * LAYERS[layerAt(this.depth)].heat);
+      this.battery = Math.max(0, this.battery - dt * this.gear.drainMul * LAYERS[layerAt(this.depth)].heat * (this.buffs.charged ? CHARGED_DRAIN : 1));
       if (this.battery < d.maxBattery * 0.2 && !this.lowWarned) {
         this.lowWarned = true;
         this.emit({ t: 'lowbattery' });
@@ -2036,6 +2046,8 @@ export class Game {
     invAdd(this.carried, id, -1);
     this.hp = Math.min(this.derived.maxHp, this.hp + food.hp);
     this.battery = Math.min(this.derived.maxBattery, this.battery + food.battery);
+    const buff = MEAL_BUFF[id];
+    if (buff) this.buffs[buff] = BUFF_TIME;
     this.emit({ t: 'eat', item: id });
     return true;
   }

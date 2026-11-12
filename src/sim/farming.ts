@@ -124,3 +124,46 @@ export function grassSeed(biome: number, x: number, y: number, seed: number): It
   const crop: CropId = biome === B.FROST ? 'frostberry' : biome === B.JUNGLE || biome === B.CRYSTAL ? 'glowcorn' : 'rustroot';
   return CROPS[crop].seed;
 }
+
+/** Meal buffs (cooking pot recipes): timed, never saved (a reload ends them). */
+export type BuffId = 'charged' | 'sturdy' | 'swift';
+export const BUFF_IDS: readonly BuffId[] = ['charged', 'sturdy', 'swift'];
+
+export interface BuffDef {
+  name: string;
+  desc: string;
+  color: string;
+}
+
+export const BUFFS: Record<BuffId, BuffDef> = {
+  charged: { name: 'Charged', desc: 'deep-layer battery drain -40%', color: '#ffe36a' },
+  sturdy: { name: 'Sturdy', desc: 'damage taken -25%', color: '#d8704a' },
+  swift: { name: 'Swift', desc: 'run speed +20%', color: '#7ac8ff' },
+};
+
+/** Seconds a meal buff lasts (eating another of the same meal tops it back up, it does not stack). */
+export const BUFF_TIME = 180;
+export const CHARGED_DRAIN = 0.6;
+export const STURDY_TAKEN = 0.75;
+export const SWIFT_SPEED = 1.2;
+
+/** Meal item -> the buff it gives. */
+export const MEAL_BUFF: Partial<Record<ItemId, BuffId>> = { chowder: 'charged', stew: 'sturdy', tart: 'swift' };
+
+export type Buffs = Partial<Record<BuffId, number>>;
+
+/** Count buffs down by dt; expired ones are removed. Pure. */
+export function stepBuffs(buffs: Buffs, dt: number): void {
+  for (const id of BUFF_IDS) {
+    const t = buffs[id];
+    if (t === undefined) continue;
+    if (t - dt <= 0) delete buffs[id];
+    else buffs[id] = t - dt;
+  }
+}
+
+/** True while a cooking pot stands in the base strip (meal recipes need one). Pure. */
+export function hasPotIn(world: World, x0: number, x1: number, y0: number, y1: number): boolean {
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (world.get(x, y) === T.POT) return true;
+  return false;
+}

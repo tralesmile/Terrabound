@@ -33,11 +33,19 @@ export const SPRINKLER_ART: readonly R[] = [
   [7, 6, 2, 10, '#6a7890'], [6, 14, 4, 2, '#3d4152'], [4, 4, 8, 3, '#5aa6ff'], [5, 3, 6, 1, '#9fd8ff'], [3, 5, 1, 1, '#9fd8ff'], [12, 5, 1, 1, '#9fd8ff'],
 ];
 
+export const POT_ART: readonly R[] = [
+  [5, 1, 1, 2, '#d8dde8'], [6, 0, 1, 1, '#d8dde8'], [9, 2, 1, 2, '#d8dde8'], [10, 1, 1, 1, '#d8dde8'],
+  [2, 6, 12, 1, '#c9d0e4'], [3, 7, 10, 6, '#6a7890'], [3, 7, 10, 1, '#8a9ab8'], [4, 8, 2, 3, '#9aa4b4'],
+  [1, 8, 2, 1, '#3d4152'], [13, 8, 2, 1, '#3d4152'], [4, 5, 8, 1, '#d8a04a'],
+  [4, 13, 2, 3, '#3d4152'], [10, 13, 2, 3, '#3d4152'], [6, 14, 4, 2, '#ff8a3a'], [7, 14, 2, 1, '#ffd27a'],
+];
+
 /** Draw a crop tile (or sprinkler) at (dx, dy) with tile size ts; false when `t` is neither. */
-export function drawCropTile(ctx: CanvasRenderingContext2D, t: number, dx: number, dy: number, ts: number, wet: boolean, sprinkler: boolean): boolean {
+export function drawCropTile(ctx: CanvasRenderingContext2D, t: number, dx: number, dy: number, ts: number, wet: boolean, sprinkler: boolean, pot = false): boolean {
   const u = ts / 16;
   let rects: readonly R[] | null = null;
-  if (sprinkler) rects = SPRINKLER_ART;
+  if (pot) rects = POT_ART;
+  else if (sprinkler) rects = SPRINKLER_ART;
   else {
     const c = cropAt(t);
     if (!c) return false;

@@ -31,6 +31,10 @@ export const FOOD: Partial<Record<ItemId, { hp: number; battery: number }>> = {
   glowcorn: { hp: 15, battery: 25 },
   rustroot: { hp: 30, battery: 0 },
   frostberry: { hp: 20, battery: 10 },
+  // Meals (farming.ts MEAL_BUFF) heal a bit and give a timed buff.
+  chowder: { hp: 25, battery: 40 },
+  stew: { hp: 45, battery: 0 },
+  tart: { hp: 30, battery: 10 },
 };
 
 /**

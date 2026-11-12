@@ -699,9 +699,9 @@ export class Renderer {
       }
       return;
     }
-    if (t === T.SPRINKLER || isCropTile(t)) {
+    if (t === T.SPRINKLER || t === T.POT || isCropTile(t)) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
-      drawCropTile(ctx, t, dx, dy, ts, isCropTile(t) && isWatered(world, tx, ty), t === T.SPRINKLER);
+      drawCropTile(ctx, t, dx, dy, ts, isCropTile(t) && isWatered(world, tx, ty), t === T.SPRINKLER, t === T.POT);
       return;
     }
     if (t === T.SAPLING) {

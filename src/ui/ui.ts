@@ -14,6 +14,7 @@ import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type
 import { UPGRADES } from '../sim/upgrades';
 import { RECIPES } from '../sim/recipes';
 import { ACT_INFO, COND_INFO, RULE_MAX, ROLE_INFO } from '../sim/drones';
+import { BUFFS, BUFF_IDS, BUFF_TIME, MEAL_BUFF } from '../sim/farming';
 import { MOOD_DISCOUNT, MOOD_LABEL, NPC_INFO, NPC_ORDER, TRADES, tradeOpen, type NpcKind } from '../sim/npcs';
 import { MERCHANT_STOCK } from '../sim/merchant';
 import { MODS, MOD_IDS, type ModId } from '../sim/mods';
@@ -643,6 +644,24 @@ export class UI {
     const carried = invTotal(game.carried);
     this.text(ctx, `Depth ${Math.floor(game.depth)}m ${game.depth > 2 ? `(${LAYERS[game.layer].name})` : ''}  Pack ${carried}/${d.packCap}`, x, y, Math.round(u * 0.95), carried >= d.packCap ? '#ff9a3c' : '#ffffff');
 
+    // Meal buffs: a chip per active buff with its time left.
+    let bxp = x;
+    for (const id of BUFF_IDS) {
+      const left = game.buffs[id];
+      if (!left) continue;
+      const label = `${BUFFS[id].name.toUpperCase()} ${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}`;
+      const fs = Math.round(u * 0.75);
+      ctx.font = `bold ${fs}px ui-monospace, Menlo, Consolas, monospace`;
+      const tw = ctx.measureText(label).width + u * 0.8;
+      const cy = y + u * (game.isAtBase() ? 2.4 : 1.1);
+      ctx.fillStyle = 'rgba(10,12,20,0.7)';
+      ctx.fillRect(bxp, cy, tw, u * 1.2);
+      ctx.fillStyle = BUFFS[id].color;
+      ctx.fillRect(bxp, cy, u * 0.2, u * 1.2);
+      this.text(ctx, label, bxp + u * 0.45, cy + u * 0.62, fs, left < 15 && Math.floor(time * 4) % 2 === 0 ? '#ffffff' : BUFFS[id].color);
+      bxp += tw + u * 0.4;
+    }
+
     if (game.isAtBase() && (game.power.solars > 0 || game.power.smelters > 0 || game.power.batteries > 0 || game.power.miners > 0 || game.power.drones > 0)) {
       const pw = game.power;
       const bat = pw.cap > 0 ? `  Batt ${Math.round((pw.charge / pw.cap) * 100)}%` : '';
@@ -823,12 +842,15 @@ export class UI {
     for (const r of this.shopTab === 'fab' ? RECIPES.slice(this.shopScroll, this.shopScroll + vis) : []) {
       const fabLocked = (game.upgrades.fab ?? 0) < (r.fab ?? 0);
       const bpLock = game.stats.raids < (r.raids ?? 0);
-      const locked = fabLocked || bpLock;
+      const potLock = !!r.pot && !game.hasPot();
+      const locked = fabLocked || bpLock || potLock;
       const afford = !locked && ITEM_IDS.every((id) => (game.stash[id] ?? 0) >= (r.cost[id] ?? 0));
       ctx.fillStyle = 'rgba(255,255,255,0.05)';
       ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
-      this.text(ctx, `Fabricator: ${r.name}`, px + u, ry + rowH * 0.3, Math.round(u * 0.95));
-      this.text(ctx, fabLocked ? `Needs Fabricator Lv ${r.fab}` : bpLock ? `Raid blueprint: clear ${r.raids} raids (${game.stats.raids}/${r.raids})` : `Cost: ${costText(r.cost)}`, px + u, ry + rowH * 0.68, Math.round(u * 0.72), afford ? '#9ff6a0' : '#ff8a8a');
+      this.text(ctx, `${r.pot ? 'Cooking pot' : 'Fabricator'}: ${r.name}`, px + u, ry + rowH * 0.3, Math.round(u * 0.95));
+      const meal = MEAL_BUFF[r.out];
+      const mealNote = meal ? `  ${BUFFS[meal].desc} for ${BUFF_TIME / 60} min` : '';
+      this.text(ctx, fabLocked ? `Needs Fabricator Lv ${r.fab}` : bpLock ? `Raid blueprint: clear ${r.raids} raids (${game.stats.raids}/${r.raids})` : potLock ? `Place a cooking pot in the base first.${mealNote}` : `Cost: ${costText(r.cost)}${mealNote}`, px + u, ry + rowH * 0.68, Math.round(u * 0.72), afford ? '#9ff6a0' : '#ff8a8a');
       const bw = u * 5.5;
       this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, 'MAKE', { k: 'craft', id: r.id }, u * 0.9, { enabled: afford });
       ry += rowH;

@@ -1525,6 +1525,31 @@ try {
     g.body.vx = g.body.vy = 0;
   });
   await page.waitForTimeout(300);
+  // Cooking: a pot in the base unlocks meals in FABRICATE; eating one shows a buff chip under the bars.
+  const cook = await page.evaluate(() => {
+    const t = window.__terrabound;
+    const g = t.game;
+    const px = g.world.padX + 5;
+    const py = g.world.padY - 1;
+    window.__potSaved = [px, py, g.world.get(px, py)];
+    const before = g.hasPot();
+    g.world.set(px, py, 67);
+    g.stash.glowcorn = 2;
+    g.stash.fish = (g.stash.fish ?? 0) + 1;
+    t.act({ k: 'craft', id: 'chowder' });
+    const made = g.carried.chowder ?? 0;
+    const ate = g.useItem('chowder');
+    return { before, after: g.hasPot(), made, ate, buff: Math.round(g.buffs.charged ?? 0) };
+  });
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: path.join(out, '41c-meal-buff.png') });
+  check('a cooking pot unlocks corn chowder; eating it starts the Charged buff', !cook.before && cook.after && cook.made === 1 && cook.ate && cook.buff >= 170, JSON.stringify(cook));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const [x, y, t] = window.__potSaved;
+    g.world.set(x, y, t);
+    g.buffs = {};
+  });
   // Windows and a lift: glass panes in the tower's side walls (a view adds comfort), a lift shaft up the outside.
   const winState = await page.evaluate(() => {
     const g = window.__terrabound.game;

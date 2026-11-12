@@ -51,7 +51,11 @@ export type ItemId =
   | 'glowcorn'
   | 'rustroot'
   | 'frostberry'
-  | 'sprinkler';
+  | 'sprinkler'
+  | 'pot'
+  | 'chowder'
+  | 'stew'
+  | 'tart';
 export const ITEM_IDS: ItemId[] = [
   'rust',
   'metal',
@@ -104,6 +108,10 @@ export const ITEM_IDS: ItemId[] = [
   'rustroot',
   'frostberry',
   'sprinkler',
+  'pot',
+  'chowder',
+  'stew',
+  'tart',
 ];
 
 export const T = {
@@ -184,6 +192,8 @@ export const T = {
   BERRY_3: 65,
   /** Waters crops within 4 columns (farming.ts). */
   SPRINKLER: 66,
+  /** Cooking pot: meal recipes in the workshop need one in the base. */
+  POT: 67,
 } as const;
 
 export interface TileDef {
@@ -281,6 +291,7 @@ export const TILES: TileDef[] = [
   { name: 'Frostberry bush', hardness: 0.05, solid: false, drop: null, minable: true },
   { name: 'Ripe frostberry', hardness: 0.05, solid: false, drop: null, minable: true },
   { name: 'Sprinkler', hardness: 0.3, solid: false, drop: 'sprinkler', minable: true },
+  { name: 'Cooking pot', hardness: 0.3, solid: false, drop: 'pot', minable: true },
 ];
 
 export interface ItemDef {
@@ -348,9 +359,14 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   rustroot: { name: 'Rustroot', color: '#d8704a', places: null },
   frostberry: { name: 'Frostberry', color: '#7ac8ff', places: null },
   sprinkler: { name: 'Sprinkler', color: '#5aa6ff', places: T.SPRINKLER, kit: true },
+  pot: { name: 'Cooking pot', color: '#8a9ab8', places: T.POT, kit: true },
+  // Meals (cooked at a pot) are field food: they stay in the pack like medkits.
+  chowder: { name: 'Corn chowder', color: '#ffe36a', places: null, kit: true },
+  stew: { name: 'Root stew', color: '#d8704a', places: null, kit: true },
+  tart: { name: 'Berry tart', color: '#7ac8ff', places: null, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair', 'window', 'lift', 'corn_seed', 'root_seed', 'berry_seed', 'sprinkler'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair', 'window', 'lift', 'corn_seed', 'root_seed', 'berry_seed', 'sprinkler', 'pot'];
 
 /** Placeables worth showing in the hotbar: owned ones plus the selected one, in PLACEABLE order. */
 export function visiblePlaceables(inv: Inventory, selected: ItemId): ItemId[] {
