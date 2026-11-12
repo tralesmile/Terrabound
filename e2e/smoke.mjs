@@ -445,7 +445,9 @@ try {
     const t = window.__terrabound;
     const g = t.game;
     const w = g.world;
+    // The pool can settle a cell while the swimmer moves: find its live surface below or above the start.
     let top = y;
+    while (w.get(x, top) !== 25 && top < y + 6) top++;
     while (w.get(x, top - 1) === 25) top--;
     const r = t.renderer;
     const ts = 16 * r.scale;
@@ -747,6 +749,8 @@ try {
   await page.waitForTimeout(500);
   await page.screenshot({ path: path.join(out, '27-deep-layer.png') });
   check('deep layers show their name in the HUD', await page.evaluate(() => window.__terrabound.game.layer === 1));
+  const rimCave = await page.evaluate(() => window.__terrabound.renderer.lastRimCount);
+  check('cave rock facing the lamp gets rim light in a deep cave', rimCave > 20, JSON.stringify({ rimCave }));
   // Magma pockets in the Plasma layer: stand on a ledge beside a molten pool.
   const magma = await page.evaluate(() => {
     const g = window.__terrabound.game;
@@ -1821,6 +1825,10 @@ try {
   const inPit = await page.evaluate(({ top }) => window.__terrabound.game.body.y > top + 10, pit);
   await page.screenshot({ path: path.join(out, '43-strata.png') });
   check('soil strata pit renders with the player at its floor', inPit, JSON.stringify(pit));
+  // The pit walls are below the surface line, so they get rims; zoomed crop for the art review.
+  const rimPit = await page.evaluate(() => window.__terrabound.renderer.lastRimCount);
+  check('dug pit walls get a rim light (surface sky does not)', rimPit > 6, JSON.stringify({ rimPit }));
+  await page.screenshot({ path: path.join(out, '50-rim-light.png'), clip: { x: 440, y: 160, width: 400, height: 400 } });
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     for (const [x, y, t] of window.__pitSaved.reverse()) g.world.set(x, y, t);

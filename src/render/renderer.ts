@@ -1,3 +1,4 @@
+import { computeRims, type Rim } from './rimlight';
 import { buriedDecal, decalRects, hasStrata, strataShade } from './strata';
 import type { Game, Shot } from '../sim/game';
 import { acidBubble, causticBand, depthShade, surfaceGlint, waveOffsets } from './liquidfx';
@@ -571,7 +572,7 @@ export class Renderer {
     }
     ctx.globalAlpha = 1;
 
-    this.drawDarkness(ctx, game, px, py - 14 * scale, time);
+    this.drawDarkness(ctx, game, px, py - 14 * scale, time, shakeX, shakeY);
     // Bolts are light sources: drawn over the darkness with an additive glow so they read in deep caves.
     this.drawBolts(ctx, game, shakeX, shakeY, time);
     this.drawHurt(ctx, game, fx, time);
@@ -1732,13 +1733,38 @@ export class Renderer {
   private lightKey = '';
   private light: LightGrid | null = null;
   private lightCanvas: HTMLCanvasElement | null = null;
+  private rims: Rim[] = [];
+  /** Rims drawn last frame (e2e reads it to check caves get a rim and open sky does not). */
+  lastRimCount = 0;
+
+  /** Thin warm highlights on lit cave faces, 1 art px thick. */
+  private drawRims(ctx: CanvasRenderingContext2D, shakeX: number, shakeY: number): void {
+    const u = this.scale;
+    const ts = TS * u;
+    let n = 0;
+    for (const r of this.rims) {
+      const x = this.sx(r.x, shakeX);
+      const y = this.sy(r.y, shakeY);
+      if (x < -ts || y < -ts || x > this.w || y > this.h) continue;
+      ctx.fillStyle = `rgba(255,228,184,${r.alpha.toFixed(3)})`;
+      // Inset 1 art px only at a real corner, so a long wall reads as one continuous edge.
+      const a = r.joinA ? 0 : u;
+      const len = ts - a - (r.joinB ? 0 : u);
+      if (r.side === 0) ctx.fillRect(x + a, y, len, u);
+      else if (r.side === 2) ctx.fillRect(x + a, y + ts - u, len, u);
+      else if (r.side === 1) ctx.fillRect(x + ts - u, y + a, u, len);
+      else ctx.fillRect(x, y + a, u, len);
+      n++;
+    }
+    this.lastRimCount = n;
+  }
 
   /** Current light level at a tile (debug/e2e). */
   lightLevel(tx: number, ty: number): number {
     return this.light ? levelAt(this.light, tx, ty) : -1;
   }
 
-  private drawDarkness(ctx: CanvasRenderingContext2D, game: Game, _cx: number, _cy: number, time: number): void {
+  private drawDarkness(ctx: CanvasRenderingContext2D, game: Game, _cx: number, _cy: number, time: number, shakeX = 0, shakeY = 0): void {
     const world = game.world;
     const ts = TS * this.scale;
     const margin = Math.ceil(LEVEL_CAP / AIR_COST / 2);
@@ -1769,6 +1795,8 @@ export class Renderer {
         }
       }
       this.light = computeLight(world, x0, y0, lw, lh, sources, skyLevel);
+      // Faces of cave rock toward lit air get a thin warm rim, strongest toward the lamp (3D read in caves).
+      this.rims = computeRims(world, this.light, x0 + margin, y0 + margin, lw - margin * 2, lh - margin * 2, b.x, b.y - BODY_H / 2);
       if (!this.lightCanvas || this.lightCanvas.width !== lw || this.lightCanvas.height !== lh) this.lightCanvas = makeCanvas(lw, lh);
       const lctx = this.lightCanvas.getContext('2d');
       if (lctx) {
@@ -1789,6 +1817,7 @@ export class Renderer {
       ctx.drawImage(this.lightCanvas, 0, 0, lw, lh, this.sx(x0, 0), this.sy(y0, 0), lw * ts, lh * ts);
       ctx.imageSmoothingEnabled = false;
     }
+    this.drawRims(ctx, shakeX, shakeY);
     const low = game.battery / game.derived.maxBattery;
     if (low < 0.2 && !game.isAtBase()) {
       const pulse = 0.12 + 0.1 * Math.sin(time * 6);
