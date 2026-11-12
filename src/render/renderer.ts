@@ -21,7 +21,7 @@ import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
-import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, traderRows, medicRows, MEDIC_REMAP, npcSitRows, npcBedHeadRows, blanketRows, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, traderRows, medicRows, MEDIC_REMAP, npcSitRows, npcBedHeadRows, blanketRows, npcHop, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 
 /** Chunk size in tiles for the render cache. */
@@ -889,7 +889,8 @@ export class Renderer {
     const s = this.scale;
     for (const n of game.npcs) {
       const x = this.sx(n.x, shakeX);
-      const y = this.sy(n.y, shakeY);
+      const hop = n.react && n.pose !== 'sit' ? npcHop(n.react, n.reactT ?? 0) * s : 0;
+      const y = this.sy(n.y, shakeY) - hop;
       const info = NPC_INFO[n.kind];
       const medic = n.kind === 'medic';
       const remap = medic ? MEDIC_REMAP : undefined;
@@ -902,7 +903,8 @@ export class Renderer {
         const rows = (medic ? medicRows : traderRows)(t, n.to !== null);
         drawRows(ctx, rows, Math.round(x - (TRADER_W / 2) * s), Math.round(y - 20 * s), s, n.face < 0, TRADER_W, undefined, remap);
       }
-      if (n === near) {
+      if (n.react) this.drawNpcBubble(ctx, x, y - (n.pose === 'sit' ? 23 : 22) * s, n.react === 'cheer' ? 'Yay!' : 'Hi!', n.react === 'cheer' ? '#7dffb0' : '#ffffff', time);
+      if (n === near && !n.react) {
         const label = `${info.name.toUpperCase()}  ${info.title}`;
         ctx.font = `bold ${Math.round(s * 4)}px monospace`;
         const tw = ctx.measureText(label).width + s * 4;
@@ -918,6 +920,25 @@ export class Renderer {
         ctx.fillText(label, x, ty - s);
       }
     }
+  }
+
+  /** A little speech bubble with a tail, centred over (x, y) (its bottom edge). */
+  private drawNpcBubble(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, color: string, time: number): void {
+    const s = this.scale;
+    ctx.font = `bold ${Math.round(s * 5)}px monospace`;
+    const w = ctx.measureText(text).width + s * 4;
+    const h = s * 7;
+    const by = y - h - s * 2 + Math.sin(time * 6) * s * 0.5;
+    ctx.fillStyle = 'rgba(10,12,20,0.85)';
+    ctx.fillRect(Math.round(x - w / 2), Math.round(by), Math.round(w), Math.round(h));
+    ctx.fillRect(Math.round(x - s), Math.round(by + h), Math.round(s * 2), Math.round(s * 2));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, s * 0.5);
+    ctx.strokeRect(Math.round(x - w / 2), Math.round(by), Math.round(w), Math.round(h));
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, by + h / 2);
   }
 
   /**

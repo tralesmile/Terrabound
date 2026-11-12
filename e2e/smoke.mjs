@@ -1327,6 +1327,15 @@ try {
   const sitPose = await page.evaluate(() => window.__terrabound.game.npcs.find((k) => k.kind === 'trader')?.pose ?? null);
   await page.screenshot({ path: path.join(out, '39b-robot-sits.png') });
   check('by day the Trader sits on the chair', sat.ok && sitPose === 'sit', JSON.stringify({ sat, sitPose }));
+  const waved = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.carried.rust = (g.carried.rust ?? 0) + 3;
+    g.bank();
+    return g.npcs.map((n) => n.react ?? null);
+  });
+  await page.waitForTimeout(250);
+  await page.screenshot({ path: path.join(out, '39c-robots-wave.png') });
+  check('robots wave when you bring loot home', waved.length >= 2 && waved.every((r) => r === 'wave'), JSON.stringify(waved));
   await page.evaluate((raids) => {
     const g = window.__terrabound.game;
     g.time = 30;

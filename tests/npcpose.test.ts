@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { World } from '../src/sim/world';
 import { T } from '../src/sim/tiles';
 import { findRooms } from '../src/sim/rooms';
-import { HIDE_MUL, NPC_SPEED, npcSpots, roomFloor, stepNpc, type Npc } from '../src/sim/npcs';
+import { HIDE_MUL, NPC_SPEED, REACT_TIME, npcSpots, reactNpcs, roomFloor, stepNpc, type Npc } from '../src/sim/npcs';
+import { npcHop } from '../src/render/sprites';
 import { defaultSave } from '../src/sim/save';
 import { Game, NO_CONTROLS } from '../src/sim/game';
 import { DAY_LENGTH, isNight } from '../src/sim/daynight';
@@ -126,5 +127,51 @@ describe('robots in the game sleep at night and hide in raids', () => {
     expect(g.hasNpc('trader')).toBe(true);
     expect(g.npcs[0].pose).toBe('sleep');
     expect(g.npcs[0].x).toBe(px - 2 + 0.5);
+    // Asleep: bringing loot home does not wake it to wave. By day it does.
+    g.carried.rust = 3;
+    g.bank();
+    expect(g.npcs[0].react ?? null).toBeNull();
+    g.time = 30;
+    for (let i = 0; i < 30 * 2; i++) g.step(1 / 30, NO_CONTROLS);
+    expect(g.npcs[0].pose).not.toBe('sleep');
+    g.carried.rust = 3;
+    g.bank();
+    expect(g.npcs[0].react).toBe('wave');
+  });
+});
+
+describe('robot reactions', () => {
+  it('a wave holds the robot in place, faces you, then ends; sleepers do not wave', () => {
+    const n = robot(60.5);
+    n.to = 63;
+    const sleeper = robot(58.5);
+    sleeper.pose = 'sleep';
+    reactNpcs([n, sleeper], 'wave');
+    expect(n.react).toBe('wave');
+    expect(sleeper.react).toBeUndefined();
+    run(n, 0.5, { bed: null, chair: null }, DAY, 58);
+    expect(n.x).toBe(60.5);
+    expect(n.face).toBe(-1);
+    expect(n.react).toBe('wave');
+    run(n, REACT_TIME.wave, { bed: null, chair: null }, DAY, 58);
+    expect(n.react).toBeNull();
+  });
+
+  it('a cheer gets a hiding robot out of bed; the hop stays small and ends at 0', () => {
+    const n = robot(58.5);
+    n.pose = 'sleep';
+    reactNpcs([n], 'cheer');
+    run(n, 1 / 30, { bed: 58, chair: null }, NIGHT);
+    expect(n.pose).toBe('stand');
+    for (const r of ['wave', 'cheer'] as const) {
+      for (let t = 0; t <= REACT_TIME[r]; t += 0.05) {
+        expect(npcHop(r, t)).toBeGreaterThanOrEqual(0);
+        expect(npcHop(r, t)).toBeLessThanOrEqual(4);
+      }
+      expect(npcHop(r, 0)).toBe(0);
+    }
+    // After the cheer, it is night again: back to bed.
+    run(n, REACT_TIME.cheer + 5, { bed: 58, chair: null }, NIGHT);
+    expect(n.pose).toBe('sleep');
   });
 });

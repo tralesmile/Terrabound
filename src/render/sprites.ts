@@ -636,6 +636,14 @@ export function medicRows(t: number, walking: boolean): string[] {
   return rows;
 }
 
+/** Hop height in art px for a reaction with `left` seconds to go: a cheer bounces, a wave hops once. Pure. */
+export function npcHop(react: 'wave' | 'cheer', left: number): number {
+  if (left <= 0) return 0;
+  if (react === 'cheer') return Math.abs(Math.sin(left * 9)) * 4;
+  const k = Math.max(0, left - 1.1);
+  return k > 0 ? Math.sin((k / 0.5) * Math.PI) * 3 : 0;
+}
+
 /** Bent legs for a robot sitting on a chair (thighs forward over the seat, shins down to the floor). */
 const SIT_LEGS = ['    oLLLLLLLLLo', '    ooooooooLLo', '           oLLo', '           oLLo', '          ooooo'];
 /** Rows of a robot sitting (facing right): top half of its standing rig over bent legs. Pure. */

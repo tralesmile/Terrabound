@@ -36,7 +36,7 @@ import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight, DAY_LENGTH } from './daynight';
 import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
 import { findRooms, mountOk, roomHint, type Room } from './rooms';
-import { NPC_INFO, deathKeep, doTrade, npcLine, npcSpots, roomFloor, stepNpc, syncNpcs, tradeById, tradeOpen, type Npc, type NpcKind } from './npcs';
+import { NPC_INFO, deathKeep, doTrade, npcLine, npcSpots, reactNpcs, roomFloor, stepNpc, syncNpcs, tradeById, tradeOpen, type Npc, type NpcKind } from './npcs';
 import { placement, removeTile } from './wide';
 import { blueprintDrop, RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
 import { applyDiff, captureDiff } from './persist';
@@ -561,6 +561,7 @@ export class Game {
     if (total > 0) {
       this.save.stats.banked += total;
       this.emit({ t: 'bank', total });
+      reactNpcs(this.npcs, 'wave');
     }
     this.save.stats.deepest = Math.max(this.save.stats.deepest, Math.floor(this.runDeepest));
     return total;
@@ -1595,6 +1596,7 @@ export class Game {
       for (const k in reward) invAdd(this.stash, k as ItemId, reward[k as ItemId] ?? 0);
       this.save.stats.raids++;
       this.raid = null;
+      reactNpcs(this.npcs, 'cheer');
       this.emit({ t: 'raidclear', n: r.total, reward, blueprint: blueprintDrop(this.save.stats.raids)?.name ?? null });
     }
   }

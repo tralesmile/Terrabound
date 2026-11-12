@@ -114,6 +114,24 @@ export interface Npc {
   home: number;
   /** What the robot is doing in place: standing (default), sitting on a chair, or asleep in bed. */
   pose?: NpcPose;
+  /** A short reaction playing now (wave when you bring loot home, cheer when a raid is beaten). */
+  react?: NpcReact | null;
+  /** Seconds left of the reaction. */
+  reactT?: number;
+}
+
+export type NpcReact = 'wave' | 'cheer';
+
+/** How long each reaction plays, in seconds. */
+export const REACT_TIME: Record<NpcReact, number> = { wave: 1.6, cheer: 3 };
+
+/** Start a reaction on every robot. Sleepers do not wake up to wave, but a beaten raid gets everyone up. Pure. */
+export function reactNpcs(npcs: Npc[], react: NpcReact): void {
+  for (const n of npcs) {
+    if (react === 'wave' && n.pose === 'sleep') continue;
+    n.react = react;
+    n.reactT = REACT_TIME[react];
+  }
 }
 
 export type NpcPose = 'stand' | 'sit' | 'sleep';
@@ -227,6 +245,15 @@ export function stepNpc(
 ): void {
   const lo = floor.x0 + 0.5;
   const hi = floor.x1 + 0.5;
+  if (npc.react && (npc.reactT ?? 0) > 0) {
+    // Reacting: stand (or stay seated) in place and face the player until it is over.
+    npc.reactT = (npc.reactT ?? 0) - dt;
+    if (npc.reactT <= 0) npc.react = null;
+    npc.to = null;
+    if (npc.pose !== 'sit') npc.pose = 'stand';
+    if (playerX !== null && npc.pose !== 'sit') npc.face = playerX >= npc.x ? 1 : -1;
+    return;
+  }
   const rest = (mood.raid || mood.night) && spots.bed !== null;
   if (playerX !== null && !(mood.raid && rest)) {
     if (npc.pose === 'sit') return;
