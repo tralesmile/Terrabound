@@ -355,3 +355,14 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** furniture and decoration set + room detection (P1.8), then robot NPCs.
 
 **Known issues:** a raider on a base floor block chews down through it; DAILY still replaces the world without a confirm; toasts show faintly through open panels; turrets draw 1 power even when idle.
+
+## 2026-11-12 Scheduled run 18
+
+**Done:** baseline green (361 tests). Creative review: the base was a bare strip and raid toasts stacked stale lines ("Raid repelled!" over "RAID!"). Toasts now cap at 3 lines and raid messages replace each other (toast groups). Raid polish: floor blocks resting on ground are never chewed through (roofs over open space still are); raid blueprints every 3 cleared raids (Turret Mk II, Shield wall, Turret Mk III, derived from stats.raids so no save change); Turret core upgrade (+1.5 range, +50% damage, faster fire per tier); Shield wall tile 45 (6x chew, glows). Furniture: table, lamp (lights like a torch), wall screen (live readout), potted plant, banner, bunk bed (tiles 46-51, 16x16 art in src/render/furniture.ts); rooms.ts detects enclosed rooms and robot homes (light + table + bed), comfort 0-4; in-room hint and a "Room complete" toast/chime. Screenshot 35-room.png reviewed.
+
+**Numbers:** 384 unit tests, e2e all green (new: furnished room check), bundle 243 kB (84.1 kB gzip).
+
+**Next:** Robot NPCs move into valid rooms (P1.8 Characters), starting with the Trader (fixed visible prices), then the wandering merchant drone.
+
+**Known issues:** table and bed are 1 tile and read small; DAILY still replaces the world without a confirm; turrets draw 1 power even when idle.
+
