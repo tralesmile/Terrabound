@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-12 run 29
+
+- Done this run: pickup icons arc into the hotbar/bag with a slot pulse; ore/hazard shape marks; reduced flashes; left-handed stick.
+- Weakest UI (carried 3 runs, do next): toasts are full sentences mid-screen (11-biome-crystal shows three lines over the trees); cap 2, icon + short text, top-left under the depth line.
+- Weakest graphics: cave darkness flattens strata; a faint rim light on tile edges facing the lamp would make caves read in 3D (Core Keeper).
+- Weakest controls: hold right click to sow along a row (carried); hold-to-reel button on touch.
+- Weakest progression: no achievements/codex screen yet (FTUE item); 30 achievements with cosmetic suit colours would give long-term goals (Terraria-style).
+
 ## 2026-11-12 run 28
 
 - Done this run: soil strata + buried bones/pipes, merged pickup labels, settings screen (volumes, shake, UI size).
@@ -26,13 +34,3 @@
 - Weakest graphics: surface dirt is one flat noise texture; darker strata bands and occasional buried bones/pipes in the top 10 rows would add depth for free.
 - Weakest UI: toasts stack three long lines over the play area; shorter toasts with an icon, and the plant timer shown on aim instead of in a toast.
 - Weakest controls: seeds go one per right click; hold right click to sow a row (Stardew style) would make planting a field quick.
-
-## 2026-11-12 run 25
-
-- Done this run: hit squash and stretch on enemies, wide base strip, Nova the Scientist + research tree, TRADE grouped per robot.
-- Weakest gameplay feel: player has no hurt reaction beyond blinking; a 1-frame red vignette pulse plus a short knock-back squash on the suit would make damage readable (cheap, renderer only).
-- Weakest progression: perks and chips are all in the base; enemy-dropped "research samples" (a rare drop per biome enemy) that the Scientist needs for top perks would pull players into every biome.
-- Weakest graphics: research flasks and mod chips are 12 px icons inside large cells; drawing them at 2x with a glow ring would read better.
-- Weakest UI: the workshop is one big modal; a small "robot is talking" speech bubble over the NPC (instead of the bottom hint line) would feel more alive.
-- New: farming next (backlog), with crops that robots water when they are happy.
-

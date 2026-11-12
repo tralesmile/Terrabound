@@ -109,3 +109,8 @@
 - **The surface dirt layer is only 3-4 tiles thick; the scrap layer rock (T.METAL) is right under it** and is also a player build block. Guard: natural-only visuals check `world.edits` (placed tiles are in it), not the tile id.
 - **Disabled buttons are not in `ui.rects` (again):** the settings e2e expected 10 steppers but maxed ones were disabled. Count with the current values in mind.
 - **Retro:** three slices, each gated by `npm run ship` (~4 min each). Writing the mobile fit check first would have caught the squeezed labels before the screenshot review.
+
+- **Tiles are drawn at 1 px per art px into cached chunks, then scaled up.** A glyph outline at half-pixel offsets ((x - 0.5) * u) blurred into a grey smudge. Guard: overlays drawn into chunks use whole art px only (glyphs.ts comment); crop-and-zoom the screenshot (PIL, NEAREST) to check small marks.
+- **Anything chunk-cached must clear the chunk cache when a setting changes it** (`setOreMarks` clears `chunks`); a plain field toggle would only show on newly built chunks.
+- **`applyPrefs` ran before `input` existed** once it touched input (TDZ). Guard: the first `applyPrefs()` call now comes after `new Input`.
+- **Retro:** three slices, three ships (~4 min each). Adding a settings row means updating the two stepper counts in e2e (desktop rows, phone n); derive them from PREFS next time instead of hard numbers.

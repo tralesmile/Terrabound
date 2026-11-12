@@ -467,3 +467,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** settings slice 2 (colour-blind palette, key remap, left-handed touch, reduce flashes); FTUE / achievements; mobile polish; co-op spike.
 
 **Known issues:** strata bands are subtle under cave darkness; offline crop growth ignores robot gardeners; growing crops restart their stage when the base moves to a new world; upgrade BUY rows refuse while you shop upstairs off the pad; turrets draw 1 power even when idle; the merchant hovers inside whatever is built over the right end of the pad; e2e farm uses raw tile ids (57-67).
+
+## 2026-11-12 Scheduled run 29
+
+**Done:** baseline green (532 tests). Creative review: pickups had no arc into the pack (carried two runs) and ore colours relied on hue alone. Pickup flyers (src/ui/flyers.ts): every pickup's icon pops up and arcs into its hotbar slot (or the bag), bursts stream with a stagger, the slot rings on landing (41e-pickup-fly). Backlog settings slice 2: ORE AND HAZARD MARKS (src/render/glyphs.ts: = :: + x diamond on iron/copper/circuit/plasma/core ore, ! and triangle on acid/magma surfaces; 45-ore-marks), FLASHES REDUCED (no hurt blink, enemy white flash or boss strobe; vignette capped at 0.22), TOUCH MOVE STICK LEFT/RIGHT for left-handed play (`inStickZone`, hint follows; 06b-mobile-lefty). Settings rows shrink to fit short screens (44c-mobile-settings). Save v20 (oreMarks, flashes) and v21 (stickSide) with v19/v20 fixture tests.
+
+**Numbers:** 545 unit tests (new: flyers 7, glyphs 3, settings +3), 129 e2e checks all green (new: harvest flyers land, ore marks + reduced flashes on/off, stick side), bundle 313 kB (107.3 kB gzip).
+
+**Next:** settings slice 3 (key remap, mirrored HUD for left-handed touch); FTUE / achievements / codex; mobile polish; shorter icon toasts.
+
+**Known issues:** left-handed stick zone overlaps the right HUD button column (buttons win the tap); ore marks are 5 px and can be hard to see at the smallest scale; strata bands subtle under cave darkness; offline crop growth ignores robot gardeners; growing crops restart their stage when the base moves; upgrade BUY rows refuse while you shop upstairs off the pad; turrets draw 1 power idle; e2e farm uses raw tile ids (57-67).
