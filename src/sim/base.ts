@@ -2,8 +2,9 @@ import { T } from './tiles';
 import { W, type World } from './world';
 
 /** The persistent base is the strip of sky above the landing pad: tiles built here survive every dive. */
-export const BASE_HALF = 7;
-export const BASE_ROWS = 10;
+/** Run 25 widened the strip from 15 x 10 to 33 x 16 so four or more robot rooms fit (two floors side by side). */
+export const BASE_HALF = 16;
+export const BASE_ROWS = 16;
 /** Flat list of triples: dx (from pad centre), dy (rows above the pad, 1 = just above), tile id. */
 export type BaseTiles = number[];
 
@@ -12,12 +13,23 @@ export const BASE_KEEP: ReadonlySet<number> = new Set<number>([T.RUST, T.METAL, 
 const KEEP_WALLS = new Set<number>([W.PLATE]);
 export const BASE_MAX_TILES = (BASE_HALF * 2 + 1) * BASE_ROWS;
 
+/**
+ * Whether the tile at (x, y) was put there after generation (built by the player, or stamped from
+ * the saved base). The wide strip reaches over natural hills, and their rust must never count as
+ * base: it would follow the player into a new world, swell raids and get chewed. Pure.
+ */
+export function isBuilt(world: World, x: number, y: number): boolean {
+  return x >= 0 && x < world.w && y >= 0 && y < world.h && world.edits.has(y * world.w + x);
+}
+
 export function captureBase(world: World): BaseTiles {
   const out: BaseTiles = [];
   for (let dy = 1; dy <= BASE_ROWS; dy++) {
     for (let dx = -BASE_HALF; dx <= BASE_HALF; dx++) {
-      const t = world.get(world.padX + dx, world.padY - dy);
-      if (BASE_KEEP.has(t)) out.push(dx, dy, t);
+      const x = world.padX + dx;
+      const y = world.padY - dy;
+      const t = world.get(x, y);
+      if (BASE_KEEP.has(t) && isBuilt(world, x, y)) out.push(dx, dy, t);
     }
   }
   return out;

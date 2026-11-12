@@ -40,6 +40,22 @@ export interface Room {
   missing: string[];
 }
 
+/** Generation-stamped visited buffer shared by every fill (no Set churn; findRooms runs on world edits). */
+let seenBuf = new Uint32Array(0);
+let seenGen = 0;
+function nextSeen(n: number): Uint32Array {
+  if (seenBuf.length < n) {
+    seenBuf = new Uint32Array(n);
+    seenGen = 0;
+  }
+  seenGen++;
+  if (seenGen >= 0xffffffff) {
+    seenBuf.fill(0);
+    seenGen = 1;
+  }
+  return seenBuf;
+}
+
 /** Doors, platforms and lift shafts close a room like walls do. */
 function bounds(t: number): boolean {
   return TILES[t].solid || t === T.DOOR || t === T.PLATFORM || t === T.LIFT;
@@ -61,27 +77,41 @@ export function mountOk(world: World, x: number, y: number, tile: number): boole
  * The room containing (x, y), or null when the cell is a wall or the pocket is not enclosed
  * (it leaks to the sky or grows past ROOM_MAX). 4-way flood fill, bounded. Pure.
  */
-export function roomAt(world: World, x: number, y: number): Room | null {
+export function roomAt(world: World, x: number, y: number, leaked?: Set<number>): Room | null {
   if (x < 0 || x >= world.w || y < 0 || y >= world.h || bounds(world.get(x, y))) return null;
-  const seen = new Set<number>();
-  const stack = [y * world.w + x];
+  const W = world.w;
+  const H = world.h;
+  const tiles = world.tiles;
+  const seen = nextSeen(tiles.length);
+  const gen = seenGen;
+  const start = y * W + x;
+  seen[start] = gen;
+  const stack = [start];
   const cells: number[] = [];
   let view = false;
-  seen.add(stack[0]);
+  // A failed fill tells findRooms that every cell it reached is in one leaking pocket.
+  const fail = (): null => {
+    if (leaked) {
+      for (const c of cells) leaked.add(c);
+      for (const c of stack) leaked.add(c);
+    }
+    return null;
+  };
   while (stack.length) {
     const i = stack.pop() as number;
     cells.push(i);
-    if (cells.length > ROOM_MAX) return null;
-    const cx = i % world.w;
-    const cy = Math.floor(i / world.w);
-    for (const [nx, ny] of [[cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]] as const) {
-      // Leaking off the top of the world (open sky) or off the sides means it is not enclosed.
-      if (ny < 0 || nx < 0 || nx >= world.w) return null;
-      const ni = ny * world.w + nx;
-      const nt = world.get(nx, ny);
+    if (cells.length > ROOM_MAX) return fail();
+    const cx = i % W;
+    const cy = (i - cx) / W;
+    // Leaking off the top of the world (open sky) or off the sides means it is not enclosed.
+    if (cy === 0 || cx === 0 || cx === W - 1) return fail();
+    for (let k = 0; k < 4; k++) {
+      const ni = k === 0 ? i + 1 : k === 1 ? i - 1 : k === 2 ? i - W : i + W;
+      if (k === 3 && cy === H - 1) continue; // below the world is rock
+      const nt = tiles[ni];
       if (nt === T.WINDOW) view = true;
-      if (seen.has(ni) || bounds(nt)) continue;
-      seen.add(ni);
+      if (seen[ni] === gen || bounds(nt)) continue;
+      seen[ni] = gen;
       stack.push(ni);
     }
   }
@@ -121,13 +151,14 @@ export function roomAt(world: World, x: number, y: number): Room | null {
 export function findRooms(world: World): Room[] {
   const out: Room[] = [];
   const claimed = new Set<number>();
+  const leaked = new Set<number>();
   for (let dy = BASE_ROWS; dy >= 1; dy--) {
     for (let dx = -BASE_HALF; dx <= BASE_HALF; dx++) {
       const x = world.padX + dx;
       const y = world.padY - dy;
       const i = y * world.w + x;
-      if (claimed.has(i)) continue;
-      const r = roomAt(world, x, y);
+      if (claimed.has(i) || leaked.has(i)) continue;
+      const r = roomAt(world, x, y, leaked);
       if (!r) continue;
       for (const c of r.cells) claimed.add(c);
       out.push(r);

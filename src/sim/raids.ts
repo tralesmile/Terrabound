@@ -4,7 +4,7 @@
  * blocks they touch (the block drops as an item, nothing is destroyed for good); clearing the wave
  * pays a bonus into the stash. Opt-out in the workshop (settings.raids). Pure and deterministic.
  */
-import { BASE_HALF, BASE_KEEP, BASE_ROWS } from './base';
+import { BASE_HALF, BASE_KEEP, BASE_ROWS, isBuilt } from './base';
 import { ENEMIES, enemyBoxHits, type Enemy, type EnemyKind } from './enemies';
 import { MACHINE_TILES } from './power';
 import { hash2 } from './rng';
@@ -17,7 +17,7 @@ export const RAID_MAX = 10;
 /** Seconds between raiders entering. */
 export const RAID_GAP = 1.6;
 /** Raiders enter this many columns outside the base strip. */
-export const RAID_ENTRY = 16;
+export const RAID_ENTRY = 10;
 /** Seconds of chewing to knock a base block loose. */
 export const CHEW_TIME = 2.2;
 /** Seconds of warning before nightfall when a raid is coming. */
@@ -48,7 +48,10 @@ export function baseValue(world: World): number {
   let blocks = 0;
   for (let dy = 1; dy <= BASE_ROWS; dy++) {
     for (let dx = -BASE_HALF; dx <= BASE_HALF; dx++) {
-      const t = world.get(world.padX + dx, world.padY - dy);
+      const x = world.padX + dx;
+      const y = world.padY - dy;
+      const t = world.get(x, y);
+      if (!isBuilt(world, x, y)) continue; // natural hills inside the wide strip are not base
       if (MACHINE_TILES.has(t)) machines++;
       else if (BASE_KEEP.has(t)) blocks++;
     }
@@ -109,7 +112,7 @@ export function chewTarget(world: World, e: Enemy): { x: number; y: number } | n
   const bx = Math.floor(e.x);
   const by = Math.floor(e.y + 0.05);
   if (!world.isSolid(bx, by + 1)) cells.push([bx, by]);
-  for (const [x, y] of cells) if (inBase(x, y) && BASE_KEEP.has(world.get(x, y)) && world.get(x, y) !== T.SPIKES) return { x, y };
+  for (const [x, y] of cells) if (inBase(x, y) && BASE_KEEP.has(world.get(x, y)) && isBuilt(world, x, y) && world.get(x, y) !== T.SPIKES) return { x, y };
   return null;
 }
 
