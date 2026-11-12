@@ -95,3 +95,23 @@ describe('vehicle sprites', () => {
     expect(npcSitRows('gunsmith', 0)[5]).toContain('V');
   });
 });
+
+describe('scientist sprite', () => {
+  it('fits TRADER_W, keeps the walk cycle, wears goggles and a bubbling flask', async () => {
+    const { scientistRows, robotRows, npcSitRows, SCIENTIST_REMAP, traderRows: tr, TRADER_W: TW, PAL: P } = await import('../src/render/sprites');
+    for (const walking of [false, true]) {
+      for (const t of [0, 0.13, 0.5, 3.1]) {
+        const rows = scientistRows(t, walking);
+        expect(rows.length).toBe(tr(t, walking).length);
+        for (const r of rows) {
+          expect(r.length).toBeLessThanOrEqual(TW);
+          for (const ch of r) if (ch !== ' ') expect(ch in P || ch in SCIENTIST_REMAP, `key ${ch}`).toBe(true);
+        }
+      }
+    }
+    expect(scientistRows(3.1, false)[5]).toContain('GG');
+    expect(scientistRows(0, false)[12]).not.toBe(scientistRows(0.4, false)[12]);
+    expect(robotRows('scientist', 0, false)).toEqual(scientistRows(0, false));
+    expect(npcSitRows('scientist', 0)[5]).toContain('G');
+  });
+});

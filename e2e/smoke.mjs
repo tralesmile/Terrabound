@@ -1307,6 +1307,75 @@ try {
   await page.keyboard.press('Escape');
   await page.waitForTimeout(200);
   await page.screenshot({ path: path.join(out, '36f-hotbar-chip.png') });
+  // Nova the Scientist moves into a fourth home (right of the Gunsmith's, only fits the wide strip) and studies perks.
+  const sciState = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const px = w.padX;
+    const py = w.padY;
+    const T = { AIR: 0, METAL: 2, TABLE: 46, LAMP: 47, BED: 51 };
+    const saved = [];
+    const put = (x, y, t) => {
+      saved.push([x, y, w.get(x, y)]);
+      w.set(x, y, t);
+    };
+    for (let x = px + 8; x <= px + 12; x++) {
+      put(x, py - 5, T.METAL);
+      put(x, py, T.METAL);
+    }
+    for (let y = py - 4; y <= py - 1; y++) put(px + 12, y, T.METAL);
+    for (let y = py - 4; y <= py - 1; y++) for (let x = px + 9; x <= px + 11; x++) put(x, y, T.AIR);
+    put(px + 9, py - 1, T.BED);
+    put(px + 11, py - 1, T.TABLE);
+    put(px + 10, py - 4, T.LAMP);
+    window.__sciSaved = saved;
+    g.stash.metal = (g.stash.metal ?? 0) + 8;
+    g.stash.crystal = (g.stash.crystal ?? 0) + 4;
+    return { valid: g.rooms.filter((r) => r.valid).length };
+  });
+  await page.waitForTimeout(400);
+  const sciNear = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const r = g.npcs.find((n) => n.kind === 'scientist');
+    if (r) {
+      g.body.x = r.x + 0.6;
+      g.body.y = r.y;
+      g.body.vx = g.body.vy = 0;
+    }
+    return { scientist: !!r, kinds: g.npcs.map((n) => n.kind) };
+  });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(out, '35e-scientist.png') });
+  const sciHint = await page.evaluate(() => window.__terrabound.game.hintAutomation(false));
+  check('Nova the Scientist moves into a fourth home and offers research', sciState.valid >= 4 && sciNear.scientist && /Nova the Scientist/.test(sciHint || '') && /research/.test(sciHint || ''), JSON.stringify({ sciState, sciNear, sciHint }));
+  await page.keyboard.down('KeyE');
+  await page.waitForTimeout(80);
+  await page.keyboard.up('KeyE');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(out, '36g-research.png') });
+  const sciShop = await page.evaluate(() => {
+    const { ui } = window.__terrabound;
+    const b = ui.rects.find((r) => r.a.k === 'research' && r.a.id === 'cell_density');
+    return { open: ui.shopOpen, tab: ui.shopTab, scroll: ui.shopScroll, btn: b ? { x: b.x + b.w / 2, y: b.y + b.h / 2 } : null };
+  });
+  const bat0 = await page.evaluate(() => window.__terrabound.game.derived.maxBattery);
+  if (sciShop.btn) {
+    await holdClick(page, sciShop.btn.x, sciShop.btn.y);
+    await page.waitForTimeout(200);
+  }
+  const sciAfter = await page.evaluate(() => {
+    const { game } = window.__terrabound;
+    return { done: game.hasResearch('cell_density'), bat: game.derived.maxBattery };
+  });
+  await page.screenshot({ path: path.join(out, '36h-researched.png') });
+  check('talking to the Scientist opens its research; STUDY adds battery for good', sciShop.open && sciShop.tab === 'trade' && sciShop.scroll > 0 && !!sciShop.btn && sciAfter.done && sciAfter.bat === bat0 + 40, JSON.stringify({ sciShop, bat0, sciAfter }));
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(150);
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    for (const [x, y, t] of window.__sciSaved.reverse()) g.world.set(x, y, t);
+    g.save.research = [];
+  });
   // Clean up: take the chip out and restore every tile the Gunsmith's room changed (later checks use the pad's right end).
   await page.evaluate(() => {
     const g = window.__terrabound.game;

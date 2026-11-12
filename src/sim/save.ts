@@ -4,11 +4,12 @@ import { UPGRADES, type Levels } from './upgrades';
 import { CODEX_IDS } from './explore';
 import { defaultGear, sanitizeGear, type GearSave } from './gear';
 import { defaultMods, sanitizeMods, type ModSave } from './mods';
+import { sanitizeResearch, type ResearchId } from './research';
 import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 15;
+export const SAVE_VERSION = 16;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -47,6 +48,8 @@ export interface SaveData {
   droneRules: Record<string, DroneRule[]>;
   /** v15: weapon mod chips owned and fitted (the Gunsmith). */
   mods: ModSave;
+  /** v16: perks researched by the Scientist (research.ts); v15 saves load with none. */
+  research: ResearchId[];
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -70,6 +73,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     drones: {},
     droneRules: {},
     mods: defaultMods(),
+    research: [],
   };
 }
 
@@ -149,6 +153,7 @@ export function parseSave(raw: string | null | undefined): SaveData {
     droneRules: sanitizeDroneRules(r.droneRules),
     // v14 -> v15: no mod chips yet.
     mods: sanitizeMods(r.mods),
+    research: sanitizeResearch(r.research),
   };
 }
 

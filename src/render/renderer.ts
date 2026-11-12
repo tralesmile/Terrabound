@@ -21,7 +21,7 @@ import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
-import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 
 /** Chunk size in tiles for the render cache. */
@@ -30,6 +30,7 @@ const ROBOT_LOOK: Record<RobotKind, { remap?: Record<string, string>; tag: strin
   trader: { tag: '#ffd23a', blanket: { a: '#4a6ab8', b: '#a8c0ff', e: '#34508f' } },
   medic: { remap: MEDIC_REMAP, tag: '#ff8a8a', blanket: { a: '#d8dee8', b: '#ffffff', e: '#9aa4b4' } },
   gunsmith: { remap: GUNSMITH_REMAP, tag: '#ffb23a', blanket: { a: '#8a4a2a', b: '#d88a4a', e: '#5a2e1a' } },
+  scientist: { remap: SCIENTIST_REMAP, tag: '#c08aff', blanket: { a: '#5a3e9a', b: '#a888e8', e: '#3a2870' } },
 };
 
 /** Tracer colour of a player bolt: ricochet green, piercing blue, scatter orange, plain pulse gold. Pure. */

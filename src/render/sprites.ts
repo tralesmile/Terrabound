@@ -649,11 +649,25 @@ export function gunsmithRows(t: number, walking: boolean): string[] {
   return rows;
 }
 
-export type RobotKind = 'trader' | 'medic' | 'gunsmith';
+/** Scientist colours over the trader rig: lavender lab coat, green goggle lenses (G) and a bubbling flask. */
+export const SCIENTIST_REMAP: Record<string, string> = { g: '#d8cff0', y: '#7dffb0', Y: '#d8ffe8', P: '#9a6ae8', S: '#b0a6cc', G: '#5aff9a' };
+
+/** Rows for the Scientist: the trader rig with round goggles and a flask on the chest; the flask bubbles. Pure. */
+export function scientistRows(t: number, walking: boolean): string[] {
+  const rows = traderRows(t, walking);
+  rows[5] = '  ohoGGoooGGhHo';
+  const bub = Math.floor(Math.max(0, t) * 3) % 2 === 0;
+  rows[12] = bub ? ' oPogSSYSSSgoPo' : ' oPogSSSYSSgoPo';
+  rows[13] = ' oPogSyyyySgoPo';
+  rows[14] = ' oHogyyyyyygoHo';
+  return rows;
+}
+
+export type RobotKind = 'trader' | 'medic' | 'gunsmith' | 'scientist';
 
 /** Standing rows for any room robot. Pure. */
 export function robotRows(kind: RobotKind, t: number, walking: boolean): string[] {
-  return (kind === 'medic' ? medicRows : kind === 'gunsmith' ? gunsmithRows : traderRows)(t, walking);
+  return (kind === 'medic' ? medicRows : kind === 'gunsmith' ? gunsmithRows : kind === 'scientist' ? scientistRows : traderRows)(t, walking);
 }
 
 /** Merchant drone colours over the field-drone hull: gold plating, cyan eye band. */

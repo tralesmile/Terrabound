@@ -17,6 +17,7 @@ import { ACT_INFO, COND_INFO, RULE_MAX, ROLE_INFO } from '../sim/drones';
 import { NPC_INFO, TRADES, tradeOpen } from '../sim/npcs';
 import { MERCHANT_STOCK } from '../sim/merchant';
 import { MODS, MOD_IDS, type ModId } from '../sim/mods';
+import { RESEARCH, RESEARCH_IDS, type ResearchId } from '../sim/research';
 import type { Trade } from '../sim/npcs';
 
 export type UiAction =
@@ -30,6 +31,7 @@ export type UiAction =
   | { k: 'trade'; id: string }
   | { k: 'modbuy'; id: ModId }
   | { k: 'modfit'; id: ModId }
+  | { k: 'research'; id: ResearchId }
   | { k: 'tab'; t: ShopTab }
   | { k: 'scroll'; d: number }
   | { k: 'copyseed' }
@@ -161,7 +163,7 @@ export class UI {
 
   /** Row count of the current shop tab. */
   shopRows(): number {
-    return this.shopTab === 'upgrades' ? UPGRADES.length : this.shopTab === 'gear' ? GEAR_IDS.length : this.shopTab === 'trade' ? TRADES.length + MOD_IDS.length + MERCHANT_STOCK : RECIPES.length;
+    return this.shopTab === 'upgrades' ? UPGRADES.length : this.shopTab === 'gear' ? GEAR_IDS.length : this.shopTab === 'trade' ? TRADES.length + MOD_IDS.length + RESEARCH_IDS.length + MERCHANT_STOCK : RECIPES.length;
   }
 
   scrollShop(d: number): void {
@@ -853,6 +855,11 @@ export class UI {
         ry += rowH;
         continue;
       }
+      if ('research' in tr) {
+        this.researchRow(ctx, game, tr.research, px, ry, pw, rowH, u);
+        ry += rowH;
+        continue;
+      }
       const comfort = game.npcComfort(tr.npc);
       const home = tradeOpen(tr, game.hasNpc(tr.npc), comfort);
       const afford = home && ITEM_IDS.every((k) => (game.stash[k] ?? 0) >= (tr.give[k] ?? 0));
@@ -901,6 +908,34 @@ export class UI {
     this.button(ctx, px + u * 2 + bw, fy, bw, u * 2.4, 'CLOSE', { k: 'close' }, u);
     this.text(ctx, `World ${game.seedCode}   Best ${game.stats.deepest}m   Dives ${game.runs}   Deaths ${game.stats.deaths}`, px + pw / 2, py + ph - u * 0.9, Math.round(u * 0.65), '#8a90a2', 'center', pw - u);
   }
+  /** One Scientist research row: perk icon, what it does, then STUDY, LOCKED (needs a perk first) or DONE. */
+  private researchRow(ctx: CanvasRenderingContext2D, game: Game, id: ResearchId, px: number, ry: number, pw: number, rowH: number, u: number): void {
+    const r = RESEARCH[id];
+    const done = game.hasResearch(id);
+    const home = game.hasNpc('scientist');
+    const missing = game.researchNeeds(id);
+    const afford = game.canResearch(id);
+    ctx.fillStyle = done ? 'rgba(192,138,255,0.16)' : 'rgba(192,138,255,0.06)';
+    ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
+    const isz = rowH - u * 0.8;
+    this.cell(ctx, px + u * 0.8, ry + u * 0.25, isz, `res_${id}` as ItemId, null, done, null, !done && (!home || missing.length > 0));
+    const tx2 = px + u * 1.4 + isz;
+    const tw2 = pw - isz - u * 9;
+    this.text(ctx, `${r.name}  [research]`, tx2, ry + rowH * 0.3, Math.round(u * 0.85), '#fff', 'left', tw2);
+    const sub = done
+      ? `${r.desc}. Researched: yours for good`
+      : !home
+        ? `${r.desc}. No scientist yet: furnish a fourth room (light, table, bed)`
+        : missing.length > 0
+          ? `${r.desc}. Needs ${missing.map((m) => RESEARCH[m].name).join(' + ')} first`
+          : `${r.desc}. Nova studies it for ${costText(r.cost)}`;
+    this.text(ctx, sub, tx2, ry + rowH * 0.68, Math.round(u * 0.64), done ? '#d8c8ff' : afford ? '#9ff6a0' : '#ff8a8a', 'left', tw2);
+    const bw = u * 5.5;
+    const bx = px + pw - bw - u * 0.8;
+    if (done) this.button(ctx, bx, ry + u * 0.3, bw, rowH - u * 0.9, 'DONE', { k: 'research', id }, u * 0.85, { enabled: false });
+    else this.button(ctx, bx, ry + u * 0.3, bw, rowH - u * 0.9, missing.length > 0 ? 'LOCKED' : 'STUDY', { k: 'research', id }, u * 0.85, { enabled: afford, color: '#5a3e9a' });
+  }
+
   /** One Gunsmith chip row: chip icon, what it does, then BUILD (not owned), FIT or FITTED. */
   private modRow(ctx: CanvasRenderingContext2D, game: Game, id: ModId, px: number, ry: number, pw: number, rowH: number, u: number): void {
     const m = MODS[id];
@@ -931,10 +966,20 @@ export class UI {
   }
 }
 
-/** TRADE tab rows in order: the room robots' rates, the Gunsmith's chips, then the merchant's stock. */
-export function tradeEntries(game: Game): (Trade | ModId)[] {
+/** A Scientist research row in the TRADE tab. */
+export interface ResearchEntry {
+  research: ResearchId;
+}
+
+/** TRADE tab rows in order: the room robots' rates, the Gunsmith's chips, the Scientist's research, then the merchant's stock. */
+export function tradeEntries(game: Game): (Trade | ModId | ResearchEntry)[] {
   const list = game.tradeList();
-  return [...list.slice(0, TRADES.length), ...MOD_IDS, ...list.slice(TRADES.length)];
+  return [...list.slice(0, TRADES.length), ...MOD_IDS, ...RESEARCH_IDS.map((research) => ({ research })), ...list.slice(TRADES.length)];
+}
+
+/** Which robot a TRADE entry belongs to (for jumping to its rows). Pure. */
+export function entryNpc(e: Trade | ModId | ResearchEntry): string {
+  return typeof e === 'string' ? 'gunsmith' : 'research' in e ? 'scientist' : e.npc;
 }
 
 /** The non-zero entries of a trade side, in ITEM_IDS order. */

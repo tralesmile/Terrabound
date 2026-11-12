@@ -36,6 +36,7 @@ import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight, DAY_LENGTH } from './daynight';
 import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
 import { findRooms, mountOk, roomHint, type Room } from './rooms';
+import { RESEARCH, applyResearch, researchMissing, type ResearchId } from './research';
 import { MODS, applyMods, bounce, fitMod, type ModId, type ModSlot } from './mods';
 import { NPC_INFO, TRADES, deathKeep, doTrade, npcLine, npcSpots, reactNpcs, roomFloor, stepNpc, syncNpcs, tradeOpen, type Npc, type NpcKind, type Trade } from './npcs';
 import { merchantDay, merchantPresent, merchantStock } from './merchant';
@@ -105,6 +106,7 @@ export type GameEvent =
   | { t: 'merchant'; here: boolean }
   | { t: 'trade'; id: string }
   | { t: 'modbuy'; id: ModId }
+  | { t: 'research'; id: ResearchId }
   | { t: 'leech'; x: number; y: number; n: number }
   | { t: 'ricochet'; x: number; y: number }
   | { t: 'raidwarn'; n: number; side: number; secs: number }
@@ -383,7 +385,34 @@ export class Game {
   get derived(): Derived {
     const d = derive(this.upgrades);
     const g = this.gear;
-    return { ...d, maxHp: d.maxHp + g.maxHp, digPower: d.digPower * g.digMul, lampRadius: d.lampRadius + g.light };
+    return applyResearch({ ...d, maxHp: d.maxHp + g.maxHp, digPower: d.digPower * g.digMul, lampRadius: d.lampRadius + g.light }, this.save.research);
+  }
+
+  /** Prerequisite perks still missing before `id` can be studied. */
+  researchNeeds(id: ResearchId): ResearchId[] {
+    return researchMissing(this.save.research, id);
+  }
+
+  hasResearch(id: ResearchId): boolean {
+    return this.save.research.includes(id);
+  }
+
+  /** The Scientist studies a perk: it must live in the base, prerequisites done, you can shop and pay from the stash. */
+  canResearch(id: ResearchId): boolean {
+    return !this.hasResearch(id) && researchMissing(this.save.research, id).length === 0 && this.hasNpc('scientist') && this.canShop() && canAfford(this.stash, RESEARCH[id].cost);
+  }
+
+  /** Study a perk for good. Battery and HP gains fill up right away so the new headroom is felt at once. */
+  research(id: ResearchId): boolean {
+    if (!this.canResearch(id)) return false;
+    pay(this.stash, RESEARCH[id].cost);
+    const before = this.derived;
+    this.save.research.push(id);
+    const after = this.derived;
+    this.battery = Math.min(after.maxBattery, this.battery + Math.max(0, after.maxBattery - before.maxBattery));
+    this.hp = Math.min(after.maxHp, this.hp + Math.max(0, after.maxHp - before.maxHp));
+    this.emit({ t: 'research', id });
+    return true;
   }
 
   /** Combined stats of the equipped gear (cached until the loadout changes). */
@@ -2095,6 +2124,7 @@ export class Game {
       gear: { owned: [...this.save.gear.owned], equip: { ...this.save.gear.equip } },
       bosses: [...this.save.bosses],
       drones: { ...this.save.drones },
+      research: [...this.save.research],
       world: captureDiff(this.world, this.fog),
     };
   }
@@ -2105,7 +2135,7 @@ export class Game {
     const npc = this.npcNear();
     if (npc) {
       const info = NPC_INFO[npc.kind];
-      const act = `${touch ? 'Tap' : 'E'} to ${npc.kind === 'medic' ? 'get medkits' : npc.kind === 'gunsmith' ? 'fit weapon mods' : 'trade'}`;
+      const act = `${touch ? 'Tap' : 'E'} to ${npc.kind === 'medic' ? 'get medkits' : npc.kind === 'gunsmith' ? 'fit weapon mods' : npc.kind === 'scientist' ? 'research perks' : 'trade'}`;
       if (npc.pose === 'sleep' && this.raid) return `${info.name} hides under the covers: "Tell me when it is over!"  ${act}`;
       return `${info.name} the ${info.title}: "${npcLine(npc.kind, this.time)}"  ${act}`;
     }

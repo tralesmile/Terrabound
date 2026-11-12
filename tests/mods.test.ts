@@ -142,7 +142,7 @@ describe('save v15 mods', () => {
 
 describe('Rook the Gunsmith', () => {
   it('moves into the third valid room', () => {
-    expect(NPC_ORDER).toEqual(['trader', 'medic', 'gunsmith']);
+    expect(NPC_ORDER.slice(0, 3)).toEqual(['trader', 'medic', 'gunsmith']);
     expect(NPC_INFO.gunsmith.name).toBe('Rook');
     const g = new Game(defaultSave());
     rowHomes(g.world, 2);

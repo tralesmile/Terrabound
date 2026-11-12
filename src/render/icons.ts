@@ -6,6 +6,7 @@ import type { ItemId } from '../sim/tiles';
 import type { Tool } from '../sim/game';
 import { GEAR, type GearId } from '../sim/gear';
 import { MODS, type ModId } from '../sim/mods';
+import { RESEARCH, type ResearchId } from '../sim/research';
 
 export const ICON = 12;
 
@@ -702,6 +703,8 @@ const SHAPES: Record<string, string[]> = {
   pet: ['            ', '  o      o  ', ' oao    oao ', ' oaaooooaao ', ' oaaaaaaaao ', ' oabwaabwao ', ' oaaaaaaaao ', '  oaabbaao  ', '   oaaaao   ', '   oo  oo   ', '            ', '            '],
   // Mod chip: a square die with gold pins on every side and a coloured core (a) with a bright pip (b).
   chip: ['            ', '   h h h h  ', '  oooooooo  ', ' hoddddddoh ', '  odaaaado  ', ' hodabbadoh ', '  odabaado  ', ' hodaaaadoh ', '  oddddddo  ', '  oooooooo  ', '   h h h h  ', '            '],
+  // Research flask: a glass neck, a round body filled with the perk's colour, a bubble and a glint.
+  flask: ['    oooo    ', '    obbo    ', '    obbo    ', '   oobboo   ', '  obbbbbbo  ', ' obaaaaaabo ', ' obaahaaabo ', ' obaaaaaaho ', ' obaaaaaabo ', '  oaaaaaao  ', '   oooooo   ', '            '],
   hook: ['            ', '   oooo     ', '  obbbbo    ', ' obo  obo   ', ' obo   oo   ', ' obo        ', '  obo   oo  ', '   obooobo  ', '    obbbo   ', '     ooo  a ', '         a  ', '        a   '],
 };
 const SLOT_SHAPE: Record<string, string> = { head: 'helm', body: 'vest', feet: 'boot', vehicle: 'bike', pet: 'pet' };
@@ -725,6 +728,10 @@ export function iconDef(id: ItemId | Tool | string): IconDef {
   if (id.startsWith('mod_') && MODS[id.slice(4) as ModId]) {
     const m = MODS[id.slice(4) as ModId];
     return { pal: { a: m.color, b: '#ffffff', d: '#2b3a4a', h: '#e8c33d' }, rows: SHAPES.chip };
+  }
+  if (id.startsWith('res_') && RESEARCH[id.slice(4) as ResearchId]) {
+    const r = RESEARCH[id.slice(4) as ResearchId];
+    return { pal: { a: r.color, b: '#cfe8f0', h: '#ffffff' }, rows: SHAPES.flask };
   }
   if (id === 'hook') return { pal: { a: '#e6f6ff', b: '#9aa3b8' }, rows: SHAPES.hook };
   return FALLBACK;

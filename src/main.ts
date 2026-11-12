@@ -16,7 +16,8 @@ import { WEATHER } from './sim/weather';
 import { shareCard } from './ui/share';
 import { BOSSES } from './sim/bosses';
 import { ROLE_INFO, nextAct, nextCond } from './sim/drones';
-import { UI, tradeEntries, type UiAction } from './ui/ui';
+import { UI, entryNpc, tradeEntries, type UiAction } from './ui/ui';
+import { RESEARCH } from './sim/research';
 import { MODS } from './sim/mods';
 import { NPC_INFO } from './sim/npcs';
 
@@ -195,6 +196,9 @@ function boot(): void {
         break;
       case 'modbuy':
         if (game.buyMod(a.id)) saveNow();
+        break;
+      case 'research':
+        if (game.research(a.id)) saveNow();
         break;
       case 'modfit':
         if (game.fitMod(a.id)) {
@@ -474,8 +478,13 @@ function boot(): void {
         ui.toast(e.reason, '#ff9a3c');
         break;
       case 'modbuy':
-        ui.toast(`Rook built a ${MODS[e.id].name.toLowerCase()} and fitted it`, '#ffb23a', 3, 'mod');
+        ui.toast(`Rook built a${/^[aeiou]/i.test(MODS[e.id].name) ? 'n' : ''} ${MODS[e.id].name.toLowerCase()} and fitted it`, '#ffb23a', 3, 'mod');
         fx.burst(game.body.x, game.body.y - 1, MODS[e.id].color, 24, 6);
+        break;
+      case 'research':
+        ui.toast(`Nova cracked ${RESEARCH[e.id].name.toLowerCase()}: ${RESEARCH[e.id].desc.toLowerCase()}`, '#c08aff', 3, 'research');
+        fx.burst(game.body.x, game.body.y - 1, RESEARCH[e.id].color, 28, 6);
+        fx.ring(game.body.x, game.body.y - 1, 2.2, '#c08aff', 0.4);
         break;
       case 'shoot':
         // Muzzle flash: a quick bright puff at the barrel.
@@ -559,7 +568,7 @@ function boot(): void {
           ui.shopOpen = true;
           ui.setShopTab('trade');
           // Jump to the rows this robot posts (the Medic's sit below the Trader's).
-          ui.shopScroll = Math.max(0, tradeEntries(game).findIndex((t) => (typeof t === 'string' ? e.kind === 'gunsmith' : t.npc === e.kind)));
+          ui.shopScroll = Math.max(0, tradeEntries(game).findIndex((t) => entryNpc(t) === e.kind));
         }
         break;
       case 'trade':
