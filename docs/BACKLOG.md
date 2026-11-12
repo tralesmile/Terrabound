@@ -143,7 +143,7 @@ Polish
 - [x] Codex screen (run 32, src/sim/codex.ts): CODEX in the inventory, tabs PLACES / CREATURES (kill counts, field notes, bosses) / LOGS (12 data logs); derived from save.codex, save.bosses and award counters (no save field)
 - [x] Suit paints (run 32, src/sim/paints.ts): 6 cosmetic paints, one per gold award, PAINT button on the inventory preview, shown in the world; save v25
 - [ ] Codex follow-ups: a log reader that pages the full story in order, codex entries for robots and the merchant, paint colours for helmets and vehicles
-- [ ] Mobile polish: on-screen hotbar sized for thumbs, hook hold-to-reel button, safe-area insets; real-device check listed in NEEDS_FROM_USER
+- [x] Mobile polish (run 33): safe-area insets (notch / home bar, src/ui/safearea.ts), HOLD REEL touch button for the hook; hotbar slots were already ~44 CSS px on a 390 px phone; real-device check stays in NEEDS_FROM_USER
 
 Money (ethical, no paywalls)
 - [ ] Cosmetic suits and vehicle skins (visible prices), supporter pack, opt-in rewarded ads (double drone output, revive with half loot) behind AdProvider; consent first
@@ -155,7 +155,7 @@ Money (ethical, no paywalls)
 - [x] Grappling hook tool (5): rope pendulum, reel in / lower, jump to release
 - [x] Abilities: double jump, dash, jetpack, glider; vehicles hoverbike and Sky Jet (V / RIDE)
 - [x] Map: tile detail, zoom (wheel, +/-), drag pan, YOU, chest pins, structure outlines, legend
-- [ ] Follow-ups: gear tiers and upgrades (Mk II), weapon mods, enemy-dropped gear, vehicle art pass (sprites instead of rectangles), map waypoints and fast travel between beacons, touch: hold-to-reel button for the hook
+- [ ] Follow-ups: gear tiers and upgrades (Mk II), weapon mods, enemy-dropped gear, vehicle art pass (sprites instead of rectangles), map waypoints and fast travel between beacons (touch hold-to-reel done run 33)
 
 ## P2 Base and automation (M2)
 

@@ -133,3 +133,8 @@
 - **Overlay text placed by slot index breaks when a list grows** (the held-tool label sat after slot 4 and overprinted the 5th tool). Guard: labels go in headers, not after the Nth cell.
 - **Derived knowledge beats new save fields:** codex kills and logs live in the award counters (sanitised generically), so the codex needed no migration. Prefer that when the data is a count or a seen-flag.
 - **Retro:** three slices, three ships (~4-5 min each) plus one rebase. Editing files while `npm run ship` runs in the background is unsafe (the gate builds the working tree); only read code while it runs.
+
+- **Cave pools are not fixtures:** after the swim check the found pool had drained, so bubble/splash checks saw `inLiquid: 0`, and landing dust looked like splash droplets. Guard: liquid e2e checks build a sealed bedrock tank (fixed surface) and clear fx particles before sampling; assert on a fact only the new effect produces (the splash ring), not on generic particles.
+- **Translating the UI for safe areas would break every e2e that clicks `ui.rects`.** Guard: `UI.draw` translates the context but shifts the rects back to canvas CSS px after drawing, so hit tests and e2e coordinates never change; `?inset=` fakes a notch for the check.
+- **Hold buttons cannot go through `onAction` (one-shot).** Guard: Input turns a press on a `reel` rect into a held pointer kind, read every frame like the stick.
+- **Retro:** two slices, two ships (~4 min each), no rebase needed. Building the e2e fixture deterministically from the start (tank) would have saved one e2e round.

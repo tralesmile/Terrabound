@@ -517,3 +517,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** mobile polish (thumb hotbar, hold-to-reel, safe-area insets); codex follow-ups; P1.9 garage follow-ups.
 
 **Known issues:** rims are subtle in big open caves (by design: only lamp-facing faces are strong); awards still pay only a star except gold ones (paints); drone mining counts toward "mined"; digits 1-0 not remappable; toast kinds guessed from text; ore marks 5 px; offline crop growth ignores robot gardeners; crops restart their stage when the base moves; upgrade BUY refuses upstairs off the pad; turrets draw 1 power idle; e2e farm uses raw tile ids (57-67); drill tank drawn behind the pilot.
+
+## 2026-11-12 Scheduled run 33
+
+**Done:** baseline green (599 tests). Creative review: swimming had no splash or bubbles (carried 2 runs; 17-water). Splash and bubbles (src/render/fx.ts): crossing a water/acid/magma surface throws a droplet crown, surface foam and a flat ring sized by fall speed (`splashPower`), with a splash sound; the helmet leaks hollow air bubbles that wobble up while under (17b-splash). Backlog mobile polish: the UI draws inside safe-area insets (notch, home bar) read from env() through a probe element, hit rects stay in canvas px, `?inset=t,r,b,l` fakes them (06c-mobile-notch); HOLD REEL touch button while hooked reels the rope in (Controls.reel; 23b-mobile-reel). The water e2e now uses a sealed bedrock tank so flowing water cannot move the surface.
+
+**Numbers:** 612 unit tests (new: splashfx 7, mobilepolish 6), 164 e2e checks all green (new: helmet bubbles, splash crown + ring, notch frame, hold reel), bundle 357 kB (123.1 kB gzip).
+
+**Next:** codex follow-ups (log reader, robot/merchant entries, helmet/vehicle paints); P1.9 garage follow-ups; small stash gifts for bronze/silver awards.
+
+**Known issues:** the full-screen panels fill only the safe frame (the world shows in the notch strip); rims subtle in big open caves; drone mining counts toward "mined"; digits 1-0 not remappable; toast kinds guessed from text; ore marks 5 px; offline crop growth ignores robot gardeners; crops restart their stage when the base moves; upgrade BUY refuses upstairs off the pad; turrets draw 1 power idle; e2e farm uses raw tile ids (57-67); drill tank drawn behind the pilot.
