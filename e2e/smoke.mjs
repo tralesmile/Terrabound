@@ -851,6 +851,17 @@ try {
     await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(out, `22b-${id}.png`) });
     check(`the ${id} rides as a sprite`, v === id, String(v));
+    if (id === 'drill_tank') {
+      // The hull is drawn over the pilot: the pixel at the pilot's waist is tank green, not suit.
+      const tuck = await page.evaluate(() => {
+        const { game, renderer } = window.__terrabound;
+        const c = document.getElementById('game');
+        const p = renderer.worldToScreen(game.body.x, game.body.y);
+        const d = c.getContext('2d').getImageData(Math.round(p.x), Math.round(p.y - 9.75 * renderer.scale), 1, 1).data;
+        return { tucked: renderer.pilotTucked, rgb: [d[0], d[1], d[2]] };
+      });
+      check('the drill tank hull sits in front of the pilot', tuck.tucked && tuck.rgb[1] > tuck.rgb[0] && tuck.rgb[1] > tuck.rgb[2], JSON.stringify(tuck));
+    }
   }
   await page.evaluate(() => {
     const g = window.__terrabound.game;

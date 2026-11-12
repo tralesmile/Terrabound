@@ -20,6 +20,10 @@ import { ICON, drawIcon } from './icons';
 import { VEHICLE_REMAP } from './sprites';
 /** Pixel-art scale of ground vehicles relative to the player sprite. */
 const VEHICLE_ART_SCALE = 1.5;
+/** Sprite row where a ground vehicle's hull starts (above it: roll cage / cab). */
+const HULL_ROW = 3;
+/** Sprite row of a ground vehicle's floor pan: the pilot is not drawn below it (no legs through the floor). */
+const HULL_FLOOR: Record<'buggy' | 'drill_tank', number> = { buggy: 7, drill_tank: 9 };
 import { GEAR, type RangedKind } from '../sim/gear';
 import { BOSSES, phase as bossPhase } from '../sim/bosses';
 import { drawBossArt } from './bossart';
@@ -108,6 +112,8 @@ export class Renderer {
   private ropeT0 = 0;
   /** Last drawn rope shape (for e2e checks). */
   ropeInfo: { sag: number; twang: number; points: number } | null = null;
+  /** True while a ground vehicle's hull is drawn over the pilot (for e2e checks). */
+  pilotTucked = false;
   /** Device pixels. */
   w = 1;
   h = 1;
@@ -430,6 +436,7 @@ export class Renderer {
         ctx.fillRect(px - game.facing * 7 * scale - 1.5 * scale, py - 8 * scale, 3 * scale, (3 + (Math.floor(time * 40) % 3)) * scale);
       }
     }
+    let hullOver: { clipY: number; floorY: number; draw: () => void } | null = null;
     if (veh === 'hoverbike' || veh === 'sky_jet' || veh === 'buggy' || veh === 'drill_tank') {
       const vd = VEHICLES[veh];
       if (veh === 'hoverbike') {
@@ -442,7 +449,11 @@ export class Renderer {
       const moving = Math.abs(b.vx) > 0.5 ? time : 0;
       // Ground vehicles are drawn larger so the pilot sits inside, not on top of a toy.
       const vs = ground ? scale * VEHICLE_ART_SCALE : scale;
-      drawRows(ctx, vehicleRows(veh, ground ? moving : time, game.jetting), px - (vd.w / 2) * vs, py - (vd.top - bob) * vs, vs, game.facing < 0, vd.w, undefined, VEHICLE_REMAP[veh]);
+      const drawVeh = (): void => drawRows(ctx, vehicleRows(veh, ground ? moving : time, game.jetting), px - (vd.w / 2) * vs, py - (vd.top - bob) * vs, vs, game.facing < 0, vd.w, undefined, VEHICLE_REMAP[veh]);
+      drawVeh();
+      // Ground vehicles: the hull (rows below the cab) is drawn again over the pilot after the
+      // player, so the pilot sits inside with only helmet and shoulders showing.
+      if (ground) hullOver = { clipY: Math.round(py - (vd.top - HULL_ROW) * vs), floorY: Math.round(py - (vd.top - HULL_FLOOR[veh]) * vs), draw: drawVeh };
     }
     // The parked vehicle waits where you left it, with a hint when you are close.
     const parked = game.riding ? null : game.parkedVehicle();
@@ -514,6 +525,12 @@ export class Renderer {
       this.ropeInfo = null;
     }
     const paint = game.paint;
+    if (hullOver) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, w, hullOver.floorY);
+      ctx.clip();
+    }
     drawPlayer(ctx, px, py, scale, {
       wear: { head: eq('head'), body: eq('body'), feet: eq('feet') },
       paint: paint ? [paint.c1, paint.c2] : undefined,
@@ -530,6 +547,16 @@ export class Renderer {
       held: game.tool,
       squash: fx.hurtLeft > 0 ? hurtSquash(fx.hurtLeft) : squashScale(fx.squashLeft, fx.squashPower),
     });
+    this.pilotTucked = hullOver !== null;
+    if (hullOver) {
+      ctx.restore();
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, hullOver.clipY, w, h - hullOver.clipY);
+      ctx.clip();
+      hullOver.draw();
+      ctx.restore();
+    }
 
     // Items on the ground: bobbing icons with a soft glow so they read as pickups.
     for (const d of game.drops) {
