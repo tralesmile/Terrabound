@@ -148,6 +148,8 @@ export class UI {
   invSel: ItemId | null = null;
   /** Seconds left to confirm abandoning the world (NEW WORLD needs two taps). */
   newWorldArmed = 0;
+  /** Seconds left to confirm DAILY (second tap starts the Daily Dive). */
+  dailyArmed = 0;
   readonly mapView = new MapView();
   /** Where the map was last drawn (drag-to-pan hit area). */
   mapRect = { x: 0, y: 0, w: 0, h: 0 };
@@ -197,6 +199,7 @@ export class UI {
 
   update(dt: number): void {
     this.newWorldArmed = Math.max(0, this.newWorldArmed - dt);
+    this.dailyArmed = Math.max(0, this.dailyArmed - dt);
     for (const t of this.toasts) t.life -= dt;
     this.toasts = this.toasts.filter((t) => t.life > 0);
   }
@@ -935,7 +938,7 @@ export class UI {
     const tbw = (pw - u * 4) / 3;
     this.button(ctx, px + u, fy - u * 2.8, tbw, u * 2.2, 'COPY CODE', { k: 'copyseed' }, u * 0.7);
     this.button(ctx, px + u * 2 + tbw, fy - u * 2.8, tbw, u * 2.2, 'PLAY CODE', { k: 'enterseed' }, u * 0.7);
-    this.button(ctx, px + u * 3 + tbw * 2, fy - u * 2.8, tbw, u * 2.2, 'DAILY', { k: 'daily' }, u * 0.7, { color: '#2a6a7a' });
+    this.button(ctx, px + u * 3 + tbw * 2, fy - u * 2.8, tbw, u * 2.2, this.dailyArmed > 0 ? 'CONFIRM?' : 'DAILY', { k: 'daily' }, u * 0.7, { color: this.dailyArmed > 0 ? '#a33a2a' : '#2a6a7a', pulse: this.dailyArmed > 0 });
     this.button(ctx, px + u, fy, bw, u * 2.4, this.newWorldArmed > 0 ? 'CONFIRM?' : 'NEW WORLD', { k: 'dive' }, u, { color: this.newWorldArmed > 0 ? '#a33a2a' : '#7a5a1f', pulse: this.newWorldArmed > 0 });
     this.button(ctx, px + u * 2 + bw, fy, bw, u * 2.4, 'CLOSE', { k: 'close' }, u);
     // Footer: on a shared world (Daily Dive, a friend's code) your local record sits under the world line.

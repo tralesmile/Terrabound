@@ -182,7 +182,12 @@ function boot(): void {
         break;
       }
       case 'daily':
-        if (game.newDive(dailyCode(Date.now()))) {
+        // Same two-tap guard as NEW WORLD: the Daily Dive replaces the world you are in.
+        if (ui.dailyArmed <= 0) {
+          ui.dailyArmed = 3;
+          ui.toast(`Tap DAILY again to leave this world for today's Daily Dive (${dailyCode(Date.now())})`, '#ff9a3c');
+        } else if (game.newDive(dailyCode(Date.now()))) {
+          ui.dailyArmed = 0;
           ui.shopOpen = false;
           saveNow();
           ui.toast(`Daily Dive ${dailyCode(Date.now())}: same world for everyone today`, '#36e0e8', 5);

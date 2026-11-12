@@ -1893,6 +1893,11 @@ try {
   await page.screenshot({ path: path.join(out, '09b-mobile-shop-fab.png') });
   await page.evaluate(() => { window.__terrabound.act({ k: 'tab', t: 'upgrades' }); });
   check('shop tab action switches tabs', (await page.evaluate(() => window.__terrabound.ui.shopTab)) === 'upgrades');
+  const seedBeforeDaily = await page.evaluate(() => window.__terrabound.game.seedCode);
+  await page.evaluate(() => { window.__terrabound.act({ k: 'daily' }); });
+  await page.waitForTimeout(200);
+  const dailyArmed = await page.evaluate(() => ({ armed: window.__terrabound.ui.dailyArmed > 0, open: window.__terrabound.ui.shopOpen, code: window.__terrabound.game.seedCode }));
+  check('first DAILY tap only arms a confirm (world unchanged, workshop open)', dailyArmed.armed && dailyArmed.open && dailyArmed.code === seedBeforeDaily, JSON.stringify(dailyArmed));
   await page.evaluate(() => { window.__terrabound.act({ k: 'daily' }); });
   await page.waitForTimeout(200);
   const dailyOk = await page.evaluate(() => {
@@ -1909,6 +1914,7 @@ try {
       game.body.y = game.world.padY;
       game.carried.rust = 3;
       game.bank();
+      window.__terrabound.act({ k: 'daily' });
       window.__terrabound.act({ k: 'daily' });
     });
     await page.waitForTimeout(200);
