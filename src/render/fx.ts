@@ -38,6 +38,9 @@ export interface FloatText {
   max: number;
   text: string;
   color: string;
+  /** Pickup labels merge: item key and running count ("+3 Glowcorn"). */
+  key?: string;
+  n?: number;
 }
 
 const MAX_PARTICLES = 400;
@@ -273,7 +276,29 @@ export class Fx {
 
   text(x: number, y: number, text: string, color: string): void {
     if (this.texts.length >= MAX_TEXTS) this.texts.shift();
-    this.texts.push({ x, y, life: 1, max: 1, text, color });
+    // Lift a new label above any fresh one it would sit on, so bursts stack instead of overprinting.
+    let ty = y;
+    for (let k = 0; k < 6; k++) {
+      const hit = this.texts.some((t) => t.life > 0.45 && Math.abs(t.x - x) < 1.6 && Math.abs(t.y - ty) < 0.5);
+      if (!hit) break;
+      ty -= 0.55;
+    }
+    this.texts.push({ x, y: ty, life: 1, max: 1, text, color });
+  }
+
+  /** "+n Name" pickup label; repeats of the same item close by add up on one line instead of stacking. */
+  pickup(x: number, y: number, key: string, name: string, color: string, n = 1): void {
+    const same = this.texts.find((t) => t.key === key && t.life > 0.35 && Math.abs(t.x - x) < 2.5 && Math.abs(t.y - y) < 2.5);
+    if (same) {
+      same.n = (same.n ?? 1) + n;
+      same.text = `+${same.n} ${name}`;
+      same.life = same.max;
+      return;
+    }
+    this.text(x, y, `+${n} ${name}`, color);
+    const t = this.texts[this.texts.length - 1];
+    t.key = key;
+    t.n = n;
   }
 
   addShake(amount: number): void {

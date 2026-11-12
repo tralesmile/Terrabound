@@ -388,7 +388,7 @@ function boot(): void {
         fx.addShake(0.25);
         break;
       case 'pickup':
-        fx.text(e.x + 0.5, e.y, `+1 ${ITEMS[e.item].name}`, ITEMS[e.item].color);
+        fx.pickup(e.x + 0.5, e.y, e.item, ITEMS[e.item].name, ITEMS[e.item].color);
         break;
       case 'hurt':
         fx.addShake(0.5);
