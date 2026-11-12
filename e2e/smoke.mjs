@@ -1060,6 +1060,49 @@ try {
   });
   check('a raid warning names the side and count before nightfall', warnSetup.ok && !!warnState && (warnState.side === 1 || warnState.side === -1) && warnState.n > 0, JSON.stringify({ warnSetup, warnState }));
 
+  // Furniture and rooms: a furnished, walled room on the pad is a valid robot home; the hint says so.
+  const roomState = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const px = w.padX;
+    const py = w.padY;
+    const T = { AIR: 0, METAL: 2, TORCH: 7, DOOR: 11, TABLE: 46, LAMP: 47, SCREEN: 48, POT_PLANT: 49, BANNER: 50, BED: 51 };
+    g.enemies = g.enemies.filter((e) => !e.raid);
+    g.raid = null;
+    for (let y = py - 5; y <= py - 1; y++) {
+      w.set(px - 4, y, y >= py - 2 ? T.DOOR : T.METAL);
+      w.set(px + 4, y, T.METAL);
+    }
+    for (let x = px - 4; x <= px + 4; x++) w.set(x, py - 5, T.METAL);
+    for (let y = py - 4; y <= py - 1; y++) for (let x = px - 3; x <= px + 3; x++) {
+      w.set(x, y, T.AIR);
+      w.setWall(x, y, 3);
+    }
+    w.set(px - 3, py - 1, T.BED);
+    w.set(px + 2, py - 1, T.TABLE);
+    w.set(px + 3, py - 1, T.POT_PLANT);
+    w.set(px - 2, py - 4, T.LAMP);
+    w.set(px + 2, py - 4, T.LAMP);
+    w.set(px, py - 3, T.SCREEN);
+    w.set(px - 1, py - 4, T.BANNER);
+    g.body.x = px + 0.5;
+    g.body.y = py;
+    g.body.vx = g.body.vy = 0;
+    const r = g.roomHere();
+    return { valid: !!r && r.valid, comfort: r ? r.comfort : -1, cells: r ? r.cells.length : 0, hint: g.hintAutomation(false) };
+  });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: path.join(out, '35-room.png') });
+  check('a furnished, walled room is a valid robot home', roomState.valid && roomState.comfort === 4 && /Room ready/.test(roomState.hint || ''), JSON.stringify(roomState));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    for (let y = w.padY - 5; y <= w.padY - 1; y++) for (let x = w.padX - 4; x <= w.padX + 4; x++) {
+      w.set(x, y, 0);
+      w.setWall(x, y, 0);
+    }
+  });
+
   // Share card: SHARE on the map downloads a PNG in a headless browser (no Web Share there).
   await page.keyboard.press('KeyM');
   await page.waitForTimeout(200);

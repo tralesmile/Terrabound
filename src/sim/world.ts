@@ -73,8 +73,9 @@ export class World {
   set(x: number, y: number, t: number): boolean {
     if (x < 0 || x >= this.w || y < 0 || y >= this.h) return false;
     const i = y * this.w + x;
-    if (this.tiles[i] === T.TORCH) this.torches.delete(i);
-    if (t === T.TORCH) this.torches.add(i);
+    // Lamps (furniture) light like torches.
+    if (this.tiles[i] === T.TORCH || this.tiles[i] === T.LAMP) this.torches.delete(i);
+    if (t === T.TORCH || t === T.LAMP) this.torches.add(i);
     if (t !== T.SAPLING) this.saplings.delete(i);
     if (t !== T.CHEST && this.chests.delete(i)) this.chestVersion++;
     this.tiles[i] = t;

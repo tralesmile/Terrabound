@@ -35,6 +35,7 @@ import { DRONE_ROLES, ENEMY_NEAR, HP_LOW, DEEP_AT, RULE_MAX, ROLE_INFO, sanitize
 import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
 import { isNight, DAY_LENGTH } from './daynight';
 import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
+import { findRooms, roomHint, type Room } from './rooms';
 import { blueprintDrop, RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
 import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
@@ -91,6 +92,7 @@ export type GameEvent =
   | { t: 'raidchew'; x: number; y: number; tile: number }
   | { t: 'raidclear'; n: number; reward: Inventory; blueprint: string | null }
   | { t: 'raidend' }
+  | { t: 'roomready'; x: number; y: number }
   | { t: 'raidwarn'; n: number; side: number; secs: number }
   | { t: 'turretshot'; x: number; y: number; tx: number; ty: number }
   | { t: 'spikehit'; x: number; y: number }
@@ -1118,7 +1120,9 @@ export class Game {
           if (this.placeCd === 0) this.emit({ t: 'nosoil' });
           this.placeCd = 0.5;
         } else {
+          const homeBefore = this.validRooms();
           this.world.set(tx, ty, item.places);
+          if (this.validRooms() > homeBefore) this.emit({ t: 'roomready', x: tx, y: ty });
           const i = ty * this.world.w + tx;
           if (item.places === T.SAPLING) this.world.saplings.set(i, growTime(this.world, i));
           if (item.places === T.CHEST) this.world.chests.set(i, {});
@@ -1961,6 +1965,8 @@ export class Game {
   /** Tutorial line for the first automation, shown at the base only. */
   hintAutomation(touch: boolean): string | null {
     if (!this.isAtBase()) return null;
+    const room = roomHint(this.roomHere());
+    if (room) return room;
     const bay = this.bayNear();
     if (bay) {
       const r = this.droneRole(bay.key);
@@ -1969,11 +1975,35 @@ export class Game {
     return automationHint(this.machineCounts, this.stash, this.power.ratio, touch, this.upgrades.fab ?? 0);
   }
 
+  private roomCache: { v: number; px: number; py: number; rooms: Room[] } | null = null;
+
+  /** Enclosed rooms in the base strip (rooms.ts), recomputed only when the world changes. */
+  get rooms(): Room[] {
+    const w = this.world;
+    const c = this.roomCache;
+    if (c && c.v === w.version && c.px === w.padX && c.py === w.padY) return c.rooms;
+    const rooms = findRooms(w);
+    this.roomCache = { v: w.version, px: w.padX, py: w.padY, rooms };
+    return rooms;
+  }
+
+  /** Valid robot homes in the base (counted only near the base, where rooms can exist). */
+  validRooms(): number {
+    if (Math.abs(this.body.x - this.world.padX) > 30) return 0;
+    return this.rooms.filter((r) => r.valid).length;
+  }
+
+  /** The room the player is standing in, or null. */
+  roomHere(): Room | null {
+    const i = Math.floor(this.body.y - 0.5) * this.world.w + Math.floor(this.body.x);
+    return this.rooms.find((r) => r.cells.includes(i)) ?? null;
+  }
+
   /** Cheapest affordable upgrade hint for UI badges. */
   affordableUpgrades(): string[] {
     return UPGRADES.filter((u) => {
       const lv = this.upgrades[u.id] ?? 0;
-      return lv < u.maxLevel && canAfford(this.stash, u.cost(lv));
+      return lv < u.maxLevel && this.save.stats.raids >= (u.needRaids?.(lv) ?? 0) && canAfford(this.stash, u.cost(lv));
     }).map((u) => u.id);
   }
 }

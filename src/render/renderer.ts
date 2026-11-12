@@ -1,4 +1,5 @@
 import type { Game } from '../sim/game';
+import { FURNITURE_ART, screenLines } from './furniture';
 import { REACH } from '../sim/game';
 import { onLadder } from '../sim/physics';
 import { ENEMIES } from '../sim/enemies';
@@ -538,6 +539,12 @@ export class Renderer {
       this.drawSpikes(ctx, dx, dy, ts);
       return;
     }
+    const art = FURNITURE_ART[t];
+    if (art) {
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      drawRows(ctx, art.rows, dx, dy, ts / 16, false, 16, undefined, art.pal);
+      return;
+    }
     if (t === T.SOLAR || t === T.SMELTER || t === T.BATTERY || t === T.MINER || t === T.DRONE || t === T.TURRET) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
       this.drawMachine(ctx, t, dx, dy, ts);
@@ -751,6 +758,30 @@ export class Renderer {
     ctx.fillRect(x + 7 * u, y + 8 * u, 2 * u, 1.5 * u);
   }
 
+  /** Lamp halo and a live wall screen (scrolling readout and a blinking cursor). */
+  private drawFurnitureGlow(ctx: CanvasRenderingContext2D, t: number, x: number, y: number, ts: number, time: number, tx: number): void {
+    const u = ts / 16;
+    if (t === T.LAMP) {
+      const f = 0.85 + 0.15 * Math.sin(time * 2.3 + tx);
+      ctx.fillStyle = `rgba(255,224,138,${0.16 * f})`;
+      ctx.beginPath();
+      ctx.arc(x + 8 * u, y + 4 * u, 7 * u, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = `rgba(255,246,208,${0.5 * f})`;
+      ctx.fillRect(x + 5 * u, y + 3 * u, 6 * u, 2 * u);
+      return;
+    }
+    const s = screenLines(time, tx);
+    for (let i = 0; i < s.length; i++) {
+      ctx.fillStyle = i === 1 ? '#9ff6a0' : '#36e0e8';
+      ctx.fillRect(x + 3 * u, y + (4 + i * 2) * u, s[i] * u, u);
+    }
+    if (Math.floor(time * 2) % 2 === 0) {
+      ctx.fillStyle = '#e6eeff';
+      ctx.fillRect(x + (3 + s[s.length - 1]) * u, y + (4 + (s.length - 1) * 2) * u, u, u);
+    }
+  }
+
   private turretAim = new Map<number, number>();
   private turretsOn = false;
   private machinesOn = false;
@@ -766,6 +797,7 @@ export class Renderer {
       for (let tx = Math.max(0, x0); tx <= Math.min(world.w - 1, x1); tx++) {
         const t = world.tiles[ty * world.w + tx];
         if (t === T.TORCH) this.drawTorch(ctx, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time + tx);
+        else if (t === T.LAMP || t === T.SCREEN) this.drawFurnitureGlow(ctx, t, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time, tx);
         else if (t === T.TURRET) this.drawTurretTop(ctx, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, this.turretAim.get(ty * world.w + tx) ?? -Math.PI / 2, this.turretsOn, time);
         else if (t === T.BATTERY) {
           const n = Math.round(this.batteryFill * 4);

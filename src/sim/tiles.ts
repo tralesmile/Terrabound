@@ -34,7 +34,13 @@ export type ItemId =
   | 'turret'
   | 'spikes'
   | 'reinforced'
-  | 'shield';
+  | 'shield'
+  | 'table'
+  | 'lamp'
+  | 'screen'
+  | 'potplant'
+  | 'banner'
+  | 'bed';
 export const ITEM_IDS: ItemId[] = [
   'rust',
   'metal',
@@ -70,6 +76,12 @@ export const ITEM_IDS: ItemId[] = [
   'spikes',
   'reinforced',
   'shield',
+  'table',
+  'lamp',
+  'screen',
+  'potplant',
+  'banner',
+  'bed',
 ];
 
 export const T = {
@@ -123,6 +135,13 @@ export const T = {
   REINFORCED: 44,
   /** Raid blueprint: energy-laced wall, 6x chew time, glows. */
   SHIELD: 45,
+  /** Furniture (rooms.ts): one tile each, non-solid, minable. A lamp lights like a torch. */
+  TABLE: 46,
+  LAMP: 47,
+  SCREEN: 48,
+  POT_PLANT: 49,
+  BANNER: 50,
+  BED: 51,
 } as const;
 
 export interface TileDef {
@@ -196,6 +215,12 @@ export const TILES: TileDef[] = [
   { name: 'Spike trap', hardness: 0.4, solid: false, drop: 'spikes', minable: true },
   { name: 'Reinforced wall', hardness: 1.6, solid: true, drop: 'reinforced' },
   { name: 'Shield wall', hardness: 2, solid: true, drop: 'shield', glow: true },
+  { name: 'Table', hardness: 0.2, solid: false, drop: 'table', minable: true },
+  { name: 'Lamp', hardness: 0.1, solid: false, drop: 'lamp', minable: true },
+  { name: 'Wall screen', hardness: 0.2, solid: false, drop: 'screen', minable: true },
+  { name: 'Potted plant', hardness: 0.1, solid: false, drop: 'potplant', minable: true },
+  { name: 'Banner', hardness: 0.1, solid: false, drop: 'banner', minable: true },
+  { name: 'Bunk bed', hardness: 0.2, solid: false, drop: 'bed', minable: true },
 ];
 
 export interface ItemDef {
@@ -245,9 +270,15 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   spikes: { name: 'Spike trap', color: '#c9d0e4', places: T.SPIKES, kit: true },
   reinforced: { name: 'Reinforced wall', color: '#8a9ab8', places: T.REINFORCED, kit: true },
   shield: { name: 'Shield wall', color: '#5ad8ff', places: T.SHIELD, kit: true },
+  table: { name: 'Table', color: '#a07a4a', places: T.TABLE, kit: true },
+  lamp: { name: 'Lamp', color: '#ffe08a', places: T.LAMP, kit: true },
+  screen: { name: 'Wall screen', color: '#36e0e8', places: T.SCREEN, kit: true },
+  potplant: { name: 'Potted plant', color: '#5ac85a', places: T.POT_PLANT, kit: true },
+  banner: { name: 'Banner', color: '#e04a5a', places: T.BANNER, kit: true },
+  bed: { name: 'Bunk bed', color: '#6a8ad8', places: T.BED, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed'];
 
 /** Placeables worth showing in the hotbar: owned ones plus the selected one, in PLACEABLE order. */
 export function visiblePlaceables(inv: Inventory, selected: ItemId): ItemId[] {

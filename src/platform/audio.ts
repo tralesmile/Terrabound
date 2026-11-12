@@ -187,6 +187,10 @@ export class Sfx {
       case 'weather':
         if (e.kind !== 'clear') [440, 554, 659].forEach((f, i) => this.tone(f, 0.25, 'sine', 0.06, undefined, i * 0.15));
         break;
+      case 'roomready':
+        // Warm rising chime.
+        [523, 659, 784].forEach((f, i) => this.tone(f, 0.18, 'triangle', 0.06, f, i * 0.09));
+        break;
       case 'raidstart':
         // Two-tone siren.
         [0, 0.35, 0.7].forEach((d) => this.tone(520, 0.3, 'square', 0.07, 780, d));

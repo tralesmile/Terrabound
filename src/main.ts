@@ -505,6 +505,10 @@ function boot(): void {
         saveNow();
         break;
       }
+      case 'roomready':
+        ui.toast('Room complete! A robot can move in here soon', '#7dffb0', 4);
+        fx.burst(e.x + 0.5, e.y + 0.5, '#ffe08a', 14, 4);
+        break;
       case 'raidend':
         ui.toast('The raiders retreat', '#c9d0e4', 2, 'raid');
         break;

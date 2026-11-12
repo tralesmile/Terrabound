@@ -36,6 +36,12 @@ export const RECIPES: Recipe[] = [
   { id: 'reinforced', name: 'Reinforced wall x4', out: 'reinforced', qty: 4, cost: { metal: 3, iron_scrap: 2 }, fab: 1 },
   { id: 'shield', name: 'Shield wall x4', out: 'shield', qty: 4, cost: { metal: 4, crystal: 2, copper_wire: 2 }, fab: 1, raids: 6 },
   { id: 'turret', name: 'Turret x1', out: 'turret', qty: 1, cost: { metal: 4, copper_wire: 3, crystal: 1 }, fab: 2 },
+  { id: 'table', name: 'Table x1', out: 'table', qty: 1, cost: { rust: 4, iron_scrap: 1 } },
+  { id: 'bed', name: 'Bunk bed x1', out: 'bed', qty: 1, cost: { rust: 4, biomass: 2 } },
+  { id: 'lamp', name: 'Lamp x2', out: 'lamp', qty: 2, cost: { iron_scrap: 1, crystal: 1 } },
+  { id: 'screen', name: 'Wall screen x1', out: 'screen', qty: 1, cost: { metal: 1, copper_wire: 1 }, fab: 1 },
+  { id: 'potplant', name: 'Potted plant x1', out: 'potplant', qty: 1, cost: { rust: 1, biomass: 2 } },
+  { id: 'banner', name: 'Banner x1', out: 'banner', qty: 1, cost: { biomass: 2, rust: 1 } },
   { id: 'smelter', name: 'Smelter x1', out: 'smelter', qty: 1, cost: { metal: 4, copper_wire: 2 }, fab: 2 },
 ];
 
