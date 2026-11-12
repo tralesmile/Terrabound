@@ -16,7 +16,7 @@ import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 25;
+export const SAVE_VERSION = 26;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -67,6 +67,9 @@ export interface SaveData {
   garage: GarageSave;
   /** v25: chosen suit paint id (paints.ts), null = default look; v24 saves load with null. */
   paint: string | null;
+  /** v26: chosen helmet and vehicle paint ids (same earned paints as the suit), null = default look. */
+  paintHelm: string | null;
+  paintRide: string | null;
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -96,6 +99,8 @@ export function defaultSave(seedBase = 1337): SaveData {
     awards: { n: {}, done: [] },
     garage: defaultGarage(),
     paint: null,
+    paintHelm: null,
+    paintRide: null,
   };
 }
 
@@ -190,6 +195,9 @@ export function parseSave(raw: string | null | undefined): SaveData {
     garage: sanitizeGarage(r.garage, sanitizeGear(r.gear).owned, r.garage === undefined),
     // v24 -> v25: no paint chosen (default look); unknown ids drop to null.
     paint: sanitizePaint(r.paint),
+    // v25 -> v26: helmet and vehicle keep their default look.
+    paintHelm: sanitizePaint(r.paintHelm),
+    paintRide: sanitizePaint(r.paintRide),
   };
 }
 

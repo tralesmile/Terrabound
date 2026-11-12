@@ -1,3 +1,4 @@
+import { aoRects } from './ao';
 import { computeRims, type Rim } from './rimlight';
 import { buriedDecal, decalRects, hasStrata, strataShade } from './strata';
 import type { Game, Hook, Shot } from '../sim/game';
@@ -15,9 +16,9 @@ import { hash2 } from '../sim/rng';
 import { T } from '../sim/tiles';
 import { BODY_H } from '../sim/physics';
 import { HIT_SQUASH_TIME, hitSquash, hurtSquash, hurtVignette, softFlash, magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx } from './fx';
-import type { PlayerGear } from './sprites';
+import type { PlayerGear, VehicleSpriteId } from './sprites';
 import { ICON, drawIcon } from './icons';
-import { VEHICLE_REMAP } from './sprites';
+import { vehicleRemap } from './sprites';
 /** Pixel-art scale of ground vehicles relative to the player sprite. */
 const VEHICLE_ART_SCALE = 1.5;
 /** Sprite row where a ground vehicle's hull starts (above it: roll cage / cab). */
@@ -160,6 +161,12 @@ export class Renderer {
     if (wl === 0) return;
     const v = Math.floor(hash2(tx, ty, 11) * VARIANTS);
     ctx.drawImage(this.wallAtlas, v * TS, wl * TS, TS, TS, dx, dy, ts, ts);
+    // Contact shadow where the wall meets solid blocks (baked into the chunk, free per frame).
+    const k = ts / TS;
+    for (const r of aoRects(world, tx, ty, TS)) {
+      ctx.fillStyle = `rgba(6,4,12,${r.alpha.toFixed(3)})`;
+      ctx.fillRect(dx + r.x * k, dy + r.y * k, r.w * k, r.h * k);
+    }
   }
 
   screenToTile(sx: number, sy: number): Aim {
@@ -436,6 +443,8 @@ export class Renderer {
         ctx.fillRect(px - game.facing * 7 * scale - 1.5 * scale, py - 8 * scale, 3 * scale, (3 + (Math.floor(time * 40) % 3)) * scale);
       }
     }
+    const rp = game.ridePaint;
+    const rideRemap = (id: VehicleSpriteId): Record<string, string> | undefined => vehicleRemap(id, rp ? [rp.c1, rp.c2] : undefined);
     let hullOver: { clipY: number; floorY: number; draw: () => void } | null = null;
     if (veh === 'hoverbike' || veh === 'sky_jet' || veh === 'buggy' || veh === 'drill_tank') {
       const vd = VEHICLES[veh];
@@ -449,7 +458,7 @@ export class Renderer {
       const moving = Math.abs(b.vx) > 0.5 ? time : 0;
       // Ground vehicles are drawn larger so the pilot sits inside, not on top of a toy.
       const vs = ground ? scale * VEHICLE_ART_SCALE : scale;
-      const drawVeh = (): void => drawRows(ctx, vehicleRows(veh, ground ? moving : time, game.jetting), px - (vd.w / 2) * vs, py - (vd.top - bob) * vs, vs, game.facing < 0, vd.w, undefined, VEHICLE_REMAP[veh]);
+      const drawVeh = (): void => drawRows(ctx, vehicleRows(veh, ground ? moving : time, game.jetting), px - (vd.w / 2) * vs, py - (vd.top - bob) * vs, vs, game.facing < 0, vd.w, undefined, rideRemap(veh));
       drawVeh();
       // Ground vehicles: the hull (rows below the cab) is drawn again over the pilot after the
       // player, so the pilot sits inside with only helmet and shoulders showing.
@@ -462,7 +471,7 @@ export class Renderer {
       const vx = this.sx(parked.x, shakeX);
       const vy = this.sy(parked.y, shakeY);
       const vs = parked.id === 'buggy' || parked.id === 'drill_tank' ? scale * VEHICLE_ART_SCALE : scale;
-      drawRows(ctx, vehicleRows(parked.id, 0, false), vx - (vd.w / 2) * vs, vy - vd.top * vs, vs, false, vd.w, undefined, VEHICLE_REMAP[parked.id]);
+      drawRows(ctx, vehicleRows(parked.id, 0, false), vx - (vd.w / 2) * vs, vy - vd.top * vs, vs, false, vd.w, undefined, rideRemap(parked.id));
       if (Math.hypot(parked.x - b.x, parked.y - b.y) < 2.5) {
         ctx.fillStyle = '#ffcf4a';
         ctx.font = `bold ${Math.round(scale * 6)}px monospace`;
@@ -525,6 +534,7 @@ export class Renderer {
       this.ropeInfo = null;
     }
     const paint = game.paint;
+    const helmPaint = game.helmPaint;
     if (hullOver) {
       ctx.save();
       ctx.beginPath();
@@ -534,6 +544,7 @@ export class Renderer {
     drawPlayer(ctx, px, py, scale, {
       wear: { head: eq('head'), body: eq('body'), feet: eq('feet') },
       paint: paint ? [paint.c1, paint.c2] : undefined,
+      helm: helmPaint ? [helmPaint.c1, helmPaint.c2] : undefined,
       facing: game.facing,
       walking: Math.abs(b.vx) > 1,
       t: time,
@@ -1518,8 +1529,8 @@ export class Renderer {
       const i = ch[k];
       const x = i % world.w;
       const y = Math.floor(i / world.w);
-      // Neighbours change autotile edges and leaf masks, so touch adjacent chunks too.
-      for (const [ox, oy] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) {
+      // Neighbours change autotile edges, leaf masks and AO corners (diagonals), so touch adjacent chunks too.
+      for (const [ox, oy] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]]) {
         this.chunks.delete(chunkKey(Math.floor((x + ox) / CHUNK), Math.floor((y + oy) / CHUNK)));
       }
     }

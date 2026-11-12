@@ -1,4 +1,4 @@
-import { PAINTS, unlockedPaints } from '../sim/paints';
+import { PAINTS, PAINT_SLOTS, unlockedPaints, type PaintSlot } from '../sim/paints';
 import { codexCounts, logParts, readLogs, stepLog, type CodexSection } from '../sim/codex';
 import { AWARDS, awardProgress } from '../sim/achievements';
 import { FTUE_STEPS } from '../sim/ftue';
@@ -75,7 +75,7 @@ export type UiAction =
   | { k: 'codexsec'; sec: CodexSection }
   | { k: 'codexpage'; d: number }
   | { k: 'logread'; i: number | null }
-  | { k: 'paint' }
+  | { k: 'paint'; slot: PaintSlot }
   | { k: 'interact' }
   | { k: 'invsel'; id: ItemId }
   | { k: 'use'; id: ItemId }
@@ -940,20 +940,28 @@ export class UI {
       return id ? [GEAR[id].color, GEAR[id].accent] : undefined;
     };
     const paint = game.paint;
-    drawPlayer(ctx, fx, fy, scale, { facing: 1, walking: false, t: time, airborne: false, tier: game.upgrades.armor ?? 0, gear: playerGear(game), held: game.tool, wear: { head: wearOf('head'), body: wearOf('body'), feet: wearOf('feet') }, paint: paint ? [paint.c1, paint.c2] : undefined });
-    // Suit paint: earned from gold awards; the button cycles default -> each earned paint.
+    drawPlayer(ctx, fx, fy, scale, { facing: 1, walking: false, t: time, airborne: false, tier: game.upgrades.armor ?? 0, gear: playerGear(game), held: game.tool, wear: { head: wearOf('head'), body: wearOf('body'), feet: wearOf('feet') }, paint: paint ? [paint.c1, paint.c2] : undefined, helm: game.helmPaint ? [game.helmPaint.c1, game.helmPaint.c2] : undefined });
+    // Paints: earned from gold awards; SUIT / HELM / RIDE each cycle default -> each earned paint.
     const earned = unlockedPaints(game.awards).length;
     const pbw = narrow ? cw * 0.5 : Math.min(cw - u * 1.6, u * 11);
     const pbx = narrow ? cx + cw * 0.45 : cx + (cw - pbw) / 2;
     const pby = narrow ? cy + ch - u * 2.2 : cy + u * 0.5;
-    const plabel = earned === 0 ? `PAINT 0/${PAINTS.length}` : `PAINT: ${paint ? paint.name.toUpperCase() : 'DEFAULT'}`;
-    this.button(ctx, pbx, pby, pbw, u * 1.7, plabel, { k: 'paint' }, u * 0.62, { enabled: earned > 0, color: paint ? '#4a3a6a' : '#2a3550' });
-    if (paint) {
-      ctx.fillStyle = paint.c1;
-      ctx.fillRect(pbx + u * 0.35, pby + u * 0.45, u * 0.8, u * 0.8);
-      ctx.fillStyle = paint.c2;
-      ctx.fillRect(pbx + u * 0.35, pby + u * 1.05, u * 0.8, u * 0.2);
-    }
+    const short: Record<PaintSlot, string> = { suit: 'SUIT', helm: 'HELM', ride: 'RIDE' };
+    const gap = u * 0.3;
+    const sbw = (pbw - gap * (PAINT_SLOTS.length - 1)) / PAINT_SLOTS.length;
+    PAINT_SLOTS.forEach((slot, k) => {
+      const p = game.paintIn(slot);
+      const bx = pbx + k * (sbw + gap);
+      const label = earned === 0 ? (k === 0 ? `0/${PAINTS.length}` : short[slot]) : short[slot];
+      this.button(ctx, bx, pby, sbw, u * 1.7, label, { k: 'paint', slot }, u * 0.55, { enabled: earned > 0, color: p ? '#4a3a6a' : '#2a3550' });
+      if (p) {
+        // Swatch strip along the bottom edge: main over shade.
+        ctx.fillStyle = p.c1;
+        ctx.fillRect(bx + u * 0.25, pby + u * 1.3, sbw - u * 0.5, u * 0.18);
+        ctx.fillStyle = p.c2;
+        ctx.fillRect(bx + u * 0.25, pby + u * 1.48, sbw - u * 0.5, u * 0.1);
+      }
+    });
     if (earned === 0 && !narrow) this.text(ctx, 'Earn gold awards to unlock paints', cx + cw / 2, pby + u * 2.4, Math.round(u * 0.55), '#6c7388', 'center', cw - u);
     const up = game.upgrades;
     const gearLines: [string, number][] = [

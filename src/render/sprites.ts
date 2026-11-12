@@ -783,6 +783,17 @@ export const VEHICLE_REMAP: Partial<Record<VehicleSpriteId, Record<string, strin
   drill_tank: { a: '#7a8a5a', A: '#4e5a38', L: '#d6dde8', n: '#2b2f3a' },
 };
 
+/** Hull colour chars per vehicle: the hoverbike's body uses s/S, the others a/A. */
+const HULL_CHARS: Record<VehicleSpriteId, [string, string]> = { hoverbike: ['s', 'S'], sky_jet: ['a', 'A'], buggy: ['a', 'A'], drill_tank: ['a', 'A'] };
+
+/** Colour remap for a vehicle, with an earned hull paint (main, shade) over its own colours. Pure. */
+export function vehicleRemap(id: VehicleSpriteId, paint?: readonly [string, string]): Record<string, string> | undefined {
+  const base = VEHICLE_REMAP[id];
+  if (!paint) return base;
+  const [a, b] = HULL_CHARS[id];
+  return { ...base, [a]: paint[0], [b]: paint[1] };
+}
+
 /**
  * Rows for a vehicle at time t: hover pads pulse, the jet's exhaust flickers (longer when boosting).
  * Flame columns sit left of the tail so they flip with the vehicle. Pure.
@@ -912,6 +923,8 @@ export interface PlayerPose {
   squash?: { sx: number; sy: number };
   /** Earned suit paint (main, shade): vanity, drawn over the armour tier and crafted body armour. */
   paint?: [string, string];
+  /** Earned helmet paint (shell, shade): drawn over the lamp tier and a crafted helmet. */
+  helm?: [string, string];
 }
 
 export interface PlayerGear {
@@ -979,6 +992,7 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, 
   if (wr?.body) [remap.s, remap.S] = wr.body;
   if (wr?.feet) [remap.l, remap.L] = wr.feet;
   if (pose.paint) [remap.s, remap.S] = pose.paint;
+  if (pose.helm) [remap.h, remap.H] = pose.helm;
   drawRows(ctx, rows, ox, oy, s, flip, PLAYER_W, pose.hurt ? '#ffffff' : undefined, remap);
   // Held tool at the front hand (art col ~11, row ~10), drawn at 3/4 scale.
   if (pose.held && !pose.hurt && !pose.climbing) {

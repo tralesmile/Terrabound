@@ -1,3 +1,4 @@
+import { PAINT_SLOT_NAMES } from './sim/paints';
 import { VEHICLES } from './sim/garage';
 import { FTUE_STEPS } from './sim/ftue';
 import { audioGains, shakeMul, uiScale } from './sim/settings';
@@ -377,8 +378,9 @@ function boot(): void {
         ui.logOpen = a.i;
         break;
       case 'paint': {
-        const pt = game.cyclePaint();
-        ui.toast(pt ? `Suit paint: ${pt.name}` : 'Suit paint: default', pt ? pt.c1 : '#c9d0e4', 1.6);
+        const pt = game.cyclePaint(a.slot);
+        const what = PAINT_SLOT_NAMES[a.slot];
+        ui.toast(pt ? `${what} paint: ${pt.name}` : `${what} paint: default`, pt ? pt.c1 : '#c9d0e4', 1.6);
         saveNow();
         break;
       }

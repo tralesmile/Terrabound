@@ -24,6 +24,11 @@ export const PAINTS: readonly PaintDef[] = [
   { id: 'hollow', name: 'Hollow', award: 'win', c1: '#f2eeff', c2: '#b88cff' },
 ];
 
+/** What a paint can be applied to: the suit, the helmet shell, or every vehicle hull. */
+export type PaintSlot = 'suit' | 'helm' | 'ride';
+export const PAINT_SLOTS: readonly PaintSlot[] = ['suit', 'helm', 'ride'];
+export const PAINT_SLOT_NAMES: Record<PaintSlot, string> = { suit: 'Suit', helm: 'Helmet', ride: 'Vehicle' };
+
 export const PAINT_IDS: readonly string[] = PAINTS.map((p) => p.id);
 
 export function paintDef(id: string | null | undefined): PaintDef | undefined {

@@ -1,4 +1,4 @@
-import { activePaint, nextPaint, type PaintDef } from './paints';
+import { activePaint, nextPaint, type PaintDef, type PaintSlot } from './paints';
 import { CREW_KINDS, codexRows, noteCodexEvent, type CodexRow } from './codex';
 import { currentGoal, FTUE_STEPS, goalIndex } from './ftue';
 import { checkAwards, countEvent, newAwards, noteMax, sanitizeAwards, type Awards, type Tier } from './achievements';
@@ -825,9 +825,28 @@ export class Game {
   }
 
   /** Cycle the suit paint: default -> each earned paint -> default. Returns the new paint (or null). */
-  cyclePaint(): PaintDef | null {
-    this.save.paint = nextPaint(this.save.awards, this.paint?.id ?? null);
-    return this.paint;
+  /** Helmet shell paint worn now, or null for the default look (lamp tier / crafted helmet). */
+  get helmPaint(): PaintDef | null {
+    return activePaint(this.save.awards, this.save.paintHelm);
+  }
+
+  /** Vehicle hull paint (every vehicle), or null for each vehicle's own colours. */
+  get ridePaint(): PaintDef | null {
+    return activePaint(this.save.awards, this.save.paintRide);
+  }
+
+  /** Paint worn in one slot. */
+  paintIn(slot: PaintSlot): PaintDef | null {
+    return slot === 'helm' ? this.helmPaint : slot === 'ride' ? this.ridePaint : this.paint;
+  }
+
+  /** Next earned paint for a slot (default -> each earned -> default). */
+  cyclePaint(slot: PaintSlot = 'suit'): PaintDef | null {
+    const next = nextPaint(this.save.awards, this.paintIn(slot)?.id ?? null);
+    if (slot === 'helm') this.save.paintHelm = next;
+    else if (slot === 'ride') this.save.paintRide = next;
+    else this.save.paint = next;
+    return this.paintIn(slot);
   }
 
   /** Codex screen rows (places, creatures, logs) from what this save knows. */

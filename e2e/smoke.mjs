@@ -685,6 +685,19 @@ try {
   check('PAINT is locked until a gold award, then cycles the earned paint on (saved)', !paintLocked && painted && paint.id === 'gilded' && paint.saved === 'gilded' && paint.toast, JSON.stringify({ paintLocked, painted, paint }));
   await clickAct("r.a.k === 'paint'");
   check('PAINT cycles back to the default look', (await page.evaluate(() => window.__terrabound.game.paint)) === null);
+  // Helmet and vehicle paints cycle on their own buttons and save separately from the suit.
+  const helmClick = await clickAct("r.a.k === 'paint' && r.a.slot === 'helm'");
+  const rideClick = await clickAct("r.a.k === 'paint' && r.a.slot === 'ride'");
+  const slots = await page.evaluate(() => {
+    const { game, ui } = window.__terrabound;
+    const sv = game.toSave();
+    return { suit: game.paint?.id ?? null, helm: game.helmPaint?.id ?? null, ride: game.ridePaint?.id ?? null, saved: [sv.paintHelm, sv.paintRide], toast: ui.toasts.some((t) => t.text === 'Helmet paint: Gilded') || ui.toasts.some((t) => t.text === 'Vehicle paint: Gilded'), buttons: ui.rects.filter((r) => r.a.k === 'paint').length };
+  });
+  await page.screenshot({ path: path.join(out, '52b-helm-ride-paint.png') });
+  check('HELM and RIDE paint buttons cycle their own slot (saved, suit untouched)', helmClick && rideClick && slots.buttons === 3 && slots.suit === null && slots.helm === 'gilded' && slots.ride === 'gilded' && slots.saved[0] === 'gilded' && slots.saved[1] === 'gilded' && slots.toast, JSON.stringify(slots));
+  await clickAct("r.a.k === 'paint' && r.a.slot === 'helm'");
+  await clickAct("r.a.k === 'paint' && r.a.slot === 'ride'");
+  check('HELM and RIDE cycle back to the default look', await page.evaluate(() => window.__terrabound.game.helmPaint === null && window.__terrabound.game.ridePaint === null));
   await page.keyboard.press('KeyI');
   check('I closes the inventory', !(await page.evaluate(() => window.__terrabound.ui.invOpen)));
   // Tools: mouse wheel cycles to the fishing rod; casting at a pond and clicking on the bite lands a catch.
@@ -806,6 +819,24 @@ try {
   await page.keyboard.press('KeyV');
   await page.waitForTimeout(100);
   check('V gets out and parks the buggy where you stopped', await page.evaluate(() => !window.__terrabound.game.riding && window.__terrabound.game.parkedVehicle()?.id === 'buggy'));
+  // Vehicle paint: the parked buggy's hull takes the earned paint (Gilded #ffd23a), then back to red.
+  const hullGold = async () => page.evaluate(() => {
+    const { game, renderer } = window.__terrabound;
+    const p = game.parkedVehicle();
+    const c = document.querySelector('canvas');
+    const pos = renderer.worldToScreen(p.x, p.y);
+    const d = c.getContext('2d').getImageData(Math.max(0, Math.round(pos.x) - 60), Math.max(0, Math.round(pos.y) - 70), 120, 72).data;
+    let n = 0;
+    for (let i = 0; i < d.length; i += 4) if (d[i] === 255 && d[i + 1] === 210 && d[i + 2] === 58) n++;
+    return n;
+  });
+  const goldBefore = await hullGold();
+  await page.evaluate(() => { window.__terrabound.game.save.paintRide = 'gilded'; });
+  await page.waitForTimeout(150);
+  const goldAfter = await hullGold();
+  await page.screenshot({ path: path.join(out, '22d-buggy-paint.png') });
+  await page.evaluate(() => { window.__terrabound.game.save.paintRide = null; });
+  check('a vehicle paint recolours the parked buggy hull', goldBefore < 5 && goldAfter > 100, JSON.stringify({ goldBefore, goldAfter }));
   // Sky Jet: build it in the same garage (it deploys by the bay), teleport beside it, ride and fly.
   await page.evaluate(({ tx, ty }) => {
     const g = window.__terrabound.game;
@@ -2056,6 +2087,35 @@ try {
   const rimPit = await page.evaluate(() => window.__terrabound.renderer.lastRimCount);
   check('dug pit walls get a rim light (surface sky does not)', rimPit > 6, JSON.stringify({ rimPit }));
   await page.screenshot({ path: path.join(out, '50-rim-light.png'), clip: { x: 440, y: 160, width: 400, height: 400 } });
+  // Back-wall AO: in a cached chunk, a walled air cell under a solid ceiling is darker along its top
+  // row than the same wall texture without shade (the wall atlas), and unshaded in its middle.
+  const ao = await page.evaluate(() => {
+    const { game, renderer } = window.__terrabound;
+    const w = game.world;
+    const solid = (x, y) => w.isSolid(x, y) && w.get(x, y) !== 55;
+    for (let y = w.surface[w.padX] + 6; y < w.h - 2; y++) {
+      for (let x = 2; x < w.w - 2; x++) {
+        if (w.get(x, y) !== 0 || w.wall(x, y) === 0 || !solid(x, y - 1)) continue;
+        if (solid(x - 1, y) || solid(x + 1, y) || solid(x, y + 1) || solid(x - 1, y + 1) || solid(x + 1, y + 1)) continue;
+        const cx = Math.floor(x / 32), cy = Math.floor(y / 32);
+        const ch = renderer.chunk(w, cx, cy);
+        const lum = (ctx, px, py) => { const d = ctx.getImageData(px, py, 1, 1).data; return d[0] + d[1] + d[2]; };
+        const cctx = ch.getContext('2d');
+        const lx = (x - cx * 32) * 16, ly = (y - cy * 32) * 16;
+        const wl = w.wall(x, y);
+        // Same variant pick as drawBack: compare against every variant's pixel and take the match on an unshaded row.
+        const actx = renderer.wallAtlas.getContext('2d');
+        let best = -1;
+        for (let v = 0; v < 4; v++) if (lum(actx, v * 16 + 8, wl * 16 + 8) === lum(cctx, lx + 8, ly + 8)) best = v;
+        if (best < 0) continue;
+        let top = 0, ref = 0;
+        for (let i = 2; i < 14; i++) { top += lum(cctx, lx + i, ly); ref += lum(actx, best * 16 + i, wl * 16); }
+        return { x, y, top, ref, mid: lum(cctx, lx + 8, ly + 8) };
+      }
+    }
+    return null;
+  });
+  check('walled cave air under a ceiling gets a baked contact shadow (AO)', !!ao && ao.top < ao.ref * 0.85, JSON.stringify(ao));
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     for (const [x, y, t] of window.__pitSaved.reverse()) g.world.set(x, y, t);
