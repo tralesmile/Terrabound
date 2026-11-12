@@ -7,13 +7,14 @@ import { CODEX_IDS } from './explore';
 import { defaultGear, sanitizeGear, type GearSave } from './gear';
 import { defaultMods, sanitizeMods, type ModSave } from './mods';
 import { BUFF_IDS, BUFF_TIME, type Buffs } from './farming';
+import { legacyAwards, sanitizeAwards, type Awards } from './achievements';
 import { sanitizeRecords, type WorldRecord } from './records';
 import { sanitizeResearch, type ResearchId } from './research';
 import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 22;
+export const SAVE_VERSION = 23;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -58,6 +59,8 @@ export interface SaveData {
   buffs: Buffs;
   /** v18: local personal bests per shared world code (records.ts); v17 saves load with none. */
   records: WorldRecord[];
+  /** v23: award counters and unlocked ids (achievements.ts); v22 saves are seeded from stats, bosses, codex and research. */
+  awards: Awards;
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -84,6 +87,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     research: [],
     buffs: {},
     records: [],
+    awards: { n: {}, done: [] },
   };
 }
 
@@ -172,6 +176,8 @@ export function parseSave(raw: string | null | undefined): SaveData {
     buffs: sanitizeBuffs(r.buffs),
     // v17 -> v18: no world records yet.
     records: sanitizeRecords(r.records),
+    // v22 -> v23: no awards yet; counters are seeded from what the old save already proves.
+    awards: r.awards !== undefined ? sanitizeAwards(r.awards) : legacyAwards(r),
   };
 }
 

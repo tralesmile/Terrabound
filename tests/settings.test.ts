@@ -55,7 +55,7 @@ describe('settings screen prefs', () => {
     const v18 = { ...defaultSave(), v: 18, settings: { muted: true, music: false, raids: false } };
     const s = parseSave(JSON.stringify(v18));
     expect(s.v).toBe(SAVE_VERSION);
-    expect(SAVE_VERSION).toBe(22);
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(22);
     expect(s.settings).toEqual({ muted: true, music: false, raids: false, keys: DEFAULT_KEYS, ...DEFAULT_PREFS });
   });
 

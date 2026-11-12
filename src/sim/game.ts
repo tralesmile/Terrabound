@@ -1,3 +1,4 @@
+import { checkAwards, countEvent, newAwards, noteMax, sanitizeAwards, type Awards, type Tier } from './achievements';
 import { stepPref, type PrefKey, type Prefs } from './settings';
 import { DEFAULT_KEYS, rebind, type BindId, type KeyMap } from './keys';
 import { decodeSeed, encodeSeed } from './seedcode';
@@ -158,6 +159,7 @@ export type GameEvent =
   | { t: 'craft'; id: string }
   | { t: 'smelt'; made: number }
   | { t: 'newdive' }
+  | { t: 'award'; id: string; name: string; tier: Tier }
   | { t: 'record'; beat: RecordBeat; value: number; code: string }
   | { t: 'swing'; dir: number }
   | { t: 'enemyhit'; x: number; y: number; dmg: number }
@@ -334,6 +336,9 @@ export class Game {
 
   constructor(save: SaveData = defaultSave()) {
     this.save = structuredClone(save);
+    // Older in-memory saves (tests, fixtures) may lack awards; unlocks already earned are granted quietly.
+    this.save.awards = this.save.awards ? sanitizeAwards(this.save.awards) : newAwards();
+    checkAwards(this.save.awards);
     if (!Array.isArray(this.save.codex)) this.save.codex = [];
     this.save.gear = sanitizeGear(this.save.gear);
     if (!Array.isArray(this.save.bosses)) this.save.bosses = [];
@@ -617,6 +622,19 @@ export class Game {
 
   private emit(e: GameEvent): void {
     if (this.events.length < 256) this.events.push(e);
+    if (e.t === 'award') return;
+    countEvent(this.save.awards, e);
+    this.awardCheck();
+  }
+
+  /** Unlock awards whose goals are met and announce each one. */
+  private awardCheck(): void {
+    for (const d of checkAwards(this.save.awards)) this.emit({ t: 'award', id: d.id, name: d.name, tier: d.tier });
+  }
+
+  /** Award progress (read-only view for the AWARDS page). */
+  get awards(): Readonly<Awards> {
+    return this.save.awards;
   }
 
   /** Put the player on the pad with full health and battery. A fresh world also gets a fresh map. */
@@ -1182,6 +1200,7 @@ export class Game {
     this.wasGround = b.onGround;
 
     this.runDeepest = Math.max(this.runDeepest, this.depth);
+    if (noteMax(this.save.awards, 'depth', this.runDeepest)) this.awardCheck();
     const rec = this.worldRecord();
     if (rec) {
       rec.curTime += dt;

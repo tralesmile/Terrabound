@@ -333,7 +333,14 @@ function boot(): void {
         if (ui.screen === 'play' && !ui.shopOpen) {
           ui.invOpen = !ui.invOpen;
           ui.mapOpen = false;
+          ui.invPage = 'items';
         }
+        break;
+      case 'awards':
+        ui.invPage = a.open ? 'awards' : 'items';
+        break;
+      case 'awardpage':
+        ui.awardPage(a.d);
         break;
       case 'raids':
         game.setRaids(!game.raidsOn);
@@ -441,6 +448,11 @@ function boot(): void {
         break;
       case 'bank':
         ui.toast(`Banked ${e.total} items`, '#9ff6a0');
+        saveNow();
+        break;
+      case 'award':
+        ui.toast(`Award: ${e.name}`, e.tier === 3 ? '#ffd23a' : e.tier === 2 ? '#d8e4f0' : '#e0a060', 3.5, 'award');
+        ui.awardFlash(e.id);
         saveNow();
         break;
       case 'record': {

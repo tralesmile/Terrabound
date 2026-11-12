@@ -511,6 +511,31 @@ try {
   if (eatBtn) await page.mouse.click(eatBtn.x + eatBtn.w / 2, eatBtn.y + eatBtn.h / 2);
   const ate = await page.evaluate(() => ({ hp: window.__terrabound.game.hp, fish: window.__terrabound.game.carried.fish }));
   check('selecting a fish in the inventory and pressing EAT heals', ate.hp > 40 && ate.fish === 1, JSON.stringify(ate));
+  // Awards: the AWARDS button in the inventory pages through every award; play so far was counted.
+  const awardsBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'awards'));
+  if (awardsBtn) await holdClick(page, awardsBtn.x + awardsBtn.w / 2, awardsBtn.y + awardsBtn.h / 2);
+  await page.waitForTimeout(200);
+  const awardsPage = await page.evaluate(() => {
+    const { ui, game } = window.__terrabound;
+    return { page: ui.invPage, shown: ui.awardsShown, meals: game.awards.n.meals ?? 0, chests: game.awards.n.chests ?? 0, mined: game.awards.n.mined ?? 0 };
+  });
+  await page.screenshot({ path: path.join(out, '48-awards.png') });
+  check('AWARDS page lists award cards and play was counted (meal eaten, chest opened)', awardsPage.page === 'awards' && awardsPage.shown >= 6 && awardsPage.meals >= 1 && awardsPage.chests >= 1, JSON.stringify(awardsPage));
+  const nextBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'awardpage' && r.a.d === 1));
+  if (nextBtn) await holdClick(page, nextBtn.x + nextBtn.w / 2, nextBtn.y + nextBtn.h / 2);
+  await page.waitForTimeout(150);
+  const page2 = await page.evaluate(() => window.__terrabound.ui.awardFirst);
+  check('NEXT pages the awards list', page2 > 0, JSON.stringify({ page2 }));
+  // An unlock announces itself once with an Award toast.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.awards.n.dashes = 49;
+    g.emit({ t: 'dash' });
+  });
+  await page.waitForTimeout(250);
+  const unlocked = await page.evaluate(() => ({ done: window.__terrabound.game.awards.done.includes('dash1'), toast: window.__terrabound.ui.toasts.some((t) => t.text === 'Award: Blink') }));
+  await page.screenshot({ path: path.join(out, '48b-award-unlock.png') });
+  check('reaching a goal unlocks the award with an Award toast', unlocked.done && unlocked.toast, JSON.stringify(unlocked));
   await page.keyboard.press('KeyI');
   check('I closes the inventory', !(await page.evaluate(() => window.__terrabound.ui.invOpen)));
   // Tools: mouse wheel cycles to the fishing rod; casting at a pond and clicking on the bite lands a catch.
@@ -2191,6 +2216,27 @@ try {
   check('tapping MAP opens the map on mobile', await page.evaluate(() => window.__terrabound.ui.mapOpen), JSON.stringify(mapBtn));
   await page.screenshot({ path: path.join(out, '14-mobile-map.png') });
   await page.evaluate(() => { window.__terrabound.ui.mapOpen = false; });
+  // Awards page fits a phone: every card and button inside the screen, header buttons apart.
+  const mAwards = await page.evaluate(() => {
+    const { ui } = window.__terrabound;
+    ui.invOpen = true;
+    ui.invPage = 'awards';
+    return true;
+  });
+  await page.waitForTimeout(250);
+  const mFit = await page.evaluate(() => {
+    const { ui } = window.__terrabound;
+    const c = document.getElementById('game');
+    const W = c.clientWidth, H = c.clientHeight;
+    const rs = ui.rects.filter((r) => ['awards', 'awardpage', 'inv'].includes(r.a.k));
+    const inside = rs.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= W + 1 && r.y + r.h <= H + 1);
+    const hdr = rs.filter((r) => r.a.k === 'awards' || r.a.k === 'inv');
+    const apart = hdr.length === 2 && (hdr[0].x + hdr[0].w <= hdr[1].x || hdr[1].x + hdr[1].w <= hdr[0].x);
+    return { n: rs.length, inside, apart, shown: ui.awardsShown };
+  });
+  await page.screenshot({ path: path.join(out, '48c-mobile-awards.png') });
+  check('awards page fits a phone', mAwards && mFit.inside && mFit.apart && mFit.shown >= 3, JSON.stringify(mFit));
+  await page.evaluate(() => { const { ui } = window.__terrabound; ui.invOpen = false; ui.invPage = 'items'; });
   // Drone rule panel fits a phone: build two bays, open it, add three rules, every button on screen.
   await page.evaluate(() => {
     const g = window.__terrabound.game;

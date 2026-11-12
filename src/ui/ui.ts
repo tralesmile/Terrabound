@@ -1,3 +1,4 @@
+import { AWARDS, awardProgress } from '../sim/achievements';
 import { PREFS, prefValueLabel, type PrefKey } from '../sim/settings';
 import { BINDS, keyLabel, type BindId } from '../sim/keys';
 import { recordLine } from '../sim/records';
@@ -63,6 +64,8 @@ export type UiAction =
   | { k: 'map' }
   | { k: 'recall' }
   | { k: 'inv' }
+  | { k: 'awards'; open: boolean }
+  | { k: 'awardpage'; d: number }
   | { k: 'interact' }
   | { k: 'invsel'; id: ItemId }
   | { k: 'use'; id: ItemId }
@@ -154,6 +157,14 @@ export class UI {
   invOpen = false;
   /** Item highlighted in the inventory. */
   invSel: ItemId | null = null;
+  /** Inventory screen page: items or the AWARDS list. */
+  invPage: 'items' | 'awards' = 'items';
+  /** First award row on the AWARDS page (paged by the PREV / NEXT buttons). */
+  awardFirst = 0;
+  /** Award cards shown on the current page (set each frame; e2e). */
+  awardsShown = 0;
+  /** Most recent unlock: its card glows on the AWARDS page. */
+  lastAward = '';
   /** Seconds left to confirm abandoning the world (NEW WORLD needs two taps). */
   newWorldArmed = 0;
   /** Seconds left to confirm DAILY (second tap starts the Daily Dive). */
@@ -618,14 +629,92 @@ export class UI {
   }
 
   /** Inventory: the character in their gear, tool slots, pack contents and actions for the selected item. */
+  awardFlash(id: string): void {
+    this.lastAward = id;
+  }
+
+  /** Change the AWARDS page by `d` pages (clamped). */
+  awardPage(d: number): void {
+    const per = Math.max(1, this.awardsPer);
+    this.awardFirst = Math.max(0, Math.min(this.awardFirst + d * per, Math.floor((AWARDS.length - 1) / per) * per));
+  }
+
+  private awardsPer = 12;
+
+  /** AWARDS page: a card per award with a tier star, progress bar and count; paged to fit. */
+  private drawAwards(ctx: CanvasRenderingContext2D, game: Game, px: number, py: number, pw: number, ph: number, u: number, time: number): void {
+    const aw = game.awards;
+    const top = py + u * 3.2;
+    const foot = u * 2.8;
+    const cols = pw < u * 30 ? 1 : 2;
+    const cardH = u * 2.6;
+    const gap = u * 0.4;
+    const rows = Math.max(1, Math.floor((ph - (top - py) - foot) / (cardH + gap)));
+    this.awardsPer = rows * cols;
+    this.awardFirst = Math.min(this.awardFirst, Math.floor((AWARDS.length - 1) / this.awardsPer) * this.awardsPer);
+    const cw = (pw - u * 2 - gap * (cols - 1)) / cols;
+    const page = AWARDS.slice(this.awardFirst, this.awardFirst + this.awardsPer);
+    const tierCol = ['#e0a060', '#d8e4f0', '#ffd23a'];
+    page.forEach((d, i) => {
+      const x = px + u + (i % cols) * (cw + gap);
+      const y = top + Math.floor(i / cols) * (cardH + gap);
+      const done = aw.done.includes(d.id);
+      const have = awardProgress(aw, d);
+      const glow = done && d.id === this.lastAward ? 0.5 + 0.5 * Math.sin(time * 5) : 0;
+      ctx.fillStyle = done ? `rgba(70,58,22,${0.85 + 0.15 * glow})` : 'rgba(20,26,40,0.9)';
+      ctx.fillRect(x, y, cw, cardH);
+      if (done) {
+        ctx.strokeStyle = tierCol[d.tier - 1] ?? '#ffd23a';
+        ctx.lineWidth = Math.max(1, u * 0.12);
+        ctx.strokeRect(x + 0.5, y + 0.5, cw - 1, cardH - 1);
+      }
+      this.awardStar(ctx, x + u * 1.3, y + cardH / 2, u * 0.9, done ? tierCol[d.tier - 1] ?? '#ffd23a' : '#3a4056');
+      this.text(ctx, d.name, x + u * 2.6, y + u * 1.05, Math.round(u * 0.8), done ? '#fff' : '#c9d0e4', 'left', cw - u * 8);
+      this.text(ctx, d.desc, x + u * 2.6, y + u * 2.05, Math.round(u * 0.62), done ? '#e8d8a0' : '#8a90a2', 'left', cw - u * 8);
+      const bw = u * 4.4;
+      const bx = x + cw - bw - u * 0.6;
+      this.text(ctx, done ? 'DONE' : `${have.toLocaleString('en-US')}/${d.goal.toLocaleString('en-US')}`, bx + bw, y + u * 1.05, Math.round(u * 0.62), done ? '#ffd23a' : '#8a90a2', 'right', bw + u);
+      ctx.fillStyle = '#2a3046';
+      ctx.fillRect(bx, y + u * 1.55, bw, u * 0.45);
+      ctx.fillStyle = done ? '#ffd23a' : '#36e0e8';
+      ctx.fillRect(bx, y + u * 1.55, bw * (have / d.goal), u * 0.45);
+    });
+    this.awardsShown = page.length;
+    const fy = py + ph - foot + u * 0.4;
+    const pages = Math.ceil(AWARDS.length / this.awardsPer);
+    const cur = Math.floor(this.awardFirst / this.awardsPer) + 1;
+    this.button(ctx, px + u, fy, u * 5, u * 2, '< PREV', { k: 'awardpage', d: -1 }, u * 0.75, { enabled: cur > 1, color: '#2a3550' });
+    this.button(ctx, px + pw - u * 6, fy, u * 5, u * 2, 'NEXT >', { k: 'awardpage', d: 1 }, u * 0.75, { enabled: cur < pages, color: '#2a3550' });
+    this.text(ctx, `Page ${cur}/${pages}  -  ${aw.done.length} of ${AWARDS.length} earned`, px + pw / 2, fy + u * 1.3, Math.round(u * 0.7), '#8a90a2', 'center', pw - u * 14);
+  }
+
+  private awardStar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, color: string): void {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const rr = i % 2 === 0 ? r : r * 0.45;
+      const a = -Math.PI / 2 + (i * Math.PI) / 5;
+      ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
   private drawInventory(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, time: number): void {
     const pw = Math.min(w - u, u * 46);
     const ph = Math.min(h - u, u * 32);
     const px = (w - pw) / 2;
     const py = (h - ph) / 2;
     this.panel(ctx, px, py, pw, ph);
-    this.text(ctx, 'INVENTORY', px + u, py + u * 1.6, Math.round(u * 1.3), '#36e0e8');
+    const awardsOn = this.invPage === 'awards';
+    this.text(ctx, awardsOn ? 'AWARDS' : 'INVENTORY', px + u, py + u * 1.6, Math.round(u * 1.3), awardsOn ? '#ffd23a' : '#36e0e8');
     this.button(ctx, px + pw - u * 6.5, py + u * 0.5, u * 6, u * 2.1, 'CLOSE', { k: 'inv' }, u * 0.9);
+    const got = game.awards.done.length;
+    this.button(ctx, px + pw - u * 15, py + u * 0.5, u * 8, u * 2.1, awardsOn ? '< ITEMS' : `AWARDS ${got}/${AWARDS.length}`, { k: 'awards', open: !awardsOn }, u * 0.75, { color: '#5a4a1a' });
+    if (awardsOn) {
+      this.drawAwards(ctx, game, px, py, pw, ph, u, time);
+      return;
+    }
     const narrow = pw < u * 30;
     // Character preview with gear.
     const cw = narrow ? pw - u * 2 : pw * 0.36;

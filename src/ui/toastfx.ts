@@ -13,7 +13,7 @@ export interface ToastParts {
 }
 
 const KIND_RULES: { kind: ToastKind; re: RegExp }[] = [
-  { kind: 'record', re: /personal best|\brecord\b|defeated|trophy/i },
+  { kind: 'record', re: /personal best|\brecord\b|defeated|trophy|^award\b/i },
   { kind: 'danger', re: /^raid!|approaches|signal lost|\braiders?\b|knocked/i },
   { kind: 'discover', re: /^discovered|moved in|landed|room complete|gate has opened|blueprint/i },
   { kind: 'reward', re: /reward|\bbanked\b|\bcaught\b|\bbuilt\b|cracked|harvest|\+|repelled|\bgrew\b|fitted|installed|\btook\b/i },
