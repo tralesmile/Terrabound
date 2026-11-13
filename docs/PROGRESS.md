@@ -718,3 +718,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** Hollow AI arena (pulsing floor ring, red in phase 2); a lighter dive report on beam-home; dive stats on the share card; P1.9 follow-ups (plane with cargo, charge station); equipment slots (P3).
 
 **Known issues:** the shell plates draw in front of the back half of the shard orbit but behind the front half (intended); the chip uses UI time, so it pauses with the tab; dive tally lives in memory; the dive card shows only on death; tall cones put bomb arcs above the screen from the foot; drone mining counts toward "mined"; e2e farm uses raw tile ids.
+
+## 2026-11-13 Scheduled run 52
+
+**Done:** baseline green (824 tests). Creative review: a boss hit showed only a yellow number at the boss centre (no contact feel), and the Hollow AI still fought over a plain floor (carried 1). Boss hit sparks (sim `bossContact`: the hit point on the boss box face toward the attacker; `bosshit` events now carry id, hx/hy, dir; melee, shots and blasts pass their origin; render src/render/hitspark.ts + `Fx.bossSparks`): sparks in the boss accent, white and eye colours spray back toward the attacker with a small accent ring, and the damage number sits at the hit point (26k-boss-hit-sparks). Hollow AI arena floor circuit (src/render/arenafx.ts): a trace glows along the top of each floor tile across the arena with nodes every third tile; pulse rings roll outward from under the boss; red and faster once enraged (28e-hollow-arena).
+
+**Numbers:** 831 unit tests (new: hitspark 4, arenafx 3), 239 e2e checks all green (new: sparks accent + direction + ring, arena pink then red). Bundle 435.7 kB (152.2 kB gzip).
+
+**Next:** per-boss hit sound timbre; phase-2 floor zaps riding the arena pulse (telegraphed, jump to dodge); a lighter dive report on beam-home; P1.9 follow-ups (plane with cargo, charge station); equipment slots (P3).
+
+**Known issues:** the arena floor is rescanned every frame (56 columns x up to 20 rows; cheap, cache if the boss probe climbs); sparks are cosmetic only; dive tally lives in memory; the dive card shows only on death; tall cones put bomb arcs above the screen from the foot; drone mining counts toward "mined"; e2e farm uses raw tile ids.
