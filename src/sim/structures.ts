@@ -420,8 +420,22 @@ function ponds(world: World, used: Uint8Array, out: Structure[]): void {
     if (x + hw >= world.w - 4 || Math.abs(x - world.padX) < PAD_CLEAR + hw + 4) continue;
     // Ash Dunes have no water (lavaPools fills their basins instead).
     if (world.biome[x - hw - 2] === B.ASH || world.biome[x] === B.ASH || world.biome[x + hw + 2] === B.ASH) continue;
-    if (basin(world, used, x, hw, depth, T.WATER)) out.push({ kind: 'pond', x0: x - hw, y0: world.surface[x], x1: x + hw, y1: world.surface[x] + depth });
+    if (basin(world, used, x, hw, depth, T.WATER)) {
+      out.push({ kind: 'pond', x0: x - hw, y0: world.surface[x], x1: x + hw, y1: world.surface[x] + depth });
+      if (world.biome[x] === B.FROST) freezePond(world, x - hw, x + hw, world.surface[x]);
+    }
   }
+}
+
+/** Frozen Spires ponds freeze over: the top water row becomes pond ice (fish through it with the rod). */
+export function freezePond(world: World, x0: number, x1: number, top: number): number {
+  let n = 0;
+  for (let c = x0; c <= x1; c++) {
+    if (world.get(c, top) !== T.WATER) continue;
+    world.set(c, top, T.ICE);
+    n++;
+  }
+  return n;
 }
 
 /** Dig a bowl at column x (half width hw) and fill it with liquid; false if the spot is taken. */

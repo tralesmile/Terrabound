@@ -15,6 +15,8 @@ export interface Fishing {
   /** Seconds left in the current bite window (0 = no bite). */
   bite: number;
   cast: number;
+  /** Fishing through a hole in pond ice (Frozen Spires): the bobber sits in the water cell under the ice. */
+  ice?: boolean;
 }
 
 export const CAST_RANGE = 10;
@@ -26,6 +28,7 @@ export const BITE_SPREAD = 5;
 export const FOOD: Partial<Record<ItemId, { hp: number; battery: number }>> = {
   fish: { hp: 25, battery: 0 },
   glowfish: { hp: 50, battery: 40 },
+  icefin: { hp: 35, battery: 20 },
   medkit: { hp: 60, battery: 0 },
   // Farm produce (farming.ts): small heals, glowcorn also tops up the battery.
   glowcorn: { hp: 15, battery: 25 },
@@ -58,10 +61,14 @@ export function healCount(carried: Partial<Record<ItemId, number>>): number {
   return n;
 }
 
-/** The water surface cell to cast at: the aimed cell if it is water, else the first water below it (6 rows). */
-export function castTarget(world: World, px: number, py: number, tx: number, ty: number): { x: number; y: number } | null {
+/**
+ * The water surface cell to cast at: the aimed cell if it is water, else the first water below it (6 rows).
+ * Pond ice with water under it counts too (ice fishing): the target is the water cell under the ice, flagged `ice`.
+ */
+export function castTarget(world: World, px: number, py: number, tx: number, ty: number): { x: number; y: number; ice?: boolean } | null {
   if (Math.hypot(tx + 0.5 - px, ty + 0.5 - (py - 0.9)) > CAST_RANGE) return null;
   for (let y = ty; y < ty + 7 && y < world.h; y++) {
+    if (world.get(tx, y) === T.ICE && world.get(tx, y + 1) === T.WATER) return { x: tx, y: y + 1, ice: true };
     if (world.get(tx, y) === T.WATER) {
       let top = y;
       while (top > 0 && world.get(tx, top - 1) === T.WATER) top--;
@@ -77,8 +84,15 @@ export function biteDelay(seed: number, cast: number): number {
 }
 
 /** What comes up: mostly fish; glowfish at night or deep; sometimes crystal, seeds or junk. */
-export function catchFor(seed: number, cast: number, depth: number, night: boolean): { item: ItemId; n: number } {
+export function catchFor(seed: number, cast: number, depth: number, night: boolean, ice = false): { item: ItemId; n: number } {
   const r = hash2(cast, 12, seed);
+  if (ice) {
+    // Under the ice: icefin (better food) is the common bite, then fish, a few crystals or berry seeds.
+    if (r < 0.4) return { item: 'icefin', n: 1 };
+    if (r < 0.75) return { item: 'fish', n: 1 };
+    if (r < 0.88) return { item: 'crystal', n: 1 + Math.floor(hash2(cast, 13, seed) * 2) };
+    return { item: 'berry_seed', n: 1 };
+  }
   const glow = night || depth > 30 ? 0.22 : 0.06;
   if (r < glow) return { item: 'glowfish', n: 1 };
   if (r < glow + 0.62) return { item: 'fish', n: 1 };

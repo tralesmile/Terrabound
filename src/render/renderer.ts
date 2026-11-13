@@ -53,8 +53,8 @@ const HULL_ROW = 3;
 /** Sprite row of a ground vehicle's floor pan: the pilot is not drawn below it (no legs through the floor). */
 const HULL_FLOOR: Record<'buggy' | 'drill_tank', number> = { buggy: 7, drill_tank: 9 };
 import { GEAR, type RangedKind } from '../sim/gear';
-import { BOSSES, phase as bossPhase } from '../sim/bosses';
-import { drawBossArt } from './bossart';
+import { ATTACK_TIME, BOSSES, phase as bossPhase } from '../sim/bosses';
+import { drawBossArt, slamRaise } from './bossart';
 import { ACT_INFO } from '../sim/drones';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, isCeilingSlope, leafMask, nextSink, slopeSink, SLOPE_CR, SLOPE_R, slopeBottom, slopeShape, slopeTop } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape } from './decor';
@@ -809,6 +809,7 @@ export class Renderer {
       }
     }
     // Fishing line and bobber.
+    this.iceHoles = 0;
     if (game.fishing) {
       const f = game.fishing;
       const hx = px + game.facing * 9 * scale;
@@ -816,6 +817,18 @@ export class Renderer {
       const bx2 = this.sx(f.x + 0.5, shakeX);
       const dip = f.bite > 0 ? scale * 3 + Math.sin(time * 30) * scale : Math.sin(time * 3) * scale * 0.8;
       const by2 = this.sy(f.y, shakeY) + dip;
+      if (f.ice) {
+        // Ice fishing: a dark hole cut in the ice above the bobber, with a pale rim.
+        const hx0 = this.sx(f.x + 0.2, shakeX);
+        const hy0 = this.sy(f.y - 1, shakeY);
+        ctx.fillStyle = '#e6f6ff';
+        ctx.fillRect(hx0 - scale, hy0, ts * 0.6 + scale * 2, scale * 2);
+        ctx.fillStyle = '#1a3a52';
+        ctx.fillRect(hx0, hy0, ts * 0.6, ts);
+        ctx.fillStyle = 'rgba(90,180,230,0.55)';
+        ctx.fillRect(hx0, hy0 + ts * 0.7, ts * 0.6, ts * 0.3);
+        this.iceHoles++;
+      }
       ctx.strokeStyle = 'rgba(230,246,255,0.8)';
       ctx.lineWidth = Math.max(1, scale * 0.5);
       ctx.beginPath();
@@ -2021,6 +2034,8 @@ export class Renderer {
   conesRumbling = 0;
   bombsShown = 0;
   marksShown = 0;
+  /** Ice-fishing holes drawn last frame (e2e). */
+  iceHoles = 0;
 
   /**
    * Ash Dunes cinder cones: the crater glows and pulses, a plume of smoke rises and leans downwind,
@@ -2410,6 +2425,7 @@ export class Renderer {
       enraged: bossPhase(bs) === 2,
       lookX: game.body.x - bs.x,
       lookY: game.body.y - BODY_H / 2 - (bs.y - d.h / 2),
+      raise: d.flying ? 0 : slamRaise(bs.attack, bs.at, ATTACK_TIME.slam.warn),
     });
     if (warn) {
       ctx.fillStyle = '#ffcf4a';

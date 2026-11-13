@@ -2308,7 +2308,7 @@ export class Game {
     const f = this.fishing;
     if (f) {
       if (f.bite > 0) {
-        const got = catchFor(this.world.seed, f.cast, this.depth, isNight(this.time));
+        const got = catchFor(this.world.seed, f.cast, this.depth, isNight(this.time), f.ice === true);
         const room = Math.max(0, this.derived.packCap - invTotal(this.carried));
         const n = Math.min(room, got.n);
         if (n > 0) invAdd(this.carried, got.item, n);
@@ -2323,7 +2323,7 @@ export class Game {
     const at = castTarget(this.world, this.body.x, this.body.y, aim.tx, aim.ty);
     if (!at) return;
     const cast = this.casts++;
-    this.fishing = { x: at.x, y: at.y, t: 0, biteAt: biteDelay(this.world.seed, cast), bite: 0, cast };
+    this.fishing = { x: at.x, y: at.y, t: 0, biteAt: biteDelay(this.world.seed, cast), bite: 0, cast, ...(at.ice ? { ice: true } : {}) };
     this.emit({ t: 'cast', x: at.x, y: at.y });
   }
 

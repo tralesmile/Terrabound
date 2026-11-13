@@ -192,6 +192,10 @@ export interface RigPart {
   anim: 'legL' | 'legR' | 'body' | 'head' | 'armBack' | 'armFront' | 'none';
   /** Drawn darker (far side). */
   back?: boolean;
+  /** Rides on an arm (fists): drawn in that arm's swing transform. */
+  arm?: 'armB' | 'armF';
+  /** Swings freely from its top corner (loose scrap plate). */
+  dangle?: boolean;
 }
 
 interface ArtDef {
@@ -252,6 +256,16 @@ export function walkerRig(id: BossId): RigPart[] {
   const orn = (key: string, w: number, h: number, shape: PartShape, base: string, x: number, y: number, anim: RigPart['anim']): void => {
     parts.push({ key, spec: spec(w, h, shape, base, 7 + parts.length), x, y, anim });
   };
+  if (a.style === 'scrap') {
+    // Junk fists (a wider, darker block on each arm end) and a loose plate hanging off the hip.
+    const fw = Math.round(armW * 1.3);
+    const fh = Math.max(6, Math.round(armH * 0.3));
+    const armB = parts[0];
+    const armF = parts[parts.length - 1];
+    parts.splice(1, 0, { key: 'fistB', spec: spec(fw, fh, 'box', '#4a5568', 11), x: armB.x + armW / 2 - fw / 2, y: armB.y + armH - 3, anim: 'armBack', back: true, arm: 'armB' });
+    parts.push({ key: 'fistF', spec: spec(fw, fh, 'box', '#5a6578', 12), x: armF.x + armW / 2 - fw / 2, y: armF.y + armH - 3, anim: 'armFront', arm: 'armF' });
+    parts.splice(parts.length - 2, 0, { key: 'plate', spec: spec(Math.round(W * 0.26), Math.round(H * 0.13), 'box', d.accent, 13), x: W * 0.08, y: torsoTop + torsoH - 6, anim: 'body', dangle: true });
+  }
   if (a.ornament === 'stack') {
     // Smokestack on the back shoulder.
     orn('stack', 6, 10, 'box', '#4a5568', -W / 2 + 3, torsoTop - 8, 'body');
@@ -280,6 +294,28 @@ export interface BossPose {
   /** Direction to the player (unit-ish), for the AI's eye. */
   lookX: number;
   lookY: number;
+  /** Arms raised overhead for a slam, 0 (hanging) to 1 (straight up). */
+  raise?: number;
+}
+
+/** How far the arms swing up on a slam: 0 at rest, 1 overhead. Smooth over the warning, held while airborne. Pure. */
+export function slamRaise(attack: string | null, at: number, warn: number): number {
+  if (attack !== 'slam') return 0;
+  if (at >= 0) return 1;
+  const p = Math.max(0, Math.min(1, 1 + at / warn));
+  return p * p * (3 - 2 * p);
+}
+
+/** Swing angle (radians, facing right) of an arm: overhead on a slam (back arm a little behind), a slow sway at rest. Pure. */
+export function armAngle(which: 'armBack' | 'armFront', pose: BossPose): number {
+  const r = pose.raise ?? 0;
+  const sway = Math.sin(pose.age * 3 + (which === 'armBack' ? 1.6 : 0)) * 0.08 * (1 - r);
+  return -r * (which === 'armFront' ? 2.7 : 2.4) + sway;
+}
+
+/** Loose plate swing (radians): a slow pendulum that jolts when the body lifts. Pure. */
+export function plateSwing(pose: BossPose): number {
+  return Math.sin(pose.age * 3.2) * 0.3 + Math.min(0.5, pose.lift * 0.06) + (pose.raise ?? 0) * 0.25 * Math.sin(pose.age * 14);
 }
 
 /** Per-channel offset in art px for a pose. Pure. */
@@ -348,17 +384,62 @@ function glowEye(ctx: CanvasRenderingContext2D, x: number, y: number, w: number,
   ctx.fillRect(x + Math.floor(w / 3), y, Math.max(u, Math.floor(w / 4)), Math.max(u, Math.floor(h / 2)));
 }
 
+/** Draws a part rotated by `ang` about a pivot (px, py in art px); (ox, oy) is the part's top-left relative to the pivot. Mirrors for facing left. */
+function swung(ctx: CanvasRenderingContext2D, img: HTMLCanvasElement, cx: number, by: number, px: number, py: number, ox: number, oy: number, u: number, facing: number, ang: number): void {
+  ctx.save();
+  ctx.translate(Math.round(cx + (facing >= 0 ? px : -px) * u), Math.round(by + py * u));
+  ctx.rotate(facing >= 0 ? ang : -ang);
+  const x = facing >= 0 ? ox : -ox - img.width;
+  ctx.drawImage(img, Math.round(x * u), Math.round(oy * u), Math.ceil(img.width * u), Math.ceil(img.height * u));
+  ctx.restore();
+}
+
+/** Furnace grate in the Colossus chest: three glowing slits that breathe, brighter when enraged or winding up. */
+function furnace(ctx: CanvasRenderingContext2D, torso: RigPart, o: { dx: number; dy: number }, cx: number, by: number, u: number, f: number, pose: BossPose): void {
+  const gw = Math.round(torso.spec.w * 0.36);
+  const gh = 9;
+  const gxArt = torso.x + Math.round(torso.spec.w * 0.42) + o.dx;
+  const gy = torso.y + Math.round(torso.spec.h * 0.3) + o.dy;
+  const gx = f > 0 ? gxArt : -gxArt - gw;
+  const heat = Math.min(1, 0.45 + 0.25 * Math.sin(pose.age * 2.5) + (pose.enraged ? 0.3 : 0) + (pose.raise ?? 0) * 0.4);
+  ctx.fillStyle = BOSS_OUTLINE;
+  ctx.fillRect(Math.round(cx + gx * u), Math.round(by + gy * u), Math.ceil(gw * u), Math.ceil(gh * u));
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.18 + 0.3 * heat;
+  ctx.fillStyle = pose.enraged ? '#ff4a2a' : '#ff8a2a';
+  ctx.fillRect(Math.round(cx + (gx - 3) * u), Math.round(by + (gy - 3) * u), Math.ceil((gw + 6) * u), Math.ceil((gh + 6) * u));
+  ctx.restore();
+  for (let i = 0; i < 3; i++) {
+    ctx.fillStyle = heat > 0.8 ? '#ffe08a' : '#ff9a3a';
+    ctx.fillRect(Math.round(cx + (gx + 1) * u), Math.round(by + (gy + 1 + i * 3) * u), Math.ceil((gw - 2) * u), Math.ceil(2 * u));
+  }
+}
+
 /** Draws a walking boss with its bottom-centre at (cx, by); u = screen px per art px. */
 export function drawWalkerBoss(ctx: CanvasRenderingContext2D, id: BossId, cx: number, by: number, u: number, pose: BossPose): void {
   const d = BOSSES[id];
   const f = pose.facing >= 0 ? 1 : -1;
   let head: RigPart | undefined;
-  for (const p of walkerRig(id)) {
+  let torso: RigPart | undefined;
+  const rig = walkerRig(id);
+  for (const p of rig) {
     const o = animOffset(p.anim, pose);
     const img = partCanvas(id + p.key, p.spec, pose.flash ? 'white' : p.back ? 'back' : 'none');
-    blit(ctx, img, cx, by, p.x + o.dx, p.y + o.dy, u, f);
+    const armKey = p.anim === 'armFront' || p.anim === 'armBack' ? (p.arm ?? p.key) : null;
+    const arm = armKey ? rig.find((q) => q.key === armKey) : undefined;
+    if (arm && (p.anim === 'armFront' || p.anim === 'armBack')) {
+      // Swing around the shoulder (top centre of the arm).
+      const px = arm.x + arm.spec.w / 2 + o.dx;
+      const py = arm.y + 2 + o.dy;
+      swung(ctx, img, cx, by, px, py, p.x - arm.x - arm.spec.w / 2, p.y - arm.y - 2, u, f, armAngle(p.anim, pose));
+    } else if (p.dangle) {
+      swung(ctx, img, cx, by, p.x + o.dx + 1, p.y + o.dy + 1, -1, -1, u, f, plateSwing(pose));
+    } else blit(ctx, img, cx, by, p.x + o.dx, p.y + o.dy, u, f);
     if (p.key === 'head') head = p;
+    if (p.key === 'torso') torso = p;
   }
+  if (torso && BOSS_ART[id].style === 'scrap' && !pose.flash) furnace(ctx, torso, animOffset('body', pose), cx, by, u, f, pose);
   if (head && !pose.flash) {
     // Visor slit with a glowing eye on the facing side.
     const o = animOffset('head', pose);

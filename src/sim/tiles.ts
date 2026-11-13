@@ -56,7 +56,8 @@ export type ItemId =
   | 'garage_kit'
   | 'chowder'
   | 'stew'
-  | 'tart';
+  | 'tart'
+  | 'icefin';
 export const ITEM_IDS: ItemId[] = [
   'rust',
   'metal',
@@ -114,6 +115,7 @@ export const ITEM_IDS: ItemId[] = [
   'chowder',
   'stew',
   'tart',
+  'icefin',
 ];
 
 export const T = {
@@ -198,6 +200,8 @@ export const T = {
   POT: 67,
   /** Garage bay: build, upgrade and deploy vehicles (garage.ts). */
   GARAGE: 68,
+  /** Frozen pond skin in the Frozen Spires: solid, see-through; the rod fishes through it. */
+  ICE: 69,
 } as const;
 
 export interface TileDef {
@@ -297,6 +301,7 @@ export const TILES: TileDef[] = [
   { name: 'Sprinkler', hardness: 0.3, solid: false, drop: 'sprinkler', minable: true },
   { name: 'Cooking pot', hardness: 0.3, solid: false, drop: 'pot', minable: true },
   { name: 'Garage bay', hardness: 0.8, solid: false, drop: 'garage_kit', minable: true },
+  { name: 'Pond ice', hardness: 0.4, solid: true, drop: null, clear: true },
 ];
 
 export interface ItemDef {
@@ -370,6 +375,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   chowder: { name: 'Corn chowder', color: '#ffe36a', places: null, kit: true },
   stew: { name: 'Root stew', color: '#d8704a', places: null, kit: true },
   tart: { name: 'Berry tart', color: '#7ac8ff', places: null, kit: true },
+  icefin: { name: 'Icefin', color: '#bfe6f5', places: null },
 };
 
 export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair', 'window', 'lift', 'corn_seed', 'root_seed', 'berry_seed', 'sprinkler', 'pot', 'garage_kit'];

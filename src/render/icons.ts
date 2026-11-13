@@ -347,6 +347,23 @@ export const ICONS: Record<string, IconDef> = {
       '            ',
     ],
   },
+  icefin: {
+    pal: { a: '#8fc4e0', b: '#e6f6ff', c: '#4a7a9a' },
+    rows: [
+      '            ',
+      '     o      ',
+      '    obo     ',
+      '  oobbbbo o ',
+      ' obbbwbbbaoo',
+      'obbbbbbbaaco',
+      ' oaaaaaaacoo',
+      '  ooacaaco o',
+      '    oocoo   ',
+      '      o     ',
+      '            ',
+      '            ',
+    ],
+  },
   glowfish: {
     pal: { a: '#36e0e8', b: '#c8ffff', c: '#1f7f86' },
     rows: [

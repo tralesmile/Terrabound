@@ -232,7 +232,13 @@ describe('surface ponds and sky islands', () => {
       const isles = w.structures.filter((s) => s.kind === 'island');
       expect(ponds.length).toBeGreaterThanOrEqual(4);
       expect(isles.length).toBeGreaterThanOrEqual(4);
-      for (const p of ponds) expect(w.get((p.x0 + p.x1) >> 1, p.y0)).toBe(T.WATER);
+      for (const p of ponds) {
+        // Open water, or (Frozen Spires) pond ice with water right under it: both are fishable.
+        const mid = (p.x0 + p.x1) >> 1;
+        const top = w.get(mid, p.y0);
+        if (top === T.ICE) expect(w.get(mid, p.y0 + 1)).toBe(T.WATER);
+        else expect(top).toBe(T.WATER);
+      }
       for (const s of isles) {
         const mid = (s.x0 + s.x1) >> 1;
         // Floating: open air between the island's underside and the ground.

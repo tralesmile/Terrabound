@@ -1024,6 +1024,38 @@ try {
   }
   const bag = await page.evaluate(() => JSON.stringify(window.__terrabound.game.carried));
   check('casting the rod at a pond and clicking on the bite lands a catch', !!pond && caught, bag);
+  // Ice fishing: a Frozen Spires pond is frozen over; cast onto the ice, a hole shows, and a bite lands a catch.
+  const icePond = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const p = g.world.structures.find((s) => s.kind === 'pond' && g.world.get((s.x0 + s.x1) >> 1, s.y0) === 69);
+    if (!p) return null;
+    const mid = (p.x0 + p.x1) >> 1;
+    g.enemies = [];
+    g.fishing = null;
+    g.body.x = p.x0 - 1.5;
+    g.body.y = g.world.surface[p.x0 - 2] - 0.01;
+    g.body.vx = g.body.vy = 0;
+    g.time = 30;
+    g.carried = {};
+    return { x: mid - 2, y: p.y0 };
+  });
+  let iceCast = null;
+  let iceCaught = false;
+  if (icePond) {
+    await page.waitForTimeout(300);
+    await page.waitForFunction(() => Math.abs(window.__terrabound.renderer.camX - window.__terrabound.game.body.x) < 0.3 && Math.abs(window.__terrabound.renderer.camY - window.__terrabound.game.body.y) < 1, null, { timeout: 3000 }).catch(() => {});
+    const wp = await tileToCss(page, icePond.x, icePond.y);
+    await holdClick(page, wp.x, wp.y);
+    await page.waitForTimeout(300);
+    iceCast = await page.evaluate(() => ({ ice: window.__terrabound.game.fishing?.ice ?? false, holes: window.__terrabound.renderer.iceHoles }));
+    await page.screenshot({ path: path.join(out, '19b-ice-fishing.png') });
+    await page.waitForFunction(() => (window.__terrabound.game.fishing?.bite ?? 0) > 0.5, null, { timeout: 9000 }).catch(() => {});
+    await holdClick(page, wp.x, wp.y);
+    await page.waitForTimeout(150);
+    iceCaught = await page.evaluate(() => window.__terrabound.game.fishing === null && Object.keys(window.__terrabound.game.carried).length > 0);
+  }
+  check('a Frozen Spires pond is frozen; casting onto the ice cuts a hole and fishes through it', !!icePond && iceCast?.ice === true && iceCast?.holes > 0, JSON.stringify({ icePond, iceCast }));
+  check('a bite through the ice lands a catch', iceCaught, await page.evaluate(() => JSON.stringify(window.__terrabound.game.carried)));
   // Sky island screenshot.
   await page.evaluate(() => {
     const g = window.__terrabound.game;
@@ -1535,6 +1567,40 @@ try {
     await page.evaluate(() => { const g = window.__terrabound.game; g.boss = g.__boss; delete g.__boss; });
     console.log('frame-time probe boss', JSON.stringify({ bossMs, plainMs }));
     check('frame time in a boss fight stays close to a plain scene (median < 1.5x plain + 2 ms)', bossMs.median < plainMs.median * 1.5 + 2, JSON.stringify({ bossMs, plainMs }));
+    // Colossus art pass: hold the boss in a slam wind-up (arms overhead) vs idle, and compare the air above its head
+    // on the side it faces; the furnace grate in its chest glows at rest.
+    const holdBoss = (attack) => page.evaluate((attack) => {
+      const g = window.__terrabound.game;
+      clearInterval(window.__bossHold);
+      window.__bossHold = setInterval(() => { const b = g.boss; if (!b) return; b.attack = attack; b.at = attack ? -0.1 : 0; b.cd = 5; b.vx = 0; }, 4);
+    }, attack);
+    const aboveHead = () => page.evaluate(() => {
+      const { game, renderer } = window.__terrabound;
+      const b = game.boss;
+      const ts = 16 * renderer.scale;
+      const f = b.facing >= 0 ? 1 : -1;
+      const p = renderer.worldToScreen(b.x + f * 0.3, b.y - 3.4 - 1.3);
+      const w = Math.round(1.5 * ts);
+      const x0 = f > 0 ? Math.round(p.x) : Math.round(p.x) - w;
+      const d = document.querySelector('canvas').getContext('2d').getImageData(x0, Math.round(p.y), w, Math.round(1.2 * ts)).data;
+      const t = renderer.worldToScreen(b.x + f * 0.5, b.y - 2.4);
+      const g2 = document.querySelector('canvas').getContext('2d').getImageData(Math.round(t.x) - 20, Math.round(t.y) - 20, 40, 40).data;
+      let warm = 0;
+      for (let i = 0; i < g2.length; i += 4) if (g2[i] > 230 && g2[i + 1] > 120 && g2[i + 1] < 235 && g2[i + 2] < 140) warm++;
+      return { px: Array.from(d), warm };
+    });
+    await holdBoss(null);
+    await page.waitForTimeout(400);
+    const idle = await aboveHead();
+    await holdBoss('slam');
+    await page.waitForTimeout(500);
+    const wind = await aboveHead();
+    await page.screenshot({ path: path.join(out, '26b-boss-slam.png') });
+    await page.evaluate(() => clearInterval(window.__bossHold));
+    let diff = 0;
+    for (let i = 0; i < idle.px.length; i += 4) if (Math.abs(idle.px[i] - wind.px[i]) + Math.abs(idle.px[i + 1] - wind.px[i + 1]) + Math.abs(idle.px[i + 2] - wind.px[i + 2]) > 60) diff++;
+    check('Junk Colossus swings its fists overhead on a slam wind-up', diff > 60, JSON.stringify({ diff }));
+    check('Junk Colossus chest furnace glows at rest', idle.warm > 8, JSON.stringify({ warm: idle.warm }));
   }
   await page.evaluate(() => {
     const g = window.__terrabound.game;

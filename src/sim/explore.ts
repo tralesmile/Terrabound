@@ -106,7 +106,7 @@ export const POI_NOTES: Record<StructureKind, string> = {
   geode: 'A crystal-lined pocket. Mine the walls.',
   shrine: 'A terminal that still remembers. Read its log.',
   wreck: 'A downed drone. Salvage it for copper wire.',
-  pond: 'Fresh water. Cast the rod here for fish.',
+  pond: 'Cast the rod for fish. Frozen ponds: fish through the ice.',
   island: 'Floats high above. A rich chest waits on top.',
   lava: 'Burns and chars the suit. Swim out fast.',
   lavafall: 'A burning sheet. A block in its path stops it.',
