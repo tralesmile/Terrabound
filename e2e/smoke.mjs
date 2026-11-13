@@ -1793,6 +1793,25 @@ try {
     const teleVolley = await teleSample();
     await page.screenshot({ path: path.join(out, '26h-boss-volley.png') });
     check('a volley wind-up swells a bright orb at the muzzle', whites(teleVolley.muzzle) > whites(teleIdle.muzzle) + 12, JSON.stringify({ idle: whites(teleIdle.muzzle), warn: whites(teleVolley.muzzle) }));
+    const summonGreen = () => page.evaluate(() => {
+      const { game, renderer } = window.__terrabound;
+      const b = game.boss;
+      const ctx = document.querySelector('canvas').getContext('2d');
+      const a = renderer.worldToScreen(b.x - 2.6, b.y - 1.0);
+      const c = renderer.worldToScreen(b.x + 0.6, b.y + 0.2);
+      const d = ctx.getImageData(Math.round(a.x), Math.round(a.y), Math.round(c.x - a.x), Math.round(c.y - a.y)).data;
+      let g = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i + 1] > 180 && d[i] < 200 && d[i + 2] < 150) g++;
+      return g;
+    });
+    await holdAt(null, 0);
+    await page.waitForTimeout(300);
+    const summonIdle = await summonGreen();
+    await holdAt('summon', -0.1);
+    await page.waitForTimeout(300);
+    const summonPx = await summonGreen();
+    await page.screenshot({ path: path.join(out, '26i-boss-summon.png') });
+    check('a summon wind-up opens glowing cracks with sprouts where minions will appear', summonPx > summonIdle + 60, JSON.stringify({ summonIdle, summonPx }));
     await page.evaluate(() => { clearInterval(window.__bossHold); window.__terrabound.game.boss.id = 'colossus'; });
   }
   await page.evaluate(() => {

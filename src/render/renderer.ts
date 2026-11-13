@@ -55,7 +55,7 @@ const HULL_FLOOR: Record<'buggy' | 'drill_tank', number> = { buggy: 7, drill_tan
 import { GEAR, type RangedKind } from '../sim/gear';
 import { ATTACK_TIME, BOSSES, phase as bossPhase } from '../sim/bosses';
 import { drawBossArt, slamRaise } from './bossart';
-import { drawBossMuzzle, drawBossTelegraph } from './bosstele';
+import { drawBossMuzzle, drawBossTelegraph, drawSummonTelegraph } from './bosstele';
 import { ACT_INFO } from '../sim/drones';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, isCeilingSlope, leafMask, nextSink, slopeSink, SLOPE_CR, SLOPE_R, slopeBottom, slopeShape, slopeTop } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape } from './decor';
@@ -2516,6 +2516,7 @@ export class Renderer {
     const reach = bs.attack === 'charge' && bs.at >= 0 ? 8 : 0;
     const tv = { sx: (x: number) => this.sx(x, shakeX), sy: (y: number) => this.sy(y, shakeY), ts, u };
     drawBossTelegraph(ctx, bs, tv, time);
+    drawSummonTelegraph(ctx, bs, tv, time);
     drawBossArt(ctx, bs.id, cx, by, u, {
       facing: bs.facing,
       age: bs.age,

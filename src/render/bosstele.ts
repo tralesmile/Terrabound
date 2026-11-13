@@ -6,7 +6,7 @@
  *   fading as the bolts leave.
  * The helpers are pure so the timing and geometry are unit-tested.
  */
-import { ATTACK_TIME, BOSSES, type AttackKind, type Boss } from '../sim/bosses';
+import { ATTACK_TIME, BOSSES, phase, type AttackKind, type Boss } from '../sim/bosses';
 
 /** How far the dash speed carries the boss over a charge (tiles). */
 export function chargeDistance(b: Boss): number {
@@ -141,5 +141,48 @@ export function drawBossMuzzle(ctx: CanvasRenderingContext2D, b: Boss, v: TeleVi
       }
     }
     ctx.restore();
+  }
+}
+
+/** Where a summon's minions will appear (tiles, matching game.ts: 2 apart around the boss, 3 when enraged). Pure. */
+export function summonSpots(b: Boss): number[] {
+  const n = phase(b) === 2 ? 3 : 2;
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) out.push(b.x + (i - 1) * 2);
+  return out;
+}
+
+/**
+ * Summon wind-up: at each spot a minion will crawl out of, a glowing crack opens on the ground and
+ * sprouts (vines, crystals, sparks: the boss's accent colour) grow up out of it as the summon nears.
+ */
+export function drawSummonTelegraph(ctx: CanvasRenderingContext2D, b: Boss, v: TeleView, time: number): void {
+  const k = warnK(b, 'summon');
+  if (k <= 0) return;
+  const d = BOSSES[b.id];
+  const gy = v.sy(BOSSES[b.id].flying ? b.y + 1 : b.y);
+  for (const [j, x] of summonSpots(b).entries()) {
+    const cx = v.sx(x);
+    const w = v.ts * (0.5 + 0.5 * k);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.25 + 0.5 * k;
+    ctx.fillStyle = d.accent;
+    ctx.beginPath();
+    ctx.ellipse(cx, gy, w, w * 0.22, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#1a0f14';
+    ctx.fillRect(Math.round(cx - w * 0.6), Math.round(gy - v.u), Math.ceil(w * 1.2), Math.ceil(v.u * 2));
+    // Sprouts: five shoots of different heights swaying, growing with k.
+    for (let i = 0; i < 5; i++) {
+      const sx = cx + (i - 2) * w * 0.28;
+      const hgt = v.ts * k * (0.5 + ((i * 37 + j * 11) % 5) * 0.15);
+      const sway = Math.sin(time * 6 + i + j) * v.u * 1.5 * k;
+      ctx.fillStyle = d.accent;
+      ctx.fillRect(Math.round(sx + sway), Math.round(gy - hgt), Math.ceil(v.u * 2), Math.ceil(hgt));
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(Math.round(sx + sway), Math.round(gy - hgt), Math.ceil(v.u * 2), Math.ceil(v.u * 2));
+    }
   }
 }

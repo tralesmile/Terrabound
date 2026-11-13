@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ATTACK_TIME, BOSSES, makeBoss } from '../src/sim/bosses';
-import { chargeDistance, chargeLane, charging, speedStreaks, volleyGlow, warnK } from '../src/render/bosstele';
+import { chargeDistance, chargeLane, charging, speedStreaks, summonSpots, volleyGlow, warnK } from '../src/render/bosstele';
 
 describe('boss telegraphs', () => {
   it('the charge lane runs from the boss toward its facing and stops at the arena wall', () => {
@@ -65,5 +65,12 @@ describe('boss telegraphs', () => {
         expect(k.len).toBeLessThanOrEqual(4.6);
       }
     }
+  });
+
+  it('summon spots match where the minions crawl out: two, three when enraged', () => {
+    const b = makeBoss('vine_queen', 100, 50);
+    expect(summonSpots(b)).toEqual([98, 100]);
+    b.hp = BOSSES.vine_queen.hp / 2;
+    expect(summonSpots(b)).toEqual([98, 100, 102]);
   });
 });
