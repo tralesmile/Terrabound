@@ -19,7 +19,7 @@ interface Look {
   speckCount?: number;
   /** Bright pixel on each speck (ore glint). */
   glint?: string;
-  detail?: 'rivets' | 'flakes' | 'cracks' | 'frame' | 'pad' | 'bricks' | 'facets' | 'ripples' | 'roots';
+  detail?: 'rivets' | 'flakes' | 'cracks' | 'frame' | 'pad' | 'bricks' | 'facets' | 'ripples' | 'roots' | 'traces';
   /** Built-metal frame on exposed sides: bright band, inner shadow line, a bolt in each exposed corner. */
   trim?: Trim;
 }
@@ -350,10 +350,29 @@ const WALL_LOOK: Record<number, Look> = {
   3: { base: '#2f3748', light: '#3d475c', dark: '#232a38', detail: 'rivets' },
 };
 export const WALL_KINDS = 4;
+/**
+ * Natural cave walls in the deeper layers (index = layer). Each is well below its layer's rock in
+ * brightness, so a lit open cave reads as a hollow behind the blocks, never brighter than them:
+ * dark circuit mesh with faint traces, plasma basalt with dim veins, core obsidian.
+ */
+export const LAYER_WALL_LOOK: (Look | null)[] = [
+  null,
+  { base: '#0e1a13', light: '#15281c', dark: '#09120d', speck: '#4a3f22', detail: 'traces' },
+  { base: '#190a0f', light: '#241016', dark: '#10060a', speck: '#5a1e34', detail: 'cracks' },
+  { base: '#0c0612', light: '#150b1e', dark: '#07030b', speck: '#3e1448', detail: 'cracks' },
+];
+/** Atlas rows: the WALL_KINDS W ids, then one row per deeper layer's natural cave wall. */
+export const WALL_ROWS = WALL_KINDS + LAYER_WALL_LOOK.length - 1;
+
+/** Atlas row for wall `wall` in depth layer `layer`: natural cave walls (rust or rock) take the layer's look; plates never change. */
+export function wallRow(wall: number, layer: number): number {
+  if ((wall === 1 || wall === 2) && layer > 0 && LAYER_WALL_LOOK[layer]) return WALL_KINDS + layer - 1;
+  return wall;
+}
 
 /** One wall variant as TS*TS colours (null for W.NONE). Panels get a bevel so built rooms read as rooms. */
 export function wallTexture(wall: number, v: number): (string | null)[] {
-  const look = WALL_LOOK[wall];
+  const look = wall >= WALL_KINDS ? LAYER_WALL_LOOK[wall - WALL_KINDS + 1] : WALL_LOOK[wall];
   if (!look) return new Array(TS * TS).fill(null);
   const px: string[] = new Array(TS * TS).fill(look.base);
   const put = (x: number, y: number, c: string): void => {
@@ -371,9 +390,25 @@ export function wallTexture(wall: number, v: number): (string | null)[] {
   } else if (look.detail === 'cracks') {
     let cx = 3 + Math.floor(hash2(v, 7, 61) * 10);
     for (let y = 0; y < TS; y++) {
-      put(cx, y, look.dark);
+      // Deep-layer walls carry a dim glowing vein in some cracks (plasma, core).
+      put(cx, y, look.speck && v % 2 === 0 && y > 3 && y < TS - 3 ? look.speck : look.dark);
       if (hash2(y, v, 62) > 0.6) cx += hash2(y, v, 63) > 0.5 ? 1 : -1;
     }
+  } else if (look.detail === 'traces') {
+    // Circuit mesh: a faint board grid with one trace bending across and a dim solder pad.
+    for (let i = 0; i < TS; i += 4) {
+      for (let j = 0; j < TS; j++) {
+        if (hash2(i, j + v * 7, 71) > 0.35) put(i, j, look.dark);
+        if (hash2(j + v * 5, i, 72) > 0.35) put(j, i, look.dark);
+      }
+    }
+    let ty = 2 + Math.floor(hash2(v, 3, 73) * 12);
+    for (let x = 0; x < TS; x++) {
+      put(x, ty, look.light);
+      if (x % 5 === 4 && hash2(x, v, 74) > 0.5) ty = Math.max(1, Math.min(TS - 2, ty + (hash2(v, x, 75) > 0.5 ? 1 : -1)));
+    }
+    const sx = 1 + Math.floor(hash2(v, 9, 76) * 14);
+    if (look.speck) put(sx, ty, look.speck);
   } else if (look.detail === 'rivets') {
     for (let i = 0; i < TS; i++) {
       put(i, 0, look.light);
@@ -387,10 +422,10 @@ export function wallTexture(wall: number, v: number): (string | null)[] {
 }
 
 export function buildWallAtlas(): HTMLCanvasElement {
-  const c = makeCanvas(TS * VARIANTS, TS * WALL_KINDS);
+  const c = makeCanvas(TS * VARIANTS, TS * WALL_ROWS);
   const ctx = c.getContext('2d');
   if (!ctx) return c;
-  for (let wl = 1; wl < WALL_KINDS; wl++) {
+  for (let wl = 1; wl < WALL_ROWS; wl++) {
     for (let v = 0; v < VARIANTS; v++) {
       const px = wallTexture(wl, v);
       for (let i = 0; i < px.length; i++) {

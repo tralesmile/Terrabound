@@ -61,13 +61,14 @@ import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
-import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows, wheelSpinTime } from './sprites';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, wallRow, VEHICLES, vehicleRows, wheelSpinTime } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 import { drawGlyph, hasGlyph } from './glyphs';
 import { ropePoints, ropeSag, twangAmp } from './ropefx';
 import { scorchK } from './scorchfx';
 import { CONE_PUFFS, CRACK_VARIANTS, DRIFT_H, DRIFT_VARIANTS, conePuff, crackAt, crackPixels, driftPixels } from './ashfx';
 import { GRIME_VARIANTS, HANG_H, HANG_VARIANTS, RCRACK_VARIANTS, grimeAt, grimePixels, SOOT_VARIANTS, hangAt, hangKind, hangPixels, ruinCrackAt, ruinCrackPixels, sootAt, sootPixels } from './ruinfx';
+import { layerAt } from '../sim/layers';
 
 /** Paints pixel arrays (TS wide) side by side into one strip canvas. */
 function stripOf(n: number, h: number, pixels: (v: number) => (string | null)[]): HTMLCanvasElement {
@@ -261,7 +262,9 @@ export class Renderer {
     const wl = world.wall(tx, ty);
     if (wl === 0) return;
     const v = Math.floor(hash2(tx, ty, 11) * VARIANTS);
-    ctx.drawImage(this.wallAtlas, v * TS, wl * TS, TS, TS, dx, dy, ts, ts);
+    // Natural cave walls take the depth layer's look (circuit mesh, plasma basalt, core obsidian).
+    const row = wallRow(wl, layerAt(ty - world.padY));
+    ctx.drawImage(this.wallAtlas, v * TS, row * TS, TS, TS, dx, dy, ts, ts);
     // Old worldgen plates (ruins, towers) are stained and cracked; plates the player builds stay clean.
     if (wl === W.PLATE && !world.wallEdits.has(ty * world.w + tx)) {
       const gv = grimeAt(tx, ty);
