@@ -852,6 +852,29 @@ try {
   }, tank) : null;
   await page.screenshot({ path: path.join(out, '17b-splash.png') });
   check('diving into water throws a splash crown and a ring', !!splash && splash.drops >= 6 && splash.rings >= 1, JSON.stringify(splash));
+  // A stream pouring from a reservoir through a one-tile hole splashes where it lands in the pool.
+  const pour = tank ? await page.evaluate(async ({ x, top }) => {
+    const t = window.__terrabound;
+    const g = t.game;
+    const w = g.world;
+    for (let yy = top - 13; yy <= top - 6; yy++) for (let xx = x - 3; xx <= x + 3; xx++) {
+      const wall = xx === x - 3 || xx === x + 3 || yy === top - 13 || (yy === top - 6 && xx !== x);
+      w.set(xx, yy, wall ? 5 : yy === top - 6 ? 0 : 25);
+    }
+    g.enemies = [];
+    let most = 0;
+    for (let i = 0; i < 30; i++) {
+      g.body.x = x - 1.5;
+      g.body.y = top + 3.9;
+      g.body.vx = g.body.vy = 0;
+      await new Promise((r) => setTimeout(r, 40));
+      most = Math.max(most, t.renderer.splashesShown);
+      if (most > 0 && i > 12) break;
+    }
+    return { most };
+  }, tank) : null;
+  await page.screenshot({ path: path.join(out, '17e-stream-splash.png') });
+  check('a falling stream splashes where it lands in a pool', !!pour && pour.most >= 1, JSON.stringify(pour));
   // Swim pose: in a wide sealed tank, hold D near the surface; the body leans head-first toward the stroke.
   const lane = tank ? await page.evaluate(({ x, top }) => {
     const g = window.__terrabound.game;

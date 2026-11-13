@@ -86,3 +86,38 @@ export function streamGap(world: World, x: number, y: number, t: number): number
   }
   return 0;
 }
+
+/**
+ * Splash where a falling stream lands in a pool: droplets thrown up and out on both sides in short
+ * arcs, offset in time so the splash never pulses in step. Coordinates are art px relative to the
+ * stream centre (x) and the pool surface (y, negative = above). Wider streams throw more and higher.
+ */
+export function splashDrops(time: number, tx: number, width: number): { x: number; y: number; a: number }[] {
+  const out: { x: number; y: number; a: number }[] = [];
+  const n = width >= 10 ? 6 : 4;
+  const reach = 3 + width * 0.35;
+  const lift = 2 + width * 0.3;
+  for (let k = 0; k < n; k++) {
+    const side = k % 2 === 0 ? -1 : 1;
+    const ph = (time * 2.4 + k * 0.37 + tx * 0.29) % 1;
+    const spread = 0.55 + 0.45 * ((k * 7 + tx * 3) % 5) / 4;
+    const x = side * (width / 2 + ph * reach * spread);
+    const y = -(4 * ph * (1 - ph)) * lift * spread;
+    out.push({ x: Math.round(x), y: Math.round(y), a: Number((0.9 * (1 - ph)).toFixed(3)) });
+  }
+  return out;
+}
+
+/**
+ * The pool row a falling stream cell pours into (below any packet gap), or null when it lands on
+ * ground or on more falling liquid (only the lowest cell of a stream splashes).
+ */
+export function streamLanding(world: World, x: number, y: number, t: number): number | null {
+  for (let k = 1; k <= 5; k++) {
+    const c = world.get(x, y + k);
+    if (c === T.AIR) continue;
+    if (c !== t || liquidFalling(world, x, y + k, t)) return null;
+    return y + k;
+  }
+  return null;
+}

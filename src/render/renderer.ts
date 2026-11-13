@@ -6,7 +6,7 @@ import { petSwimPose, petWater, type PetWater } from './petfx';
 import { PET_ART, petPalette, petRows, type PetArtId } from './petart';
 import { coneCrater, lavafallSpan } from '../sim/structures';
 import { FALL_W, LAVA_BLOCK, SHIMMER_ROW, SHIMMER_ROWS, fallShade, lavaDepthShade, lavaShade, shimmerRuns, shimmerShift, fallEdges } from './lavafx';
-import { acidBubble, causticDapples, depthRamp, liquidFalling, streamGap, streamWidth, surfaceGlint, waveOffsets } from './liquidfx';
+import { acidBubble, causticDapples, depthRamp, liquidFalling, splashDrops, streamGap, streamLanding, streamWidth, surfaceGlint, waveOffsets } from './liquidfx';
 import { cropAt, isCropTile, isWatered } from '../sim/farming';
 import { cropSway, drawCropTile, ripeSparkle, sprinklerDrops } from './crops';
 import { NPC_INFO, type Mood, type Npc } from '../sim/npcs';
@@ -1600,6 +1600,7 @@ export class Renderer {
     this.padLightsShown = 0;
     this.padLightsLit = 0;
     this.liquidShown = 0;
+    this.splashes.length = 0;
     this.lavaShown = 0;
     this.shimmerCells.length = 0;
     for (let ty = Math.max(0, y0); ty <= Math.min(world.h - 1, y1); ty++) {
@@ -1645,6 +1646,7 @@ export class Renderer {
         }
       }
     }
+    this.drawSplashes(ctx, ts, time);
   }
 
   /** Crops (swaying in the wind, ripe ones twinkle) and sprinklers (spray arcs), per frame. */
@@ -1959,6 +1961,9 @@ export class Renderer {
         const yy = Math.floor((time * 40 + tx * 7 + k * 8) % 16);
         ctx.fillRect(sx + (k ? wpx - 2 : 1) * u, dy + yy * u, u, 3 * u);
       }
+      // Where the stream hits a pool it throws droplets and churns foam (drawn after the pool cells).
+      const land = streamLanding(world, tx, ty, t);
+      if (land !== null) this.splashes.push({ dx, surf: dy + (land - ty) * ts + (16 - liquidLevel(world, tx, land)) * u, tx, wpx, acid });
       return;
     }
     // Depth in art px at the top of this cell (counting the cells of liquid above), for a smooth gradient.
@@ -2033,6 +2038,32 @@ export class Renderer {
 
   /** Liquid cells drawn last frame (e2e). */
   liquidShown = 0;
+  /** Stream splashes drawn last frame (e2e). */
+  splashesShown = 0;
+  private splashes: { dx: number; surf: number; tx: number; wpx: number; acid: boolean }[] = [];
+
+  /** Foam and thrown droplets where falling streams land in pools (after every liquid cell is drawn). */
+  private drawSplashes(ctx: CanvasRenderingContext2D, ts: number, time: number): void {
+    const u = ts / 16;
+    for (const sp of this.splashes) {
+      const cx = sp.dx + 8 * u;
+      ctx.fillStyle = sp.acid ? 'rgba(220,255,170,0.55)' : 'rgba(225,245,255,0.6)';
+      // Churning foam: broken dashes along the surface that flicker, a narrower row under them.
+      const fw = sp.wpx + 6;
+      for (let i = 0; i < fw; i++) {
+        const k = Math.sin(time * 11 + i * 1.9 + sp.tx * 3.1);
+        if (k > -0.2) ctx.fillRect(cx + (i - fw / 2) * u, sp.surf - (k > 0.7 ? u : 0), u, u);
+        if (i > 1 && i < fw - 2 && k < 0.5) ctx.fillRect(cx + (i - fw / 2) * u, sp.surf + u, u, u);
+      }
+      const drop = sp.acid ? '220,255,170' : '215,240,255';
+      for (const d of splashDrops(time, sp.tx, sp.wpx)) {
+        ctx.fillStyle = `rgba(${drop},${d.a})`;
+        ctx.fillRect(cx + d.x * u, sp.surf + (d.y - 1) * u, u, u);
+      }
+    }
+    this.splashesShown = this.splashes.length;
+    this.splashes.length = 0;
+  }
   /** Tiles the ridden ground vehicle has rolled (drives the wheel frames; e2e). */
   wheelDist = 0;
   /** Lava cells drawn last frame and shimmer rows copied (e2e). */

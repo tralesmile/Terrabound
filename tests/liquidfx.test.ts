@@ -123,3 +123,40 @@ describe('pour streams', () => {
     expect(streamGap(w, 1, 1, T.WATER)).toBe(0);
   });
 });
+
+describe('stream splash', () => {
+  it('throws droplets out to both sides and above the surface, fading as they fly', async () => {
+    const { splashDrops } = await import('../src/render/liquidfx');
+    for (const t of [0.1, 0.5, 1.3]) {
+      const d = splashDrops(t, 7, 8);
+      expect(d).toHaveLength(4);
+      expect(d.some((p) => p.x < 0)).toBe(true);
+      expect(d.some((p) => p.x > 0)).toBe(true);
+      for (const p of d) {
+        expect(p.y).toBeLessThanOrEqual(0);
+        expect(Math.abs(p.x)).toBeGreaterThanOrEqual(4);
+        expect(p.a).toBeGreaterThanOrEqual(0);
+        expect(p.a).toBeLessThanOrEqual(0.9);
+      }
+    }
+    expect(splashDrops(0.3, 7, 16)).toHaveLength(6);
+  });
+
+  it('finds the pool under the lowest stream cell only', async () => {
+    const { streamLanding } = await import('../src/render/liquidfx');
+    const { World } = await import('../src/sim/world');
+    const { T } = await import('../src/sim/tiles');
+    const w = new World(8, 12, 1);
+    for (let x = 0; x < 8; x++) for (let y = 0; y < 12; y++) w.set(x, y, T.AIR);
+    for (let x = 0; x < 8; x++) w.set(x, 11, T.BEDROCK);
+    for (let x = 0; x < 8; x++) w.set(x, 10, T.WATER);
+    w.set(3, 4, T.WATER);
+    w.set(3, 5, T.WATER);
+    w.fill[5 * 8 + 3] = 8;
+    w.set(5, 7, T.WATER);
+    w.set(5, 8, T.BEDROCK);
+    expect(streamLanding(w, 3, 5, T.WATER)).toBe(10);
+    expect(streamLanding(w, 3, 4, T.WATER)).toBeNull();
+    expect(streamLanding(w, 5, 7, T.WATER)).toBeNull();
+  });
+});
