@@ -25,6 +25,7 @@ import { HIT_SQUASH_TIME, hitSquash, hurtSquash, hurtVignette, softFlash, magmaB
 import type { PlayerGear, VehicleSpriteId } from './sprites';
 import { ICON, drawIcon } from './icons';
 import { vehicleRemap } from './sprites';
+import { PAD_PAL, padDeckRows, padLight, padRun } from './padfx';
 /**
  * Swim tilt in radians (canvas rotation; positive leans the head right): head-first toward the
  * swim direction, but never upside down.
@@ -1157,6 +1158,12 @@ export class Renderer {
       this.drawJumpPad(ctx, dx, dy, ts, 0);
       return;
     }
+    if (t === T.PAD) {
+      // Riveted steel deck with hazard ends and a landing ring (padfx); runway lights are per frame.
+      const run = padRun((k) => get(tx + k, ty) === T.PAD);
+      drawRows(ctx, padDeckRows(run.i, run.n), dx, dy, ts / 16, false, 16, undefined, PAD_PAL);
+      return;
+    }
     const art = furnitureArt(t, wideSide(world, tx, ty));
     if (art) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
@@ -1590,6 +1597,8 @@ export class Renderer {
   private drawDynamic(ctx: CanvasRenderingContext2D, world: Game['world'], x0: number, y0: number, x1: number, y1: number, shakeX: number, shakeY: number, time: number): void {
     const ts = TS * this.scale;
     this.farmShown = 0;
+    this.padLightsShown = 0;
+    this.padLightsLit = 0;
     this.liquidShown = 0;
     this.lavaShown = 0;
     this.shimmerCells.length = 0;
@@ -1597,6 +1606,7 @@ export class Renderer {
       for (let tx = Math.max(0, x0); tx <= Math.min(world.w - 1, x1); tx++) {
         const t = world.tiles[ty * world.w + tx];
         if (t === T.TORCH) this.drawTorch(ctx, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time + tx);
+        else if (t === T.PAD) this.drawPadLight(ctx, world, tx, ty, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time);
         else if (t === T.SPRINKLER || isCropTile(t)) this.drawFarmTile(ctx, world, t, tx, ty, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time);
         else if (t === T.WINDOW) this.drawWindow(ctx, world, tx, ty, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time);
         else if (t === T.LIFT) this.drawLiftGlow(ctx, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time, ty);
@@ -1993,6 +2003,32 @@ export class Renderer {
       ctx.fillStyle = `rgba(255,255,255,${0.9 * g.a})`;
       ctx.fillRect(dx + g.x * u, dy + topPx * u, 2 * u, u);
     }
+  }
+
+  /** Pad runway lights drawn last frame and how many were lit bright (e2e). */
+  padLightsShown = 0;
+  padLightsLit = 0;
+
+  /** One runway light on the pad lip: a pulse chases from both ends toward the centre. */
+  private drawPadLight(ctx: CanvasRenderingContext2D, world: Game['world'], tx: number, ty: number, dx: number, dy: number, ts: number, time: number): void {
+    const run = padRun((k) => world.get(tx + k, ty) === T.PAD);
+    const b = padLight(time, run.i, run.n);
+    const u = ts / 16;
+    const x = dx + 7 * u;
+    const y = dy;
+    this.padLightsShown++;
+    if (b > 0.5) {
+      this.padLightsLit++;
+      const g = ctx.createRadialGradient(x + u, y + u, 0, x + u, y + u, 6 * u);
+      g.addColorStop(0, `rgba(120,250,255,${(0.55 * b).toFixed(2)})`);
+      g.addColorStop(1, 'rgba(120,250,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x - 5 * u, y - 5 * u, 12 * u, 12 * u);
+    }
+    ctx.fillStyle = '#1b2430';
+    ctx.fillRect(x - u, y + u, 4 * u, u);
+    ctx.fillStyle = b > 0.5 ? '#e6ffff' : `rgba(54,224,232,${(0.35 + b).toFixed(2)})`;
+    ctx.fillRect(x, y, 2 * u, u);
   }
 
   /** Liquid cells drawn last frame (e2e). */

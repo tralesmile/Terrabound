@@ -255,6 +255,26 @@ try {
   const carried = await page.evaluate(() => Object.values(window.__terrabound.game.carried).reduce((a, b) => a + (b ?? 0), 0));
   check('mouse digging removes the block', before !== 0 && after === 0, `tile ${before} -> ${after}`);
   check('mined block lands in the pack', carried >= 1, `carried ${carried}`);
+  // Landing pad deck: hazard chevrons at both ends, runway lights chasing toward the centre.
+  const padArt = await page.evaluate(async () => {
+    const { game, renderer } = window.__terrabound;
+    const w = game.world;
+    const c = document.querySelector('canvas');
+    const s = renderer.scale;
+    const ends = [w.padX - 4, w.padX + 4].map((x) => renderer.worldToScreen(x + 0.5, w.padY + 0.4));
+    let yellow = 0;
+    for (const p of ends) {
+      const d = c.getContext('2d').getImageData(Math.round(p.x - 6 * s), Math.round(p.y - 4 * s), Math.round(12 * s), Math.round(6 * s)).data;
+      for (let i = 0; i < d.length; i += 4) if (d[i] > 200 && d[i + 1] > 160 && d[i + 2] < 120) yellow++;
+    }
+    const lit = [];
+    for (let k = 0; k < 8; k++) {
+      await new Promise((r) => setTimeout(r, 200));
+      lit.push(renderer.padLightsLit);
+    }
+    return { yellow, shown: renderer.padLightsShown, lit, varies: new Set(lit).size > 1 };
+  });
+  check('the landing pad has hazard chevrons at both ends and chasing runway lights', padArt.yellow > 30 && padArt.shown >= 9 && padArt.varies, JSON.stringify(padArt));
   // Guided goals: a fresh game shows GOAL 1 (drill down) under the HUD, clear of the buttons; finishing it moves on.
   const goal1 = await page.evaluate(() => {
     const { ui, game } = window.__terrabound;
