@@ -3,7 +3,7 @@ import { computeRims, type Rim } from './rimlight';
 import { buriedDecal, decalRects, hasStrata, strataShade } from './strata';
 import type { Game, Hook, Shot } from '../sim/game';
 import { petSwimPose, petWater, type PetWater } from './petfx';
-import { lavafallSpan } from '../sim/structures';
+import { coneCrater, lavafallSpan } from '../sim/structures';
 import { FALL_W, LAVA_BLOCK, SHIMMER_ROW, SHIMMER_ROWS, fallShade, lavaDepthShade, lavaShade, shimmerRuns, shimmerShift } from './lavafx';
 import { acidBubble, causticBand, depthShade, surfaceGlint, waveOffsets } from './liquidfx';
 import { cropAt, isCropTile, isWatered } from '../sim/farming';
@@ -66,7 +66,7 @@ import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, fra
 import { drawGlyph, hasGlyph } from './glyphs';
 import { ropePoints, ropeSag, twangAmp } from './ropefx';
 import { scorchK } from './scorchfx';
-import { CRACK_VARIANTS, DRIFT_H, DRIFT_VARIANTS, crackAt, crackPixels, driftPixels } from './ashfx';
+import { CONE_PUFFS, CRACK_VARIANTS, DRIFT_H, DRIFT_VARIANTS, conePuff, crackAt, crackPixels, driftPixels } from './ashfx';
 import { GRIME_VARIANTS, HANG_H, HANG_VARIANTS, RCRACK_VARIANTS, grimeAt, grimePixels, SOOT_VARIANTS, hangAt, hangKind, hangPixels, ruinCrackAt, ruinCrackPixels, sootAt, sootPixels } from './ruinfx';
 
 /** Paints pixel arrays (TS wide) side by side into one strip canvas. */
@@ -333,6 +333,7 @@ export class Renderer {
     this.cropWet = (x, y) => game.cropWatered(x, y);
     this.drawDynamic(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
     this.drawLavafalls(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
+    this.drawCones(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
 
     // Aim highlight and crack overlay.
     if (aim) {
@@ -1862,6 +1863,63 @@ export class Renderer {
         const ey = -Math.round(ph * 40);
         ctx.fillStyle = `rgba(255,${170 + k * 15},80,${(1 - ph).toFixed(3)})`;
         ctx.fillRect(left + ex * u, fy + ey * u, u, u);
+      }
+    }
+  }
+
+  /** Cinder cones on screen in the last frame (read by e2e). */
+  conesShown = 0;
+
+  /**
+   * Ash Dunes cinder cones: the crater glows and pulses, a plume of smoke rises and leans downwind,
+   * and now and then embers spit out of the mouth. Puffs are big soft pixels, not gradients.
+   */
+  private drawCones(ctx: CanvasRenderingContext2D, world: Game['world'], x0: number, y0: number, x1: number, y1: number, shakeX: number, shakeY: number, time: number): void {
+    this.conesShown = 0;
+    const u = this.scale;
+    const ts = TS * u;
+    for (const st of world.structures) {
+      if (st.kind !== 'cone' || st.x1 < x0 - 2 || st.x0 > x1 + 2 || st.y1 < y0 - 4 || st.y0 > y1 + 1) continue;
+      const c = coneCrater(st);
+      // A block dropped in the crater plugs it: no glow, no smoke.
+      if (world.get(c.x, c.y) !== T.MAGMA) continue;
+      this.conesShown++;
+      const mx = this.sx(c.x + 0.5, shakeX);
+      const my = this.sy(c.y, shakeY);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const pulse = 0.5 + 0.5 * Math.sin(time * 2.3 + c.x);
+      const g = ctx.createRadialGradient(mx, my, u, mx, my, ts * 2);
+      g.addColorStop(0, `rgba(255,140,40,${(0.32 + 0.12 * pulse).toFixed(3)})`);
+      g.addColorStop(1, 'rgba(255,80,20,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(mx - ts * 2, my - ts * 2, ts * 4, ts * 3);
+      ctx.restore();
+      for (let k = 0; k < CONE_PUFFS; k++) {
+        const p = conePuff(k, time, c.x);
+        if (p.a <= 0.01) continue;
+        const r = Math.round(p.r);
+        const px = mx + Math.round(p.x) * u;
+        const py = my - Math.round(p.y) * u;
+        // Lit from below near the mouth, grey higher up.
+        const warm = Math.max(0, 1 - p.y / 18);
+        ctx.fillStyle = `rgba(${Math.round(70 + 110 * warm)},${Math.round(64 + 30 * warm)},${Math.round(66 - 10 * warm)},${p.a.toFixed(3)})`;
+        ctx.fillRect(px - r * u, py - (r - 1) * u, r * 2 * u, (r - 1) * 2 * u);
+        ctx.fillRect(px - (r - 1) * u, py - r * u, (r - 1) * 2 * u, r * 2 * u);
+      }
+      // Ember spits: a short burst every few seconds, arcing out and falling back.
+      const cyc = (time + c.x * 0.37) % 3.5;
+      if (cyc < 1.2) {
+        for (let k = 0; k < 5; k++) {
+          const t = cyc - k * 0.06;
+          if (t < 0) continue;
+          const vx = (k - 2) * 7;
+          const ex = vx * t;
+          const ey = 30 * t - 26 * t * t;
+          if (ey < -2) continue;
+          ctx.fillStyle = k % 2 ? '#ffd27a' : '#ff7a2a';
+          ctx.fillRect(mx + Math.round(ex) * u, my - Math.round(ey) * u - 2 * u, u, u);
+        }
       }
     }
   }

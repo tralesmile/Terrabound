@@ -1053,6 +1053,42 @@ try {
     await page.screenshot({ path: path.join(out, '22e-lava-close.png'), clip: { x: Math.max(0, bx / 1 - 40), y: Math.max(0, by - 120), width: Math.min(600, bw + 80), height: 260 } });
   }
   // Lavafall: an Ash Dunes crag pours a sheet of lava into a catch pool (seen from beside the pool).
+  // Cinder cone: a basalt mound with a glowing crater that smokes and spits embers.
+  const coneAt = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    // Away from the world edge (the camera clamps there); stand left so the cone sits right of the HUD panels.
+    const s = w.structures.find((st) => st.kind === 'cone' && st.x0 > 40 && st.x1 < w.w - 40) ?? w.structures.find((st) => st.kind === 'cone');
+    if (!s) return null;
+    const stand = s.x0 - 3;
+    g.hp = g.derived.maxHp;
+    g.body.x = stand + 0.5;
+    g.body.y = w.surface[stand];
+    g.body.vx = g.body.vy = 0;
+    g.enemies = [];
+    return { cx: (s.x0 + s.x1) >> 1, cy: s.y0 };
+  });
+  await page.waitForFunction(() => {
+    const { renderer: r, game: g } = window.__terrabound;
+    return Math.abs(r.camX - g.body.x) < 0.3 && Math.abs(r.camY - g.body.y) < 1.5;
+  }, null, { timeout: 4000 }).catch(() => {});
+  await page.waitForTimeout(300);
+  const plume = coneAt && (await page.evaluate((c) => {
+    const { renderer } = window.__terrabound;
+    const ctx = document.getElementById('game').getContext('2d');
+    // The air above and downwind of the crater: smoke makes it differ from the plain sky beside it.
+    const a = renderer.worldToScreen(c.cx, c.cy - 3);
+    const b = renderer.worldToScreen(c.cx + 2, c.cy - 0.2);
+    const d = ctx.getImageData(Math.round(a.x), Math.round(a.y), Math.max(1, Math.round(b.x - a.x)), Math.max(1, Math.round(b.y - a.y))).data;
+    const m = renderer.worldToScreen(c.cx + 0.5, c.cy + 0.5);
+    const crater = ctx.getImageData(Math.round(m.x), Math.round(m.y), 1, 1).data;
+    const cols = new Set();
+    for (let i = 0; i < d.length; i += 4) cols.add(`${d[i] >> 3},${d[i + 1] >> 3},${d[i + 2] >> 3}`);
+    return { shown: renderer.conesShown, colours: cols.size, crater: [crater[0], crater[1], crater[2]] };
+  }, coneAt));
+  check('the Ash Dunes have a cinder cone whose crater glows and smokes', !!plume && plume.shown >= 1 && plume.colours >= 6 && plume.crater[0] > 150 && plume.crater[0] > plume.crater[2] + 60, JSON.stringify({ coneAt, plume }));
+  await page.screenshot({ path: path.join(out, '22i-cinder-cone.png') });
+
   const fall = await page.evaluate(() => {
     const g = window.__terrabound.game;
     const w = g.world;

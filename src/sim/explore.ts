@@ -77,6 +77,7 @@ const POI_NAMES: Record<StructureKind, string> = {
   island: 'Sky island',
   lava: 'Lava pool',
   lavafall: 'Lavafall',
+  cone: 'Cinder cone',
 };
 
 const POI_REWARD: Record<StructureKind, Inventory> = {
@@ -91,6 +92,7 @@ const POI_REWARD: Record<StructureKind, Inventory> = {
   island: { crystal: 5, seed: 2 },
   lava: { crystal: 2, iron_scrap: 4 },
   lavafall: { crystal: 3, iron_scrap: 3 },
+  cone: { crystal: 2, iron_scrap: 3, torch: 2 },
 };
 
 /** Every discoverable entry: the five biomes and seven kinds of point of interest. */

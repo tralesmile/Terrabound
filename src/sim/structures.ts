@@ -13,7 +13,7 @@ export const PAD_CLEAR = 22;
 /** Plants keep out of the base strip. */
 export const PLANT_CLEAR = 9;
 
-export type StructureKind = 'ruin' | 'tower' | 'ship' | 'vault' | 'geode' | 'shrine' | 'wreck' | 'pond' | 'island' | 'lava' | 'lavafall';
+export type StructureKind = 'ruin' | 'tower' | 'ship' | 'vault' | 'geode' | 'shrine' | 'wreck' | 'pond' | 'island' | 'lava' | 'lavafall' | 'cone';
 export interface Structure {
   kind: StructureKind;
   x0: number;
@@ -30,6 +30,7 @@ export function decorate(world: World): Structure[] {
   ponds(world, used, out);
   lavaPools(world, used, out);
   lavafalls(world, used, out);
+  cinderCones(world, used, out);
   islands(world, out);
   trees(world, used);
   plants(world);
@@ -546,6 +547,58 @@ function lavafall(world: World, used: Uint8Array, x0: number, r: number): Struct
   put(world, right, g, T.BASALT);
   for (let c = x0 - 3; c <= right + 3; c++) used[c] = 1;
   return { kind: 'lavafall', x0, y0: top, x1: right, y1: g };
+}
+
+/** Cinder cone geometry: half width (radius) and apex height ranges in tiles. */
+export const CONE = { minR: 4, maxR: 5, minH: 4, maxH: 6 } as const;
+
+/** The crater cell of a cinder cone: the magma held between the two rim cells at the apex. */
+export function coneCrater(s: Structure): { x: number; y: number } {
+  return { x: (s.x0 + s.x1) >> 1, y: s.y0 };
+}
+
+/**
+ * Ash Dunes cinder cones: small basalt volcano mounds with a glowing magma crater that smokes.
+ * Up to two per Ash band, out near the band ends (lava pools sit at 1/3 and 2/3, the lavafall midway).
+ */
+function cinderCones(world: World, used: Uint8Array, out: Structure[]): void {
+  const seed = world.seed ^ 0xc1de;
+  let start = 0;
+  for (let x = 1; x <= world.w; x++) {
+    if (x < world.w && world.biome[x] === world.biome[start]) continue;
+    if (world.biome[start] === B.ASH && x - start > 40) {
+      for (const [i, f] of [[0, 1 / 6], [1, 5 / 6]] as const) {
+        const r = CONE.minR + Math.floor(hash2(start, i + 1, seed) * (CONE.maxR - CONE.minR + 1));
+        const want = start + Math.floor(f * (x - start));
+        const cx = [0, 6, -6, 12, -12, 18, -18].map((o) => want + o).find(
+          (c) => c - r - 3 > start && c + r + 3 < x && c > 10 && c < world.w - 10 && Math.abs(c - world.padX) > PAD_CLEAR + r + 6 && !used.subarray(c - r - 2, c + r + 3).some((u) => u),
+        );
+        if (cx !== undefined) out.push(cone(world, used, cx, r, hash2(start, i + 5, seed)));
+      }
+    }
+    start = x;
+  }
+}
+
+function cone(world: World, used: Uint8Array, cx: number, r: number, k: number): Structure {
+  const H = CONE.minH + Math.floor(k * (CONE.maxH - CONE.minH + 1));
+  let g = world.h;
+  for (let c = cx - r - 1; c <= cx + r + 1; c++) g = Math.min(g, world.surface[c]);
+  flatten(world, cx - r - 1, cx + r + 1, g, H + 4);
+  for (let dx = -r; dx <= r; dx++) {
+    const a = Math.abs(dx);
+    // Crater rims at +-1 reach the apex; the centre is one lower and holds the magma; flanks slope.
+    const h = a === 1 ? H : a === 0 ? H - 1 : Math.max(1, Math.min(H - 1, Math.round((H * (r + 1 - a)) / r)));
+    for (let y = g - h; y < g; y++) {
+      put(world, cx + dx, y, T.BASALT);
+      putWall(world, cx + dx, y, W.CAVE_ROCK);
+    }
+    world.surface[cx + dx] = g - h;
+  }
+  put(world, cx, g - H, T.MAGMA);
+  world.surface[cx] = g - H;
+  for (let c = cx - r - 2; c <= cx + r + 2; c++) used[c] = 1;
+  return { kind: 'cone', x0: cx - r, y0: g - H, x1: cx + r, y1: g };
 }
 
 /** Floating sky islands: one or two per biome band, each with soil, a tree and a rich chest. */

@@ -96,3 +96,24 @@ export function crackPixels(v: number): Px {
   }
   return px;
 }
+
+/** Smoke puffs a cinder cone keeps in the air at once. */
+export const CONE_PUFFS = 6;
+/** Seconds one smoke puff takes to rise and fade. */
+export const PUFF_LIFE = 4;
+
+/**
+ * Smoke puff k of a cinder cone at `time`: offset in art px from the crater mouth (x right, y up),
+ * radius and alpha. Puffs rise, swell, lean downwind and fade; phases are staggered so the plume
+ * is continuous. `seed` (the crater column) desynchronises neighbouring cones.
+ */
+export function conePuff(k: number, time: number, seed: number): { x: number; y: number; r: number; a: number } {
+  const ph = (((time + seed * 0.731) / PUFF_LIFE + k / CONE_PUFFS) % 1 + 1) % 1;
+  const sway = Math.sin(time * 0.6 + k * 1.9 + seed) * 3 * ph;
+  return {
+    x: ph * ph * 22 + sway,
+    y: 4 + ph * 46,
+    r: 2 + ph * 9,
+    a: 0.6 * Math.min(1, ph * 6) * (1 - ph),
+  };
+}
