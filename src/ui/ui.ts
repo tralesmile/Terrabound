@@ -1,3 +1,4 @@
+import { diveTitle, reportRows, type DiveReport } from '../sim/divereport';
 import { PAINTS, PAINT_SLOTS, unlockedPaints, type PaintSlot } from '../sim/paints';
 import { codexCounts, logParts, readLogs, stepLog, type CodexSection } from '../sim/codex';
 import { AWARDS, awardGift, awardProgress } from '../sim/achievements';
@@ -104,6 +105,7 @@ export type UiAction =
   | { k: 'mapzoom'; d: number }
   | { k: 'mapcenter' }
   | { k: 'victoryclose' }
+  | { k: 'diveclose' }
   | { k: 'share' }
   | { k: 'drones' }
   | { k: 'raids' }
@@ -447,6 +449,10 @@ export class UI {
       this.drawVictory(ctx, game, w, h, u, time);
       return;
     }
+    if (this.dive) {
+      this.drawDiveReport(ctx, this.dive, w, h, u, time);
+      return;
+    }
     this.drawHud(ctx, game, w, h, u, time);
     if (game.boss) this.drawBossBar(ctx, game, w, u);
     else if (game.raid) {
@@ -640,6 +646,43 @@ export class UI {
     const d = game.drones.find((f) => f.key === bay.key);
     const now = d ? `Now: ${ACT_INFO[d.act].name}${d.mode === 'dock' ? ' (docked)' : ''}` : 'Now: docked';
     this.text(ctx, `${now}. Otherwise it does its role.`, px + u, y + u * 0.4, Math.round(u * 0.72), '#7dff9a', 'left', pw - u * 2);
+  }
+
+  /** The dive report card shown after the signal is lost (null when closed). */
+  dive: DiveReport | null = null;
+
+  private drawDiveReport(ctx: CanvasRenderingContext2D, r: DiveReport, w: number, h: number, u: number, time: number): void {
+    ctx.fillStyle = 'rgba(6,4,14,0.86)';
+    ctx.fillRect(0, 0, w, h);
+    const pw = Math.min(w - u * 2, u * 26);
+    const rows = reportRows(r);
+    const rowH = u * 1.45;
+    const ph = u * 9.6 + Math.ceil(rows.length / 2) * rowH;
+    const px = (w - pw) / 2;
+    const py = Math.max(u * 0.5, (h - ph) / 2);
+    ctx.fillStyle = '#121a30';
+    ctx.fillRect(px, py, pw, ph);
+    ctx.fillStyle = '#ff5a5a';
+    ctx.fillRect(px, py, pw, Math.max(2, u * 0.25));
+    this.text(ctx, 'SIGNAL LOST', w / 2, py + u * 1.6, Math.round(u * 1.5), '#ff6a6a', 'center', pw - u);
+    this.text(ctx, `Dive report: ${diveTitle(r)}`, w / 2, py + u * 3.1, Math.round(u * 0.95), '#ffcf4a', 'center', pw - u);
+    if (r.best) {
+      const glow = 0.65 + Math.sin(time * 4) * 0.35;
+      this.text(ctx, 'NEW DEPTH RECORD!', w / 2, py + u * 4.4, Math.round(u * 0.85), `rgba(127,255,154,${glow.toFixed(2)})`, 'center', pw - u);
+    }
+    const colW = (pw - u * 2) / 2;
+    const top = py + u * 5.6;
+    rows.forEach(([k, v], i) => {
+      const cx = px + u + (i % 2) * colW;
+      const cy = top + Math.floor(i / 2) * rowH;
+      this.text(ctx, k, cx, cy, Math.round(u * 0.75), '#8a90a2', 'left', colW * 0.62);
+      this.text(ctx, v, cx + colW - u * 0.6, cy, Math.round(u * 0.85), k === 'Items lost' ? '#ff9a7a' : '#ffffff', 'right', colW * 0.4);
+    });
+    const by = top + Math.ceil(rows.length / 2) * rowH + u * 0.2;
+    this.text(ctx, 'Your base, stash and gear are safe. A new world awaits.', w / 2, by, Math.round(u * 0.7), '#c9d0e4', 'center', pw - u);
+    const bw = (pw - u * 3) / 2;
+    this.button(ctx, px + u, by + u * 0.9, bw, u * 2.2, 'NEW DIVE', { k: 'diveclose' }, u * 0.85);
+    this.button(ctx, px + u * 2 + bw, by + u * 0.9, bw, u * 2.2, 'SHARE', { k: 'share' }, u * 0.85, { color: '#7a5a1f' });
   }
 
   /** Shown once after beating the Hollow AI. */

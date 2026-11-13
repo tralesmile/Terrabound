@@ -199,6 +199,7 @@ function boot(): void {
           ui.rebinding = null;
           break;
         }
+        ui.dive = null;
         ui.settingsOpen = false;
         applyPrefs();
         ui.shopOpen = false;
@@ -312,6 +313,7 @@ function boot(): void {
         const wasMap = ui.mapOpen;
         ui.mapOpen = false;
         ui.victory = false;
+        ui.dive = null;
         renderer.draw(game, fx, null, clock);
         void shareCard(game, canvas).then((r) => ui.toast(r === 'shared' ? 'Shared!' : r === 'downloaded' ? 'Card saved as an image' : 'Could not create the card', '#ffcf4a'));
         ui.mapOpen = wasMap;
@@ -319,6 +321,9 @@ function boot(): void {
       }
       case 'victoryclose':
         ui.victory = false;
+        break;
+      case 'diveclose':
+        ui.dive = null;
         break;
       case 'mapzoom':
         ui.mapView.zoomBy(a.d);
@@ -554,6 +559,7 @@ function boot(): void {
       }
       case 'death':
         ui.toast(`SIGNAL LOST - ${e.lost} items lost${e.medic ? ' (Patch saved 3/4 of your pack)' : ''}`, '#ff5a5a');
+        ui.dive = e.report;
         fx.addShake(1);
         saveNow();
         break;

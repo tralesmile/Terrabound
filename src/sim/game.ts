@@ -1,6 +1,7 @@
 import { activePaint, nextPaint, type PaintDef, type PaintSlot } from './paints';
 import { CREW_KINDS, codexRows, loreKey, noteCodexEvent, type CodexRow } from './codex';
 import { currentGoal, FTUE_STEPS, goalIndex } from './ftue';
+import { foldDive, newDive, type DiveReport } from './divereport';
 import { awardGift, checkAwards, countEvent, newAwards, noteMax, sanitizeAwards, type Awards, type Tier } from './achievements';
 import { stepPref, type PrefKey, type Prefs } from './settings';
 import { DEFAULT_KEYS, rebind, type BindId, type KeyMap } from './keys';
@@ -188,7 +189,7 @@ export type GameEvent =
   | { t: 'erupt'; x: number; y: number }
   | { t: 'bombhit'; x: number; y: number }
   | { t: 'bank'; total: number }
-  | { t: 'death'; lost: number; medic: boolean }
+  | { t: 'death'; lost: number; medic: boolean; report: DiveReport }
   | { t: 'jump' }
   | { t: 'pad'; x: number; y: number }
   | { t: 'step' }
@@ -295,6 +296,8 @@ export class Game {
   facing = 1;
   time = 0;
   runDeepest = 0;
+  /** This dive's tally (in memory; reset with each new world). */
+  dive: DiveReport = newDive();
   events: GameEvent[] = [];
   /** Explored map for this dive. */
   fog!: FogMap;
@@ -839,6 +842,7 @@ export class Game {
     if (this.events.length < 256) this.events.push(e);
     if (e.t === 'award' || e.t === 'goal') return;
     countEvent(this.save.awards, e);
+    foldDive(this.dive, e);
     noteCodexEvent(this.save.awards, e);
     this.awardCheck();
   }
@@ -956,6 +960,7 @@ export class Game {
     this.save.walls = captureWalls(this.world);
     this.save.runs += 1;
     this.save.worldSeed = worldSeed;
+    this.dive = newDive();
     this.world = generateWorld(this.diveSeed());
     this.save.world = null;
     // A new world: the deployed vehicle waits beside the new pad.
@@ -1091,8 +1096,9 @@ export class Game {
     }
     this.carried = {};
     this.save.stats.deaths += 1;
+    const report: DiveReport = { ...this.dive, depth: Math.max(this.dive.depth, this.runDeepest), lost, best: Math.floor(this.runDeepest) > this.save.stats.deepest };
     this.save.stats.deepest = Math.max(this.save.stats.deepest, Math.floor(this.runDeepest));
-    this.emit({ t: 'death', lost, medic });
+    this.emit({ t: 'death', lost, medic, report });
     this.newWorld();
   }
 
@@ -1446,6 +1452,7 @@ export class Game {
     }
     this.time += dt;
     this.save.stats.playTime += dt;
+    this.dive.time += dt;
     const d = this.derived;
     const b = this.body;
     this.stepExplore(dt, c);
@@ -1597,6 +1604,7 @@ export class Game {
     this.wasGround = b.onGround;
 
     this.runDeepest = Math.max(this.runDeepest, this.depth);
+    this.dive.depth = this.runDeepest;
     if (noteMax(this.save.awards, 'depth', this.runDeepest)) this.awardCheck();
     const rec = this.worldRecord();
     if (rec) {

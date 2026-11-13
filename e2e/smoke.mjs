@@ -325,6 +325,19 @@ try {
   const deaths = await page.evaluate(() => window.__terrabound.game.stats.deaths);
   check('dying is handled and a new dive begins', deaths === 1 && (await page.evaluate(() => window.__terrabound.game.isAtBase())));
   await page.screenshot({ path: path.join(out, '04-after-death.png') });
+  // The dive ends with a report card (depth, time, tallies, items lost) instead of a bare toast.
+  const diveCard = await page.evaluate(() => {
+    const { ui } = window.__terrabound;
+    const d = ui.dive;
+    const btn = ui.rects.find((r) => r.a.k === 'diveclose');
+    const share = ui.rects.find((r) => r.a.k === 'share');
+    return d ? { lost: d.lost, time: d.time, btn, share: !!share } : null;
+  });
+  await page.screenshot({ path: path.join(out, '04b-dive-report.png') });
+  check('signal lost shows a dive report card with time, items lost, NEW DIVE and SHARE', !!diveCard && diveCard.lost > 0 && diveCard.time > 0 && !!diveCard.btn && diveCard.share, JSON.stringify(diveCard));
+  if (diveCard?.btn) await page.mouse.click(diveCard.btn.x + diveCard.btn.w / 2, diveCard.btn.y + diveCard.btn.h / 2);
+  await page.waitForTimeout(100);
+  check('NEW DIVE closes the dive report', (await page.evaluate(() => window.__terrabound.ui.dive)) === null);
 
   // Q swaps drill/blade; an enemy placed beside the player gets hurt by a blade swing.
   await page.keyboard.press('KeyQ');
