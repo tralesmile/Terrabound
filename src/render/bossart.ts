@@ -345,6 +345,8 @@ export interface BossPose {
   lookY: number;
   /** Arms raised overhead for a slam, 0 (hanging) to 1 (straight up). */
   raise?: number;
+  /** Health left, 0..1 (the Hollow AI sheds shell plates and cracks as it drops). Default 1. */
+  hp?: number;
 }
 
 /** How far the arms swing up on a slam: 0 at rest, 1 overhead. Smooth over the warning, held while airborne. Pure. */
@@ -668,7 +670,112 @@ export function drawWyrmBoss(ctx: CanvasRenderingContext2D, id: BossId, cx: numb
   }
 }
 
-/** The Hollow AI: an armoured core disc with orbiting shard plates and a tracking eye. (cx, cy) centre. */
+/** Armour plates around the Hollow AI's core; they break off one by one as it loses health. */
+export const SHELL_PLATES = 8;
+/** Plate shedding order (scattered round the ring so the shell looks battered, not peeled). */
+const SHED_ORDER = [0, 4, 2, 6, 1, 5, 3, 7];
+
+/** Which shell plates are still on at `hp` (0..1 of max health): all at full, none at 0. Pure. */
+export function shellPlates(hp: number): boolean[] {
+  const n = SHELL_PLATES;
+  const intact = Math.max(0, Math.min(n, Math.ceil(hp * n - 1e-9)));
+  const shed = n - intact;
+  const out: boolean[] = [];
+  for (let i = 0; i < n; i++) out.push(SHED_ORDER.indexOf(i) >= shed);
+  return out;
+}
+
+/** Glowing cracks across the exposed core: none at full health, up to 5 near death. Pure. */
+export function coreCracks(hp: number): number {
+  return Math.max(0, Math.min(5, Math.floor((1 - Math.max(0, Math.min(1, hp))) * 6)));
+}
+
+/** Zigzag path of crack `i` as (radius fraction of the core, angle) points from the rim toward the iris. Pure. */
+export function crackPath(i: number): { r: number; a: number }[] {
+  const a0 = i * 2.4 + 0.5;
+  const out: { r: number; a: number }[] = [];
+  for (let j = 0; j < 4; j++) out.push({ r: 0.96 - j * 0.15, a: a0 + (j % 2 === 0 ? 0 : (i % 2 === 0 ? 0.14 : -0.14)) });
+  return out;
+}
+/** The Hollow AI's battered shell: armour plates round the core (shed with damage, exposing glowing seams) and cracks. */
+function drawCoreShell(ctx: CanvasRenderingContext2D, id: BossId, cx: number, cy: number, H: number, u: number, pose: BossPose): void {
+  const d = BOSSES[id];
+  const hp = pose.hp ?? 1;
+  const R = (H / 2) * u;
+  if (!pose.flash) {
+    // Cracks across the core, glowing in the accent colour.
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = d.accent;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < coreCracks(hp); i++) {
+      const pts = crackPath(i);
+      ctx.globalAlpha = 0.55 + 0.35 * Math.sin(pose.age * 5 + i);
+      ctx.lineWidth = Math.max(1, u * 1.6);
+      ctx.beginPath();
+      for (const [j, p] of pts.entries()) {
+        const x = cx + Math.cos(p.a) * p.r * R;
+        const y = cy + Math.sin(p.a) * p.r * R;
+        if (j === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  const plates = shellPlates(hp);
+  const n = plates.length;
+  const rot = -pose.age * 0.25;
+  const gap = 0.07;
+  const r0 = R * 0.8;
+  const r1 = R * 1.12;
+  const plate = pose.flash ? '#ffffff' : shade(d.color, 0.32);
+  const edge = pose.flash ? '#ffffff' : shade(d.color, 0.55);
+  for (let i = 0; i < n; i++) {
+    const a0 = rot + (i / n) * Math.PI * 2 + gap;
+    const a1 = rot + ((i + 1) / n) * Math.PI * 2 - gap;
+    if (!plates[i]) {
+      // Shed plate: a raw seam glows where it was bolted on.
+      if (pose.flash) continue;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.5 + 0.3 * Math.sin(pose.age * 4 + i * 1.7);
+      ctx.strokeStyle = d.accent;
+      ctx.lineWidth = Math.max(1, u * 2);
+      ctx.beginPath();
+      ctx.arc(cx, cy, r0, a0, a1);
+      ctx.stroke();
+      ctx.restore();
+      continue;
+    }
+    ctx.fillStyle = BOSS_OUTLINE;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r1 + u, a0 - 0.02, a1 + 0.02);
+    ctx.arc(cx, cy, r0 - u, a1 + 0.02, a0 - 0.02, true);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = plate;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r1, a0, a1);
+    ctx.arc(cx, cy, r0, a1, a0, true);
+    ctx.closePath();
+    ctx.fill();
+    // Lit outer lip and a rivet light in the middle of the plate (red when enraged).
+    ctx.strokeStyle = edge;
+    ctx.lineWidth = Math.max(1, u);
+    ctx.beginPath();
+    ctx.arc(cx, cy, r1 - u * 0.5, a0, a1);
+    ctx.stroke();
+    if (!pose.flash) {
+      const am = (a0 + a1) / 2;
+      const rm = (r0 + r1) / 2;
+      ctx.fillStyle = pose.enraged ? '#ff3a6a' : d.accent;
+      ctx.fillRect(Math.round(cx + Math.cos(am) * rm - u), Math.round(cy + Math.sin(am) * rm - u), Math.ceil(2 * u), Math.ceil(2 * u));
+    }
+  }
+}
+
+/** The Hollow AI: an armoured core disc in a battered plate shell, orbiting shard plates and a tracking eye. (cx, cy) centre. */
 export function drawCoreBoss(ctx: CanvasRenderingContext2D, id: BossId, cx: number, cy: number, u: number, pose: BossPose): void {
   const d = BOSSES[id];
   const { h: H } = bossArtSize(id);
@@ -699,6 +806,7 @@ export function drawCoreBoss(ctx: CanvasRenderingContext2D, id: BossId, cx: numb
   }
   const cimg = partCanvas(id + 'core', core, tint);
   ctx.drawImage(cimg, Math.round(cx - (H / 2) * u), Math.round(cy - (H / 2) * u), Math.ceil(H * u), Math.ceil(H * u));
+  drawCoreShell(ctx, id, cx, cy, H, u, pose);
   if (!pose.flash) {
     // Iris ring and a pupil that tracks the player.
     const ir = H * 0.24;

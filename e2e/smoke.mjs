@@ -1758,6 +1758,38 @@ try {
     check('Crystal Golem shows a glowing geode heart and throws glittering shards on a slam', golemArt.cyan > 15 && golemArt.white >= 4, JSON.stringify(golemArt));
     const titanArt = await reskin('titan', '26e-titan.png');
     check('Frost Titan shows a glowing frost rune and throws ice shards on a slam', titanArt.cyan > 15 && titanArt.white >= 4, JSON.stringify(titanArt));
+    // Hollow AI art pass: a battered plate shell round the core; plates break off (with debris) and
+    // glowing seams and cracks show as its health drops.
+    await page.evaluate(() => { const b = window.__terrabound.game.boss; window.__hpSave = b.hp; b.id = 'hollow_ai'; b.hp = 2200; b.iframes = 0; });
+    await holdBoss(null);
+    await page.waitForTimeout(400);
+    const corePink = () => page.evaluate(() => {
+      const { game, renderer, fx } = window.__terrabound;
+      const b = game.boss;
+      const p = renderer.worldToScreen(b.x, b.y - 1.6);
+      // Count accent pinks in a ring outside the iris (which turns red when enraged): cracks and shed seams.
+      const ts = 16 * renderer.scale;
+      const r = Math.round(1.5 * ts);
+      const d = document.querySelector('canvas').getContext('2d').getImageData(Math.round(p.x) - r, Math.round(p.y) - r, 2 * r, 2 * r).data;
+      let pink = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        const q = i / 4;
+        const dist = Math.hypot((q % (2 * r)) - r, Math.floor(q / (2 * r)) - r);
+        if (dist > 0.88 * ts && dist < 1.5 * ts && d[i] > 200 && d[i + 1] < 170 && d[i + 2] > 200) pink++;
+      }
+      return { pink, parts: fx.particles.length, left: renderer.shellLeft };
+    });
+    const hollowFull = await corePink();
+    await page.screenshot({ path: path.join(out, '28b-hollow-shell.png') });
+    await page.evaluate(() => { window.__terrabound.game.boss.hp = 2200 * 0.3; });
+    await page.waitForTimeout(60);
+    const hollowShed = await corePink();
+    await page.waitForTimeout(400);
+    const hollowHurt = await corePink();
+    await page.screenshot({ path: path.join(out, '28c-hollow-cracked.png') });
+    check('the Hollow AI wears a plate shell that breaks off with debris as it is hurt', hollowFull.left === 8 && hollowHurt.left === 3 && hollowShed.parts - hollowFull.parts >= 14, JSON.stringify({ full: hollowFull, shed: hollowShed, hurt: hollowHurt }));
+    check('a hurt Hollow AI glows through shed-plate seams and core cracks', hollowHurt.pink > hollowFull.pink + 60, JSON.stringify({ full: hollowFull.pink, hurt: hollowHurt.pink }));
+    await page.evaluate(() => { window.__terrabound.game.boss.hp = window.__hpSave; });
     // Ranged / dash telegraphs (Vine Queen): a red chevron lane toward where the charge ends, speed streaks and
     // kicked-up dust during the dash, and a swelling orb at the muzzle before a volley.
     await page.evaluate(() => { window.__terrabound.game.boss.id = 'vine_queen'; });

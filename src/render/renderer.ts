@@ -54,7 +54,7 @@ const HULL_ROW = 3;
 const HULL_FLOOR: Record<'buggy' | 'drill_tank', number> = { buggy: 7, drill_tank: 9 };
 import { GEAR, type RangedKind } from '../sim/gear';
 import { ATTACK_TIME, BOSSES, phase as bossPhase } from '../sim/bosses';
-import { drawBossArt, slamRaise } from './bossart';
+import { BOSS_ART, SHELL_PLATES, drawBossArt, shade, shellPlates, slamRaise } from './bossart';
 import { boltTrail, drawBossMuzzle, drawBossTelegraph, drawSummonTelegraph } from './bosstele';
 import { ACT_INFO } from '../sim/drones';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, isCeilingSlope, leafMask, nextSink, slopeSink, SLOPE_CR, SLOPE_R, slopeBottom, slopeShape, slopeTop } from './autotile';
@@ -320,6 +320,7 @@ export class Renderer {
   }
 
   draw(game: Game, fx: Fx, aim: Aim | null, time: number): void {
+    this.fx = fx;
     this.ambPadY = game.world.padY;
     this.ambientLit = 0;
     const ctx = this.ctx;
@@ -2069,6 +2070,10 @@ export class Renderer {
 
   /** Where the pet is this frame: dry, at the surface or under (e2e). */
   petSwim: PetWater = 'dry';
+  /** Fx of the frame being drawn (for render-side debris like the Hollow AI's shell plates). */
+  private fx: Fx | null = null;
+  /** Hollow AI shell plates seen last frame (a drop throws debris). */
+  shellLeft = SHELL_PLATES;
   /** Lavafall sheets drawn last frame (e2e) and the air cells they pour through (light sources). */
   lavafallsShown = 0;
   private fallCells = new Set<number>();
@@ -2542,7 +2547,18 @@ export class Renderer {
       lookX: game.body.x - bs.x,
       lookY: game.body.y - BODY_H / 2 - (bs.y - d.h / 2),
       raise: d.flying ? 0 : slamRaise(bs.attack, bs.at, ATTACK_TIME.slam.warn),
+      hp: bs.hp / d.hp,
     });
+    // A shell plate breaking off throws chunks of armour and a flash of the core's light.
+    const plates = shellPlates(bs.hp / d.hp).filter(Boolean).length;
+    if (BOSS_ART[bs.id].style === 'core' && this.fx && plates < this.shellLeft) {
+      const cy = bs.y - d.h / 2;
+      this.fx.burst(bs.x, cy, shade(d.color, 0.32), 14, 7);
+      this.fx.burst(bs.x, cy, d.accent, 8, 5);
+      this.fx.ring(bs.x, cy, d.h * 0.7, d.accent, 0.35);
+      this.fx.addShake(0.3);
+    }
+    this.shellLeft = plates;
     drawBossMuzzle(ctx, bs, tv, time);
     if (warn) {
       ctx.fillStyle = '#ffcf4a';
