@@ -552,3 +552,17 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** the follow-ups at the end of BACKLOG P1.10.
 
 **Known issues:** the stroke arm is small at phone scale; the tilt also rotates the RIDE/GET OFF state art; lava pools are placed before trees but rely on `used` to keep trees off the rim.
+
+## 2026-11-12 Scheduled run 35 (docs written by run 36)
+
+**Done:** cave back walls get a baked contact shadow where they meet solid blocks (src/render/ao.ts, chunk cache, diagonal chunk invalidation); SUIT / HELM / RIDE paint buttons on the inventory preview recolour suit, helmet and every vehicle hull (vehicleRemap); save v26 adds paintHelm and paintRide. The run stopped before its docs; run 36 recorded it.
+
+## 2026-11-13 Scheduled run 36
+
+**Done:** baseline green (636 tests). Creative review: surface lava read as striped orange water (a hot band per cell; 22d-lava-pool). Molten lava (src/render/lavafx.ts): a world-space ridged-noise crust (cooled plates, melt, hot veins, white-hot cracks) drifts slowly across cell edges, darker red with depth, and the air above surface lava shimmers (rows copied back onto the canvas nudged a whole art px; 22d-lava-pool, 22e-lava-close). Award gifts: every award pays a themed one-time stash gift on unlock (torches for mining, medkits for fights, crystal for exploring, seeds for farming...; silver/gold add gold circuits), shown as icons on the AWARDS cards and in the toast (48-awards, 48c-mobile-awards, 22c-buggy toast). Buggy wheels and tank treads now advance with distance rolled, not the clock.
+
+**Numbers:** 652 unit tests (new: lavafx 8, awardgifts 5, wheelspin 3), 181 e2e checks all green (new: molten lava colours + shimmer rows, gifts on every award card, gift lands in stash with the toast, wheels track distance and stop), bundle 371 kB (129.2 kB gzip).
+
+**Next:** lavafalls down Ash cliffs; swim animation for robot pets; P1.9 follow-ups (plane with cargo, charge station); longer lore logs.
+
+**Known issues:** shimmer copies the canvas onto itself (cheap here, untested on a real phone GPU); old awards earned before gifts paid nothing (by design, no save change); the log reader leaves empty space on desktop; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).

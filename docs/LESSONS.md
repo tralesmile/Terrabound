@@ -145,3 +145,8 @@
 
 - **Rules encoded as tests need updating on purpose, not weakening:** "magma only in Plasma/Core" became "or under the Ash Dunes". Update the test to the new rule, and keep the old guarantee where it still holds (non-Ash columns).
 - **Velocity-based poses need weighting:** a raw atan2 of the swim velocity pointed the swimmer head-down, because gravity sinking dominated. Weight passive motion less than input-driven motion. Vehicle slope tilt likewise had to treat walls as at most a one-tile step.
+
+- **Gifts change stash totals that other tests pin.** The first mod chip unlocks Tinkerer, so tests/mods.test.ts saw +10 copper wire. Guard: that test now adds `awardGift(mod1)` explicitly; any test asserting an exact stash after a "first X" action must account for the award gift (or pre-mark the award done).
+- **A run can stop between its code and its docs** (run 35 shipped 09debea with no PROGRESS entry). Guard: on start, `git log` since the last "Docs for run" commit and document any undocumented commits first.
+- **Same-canvas drawImage works for cheap distortion** (heat shimmer): copy thin rows of the canvas onto itself with whole-art-px offsets; merge cells into runs so it is one call per row per run.
+- **Retro:** three slices, three ships (~4-5 min each) plus one red gate (the gift changed a pinned stash count). Running the full `npx vitest run` before `ship` would have caught it 4 minutes earlier.

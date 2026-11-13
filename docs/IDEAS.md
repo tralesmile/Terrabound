@@ -1,5 +1,14 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 36
+
+- Done this run: molten lava crust + heat shimmer (weakest graphics: lava was striped orange water); award gifts (carried 4 runs); wheels turn with ground speed.
+- Weakest graphics: lava pools sit flat in the Ash Dunes; lavafalls spilling down cliffs with a glow on the rock below (Terraria/Noita lava drama).
+- Weakest story (carried): logs are one line each; 3-4 lines per log so the reader earns its space.
+- Weakest UI (carried): full-screen panels leave the notch strip showing the world; dark fill behind the safe frame.
+- Weakest controls (carried): hold right click to sow a row; hotbar digits not remappable.
+- Weakest perf risk: the shimmer self-copy and per-block lava fills are fine on desktop; add a frame-time probe to e2e over a big lava pool before phones ship.
+
 ## 2026-11-12 run 34
 
 - Done this run: grappling rope sag + attach twang + claw (carried 1 run); pilot seated inside ground vehicles; codex log reader + CREW tab.
@@ -17,12 +26,3 @@
 - Weakest feel: the grappling rope is a straight 1 px line; a slight sag while slack and a twang on attach would sell the swing (Terraria hooks).
 - Weakest UI: full-screen panels leave the notch strip showing the world; a dark fill behind the safe frame on phones.
 - Weakest controls: hold right click to sow a row (carried); hotbar digits not remappable.
-
-## 2026-11-12 run 32
-
-- Done this run: cave rim light toward the lamp (carried 4 runs); codex screen; suit paints from gold awards.
-- Weakest feel (carried): entering water has no splash ring or air bubbles from the suit; a splash burst + bubble trail while submerged would sell swimming (Terraria).
-- Weakest graphics: open caves are one flat dark tone between rims; faint ambient occlusion (darker 2 px inner band on tile faces next to air) would add depth cheaply in the chunk cache.
-- Weakest progression: bronze/silver awards still pay only a star; small one-time stash gifts per award (no pressure, nothing expires) would make every star land.
-- Weakest controls: hold right click to sow a row (carried); hotbar digits not remappable.
-- Weakest UI: lore is read as one toast at a terminal; a LOGS reader that pages the story in order (codex follow-up in BACKLOG).

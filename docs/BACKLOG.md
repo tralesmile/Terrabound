@@ -78,7 +78,8 @@ World size and variety:
 - [x] Swim pose: head-first tilt toward the swim direction, flutter kick, stroking arm, tread water, surface ripples
 - [x] Vehicles: seated pilot on hoverbike and Sky Jet, slope tilt and climb pitch, landing suspension squash, wheel dust, exhaust, drill sparks, hover motes, jet contrail
 - [x] Lava: two basalt-lined surface lava pools per Ash Dunes band (codex: Lava pool), lava basins in the caves under the Ash Dunes
-- [ ] Follow-ups (scheduled runs may take these): lavafalls down Ash cliffs, heat shimmer over surface lava, swim animation for the robot pets, wheel spin speed matched to ground speed
+- [x] Heat shimmer and flowing crust on lava (run 36, src/render/lavafx.ts); wheel and tread frames follow the distance rolled (run 36)
+- [ ] Follow-ups (scheduled runs may take these): lavafalls down Ash cliffs, swim animation for the robot pets
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 
@@ -87,7 +88,7 @@ World size and variety:
 - [x] Parts per vehicle: engine (speed), armor (damage taken), battery (drain); 3 levels each
 - [x] Vehicles are parked world objects: DEPLOY from the garage, walk up and press V to enter, leaving parks it; save migration parks owned vehicles at the pad
 - [x] Art for the garage, buggy and drill tank; e2e checks and screenshots
-- [ ] Follow-ups (scheduled runs may take these): plane variant with cargo, vehicle paint colours, fuel/charge station at the garage (pilot seated inside buggy and drill tank done run 34)
+- [ ] Follow-ups (scheduled runs may take these): plane variant with cargo, fuel/charge station at the garage (pilot seated inside buggy and drill tank done run 34; vehicle paints done run 35)
 
 ## P1.8 Owner request 2026-11-11: "add all" (do these FIRST, top to bottom, before P2)
 
@@ -150,7 +151,8 @@ Polish
 - [x] Codex screen (run 32, src/sim/codex.ts): CODEX in the inventory, tabs PLACES / CREATURES (kill counts, field notes, bosses) / LOGS (12 data logs); derived from save.codex, save.bosses and award counters (no save field)
 - [x] Suit paints (run 32, src/sim/paints.ts): 6 cosmetic paints, one per gold award, PAINT button on the inventory preview, shown in the world; save v25
 - [x] Codex follow-ups (run 34): log reader paging read logs in story order with a story strip; CREW tab for the 4 robots and Dex (derived from award counters + who is present, no save bump)
-- [ ] Paint colours for helmets and vehicles (gold-award paints extended; vehicle paint pairs with the P1.9 follow-up)
+- [x] Paint colours for helmets and vehicles (run 35: SUIT / HELM / RIDE paint buttons, save v26)
+- [x] Award gifts (run 36): every award drops a small themed one-time gift into the stash on unlock; silver/gold add gold circuits; shown on the AWARDS cards and the toast
 - [x] Mobile polish (run 33): safe-area insets (notch / home bar, src/ui/safearea.ts), HOLD REEL touch button for the hook; hotbar slots were already ~44 CSS px on a 390 px phone; real-device check stays in NEEDS_FROM_USER
 
 Money (ethical, no paywalls)
