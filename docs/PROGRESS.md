@@ -626,3 +626,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** icon HUD buttons; underground contrast (back wall vs rock); physical slopes; longer lore logs; P1.9 follow-ups (plane with cargo, charge station); P1.6 follow-ups.
 
 **Known issues:** player-placed soil/rust no longer slopes (it used to; built = square is the rule now); slopes are render-only, so the player floats up to half a tile over a cap; patrolling walkers now wander over hills further than before (watch spawn density near the pad); tall cones put bomb arcs above the screen from the foot; the log reader leaves empty space on desktop; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).
+
+## 2026-11-13 Scheduled run 43
+
+**Done:** baseline green (725 tests). Creative review: the right-hand HUD was a column of wide text buttons (carried 1), logs were one line each (carried 8), and the player floated up to half a tile over slope caps. Icon HUD (src/ui/hudbuttons.ts data, src/ui/hudglyphs.ts drawing): square code-drawn glyphs two wide with the cog (speaker/note/cross, folded map, house, beam with a rising charge fill, drone, wrench+hammer with a "!" badge when an upgrade is affordable, pickaxe/block, buggy/get-off, hook, chevrons), bound key in the corner on desktop, at least 44 px on touch; the column is ~80-100 px wide instead of ~190 (08b-back-wall, 06d-mobile-icon-hud). Longer lore logs (explore.ts `LORE_MORE`): every log gains 2-3 lines telling the survey team's story; the reader draws them as paragraphs (fills the empty desktop reader; 51f-log-reader). Feet follow slope diagonals (autotile `slopeSink`/`nextSink`, renderer `footSink`): render-only, seamless off the low end (11f-slope-walk).
+
+**Numbers:** 739 unit tests (new: hudbuttons 8, long logs 2, slope sink 4; codex logParts test updated for the new `more` field), 205 e2e checks all green (new: desktop square glyph buttons, mobile two-wide grid >= 44 px, dig/build glyph toggles mode, reader shows 4+ lines, feet sink half a tile mid-cap), bundle 403.6 kB (141.5 kB gzip).
+
+**Next:** per-layer back walls (Circuit open caves read brighter than its solid blocks, 27-deep-layer); enemies follow slope diagonals; desktop hover labels for HUD glyphs; lore placed in story order by depth; P1.9 follow-ups (plane with cargo, charge station).
+
+**Known issues:** glyph buttons have no text, so a new desktop player learns them by trying (key hints help); enemies still float over caps; tall cones put bomb arcs above the screen from the foot; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).
