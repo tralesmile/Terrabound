@@ -82,7 +82,8 @@ World size and variety:
 - [x] Lavafalls: a basalt crag per Ash band pours a burning sheet into a catch pool (codex: Lavafall); pets paddle, lean and bubble when they follow the player into water (run 37)
 - [x] Lava contact juice (hop, sizzle, charred suit with embers and smoke), Ash Dunes surface variety (drift caps, clustered glowing crust cracks), e2e frame-time probe over lava (found and fixed an 18 ms shimmer) (run 38)
 - [x] Ruin weathering (cracked bricks, soot, vines/icicles, stained old plates), cinder cones with smoking craters (codex: Cinder cone), frame-time probes for a boss fight and a dust storm (run 39)
-- [ ] Follow-ups (scheduled runs may take these): rare telegraphed cone eruptions lobbing lava bombs; half-tile slope caps on exposed diagonal block edges (softer hills); merge the award + discovered toasts into one pill
+- [x] Cone eruptions (rumble telegraph, lava bombs that burn and knock back, never break blocks); discovery + codex gift + award fold into one toast pill (run 40)
+- [ ] Follow-ups (scheduled runs may take these): half-tile slope caps on exposed diagonal block edges (softer hills); cone eruption codex hint
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 
