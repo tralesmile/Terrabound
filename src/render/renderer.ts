@@ -333,7 +333,7 @@ export class Renderer {
     this.cropWet = (x, y) => game.cropWatered(x, y);
     this.drawDynamic(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
     this.drawLavafalls(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
-    this.drawCones(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
+    this.drawCones(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time, game.rumbleState());
 
     // Aim highlight and crack overlay.
     if (aim) {
@@ -783,6 +783,42 @@ export class Renderer {
         ctx.textAlign = 'center';
         ctx.fillText('!', bx2, by2 - scale * 6);
       }
+    }
+
+    // Lava bombs: a glowing blob with a dark crust and a hot trail behind it.
+    this.bombsShown = 0;
+    for (const m of game.lavaBombs) {
+      const mx = this.sx(m.x, shakeX);
+      const my = this.sy(m.y, shakeY);
+      if (mx < -50 || my < -50 || mx > this.w + 50 || my > this.h + 50) continue;
+      this.bombsShown++;
+      const u = scale;
+      const tr = ctx.createLinearGradient(mx, my, mx - m.vx * u * 2.2, my - m.vy * u * 2.2);
+      tr.addColorStop(0, 'rgba(255,160,60,0.8)');
+      tr.addColorStop(1, 'rgba(120,30,10,0)');
+      ctx.strokeStyle = tr;
+      ctx.lineWidth = u * 4;
+      ctx.beginPath();
+      ctx.moveTo(mx, my);
+      ctx.lineTo(mx - m.vx * u * 2.2, my - m.vy * u * 2.2);
+      ctx.stroke();
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const gl = ctx.createRadialGradient(mx, my, u, mx, my, u * 14);
+      gl.addColorStop(0, 'rgba(255,150,50,0.55)');
+      gl.addColorStop(1, 'rgba(255,60,10,0)');
+      ctx.fillStyle = gl;
+      ctx.fillRect(mx - u * 14, my - u * 14, u * 28, u * 28);
+      ctx.restore();
+      const px = Math.round(mx / u) * u;
+      const py = Math.round(my / u) * u;
+      ctx.fillStyle = '#3a1a10';
+      ctx.fillRect(px - 3 * u, py - 2 * u, 6 * u, 4 * u);
+      ctx.fillRect(px - 2 * u, py - 3 * u, 4 * u, 6 * u);
+      ctx.fillStyle = '#ff7a2a';
+      ctx.fillRect(px - 2 * u, py - 2 * u, 4 * u, 4 * u);
+      ctx.fillStyle = '#ffe08a';
+      ctx.fillRect(px - u, py - u, 2 * u, 2 * u);
     }
 
     // Meteors: bright head with a long fading trail.
@@ -1869,13 +1905,17 @@ export class Renderer {
 
   /** Cinder cones on screen in the last frame (read by e2e). */
   conesShown = 0;
+  /** Cones drawn rumbling last frame, and lava bombs drawn (e2e). */
+  conesRumbling = 0;
+  bombsShown = 0;
 
   /**
    * Ash Dunes cinder cones: the crater glows and pulses, a plume of smoke rises and leans downwind,
    * and now and then embers spit out of the mouth. Puffs are big soft pixels, not gradients.
    */
-  private drawCones(ctx: CanvasRenderingContext2D, world: Game['world'], x0: number, y0: number, x1: number, y1: number, shakeX: number, shakeY: number, time: number): void {
+  private drawCones(ctx: CanvasRenderingContext2D, world: Game['world'], x0: number, y0: number, x1: number, y1: number, shakeX: number, shakeY: number, time: number, rumble: { k: number; x: number; y: number } | null = null): void {
     this.conesShown = 0;
+    this.conesRumbling = 0;
     const u = this.scale;
     const ts = TS * u;
     for (const st of world.structures) {
@@ -1888,13 +1928,25 @@ export class Renderer {
       const my = this.sy(c.y, shakeY);
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
-      const pulse = 0.5 + 0.5 * Math.sin(time * 2.3 + c.x);
-      const g = ctx.createRadialGradient(mx, my, u, mx, my, ts * 2);
-      g.addColorStop(0, `rgba(255,140,40,${(0.32 + 0.12 * pulse).toFixed(3)})`);
+      // Rumbling: the glow swells and flickers fast as the eruption nears (the telegraph).
+      const rk = rumble && Math.floor(rumble.x) === c.x && rumble.y === c.y ? rumble.k : 0;
+      if (rk > 0) this.conesRumbling++;
+      const pulse = rk > 0 ? 0.5 + 0.5 * Math.sin(time * (8 + 18 * rk)) : 0.5 + 0.5 * Math.sin(time * 2.3 + c.x);
+      const R = ts * (2 + 2.5 * rk);
+      const g = ctx.createRadialGradient(mx, my, u, mx, my, R);
+      g.addColorStop(0, `rgba(255,${Math.round(140 + 60 * rk)},${Math.round(40 + 40 * rk)},${Math.min(0.95, 0.32 + 0.12 * pulse + 0.5 * rk).toFixed(3)})`);
       g.addColorStop(1, 'rgba(255,80,20,0)');
       ctx.fillStyle = g;
-      ctx.fillRect(mx - ts * 2, my - ts * 2, ts * 4, ts * 3);
+      ctx.fillRect(mx - R, my - R, R * 2, R * 1.5);
       ctx.restore();
+      if (rk > 0) {
+        // Magma welling over the lip: a bright bead that grows in the crater mouth.
+        const bh = Math.max(1, Math.round(rk * 5));
+        ctx.fillStyle = '#ffd27a';
+        ctx.fillRect(mx - 3 * u, my - bh * u, 6 * u, bh * u);
+        ctx.fillStyle = '#fff2c0';
+        ctx.fillRect(mx - u, my - bh * u, 2 * u, Math.max(1, bh - 1) * u);
+      }
       for (let k = 0; k < CONE_PUFFS; k++) {
         const p = conePuff(k, time, c.x);
         if (p.a <= 0.01) continue;

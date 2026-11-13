@@ -27,7 +27,8 @@ import {
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
 import { recipeById } from './recipes';
 import { chestLoot } from './loot';
-import { SOIL_TILES, growTime, inLavafall, stepSaplings } from './structures';
+import { SOIL_TILES, growTime, inLavafall, stepSaplings, type Structure } from './structures';
+import { ERUPT, bombHits, coneLive, craterOf, launchBombs, nearestCone, nextGap, stepBomb, type LavaBomb } from './eruptions';
 import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
 import { BIOME_BOSSES, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
 import { BIOMES, type BiomeId } from './biomes';
@@ -165,6 +166,9 @@ export type GameEvent =
   | { t: 'fell'; x: number; y: number; tiles: number }
   | { t: 'hurt'; amount: number }
   | { t: 'sizzle'; x: number; y: number }
+  | { t: 'rumble'; x: number; y: number }
+  | { t: 'erupt'; x: number; y: number }
+  | { t: 'bombhit'; x: number; y: number }
   | { t: 'bank'; total: number }
   | { t: 'death'; lost: number; medic: boolean }
   | { t: 'jump' }
@@ -297,6 +301,12 @@ export class Game {
   weather: WeatherKind = 'clear';
   /** Falling meteors during a shower. */
   meteors: { x: number; y: number; vx: number; vy: number }[] = [];
+  /** Lava bombs in flight from a cinder cone eruption. */
+  lavaBombs: LavaBomb[] = [];
+  /** A cone that is rumbling before it erupts (t counts up to ERUPT.rumbleT), or null. */
+  rumble: { cone: Structure; t: number } | null = null;
+  /** Seconds until the nearest live cone next erupts (counts down only while one is near). */
+  eruptCd = 12;
   private meteorAcc = 0;
   /** Active boss fight (one at a time). */
   boss: Boss | null = null;
@@ -909,6 +919,9 @@ export class Game {
     this.bladeCd = 0;
     this.spawnCd = 3;
     this.rng = mulberry32(this.diveSeed() ^ 0x5eed);
+    this.lavaBombs = [];
+    this.rumble = null;
+    this.eruptCd = 12;
     this.runDeepest = 0;
     this.lowWarned = false;
     this.wasGround = true;
@@ -1128,8 +1141,62 @@ export class Game {
     this.meteors = keep;
   }
 
+  /** Cinder cones near the player rumble, then lob lava bombs that burn and splash where they land. */
+  private stepEruptions(dt: number): void {
+    const b = this.body;
+    if (this.rumble) {
+      this.rumble.t += dt;
+      if (this.rumble.t >= ERUPT.rumbleT) {
+        const cone = this.rumble.cone;
+        this.rumble = null;
+        if (coneLive(this.world, cone)) {
+          this.lavaBombs.push(...launchBombs(cone, this.rng));
+          const c = craterOf(cone);
+          this.emit({ t: 'erupt', x: c.x + 0.5, y: c.y });
+        }
+      }
+    } else {
+      const cone = nearestCone(this.world, b.x, b.y);
+      if (cone) {
+        this.eruptCd -= dt;
+        if (this.eruptCd <= 0) {
+          this.eruptCd = nextGap(this.rng);
+          this.rumble = { cone, t: 0 };
+          const c = craterOf(cone);
+          this.emit({ t: 'rumble', x: c.x + 0.5, y: c.y });
+        }
+      }
+    }
+    if (this.lavaBombs.length === 0) return;
+    const keep: LavaBomb[] = [];
+    for (const m of this.lavaBombs) {
+      const landed = stepBomb(this.world, m, dt);
+      const direct = this.iframes === 0 && bombHits(m, b.x, b.y, BODY_H);
+      if (!landed && !direct) {
+        keep.push(m);
+        continue;
+      }
+      if (this.iframes === 0 && (direct || Math.hypot(m.x - b.x, m.y - (b.y - BODY_H / 2)) < ERUPT.splash + BODY_H / 2)) {
+        this.lavaBurn(ERUPT.dmg, false);
+        b.vx += Math.sign(b.x - m.x || 1) * 6;
+        b.vy = Math.min(b.vy, -6);
+        this.iframes = 0.6;
+      }
+      this.emit({ t: 'bombhit', x: m.x, y: m.y });
+    }
+    this.lavaBombs = keep;
+  }
+
+  /** 0..1 how far the rumbling cone is toward erupting (render: glow, shake), and where it is. */
+  rumbleState(): { k: number; x: number; y: number } | null {
+    if (!this.rumble) return null;
+    const c = craterOf(this.rumble.cone);
+    return { k: Math.min(1, this.rumble.t / ERUPT.rumbleT), x: c.x + 0.5, y: c.y };
+  }
+
   private stepExplore(dt: number, c: Controls): void {
     this.stepWeather(dt);
+    this.stepEruptions(dt);
     this.stepPet(dt);
     const b = this.body;
     const night = isNight(this.time);

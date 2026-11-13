@@ -45,8 +45,8 @@ async function toastCheck(page, label, shot) {
   await page.evaluate(() => {
     const ui = window.__terrabound.ui;
     ui.toasts = [];
-    ui.toast('Discovered: Overgrown Ruins', '#ffcf4a', 6);
-    ui.toast('Codex reward: 2 Crystal, 3 Iron scrap, 1 Plasma cell and a long tail of other loot', '#9ff6a0', 6);
+    ui.toast('Banked 128 items', '#9ff6a0', 6);
+    ui.toast('Pack full: drop or bank 2 Crystal, 3 Iron scrap, 1 Plasma cell and a long tail of other loot', '#ff9a3c', 6);
   });
   await page.waitForTimeout(450);
   const r = await page.evaluate(() => {
@@ -60,6 +60,24 @@ async function toastCheck(page, label, shot) {
   });
   check(`${label}: two toast pills, left-aligned, clear of the buttons and of each other`, r.n === 2 && !r.overlap && r.apart && r.left && r.btns >= 2 && r.top > 40, JSON.stringify(r));
   await page.screenshot({ path: path.join(out, shot) });
+  // Arrival: a place, its codex gift and the award it unlocks fold into one pill.
+  await page.evaluate(() => {
+    const ui = window.__terrabound.ui;
+    ui.toasts = [];
+    ui.toast('Discovered: Overgrown Ruins', '#ffcf4a', 6);
+    ui.toast('Codex reward: 2 Crystal, 3 Iron scrap, 1 Plasma cell', '#9ff6a0', 6);
+    ui.toast('Award: Scout! Gift in stash: 4 Crystal', '#e0a060', 6);
+  });
+  await page.waitForTimeout(450);
+  const m = await page.evaluate(() => {
+    const ui = window.__terrabound.ui;
+    const btns = ui.rects.filter((b) => ['mute', 'map', 'recall', 'settings'].includes(b.a.k));
+    const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+    const p = ui.toastRects;
+    return { n: p.length, extras: ui.toasts[0]?.extras?.map((e) => e.text) ?? [], h: p[0]?.h ?? 0, overlap: p.some((q) => btns.some((b) => hit(q, b))) };
+  });
+  check(`${label}: discovery + codex gift + award show as one pill with two follow-up lines`, m.n === 1 && m.extras.length === 2 && m.extras[0].startsWith('+ 2 Crystal') && m.extras[1] === 'Award: Scout! +4 Crystal' && !m.overlap, JSON.stringify(m));
+  await page.screenshot({ path: path.join(out, shot.replace('.png', '-merged.png')) });
   await page.evaluate(() => (window.__terrabound.ui.toasts = []));
 }
 
@@ -1088,6 +1106,37 @@ try {
   }, coneAt));
   check('the Ash Dunes have a cinder cone whose crater glows and smokes', !!plume && plume.shown >= 1 && plume.colours >= 6 && plume.crater[0] > 150 && plume.crater[0] > plume.crater[2] + 60, JSON.stringify({ coneAt, plume }));
   await page.screenshot({ path: path.join(out, '22i-cinder-cone.png') });
+  // Eruption: the cone rumbles (swelling glow, magma bead, tremor), then lobs lava bombs.
+  if (coneAt) {
+    await page.evaluate(() => {
+      const g = window.__terrabound.game;
+      g.lavaBombs = [];
+      g.rumble = null;
+      g.eruptCd = 0.05;
+    });
+    await page.waitForFunction(() => (window.__terrabound.game.rumbleState()?.k ?? 0) > 0.6, null, { timeout: 4000 }).catch(() => {});
+    const rumbling = await page.evaluate((c) => {
+      const { renderer, game } = window.__terrabound;
+      const ctx = document.getElementById('game').getContext('2d');
+      const m = renderer.worldToScreen(c.cx + 0.5, c.cy - 0.15);
+      const p = ctx.getImageData(Math.round(m.x), Math.round(m.y), 1, 1).data;
+      return { k: game.rumbleState()?.k ?? 0, drawn: renderer.conesRumbling, bead: [p[0], p[1], p[2]] };
+    }, coneAt);
+    check('a cinder cone rumbles before it erupts: glow swells and magma wells up in the mouth', rumbling.k > 0.5 && rumbling.drawn >= 1 && rumbling.bead[0] > 200 && rumbling.bead[1] > 120, JSON.stringify(rumbling));
+    await page.screenshot({ path: path.join(out, '22j-cone-rumble.png') });
+    await page.evaluate(() => (window.__terrabound.game.hp = window.__terrabound.game.derived.maxHp));
+    await page.waitForFunction(() => window.__terrabound.renderer.bombsShown >= 3, null, { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(250);
+    const bombs = await page.evaluate(() => ({ flying: window.__terrabound.game.lavaBombs.length, drawn: window.__terrabound.renderer.bombsShown, rumble: window.__terrabound.game.rumble }));
+    check('the eruption lobs glowing lava bombs that are drawn in flight', bombs.flying >= 2 && bombs.drawn >= 2 && bombs.rumble === null, JSON.stringify(bombs));
+    await page.screenshot({ path: path.join(out, '22k-cone-erupt.png') });
+    await page.waitForFunction(() => window.__terrabound.game.lavaBombs.length === 0, null, { timeout: 6000 }).catch(() => {});
+    await page.evaluate(() => {
+      const g = window.__terrabound.game;
+      g.hp = g.derived.maxHp;
+      g.eruptCd = 999;
+    });
+  }
 
   const fall = await page.evaluate(() => {
     const g = window.__terrabound.game;

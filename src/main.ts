@@ -633,6 +633,20 @@ function boot(): void {
       case 'dronemine':
         fx.burst(e.x + 0.5, e.y + 0.5, ROLE_INFO.miner.color, 6, 3);
         break;
+      case 'rumble':
+        fx.smoke(e.x, e.y - 0.5, '#4a403c', 10);
+        break;
+      case 'erupt':
+        fx.burst(e.x, e.y - 0.3, '#ffb347', 18, 8);
+        fx.burst(e.x, e.y - 0.3, '#ff5a1a', 12, 6);
+        fx.smoke(e.x, e.y - 0.8, '#2e2622', 14);
+        if (Math.abs(e.x - game.body.x) < 30) fx.addShake(0.5);
+        break;
+      case 'bombhit':
+        fx.burst(e.x, e.y, '#ff8a3c', 12, 5);
+        fx.smoke(e.x, e.y - 0.3, '#2e2622', 5);
+        if (Math.abs(e.x - game.body.x) < 14) fx.addShake(0.2);
+        break;
       case 'meteor':
         fx.burst(e.x, e.y, '#ffcf4a', 20, 7);
         fx.addShake(0.4);
@@ -813,6 +827,10 @@ function boot(): void {
         fx.footsteps(dt, b.onGround && Math.abs(b.vx) > 2 && !game.riding && !game.inLiquid, b.x, b.y, game.facing, groundColor());
         fx.vehicleTrail(dt, game.riding ? game.vehicle : null, b.x, b.y, game.facing, b.vx, b.vy, b.onGround, groundColor());
         liquidFx(dt);
+        // A rumbling cone shakes the ground harder as it nears erupting.
+        const rs = game.rumbleState();
+        if (rs && Math.abs(rs.x - b.x) < 30) fx.shake = Math.max(fx.shake, 0.1 + 0.25 * rs.k);
+        if (rs && Math.random() < dt * 6) fx.smoke(rs.x, rs.y - 0.4, '#3a3230', 2);
       } else prevLiquid = game.inLiquid;
       fx.update(dt);
       ui.update(dt);

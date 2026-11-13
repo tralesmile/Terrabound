@@ -237,6 +237,23 @@ export class Sfx {
       case 'lore':
         [880, 1175, 988, 1319].forEach((f, i) => this.tone(f, 0.06, 'square', 0.05, undefined, i * 0.07));
         break;
+      case 'rumble':
+        // Deep growl that swells over the warning: low saw slides down, noise rolls under it.
+        this.tone(55, 2.2, 'sawtooth', 0.07, 38);
+        this.tone(82, 2.0, 'triangle', 0.08, 60, 0.3);
+        [0, 0.6, 1.2, 1.8].forEach((d, i) => this.noise(0.4, 0.06 + i * 0.03, d));
+        break;
+      case 'erupt':
+        this.noise(0.6, 0.4);
+        this.tone(70, 0.6, 'sawtooth', 0.2, 30);
+        this.tone(140, 0.25, 'square', 0.08, 60, 0.05);
+        break;
+      case 'bombhit':
+        if (this.ok('bombhit', 90)) {
+          this.noise(0.2, 0.2);
+          this.tone(110, 0.18, 'triangle', 0.1, 45);
+        }
+        break;
       case 'meteor':
         this.noise(0.3, 0.3);
         this.tone(90, 0.3, 'triangle', 0.14, 40);
