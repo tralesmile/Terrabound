@@ -325,6 +325,31 @@ export class Fx {
     return this.particles.length - before;
   }
 
+  private chargeAcc = 0;
+  /**
+   * A boss mid-dash: walkers kick dust and grit back off their feet, flyers shed embers / sparks in
+   * their accent colour behind them. Call every frame with active=false otherwise.
+   */
+  bossCharge(dt: number, active: boolean, x: number, y: number, facing: number, flying: boolean, h: number, ground: string, accent: string): void {
+    if (!active) {
+      this.chargeAcc = 0;
+      return;
+    }
+    this.chargeAcc += dt;
+    const back = facing >= 0 ? -1 : 1;
+    while (this.chargeAcc >= 0.04 && this.particles.length < MAX_PARTICLES - 4) {
+      this.chargeAcc -= 0.04;
+      if (!flying) {
+        this.dust(x + back * 0.8, y, ground, 2, 4, back);
+        this.particles.push({ x: x + back * 0.6, y: y - 0.1, vx: back * (3 + Math.random() * 4), vy: -3 - Math.random() * 4, life: 0.4, max: 0.4, color: accent, size: 2, g: 22 });
+      } else {
+        for (let i = 0; i < 2; i++) {
+          this.particles.push({ x: x + back * 1.2, y: y - h * (0.2 + Math.random() * 0.6), vx: back * (2 + Math.random() * 3), vy: (Math.random() - 0.5) * 1.5, life: 0.35 + Math.random() * 0.2, max: 0.55, color: i ? accent : '#ffd24a', size: 2, g: -2, drag: 2 });
+        }
+      }
+    }
+  }
+
   private scorchAcc = 0;
   /** Charred suit: thin dark smoke curls up off the player while `k` (0..1) lasts. */
   scorchSmoke(dt: number, k: number, x: number, y: number): void {

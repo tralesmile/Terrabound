@@ -6,6 +6,7 @@ import { audioGains, shakeMul, uiScale } from './sim/settings';
 import { CROPS } from './sim/farming';
 import { drawDecorGallery } from './render/decor';
 import { slamShards } from './render/bossart';
+import { charging } from './render/bosstele';
 import { dailyCode } from './sim/daily';
 import { clock as mmss } from './sim/records';
 import { Input } from './platform/input';
@@ -843,6 +844,11 @@ function boot(): void {
         const b = game.body;
         fx.scorchSmoke(dt, scorchK(game.scorch), b.x, b.y - BODY_H + 0.3);
         fx.footsteps(dt, b.onGround && Math.abs(b.vx) > 2 && !game.riding && !game.inLiquid, b.x, b.y, game.facing, groundColor());
+        const bc = game.boss;
+        if (bc) {
+          const bd = BOSSES[bc.id];
+          fx.bossCharge(dt, charging(bc), bc.x, bc.y, bc.facing, bd.flying, bd.h, TILE_COLORS[game.world.get(Math.floor(bc.x), Math.floor(bc.y + 0.05))] ?? '#c9a35a', bd.accent);
+        } else fx.bossCharge(dt, false, 0, 0, 1, false, 0, '', '');
         fx.vehicleTrail(dt, game.riding ? game.vehicle : null, b.x, b.y, game.facing, b.vx, b.vy, b.onGround, groundColor());
         liquidFx(dt);
         // A rumbling cone shakes the ground harder as it nears erupting.

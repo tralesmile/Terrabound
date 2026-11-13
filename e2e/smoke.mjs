@@ -1745,6 +1745,54 @@ try {
     check('Crystal Golem shows a glowing geode heart and throws glittering shards on a slam', golemArt.cyan > 15 && golemArt.white >= 4, JSON.stringify(golemArt));
     const titanArt = await reskin('titan', '26e-titan.png');
     check('Frost Titan shows a glowing frost rune and throws ice shards on a slam', titanArt.cyan > 15 && titanArt.white >= 4, JSON.stringify(titanArt));
+    // Ranged / dash telegraphs (Vine Queen): a red chevron lane toward where the charge ends, speed streaks and
+    // kicked-up dust during the dash, and a swelling orb at the muzzle before a volley.
+    await page.evaluate(() => { window.__terrabound.game.boss.id = 'vine_queen'; });
+    const holdAt = (attack, at) => page.evaluate(([attack, at]) => {
+      const g = window.__terrabound.game;
+      clearInterval(window.__bossHold);
+      window.__bossHold = setInterval(() => { const b = g.boss; if (!b) return; b.attack = attack; b.at = at; b.cd = 5; b.vx = 0; }, 4);
+    }, [attack, at]);
+    const teleSample = () => page.evaluate(() => {
+      const { game, renderer, fx } = window.__terrabound;
+      const b = game.boss;
+      const ts = 16 * renderer.scale;
+      const f = b.facing >= 0 ? 1 : -1;
+      const ctx = document.querySelector('canvas').getContext('2d');
+      const grab = (wx0, wx1, wy0, wy1) => {
+        const a = renderer.worldToScreen(Math.min(wx0, wx1), wy0);
+        const c = renderer.worldToScreen(Math.max(wx0, wx1), wy1);
+        return Array.from(ctx.getImageData(Math.round(a.x), Math.round(a.y), Math.max(1, Math.round(c.x - a.x)), Math.max(1, Math.round(c.y - a.y))).data);
+      };
+      const ahead = grab(b.x + f * 2.2, b.x + f * 4.6, b.y - 2.4, b.y - 0.3);
+      const behind = grab(b.x - f * 1.2, b.x - f * 3.2, b.y - 2.6, b.y - 0.2);
+      const m = renderer.worldToScreen(b.x, b.y - 3.0 * 0.6);
+      const muzzle = Array.from(ctx.getImageData(Math.round(m.x) - 14, Math.round(m.y) - 14, 28, 28).data);
+      return { ahead, behind, muzzle, parts: fx.particles.length, ts };
+    });
+    const pxDiff = (a, b) => { let n = 0; for (let i = 0; i < Math.min(a.length, b.length); i += 4) if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 60) n++; return n; };
+    const reds = (a) => { let n = 0; for (let i = 0; i < a.length; i += 4) if (a[i] > 180 && a[i + 1] < 140 && a[i + 2] < 120) n++; return n; };
+    const whites = (a) => { let n = 0; for (let i = 0; i < a.length; i += 4) if (a[i] > 235 && a[i + 1] > 235 && a[i + 2] > 235) n++; return n; };
+    await holdAt(null, 0);
+    await page.waitForTimeout(350);
+    const teleIdle = await teleSample();
+    await holdAt('charge', -0.15);
+    await page.waitForTimeout(350);
+    const teleWarn = await teleSample();
+    await page.screenshot({ path: path.join(out, '26f-boss-charge.png') });
+    check('a charge wind-up paints a red chevron lane toward where the dash ends', reds(teleWarn.ahead) > reds(teleIdle.ahead) + 30 && pxDiff(teleIdle.ahead, teleWarn.ahead) > 40, JSON.stringify({ idle: reds(teleIdle.ahead), warn: reds(teleWarn.ahead), diff: pxDiff(teleIdle.ahead, teleWarn.ahead) }));
+    await holdAt('charge', 0.3);
+    await page.waitForTimeout(80);
+    const p0 = (await teleSample()).parts;
+    await page.waitForTimeout(250);
+    const teleDash = await teleSample();
+    await page.screenshot({ path: path.join(out, '26g-boss-dash.png') });
+    check('a dashing boss leaves speed streaks and kicks up dust behind it', pxDiff(teleIdle.behind, teleDash.behind) > 40 && teleDash.parts - p0 >= 8, JSON.stringify({ diff: pxDiff(teleIdle.behind, teleDash.behind), parts: teleDash.parts - p0 }));
+    await holdAt('volley', -0.05);
+    await page.waitForTimeout(300);
+    const teleVolley = await teleSample();
+    await page.screenshot({ path: path.join(out, '26h-boss-volley.png') });
+    check('a volley wind-up swells a bright orb at the muzzle', whites(teleVolley.muzzle) > whites(teleIdle.muzzle) + 12, JSON.stringify({ idle: whites(teleIdle.muzzle), warn: whites(teleVolley.muzzle) }));
     await page.evaluate(() => { clearInterval(window.__bossHold); window.__terrabound.game.boss.id = 'colossus'; });
   }
   await page.evaluate(() => {

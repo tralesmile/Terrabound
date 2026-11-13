@@ -55,6 +55,7 @@ const HULL_FLOOR: Record<'buggy' | 'drill_tank', number> = { buggy: 7, drill_tan
 import { GEAR, type RangedKind } from '../sim/gear';
 import { ATTACK_TIME, BOSSES, phase as bossPhase } from '../sim/bosses';
 import { drawBossArt, slamRaise } from './bossart';
+import { drawBossMuzzle, drawBossTelegraph } from './bosstele';
 import { ACT_INFO } from '../sim/drones';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, isCeilingSlope, leafMask, nextSink, slopeSink, SLOPE_CR, SLOPE_R, slopeBottom, slopeShape, slopeTop } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape } from './decor';
@@ -2513,6 +2514,8 @@ export class Renderer {
     const flash = this.reduceFlash ? warn : bs.iframes > 0 || (warn && Math.floor(time * 12) % 2 === 0);
     const lift = !d.flying && bs.attack === 'slam' && bs.at < 0 ? Math.round(-bs.at * 10) : 0;
     const reach = bs.attack === 'charge' && bs.at >= 0 ? 8 : 0;
+    const tv = { sx: (x: number) => this.sx(x, shakeX), sy: (y: number) => this.sy(y, shakeY), ts, u };
+    drawBossTelegraph(ctx, bs, tv, time);
     drawBossArt(ctx, bs.id, cx, by, u, {
       facing: bs.facing,
       age: bs.age,
@@ -2524,6 +2527,7 @@ export class Renderer {
       lookY: game.body.y - BODY_H / 2 - (bs.y - d.h / 2),
       raise: d.flying ? 0 : slamRaise(bs.attack, bs.at, ATTACK_TIME.slam.warn),
     });
+    drawBossMuzzle(ctx, bs, tv, time);
     if (warn) {
       ctx.fillStyle = '#ffcf4a';
       ctx.font = `bold ${Math.round(u * 10)}px monospace`;
