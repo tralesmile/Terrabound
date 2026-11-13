@@ -160,3 +160,9 @@
 - **Drawing a canvas onto itself forces a flush and full copy per call.** The heat shimmer did it once per row (8 calls) and cost 12 ms a frame. Guard: snapshot once into a scratch canvas per frame; the probe fails if lava costs > 1.5x plain + 2 ms.
 - **The e2e camera eases after a teleport;** a before/after pixel comparison must wait ~1 s and assert both samples framed the same spot (box check in the charred-suit test).
 - **Retro:** three slices, three ships (~6-7 min each), no red gate, no rebase. Profiling with a scratch script (prof.mjs: variants with methods stubbed out) pinned the cost in two runs; keep that pattern for perf work.
+
+- **Look at the close-up before deciding what to fix.** The idea said "ruin bricks look identical"; the zoomed screenshot showed the bricks were fine and the plate back wall was the flat grid. Guard: for any art pass, crop and 2x-zoom the e2e shot (PIL, NEAREST) first and fix what dominates the area.
+- **Moving the player off a boss arena despawns the boss.** The first boss frame probe teleported to the pad for a plain reference and broke the next check (trophy). Guard: probes compare against the same spot with the feature switched off (boss hidden, weather clear), never by moving away mid-fight.
+- **Renderer draw counters are cumulative across the e2e run.** A count check after visiting five biomes passes for the wrong reason. Guard: reset the counter and `renderer.chunks.clear()` right before the scene you are checking.
+- **`flowLiquids(world, cx, cy, tick)` takes a centre.** A test called it with two args and "passed" while flowing nothing. Guard: the cinder test flows around each crater and also asserts the cell above stays air.
+- **Retro:** two slices, two ships (~6-7 min each), no red gate. The full gate and e2e need background runs (`nohup ... &` + sleep) because one tool call times out at 2 min; never edit `src` while a background build has not finished.

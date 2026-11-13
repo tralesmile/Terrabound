@@ -81,7 +81,8 @@ World size and variety:
 - [x] Heat shimmer and flowing crust on lava (run 36, src/render/lavafx.ts); wheel and tread frames follow the distance rolled (run 36)
 - [x] Lavafalls: a basalt crag per Ash band pours a burning sheet into a catch pool (codex: Lavafall); pets paddle, lean and bubble when they follow the player into water (run 37)
 - [x] Lava contact juice (hop, sizzle, charred suit with embers and smoke), Ash Dunes surface variety (drift caps, clustered glowing crust cracks), e2e frame-time probe over lava (found and fixed an 18 ms shimmer) (run 38)
-- [ ] Follow-ups (scheduled runs may take these): cinder cones on the Ash surface (worldgen), reuse the frame-time probe for a boss fight and heavy weather, ruin weathering (broken edges, soot, vines)
+- [x] Ruin weathering (cracked bricks, soot, vines/icicles, stained old plates), cinder cones with smoking craters (codex: Cinder cone), frame-time probes for a boss fight and a dust storm (run 39)
+- [ ] Follow-ups (scheduled runs may take these): rare telegraphed cone eruptions lobbing lava bombs; half-tile slope caps on exposed diagonal block edges (softer hills); merge the award + discovered toasts into one pill
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 

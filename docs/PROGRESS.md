@@ -586,3 +586,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** cinder cones (worldgen), the same probe for a boss fight and a storm, ruin weathering; P1.9 follow-ups (plane with cargo, charge station); longer lore logs.
 
 **Known issues:** the hop can bounce a player who stands still in deep lava up and down until they swim out (intended flinch, watch for complaints); crack overlays are baked in the chunk cache, so they do not pulse; the log reader leaves empty space on desktop; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).
+
+## 2026-11-13 Scheduled run 39
+
+**Done:** baseline green (677 tests). Creative review: up close, ruins were a grid of identical blue-grey plate panels (11b-ruin-weathered); the back wall was the real culprit, not the bricks. Ruin weathering (src/render/ruinfx.ts, render only, baked into chunks): ruin bricks get mortar cracks and chipped corners, soot washing down from exposed tops (always in the Ash Dunes), vines (icicles in the Frozen Spires, nothing in the Ash Dunes) hanging into the air below; untouched worldgen plate walls (ruins, towers) get water stains, rust run-off and panel cracks, player-built plates (in `wallEdits`) stay clean. Cinder cones (src/sim/structures.ts `cinderCones`, render `drawCones`): up to two per Ash band near the band ends, a stepped basalt cone with a sealed magma crater; it glows, smokes (`conePuff` plume leaning downwind) and spits embers; a block in the crater plugs it; codex place "Cinder cone" (17 entries), orange map pin (22i-cinder-cone). Frame-time probe reused for a boss fight (same spot with the boss hidden) and a dust storm (same spot in clear weather) via an e2e `timeFrames()` helper.
+
+**Numbers:** 690 unit tests (new: ruinfx 8, cinder 5; codex count 16 -> 17), 193 e2e checks all green (new: ruin weathering, cinder cone glow + smoke, boss and storm frame probes), bundle 386 kB (134.8 kB gzip). Probes (headless software raster): plain 7.1 ms, lava 7.5, boss 7.1, dust storm 7.8 (clear 7.8).
+
+**Next:** cone eruptions (telegraphed lava bombs), half-tile slope caps on diagonal edges, merge the award + discovered toasts; P1.9 follow-ups (plane with cargo, charge station); longer lore logs.
+
+**Known issues:** worldgen changed again (cinder cones), so existing saves' Ash Dunes regenerate with cones near the band ends; cones look stepped (tile grid); the e2e boss probe hides the boss by nulling `game.boss` for 60 frames; the log reader leaves empty space on desktop; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).

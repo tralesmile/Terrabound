@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 39
+
+- Done this run: ruin weathering (cracked/chipped bricks, soot, vines and icicles, stained and rusted old plates; the plate back wall was the real "identical grid", carried 1 run); cinder cones (smoking magma craters); boss-fight and dust-storm frame probes (both ~1.0x plain, no fix needed).
+- Weakest graphics: block silhouettes are stair-steps (the cone reads as a ziggurat); half-tile slope caps on exposed diagonal edges would soften every hill (Terraria slopes, Starbound).
+- Weakest UI (carried 2): three stacked top-left panels (goal, award, discovered) cover the world on arrival; merge award + discovered into one pill and fade it sooner.
+- Weakest feel: cinder cones are scenery; a rare eruption that lobs a few lava bombs (telegraphed rumble + glow) would make the Ash Dunes dangerous and lively (Dome Keeper waves, Noita chaos).
+- Weakest story (carried 4): logs are one line each; 3-4 lines per log.
+
 ## 2026-11-13 run 38
 
 - Done this run: lava contact juice (hop, sizzle, charred suit; carried 1 run); Ash Dunes drift caps and clustered crust cracks instead of even orange dots (carried 1 run); frame-time probe found the heat shimmer at 18 ms a frame and fixed it.
@@ -16,12 +24,3 @@
 - Weakest story (carried 2): logs are one line each; 3-4 lines per log.
 - Weakest UI (carried 2): full-screen panels leave the notch strip showing the world.
 - Weakest perf risk (carried): add a frame-time probe to e2e over lava (pool shimmer + lavafall + embers) before phones ship.
-
-## 2026-11-13 run 36
-
-- Done this run: molten lava crust + heat shimmer (weakest graphics: lava was striped orange water); award gifts (carried 4 runs); wheels turn with ground speed.
-- Weakest graphics: lava pools sit flat in the Ash Dunes; lavafalls spilling down cliffs with a glow on the rock below (Terraria/Noita lava drama).
-- Weakest story (carried): logs are one line each; 3-4 lines per log so the reader earns its space.
-- Weakest UI (carried): full-screen panels leave the notch strip showing the world; dark fill behind the safe frame.
-- Weakest controls (carried): hold right click to sow a row; hotbar digits not remappable.
-- Weakest perf risk: the shimmer self-copy and per-block lava fills are fine on desktop; add a frame-time probe to e2e over a big lava pool before phones ship.
