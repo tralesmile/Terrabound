@@ -33,7 +33,7 @@ import { MODS, MOD_IDS, type ModId } from '../sim/mods';
 import { RESEARCH, RESEARCH_IDS, type ResearchId } from '../sim/research';
 import type { Trade } from '../sim/npcs';
 import { goalCardHeight, goalCardLayout, hudAnchors } from './hudlayout';
-import { extraLine, mergeTarget, toastColumn, toastParts, toastSlide, wrapText, type ToastKind } from './toastfx';
+import { GHOST_AFTER, GHOST_FADE, extraLine, ghostText, mergeTarget, toastColumn, toastGhost, toastParts, toastSlide, wrapText, type ToastKind } from './toastfx';
 
 /** Base UI unit in canvas px for a screen size, times the settings-screen UI scale. */
 export function uiUnit(w: number, h: number, scale = 1): number {
@@ -1460,6 +1460,9 @@ export class UI {
 
   /** One toast pill: accent bar, kind icon, optional small head label, body wrapped to 2 lines. Returns its height. */
   private drawToast(ctx: CanvasRenderingContext2D, t: Toast, x: number, y: number, maxW: number, u: number): number {
+    // Older long-lived toasts fold to a faint one-line ghost so the column stops covering the world.
+    const g = toastGhost(t.age);
+    if (g >= 1) return this.drawGhostToast(ctx, t, x, y, maxW, u);
     const p = toastParts(t.text);
     const icon = u * 1.5;
     const pad = u * 0.45;
@@ -1486,7 +1489,7 @@ export class UI {
     const ph = Math.max(icon + pad * 2 - u * 0.3, textH + pad * 1.4);
     const pw = icon + pad * 3 + wide;
     const sx = x - toastSlide(t.age) * (pw + x);
-    ctx.globalAlpha = Math.min(1, t.life / 0.5);
+    ctx.globalAlpha = Math.min(1, t.life / 0.5) * (1 - g);
     ctx.fillStyle = 'rgba(8,10,18,0.72)';
     ctx.fillRect(sx, y, pw, ph);
     ctx.fillStyle = t.color;
@@ -1516,6 +1519,28 @@ export class UI {
     }
     ctx.globalAlpha = 1;
     this.toastRects.push({ x: sx, y, w: pw, h: ph });
+    return ph;
+  }
+
+  /** A folded toast: a small dot in its colour and one short line on a faint strip. Returns its height. */
+  private drawGhostToast(ctx: CanvasRenderingContext2D, t: Toast, x: number, y: number, maxW: number, u: number): number {
+    const fs = Math.round(u * 0.62);
+    const ph = fs * 1.5;
+    const dot = Math.max(2, u * 0.32);
+    ctx.font = `bold ${fs}px ${FONT}`;
+    const line = ghostText(t.text);
+    const tw = Math.min(maxW - dot - u * 1.2, ctx.measureText(line).width);
+    const pw = dot + u * 1.2 + tw;
+    const fade = (t.age - GHOST_AFTER - GHOST_FADE) / 0.2 + 0.4;
+    ctx.globalAlpha = Math.min(1, t.life / 0.5) * Math.max(0, Math.min(1, fade));
+    ctx.fillStyle = 'rgba(8,10,18,0.38)';
+    ctx.fillRect(x, y, pw, ph);
+    ctx.fillStyle = t.color;
+    ctx.fillRect(x + u * 0.35, y + (ph - dot) / 2, dot, dot);
+    ctx.globalAlpha *= 0.8;
+    this.text(ctx, line, x + dot + u * 0.75, y + ph / 2 + fs * 0.05, fs, '#c9d0e4', 'left', maxW - dot - u * 1.2);
+    ctx.globalAlpha = 1;
+    this.toastRects.push({ x, y, w: pw, h: ph });
     return ph;
   }
 

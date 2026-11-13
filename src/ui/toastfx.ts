@@ -106,3 +106,19 @@ export function extraLine(text: string): string {
   if (reward.test(text)) return `+ ${text.replace(reward, '')}`;
   return text.replace(/!\s*Gift in stash:\s*/i, '! +');
 }
+
+/** Seconds a toast shows as a full pill before it folds to a one-line ghost (long toasts only). */
+export const GHOST_AFTER = 2.5;
+/** Seconds the fold takes. */
+export const GHOST_FADE = 0.25;
+
+/** How far a toast has folded to its ghost line, 0 (full pill) .. 1 (ghost), from its age. */
+export function toastGhost(age: number): number {
+  return Math.min(1, Math.max(0, (age - GHOST_AFTER) / GHOST_FADE));
+}
+
+/** The ghost line: "Discovered: Crystal Flats" stays one short sentence, follow-ups are dropped. */
+export function ghostText(text: string): string {
+  const p = toastParts(text);
+  return p.head ? `${p.head.charAt(0)}${p.head.slice(1).toLowerCase()}: ${p.body}` : p.body;
+}

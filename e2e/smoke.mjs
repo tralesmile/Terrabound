@@ -78,6 +78,18 @@ async function toastCheck(page, label, shot) {
   });
   check(`${label}: discovery + codex gift + award show as one pill with two follow-up lines`, m.n === 1 && m.extras.length === 2 && m.extras[0].startsWith('+ 2 Crystal') && m.extras[1] === 'Award: Scout! +4 Crystal' && !m.overlap, JSON.stringify(m));
   await page.screenshot({ path: path.join(out, shot.replace('.png', '-merged.png')) });
+  // Ghost: a long toast older than 2.5 s folds to a faint one-line strip under the fresh one.
+  await page.evaluate(() => {
+    const ui = window.__terrabound.ui;
+    ui.toasts = [];
+    ui.toast('The Plasma gate has opened: dive deeper to reach the next layer of the planet', '#ffcf4a', 8);
+    ui.toasts[0].age = 3.4;
+    ui.toast('Banked 12 items', '#9ff6a0', 6);
+  });
+  await page.waitForTimeout(150);
+  const gh = await page.evaluate(() => window.__terrabound.ui.toastRects.map((r) => ({ y: Math.round(r.y), h: Math.round(r.h), w: Math.round(r.w) })));
+  check(`${label}: an old toast folds to a slim ghost line below the fresh pill`, gh.length === 2 && gh[1].h < gh[0].h * 0.75 && gh[1].y > gh[0].y, JSON.stringify(gh));
+  await page.screenshot({ path: path.join(out, shot.replace('.png', '-ghost.png')) });
   await page.evaluate(() => (window.__terrabound.ui.toasts = []));
 }
 
