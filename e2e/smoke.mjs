@@ -73,6 +73,43 @@ async function holdClick(page, x, y, ms = 70) {
   await page.mouse.up();
 }
 
+/**
+ * Frame-time probe: median and p95 ms of 60 renderer.draw calls of the scene as it stands, each
+ * forced to raster with a 1 px readback (draw() alone only records commands). With `plain`, the
+ * player is first moved to the pad (a quiet reference scene) and put back afterwards. Compare a
+ * scene against plain in the same browser so machine speed cancels out.
+ */
+async function timeFrames(page, plain = false) {
+  return page.evaluate(async (atPad) => {
+    const { game, renderer, fx } = window.__terrabound;
+    const c = document.getElementById('game').getContext('2d');
+    const home = { x: game.body.x, y: game.body.y };
+    const go = async (x, y) => {
+      game.body.x = x;
+      game.body.y = y;
+      game.body.vx = game.body.vy = 0;
+      renderer.camX = x;
+      renderer.camY = y;
+      for (let i = 0; i < 20; i++) await new Promise((r) => requestAnimationFrame(r));
+    };
+    const w = game.world;
+    if (atPad) await go(w.padX + 0.5, w.surface[w.padX] - 0.01);
+    const ms = [];
+    let t = performance.now() / 1000;
+    for (let i = 0; i < 60; i++) {
+      t += 1 / 60;
+      fx.update(1 / 60);
+      const a = performance.now();
+      renderer.draw(game, fx, null, t);
+      c.getImageData(0, 0, 1, 1);
+      ms.push(performance.now() - a);
+    }
+    if (atPad) await go(home.x, home.y);
+    ms.sort((p, q) => p - q);
+    return { median: +ms[30].toFixed(2), p95: +ms[57].toFixed(2) };
+  }, plain);
+}
+
 async function tileToCss(page, tx, ty) {
   return page.evaluate(
     ([tx, ty]) => {
@@ -411,6 +448,33 @@ try {
     }
   }
   check('every biome can be visited and renders', seen.length === biomeNames.length, seen.join(','));
+  // Ruin weathering: stand next to a surface ruin outside the Ash Dunes; its bricks crack, soot and grow vines.
+  const ruinAt = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const s = w.structures.find((st) => st.kind === 'ruin' && w.biome[st.x0] !== 3 && Math.abs(st.x0 - w.padX) > 20)
+      ?? w.structures.find((st) => st.kind === 'ruin');
+    if (!s) return null;
+    const x = s.x0 - 2;
+    // Count only this ruin's overlays: rebake the chunks from scratch.
+    const r = window.__terrabound.renderer;
+    r.ruinWeather = { cracks: 0, soot: 0, hang: 0, grime: 0 };
+    r.chunks.clear();
+    g.enemies = [];
+    g.hp = g.derived.maxHp;
+    g.body.x = x + 0.5;
+    g.body.y = w.surface[x] - 0.01;
+    g.body.vx = g.body.vy = 0;
+    return { x0: s.x0, x1: s.x1, biome: w.biome[s.x0] };
+  });
+  await page.waitForFunction(() => {
+    const { renderer: r, game: g } = window.__terrabound;
+    return Math.abs(r.camX - g.body.x) < 0.3 && Math.abs(r.camY - g.body.y) < 1.5;
+  }, null, { timeout: 4000 }).catch(() => {});
+  await page.waitForTimeout(200);
+  const weather = await page.evaluate(() => ({ ...window.__terrabound.renderer.ruinWeather }));
+  check('ruins weather: cracked bricks, soot streaks, hanging vines or icicles, stained back plates', !!ruinAt && weather.cracks > 3 && weather.soot > 0 && weather.hang > 0 && weather.grime > 5, JSON.stringify({ ruinAt, weather }));
+  await page.screenshot({ path: path.join(out, '11b-ruin-weathered.png') });
   await toastCheck(page, 'desktop', '46-toasts.png');
   // Underground points of interest: stand beside a data shrine and check that its terminal glows.
   const shrine = await page.evaluate(() => {
@@ -1202,6 +1266,17 @@ try {
   await page.screenshot({ path: path.join(out, '26-boss.png') });
   const bossState = await page.evaluate(() => ({ boss: window.__terrabound.game.boss?.id ?? null, inv: window.__terrabound.ui.invOpen }));
   check('SUMMON in the inventory calls the Junk Colossus', bossState.boss === 'colossus' && !bossState.inv, JSON.stringify(bossState));
+  if (bossState.boss) {
+    // Frame-time probe in a boss fight (boss art, health bar, arena, projectiles and fx).
+    await page.evaluate(() => { window.__terrabound.game.iframes = 5; });
+    const bossMs = await timeFrames(page);
+    // Reference: the same spot with the boss hidden (leaving the arena would despawn it).
+    await page.evaluate(() => { const g = window.__terrabound.game; g.__boss = g.boss; g.boss = null; });
+    const plainMs = await timeFrames(page);
+    await page.evaluate(() => { const g = window.__terrabound.game; g.boss = g.__boss; delete g.__boss; });
+    console.log('frame-time probe boss', JSON.stringify({ bossMs, plainMs }));
+    check('frame time in a boss fight stays close to a plain scene (median < 1.5x plain + 2 ms)', bossMs.median < plainMs.median * 1.5 + 2, JSON.stringify({ bossMs, plainMs }));
+  }
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     g.damageBoss(9999);
@@ -1523,6 +1598,22 @@ try {
     });
     await page.waitForTimeout(1500);
     await page.screenshot({ path: path.join(out, `30-weather-${kind}.png`) });
+    if (kind === 'dust') {
+      // Frame-time probe in a dust storm (screen-wide haze and blown particles) vs a plain scene.
+      const stormMs = await timeFrames(page);
+      const plainMs = await page.evaluate(() => {
+        const g = window.__terrabound.game;
+        const keep = g.weather;
+        g.weather = 'clear';
+        return keep;
+      }).then(async (keep) => {
+        const ms = await timeFrames(page);
+        await page.evaluate((k) => { window.__terrabound.game.weather = k; }, keep);
+        return ms;
+      });
+      console.log('frame-time probe storm', JSON.stringify({ stormMs, plainMs }));
+      check('frame time in a dust storm stays close to clear weather (median < 1.5x clear + 2 ms)', stormMs.median < plainMs.median * 1.5 + 2, JSON.stringify({ stormMs, plainMs }));
+    }
     check(`the ${kind} event happens and renders`, t > 0 && (await page.evaluate(() => window.__terrabound.game.weather)) === kind, String(t));
   }
   await page.evaluate(() => {

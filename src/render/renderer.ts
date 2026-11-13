@@ -18,6 +18,7 @@ import { ENEMIES } from '../sim/enemies';
 import { hash2 } from '../sim/rng';
 import { T, TILES } from '../sim/tiles';
 import { isLiquid } from '../sim/liquids';
+import { W } from '../sim/world';
 import { BODY_H } from '../sim/physics';
 import { HIT_SQUASH_TIME, hitSquash, hurtSquash, hurtVignette, softFlash, magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx } from './fx';
 import type { PlayerGear, VehicleSpriteId } from './sprites';
@@ -66,6 +67,7 @@ import { drawGlyph, hasGlyph } from './glyphs';
 import { ropePoints, ropeSag, twangAmp } from './ropefx';
 import { scorchK } from './scorchfx';
 import { CRACK_VARIANTS, DRIFT_H, DRIFT_VARIANTS, crackAt, crackPixels, driftPixels } from './ashfx';
+import { GRIME_VARIANTS, HANG_H, HANG_VARIANTS, RCRACK_VARIANTS, grimeAt, grimePixels, SOOT_VARIANTS, hangAt, hangKind, hangPixels, ruinCrackAt, ruinCrackPixels, sootAt, sootPixels } from './ruinfx';
 
 /** Paints pixel arrays (TS wide) side by side into one strip canvas. */
 function stripOf(n: number, h: number, pixels: (v: number) => (string | null)[]): HTMLCanvasElement {
@@ -158,6 +160,14 @@ export class Renderer {
   ashCracksDrawn = 0;
   /** Ash drift caps drawn since the last reset (read by e2e). */
   ashDriftsDrawn = 0;
+  /** Ruin weathering: cracked bricks, soot streaks, vines and icicles hanging off undersides. */
+  private ruinCracks = stripOf(RCRACK_VARIANTS, TS, ruinCrackPixels);
+  private ruinSoot = stripOf(SOOT_VARIANTS, TS, sootPixels);
+  private ruinVines = stripOf(HANG_VARIANTS, HANG_H, (v) => hangPixels('vine', v));
+  private ruinIcicles = stripOf(HANG_VARIANTS, HANG_H, (v) => hangPixels('icicle', v));
+  private plateGrime = stripOf(GRIME_VARIANTS, TS, grimePixels);
+  /** Ruin weathering overlays drawn since the last reset (read by e2e): cracks, soot, hanging. */
+  ruinWeather = { cracks: 0, soot: 0, hang: 0, grime: 0 };
   private wallAtlas = buildWallAtlas();
   private decor = buildDecor();
   /** Blended sky palette for the camera position (updated each frame). */
@@ -228,6 +238,14 @@ export class Renderer {
     if (wl === 0) return;
     const v = Math.floor(hash2(tx, ty, 11) * VARIANTS);
     ctx.drawImage(this.wallAtlas, v * TS, wl * TS, TS, TS, dx, dy, ts, ts);
+    // Old worldgen plates (ruins, towers) are stained and cracked; plates the player builds stay clean.
+    if (wl === W.PLATE && !world.wallEdits.has(ty * world.w + tx)) {
+      const gv = grimeAt(tx, ty);
+      if (gv >= 0) {
+        ctx.drawImage(this.plateGrime, gv * TS, 0, TS, TS, dx, dy, ts, ts);
+        this.ruinWeather.grime++;
+      }
+    }
     // Contact shadow where the wall meets solid blocks (baked into the chunk, free per frame).
     const k = ts / TS;
     for (const r of aoRects(world, tx, ty, TS)) {
@@ -933,6 +951,7 @@ export class Renderer {
     const get = (x: number, y: number): number => world.get(x, y);
     if (t === T.AIR) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      if (get(tx, ty - 1) === T.RUIN) this.drawRuinHang(ctx, world, tx, ty, dx, dy, ts, scale);
       return;
     }
     if (t === T.TORCH) {
@@ -1095,6 +1114,7 @@ export class Renderer {
     ctx.drawImage(this.atlas, atlasCol(v, mask) * TS, t * TS, TS, TS, dx, dy, ts, ts);
     if (hasStrata(t) && !world.edits.has(ty * world.w + tx)) this.drawStrata(ctx, tx, ty - world.surface[tx], ty, dx, dy, ts, mask);
     if (this.oreMarks && hasGlyph(t)) drawGlyph(ctx, t, dx, dy, ts);
+    if (t === T.RUIN) this.drawRuinWeather(ctx, world, tx, ty, dx, dy, ts);
     if (t === T.ASH && !world.edits.has(ty * world.w + tx)) {
       const cv = crackAt(tx, ty, ty - world.surface[tx]);
       if (cv >= 0) {
@@ -1110,6 +1130,29 @@ export class Renderer {
         this.ashDriftsDrawn++;
       }
     }
+  }
+
+  /** Cracks and soot streaks on a ruin brick (baked into the chunk). */
+  private drawRuinWeather(ctx: CanvasRenderingContext2D, world: Game['world'], tx: number, ty: number, dx: number, dy: number, ts: number): void {
+    const cv = ruinCrackAt(tx, ty);
+    if (cv >= 0) {
+      ctx.drawImage(this.ruinCracks, cv * TS, 0, TS, TS, dx, dy, ts, ts);
+      this.ruinWeather.cracks++;
+    }
+    const sv = sootAt(tx, ty, world.get(tx, ty - 1) === T.AIR, world.get(tx, ty - 2) === T.AIR, world.biome[tx] ?? 0);
+    if (sv >= 0) {
+      ctx.drawImage(this.ruinSoot, sv * TS, 0, TS, TS, dx, dy, ts, ts);
+      this.ruinWeather.soot++;
+    }
+  }
+
+  /** Vines (icicles in the Frozen Spires) hanging into the air cell under a ruin brick. */
+  private drawRuinHang(ctx: CanvasRenderingContext2D, world: Game['world'], tx: number, ty: number, dx: number, dy: number, ts: number, scale: number): void {
+    const kind = hangKind(world.biome[tx] ?? 0);
+    const hv = kind ? hangAt(tx, ty) : -1;
+    if (!kind || hv < 0) return;
+    ctx.drawImage(kind === 'vine' ? this.ruinVines : this.ruinIcicles, hv * TS, 0, TS, HANG_H, dx, dy, ts, HANG_H * scale);
+    this.ruinWeather.hang++;
   }
 
   /** Soil strata bands, band seams and rare buried bones / pipes in natural ground near the surface. */
