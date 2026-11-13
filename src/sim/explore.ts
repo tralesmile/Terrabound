@@ -63,6 +63,8 @@ export interface CodexEntry {
   id: string;
   name: string;
   reward: Inventory;
+  /** Field-guide line shown in the codex once found (how to use or survive the place). */
+  note?: string;
 }
 
 const POI_NAMES: Record<StructureKind, string> = {
@@ -95,10 +97,26 @@ const POI_REWARD: Record<StructureKind, Inventory> = {
   cone: { crystal: 2, iron_scrap: 3, torch: 2 },
 };
 
+/** Field-guide lines: what each place is good for, or how not to die there. */
+export const POI_NOTES: Record<StructureKind, string> = {
+  ruin: 'Old colony walls. Bricks crumble into iron scrap.',
+  tower: 'A dead relay mast. Its roof keeps a chest.',
+  ship: 'A crashed hauler. Search the hold for loot.',
+  vault: 'Sealed rooms deep down. Dig in for the chest.',
+  geode: 'A crystal-lined pocket. Mine the walls.',
+  shrine: 'A terminal that still remembers. Read its log.',
+  wreck: 'A downed drone. Salvage it for copper wire.',
+  pond: 'Fresh water. Cast the rod here for fish.',
+  island: 'Floats high above. A rich chest waits on top.',
+  lava: 'Burns and chars the suit. Swim out fast.',
+  lavafall: 'A burning sheet. A block in its path stops it.',
+  cone: 'Erupts: when the glow swells, run. A block in the crater plugs it.',
+};
+
 /** Every discoverable entry: the five biomes and seven kinds of point of interest. */
 export const CODEX: CodexEntry[] = [
   ...BIOME_IDS.map((b) => ({ id: `biome:${b}`, name: BIOMES[b as BiomeId].name, reward: { crystal: 2, iron_scrap: 3 } as Inventory })),
-  ...(Object.keys(POI_NAMES) as StructureKind[]).map((k) => ({ id: `poi:${k}`, name: POI_NAMES[k], reward: POI_REWARD[k] })),
+  ...(Object.keys(POI_NAMES) as StructureKind[]).map((k) => ({ id: `poi:${k}`, name: POI_NAMES[k], reward: POI_REWARD[k], note: POI_NOTES[k] })),
 ];
 export const CODEX_IDS = new Set(CODEX.map((c) => c.id));
 

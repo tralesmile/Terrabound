@@ -106,7 +106,7 @@ export function codexRows(k: CodexKnowledge): CodexRow[] {
     const found = k.codex.includes(c.id);
     const reward = Object.entries(c.reward).map(([id, n]) => `${n} ${id.replace(/_/g, ' ')}`).join(', ');
     const hint = c.id.startsWith('biome:') ? 'An unexplored biome. Walk the surface to find it.' : 'Somewhere out there. Explore to find it.';
-    rows.push({ section: 'places', id: c.id, title: found ? c.name : '???', detail: found ? `Found. Paid ${reward}.` : hint, found });
+    rows.push({ section: 'places', id: c.id, title: found ? c.name : '???', detail: found ? (c.note ? `${c.note} Paid ${reward}.` : `Found. Paid ${reward}.`) : hint, found });
   }
   for (const kind of CREW_KINDS) {
     const here = k.present?.includes(kind) ?? false;

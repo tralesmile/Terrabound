@@ -781,10 +781,12 @@ try {
   const codex1 = await page.evaluate(() => {
     const { ui, game } = window.__terrabound;
     const rows = game.codexRows;
-    return { btn: true, page: ui.invPage, shown: ui.codexShown, places: rows.filter((r) => r.section === 'places' && r.found).length };
+    const known = rows.find((r) => r.section === 'places' && r.found && r.id.startsWith('poi:'));
+    return { btn: true, page: ui.invPage, shown: ui.codexShown, places: rows.filter((r) => r.section === 'places' && r.found).length, note: known ? known.detail : null };
   });
   await page.screenshot({ path: path.join(out, '51-codex.png') });
   check('CODEX in the inventory lists places, with the ones found so far named', codexBtn && codex1.page === 'codex' && codex1.shown >= 6 && codex1.places >= 1, JSON.stringify(codex1));
+  check('a found place shows its field-guide note before the reward', !!codex1.note && !codex1.note.startsWith('Found.') && codex1.note.includes('Paid'), JSON.stringify(codex1.note));
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     g.emit({ t: 'enemykill', x: 0, y: 0, kind: 'hulk' });

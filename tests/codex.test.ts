@@ -3,11 +3,33 @@ import { newAwards } from '../src/sim/achievements';
 import { BOSS_IDS } from '../src/sim/bosses';
 import { CREW_KINDS, ENEMY_KINDS, codexCounts, codexRows, crewKey, killKey, logParts, loreKey, noteCodexEvent, readLogs, stepLog } from '../src/sim/codex';
 import { countEvent } from '../src/sim/achievements';
-import { CODEX, LORE } from '../src/sim/explore';
+import { CODEX, LORE, POI_NOTES } from '../src/sim/explore';
 import { Game } from '../src/sim/game';
 import { defaultSave, parseSave, serializeSave } from '../src/sim/save';
 
 const blank = () => ({ codex: [] as string[], bosses: [] as string[], awards: newAwards() });
+
+describe('codex field notes', () => {
+  it('every place of interest has a short field-guide line that shows once found', () => {
+    const pois = CODEX.filter((c) => c.id.startsWith('poi:'));
+    expect(pois.length).toBe(Object.keys(POI_NOTES).length);
+    for (const c of pois) {
+      expect(c.note && c.note.length).toBeGreaterThan(15);
+      // Two wrapped lines on a phone: keep notes short.
+      expect(c.note!.length).toBeLessThanOrEqual(70);
+      const hidden = codexRows(blank()).find((r) => r.id === c.id);
+      expect(hidden?.detail).not.toContain(c.note!);
+      const known = codexRows({ ...blank(), codex: [c.id] }).find((r) => r.id === c.id);
+      expect(known?.detail.startsWith(c.note!)).toBe(true);
+      expect(known?.detail).toContain('Paid');
+    }
+  });
+  it('the cinder cone note warns about eruptions and says how to plug one', () => {
+    const cone = codexRows({ ...blank(), codex: ['poi:cone'] }).find((r) => r.id === 'poi:cone');
+    expect(cone?.detail).toMatch(/erupt/i);
+    expect(cone?.detail).toMatch(/plug/i);
+  });
+});
 
 describe('codex screen data', () => {
   it('lists every place, creature, boss and log once, all unknown on a fresh save', () => {
