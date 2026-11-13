@@ -92,6 +92,19 @@ export const HIT_SQUASH_TIME = ENEMY_HIT_IFRAMES;
  * Hit squash for an enemy sprite (Dead Cells style): on the hit frame it is squashed flat and
  * wide, then it springs back tall for a beat and settles to (1, 1). `left` is the i-frame time left.
  */
+/** Mix a #rrggbb colour toward white by k (0..1). */
+export function lighten(hex: string, k: number): string {
+  const n = parseInt(hex.slice(1, 7), 16);
+  if (hex.length < 7 || Number.isNaN(n)) return '#e8e0d0';
+  const ch = (v: number): string => Math.round(v + (255 - v) * k).toString(16).padStart(2, '0');
+  return `#${ch((n >> 16) & 255)}${ch((n >> 8) & 255)}${ch(n & 255)}`;
+}
+
+/** Where a ground boss's fist lands, sideways from its centre (tiles): just past the body's edge. */
+export function slamFistOffset(halfW: number): number {
+  return halfW + 0.5;
+}
+
 export function hitSquash(left: number): { sx: number; sy: number } {
   if (left <= 0) return { sx: 1, sy: 1 };
   const p = 1 - Math.min(1, left / HIT_SQUASH_TIME); // 0 at the hit, 1 when settled
@@ -261,6 +274,38 @@ export class Fx {
     this.squashLeft = SQUASH_TIME;
     this.squashPower = p;
     this.dust(x, y, ground, 3 + Math.round(p * 7), 1.5 + p * 4);
+  }
+
+  /**
+   * Boss slam impact at the boss's feet (x, y): a flat shockwave ring as wide as the slam's reach
+   * (so the player sees where it hurt), a fast inner ring, rolling dust walls both ways in the ground's
+   * colour and debris chunks thrown up from where each fist lands. Returns the particles made.
+   */
+  slamImpact(x: number, y: number, halfW: number, radius: number, ground: string, accent: string): number {
+    const before = this.particles.length;
+    this.ring(x, y, radius, lighten(ground, 0.55), 0.55);
+    this.rings[this.rings.length - 1].flat = 0.18;
+    this.ring(x, y, radius * 0.45, accent, 0.28);
+    this.rings[this.rings.length - 1].flat = 0.3;
+    for (const dir of [-1, 1]) {
+      this.dust(x + dir * halfW, y, ground, 9, 7, dir);
+      const fx = x + dir * slamFistOffset(halfW);
+      for (let i = 0; i < 7 && this.particles.length < MAX_PARTICLES; i++) {
+        this.particles.push({
+          x: fx + (Math.random() - 0.5) * 0.6,
+          y: y - 0.1,
+          vx: dir * (1 + Math.random() * 4) + (Math.random() - 0.5),
+          vy: -5 - Math.random() * 6,
+          life: 0.7 + Math.random() * 0.4,
+          max: 1.1,
+          color: i % 3 === 0 ? accent : ground,
+          size: 2 + (i % 2),
+          g: 24,
+        });
+      }
+    }
+    this.addShake(0.8);
+    return this.particles.length - before;
   }
 
   private scorchAcc = 0;

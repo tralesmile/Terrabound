@@ -164,7 +164,7 @@ export type GameEvent =
   | { t: 'boom'; x: number; y: number }
   | { t: 'bossspawn'; id: BossId }
   | { t: 'bosswarn'; kind: AttackKind }
-  | { t: 'bossslam'; x: number; y: number }
+  | { t: 'bossslam'; x: number; y: number; halfW: number; accent: string }
   | { t: 'bosshit'; x: number; y: number; dmg: number }
   | { t: 'bossdown'; id: BossId; first: boolean }
   | { t: 'bossgone' }
@@ -2471,7 +2471,7 @@ export class Game {
     for (const x of out.rain) this.fallers.push({ kind: 'debris', x, y: b.y - 12, vy: 0, warn: 0.7 });
     for (let i = 0; i < out.minions && this.enemies.length < MAX_ENEMIES + 3; i++) this.enemies.push(makeEnemy(this.nextEnemyId++, d.minion, bs.x + (i - 1) * 2, bs.y - 1));
     if (out.slam) {
-      this.emit({ t: 'bossslam', x: bs.x, y: bs.y });
+      this.emit({ t: 'bossslam', x: bs.x, y: bs.y, halfW: d.halfW, accent: d.accent });
       if (b.onGround && Math.abs(b.x - bs.x) < SLAM_RADIUS && this.iframes === 0) {
         this.hurt(SLAM_DMG);
         this.iframes = 0.6;

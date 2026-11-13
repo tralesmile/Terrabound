@@ -25,7 +25,7 @@ import { GEAR } from './sim/gear';
 import { isNight } from './sim/daynight';
 import { WEATHER } from './sim/weather';
 import { shareCard } from './ui/share';
-import { BOSSES } from './sim/bosses';
+import { BOSSES, SLAM_RADIUS } from './sim/bosses';
 import { ROLE_INFO, nextAct, nextCond } from './sim/drones';
 import { UI, entryNpc, tradeEntries, type UiAction } from './ui/ui';
 import { RESEARCH } from './sim/research';
@@ -598,8 +598,7 @@ function boot(): void {
         ui.invOpen = false;
         break;
       case 'bossslam':
-        fx.burst(e.x, e.y, '#c9a35a', 30, 8);
-        fx.addShake(0.7);
+        fx.slamImpact(e.x, e.y, e.halfW, SLAM_RADIUS, TILE_COLORS[game.world.get(Math.floor(e.x), Math.floor(e.y + 0.05))] ?? '#c9a35a', e.accent);
         break;
       case 'bosshit':
         fx.text(e.x, e.y, `${Math.round(e.dmg)}`, '#ffd24a');

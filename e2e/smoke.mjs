@@ -1630,6 +1630,21 @@ try {
     for (let i = 0; i < idle.px.length; i += 4) if (Math.abs(idle.px[i] - wind.px[i]) + Math.abs(idle.px[i + 1] - wind.px[i + 1]) + Math.abs(idle.px[i + 2] - wind.px[i + 2]) > 60) diff++;
     check('Junk Colossus swings its fists overhead on a slam wind-up', diff > 60, JSON.stringify({ diff }));
     check('Junk Colossus chest furnace glows at rest', idle.warm > 8, JSON.stringify({ warm: idle.warm }));
+    // Slam impact: a flat shockwave as wide as the slam reach, dust walls and fist debris.
+    await holdBoss(null);
+    const impact = await page.evaluate(async () => {
+      const { game, fx } = window.__terrabound;
+      fx.rings.length = 0;
+      const p0 = fx.particles.length;
+      const b = game.boss;
+      game.events.push({ t: 'bossslam', x: b.x, y: b.y, halfW: 1.4, accent: '#c77a5e' });
+      await new Promise((r) => setTimeout(r, 90));
+      return { wave: fx.rings.some((r) => r.r === 6 && (r.flat ?? 1) < 0.5), parts: fx.particles.length - p0 };
+    });
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: path.join(out, '26c-boss-impact.png') });
+    await page.evaluate(() => clearInterval(window.__bossHold));
+    check('a boss slam lands with a flat shockwave ring as wide as its reach and flying debris', impact.wave && impact.parts >= 20, JSON.stringify(impact));
   }
   await page.evaluate(() => {
     const g = window.__terrabound.game;
