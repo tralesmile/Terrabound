@@ -83,11 +83,17 @@ describe('raid rules (pure)', () => {
     e.raid = true;
     for (let i = 0; i < 30 * 12; i++) stepEnemy(w, e, 1 / 30, 60.5, 19);
     expect(e.x).toBeGreaterThan(55);
-    // A patrolling crawler turns at the step instead.
+    // A patrolling crawler auto-steps a one-tile ledge, but turns back at a two-tile wall.
     const p = makeEnemy(2, 'crawler', 40.5, 20);
     p.dir = 1;
-    for (let i = 0; i < 30 * 12; i++) stepEnemy(w, p, 1 / 30, 100, 0);
-    expect(p.x).toBeLessThan(50);
+    for (let i = 0; i < 30 * 10; i++) stepEnemy(w, p, 1 / 30, 100, 0);
+    expect(p.x).toBeGreaterThan(50);
+    const w2 = flat();
+    for (let x = 50; x < 120; x++) for (let y = 18; y < 20; y++) w2.set(x, y, T.RUST);
+    const q = makeEnemy(3, 'crawler', 40.5, 20);
+    q.dir = 1;
+    for (let i = 0; i < 30 * 12; i++) stepEnemy(w2, q, 1 / 30, 100, 0);
+    expect(q.x).toBeLessThan(50);
   });
 });
 

@@ -61,7 +61,12 @@ export interface Enemy {
   raid?: boolean;
   /** Seconds spent chewing the base block in front of it. */
   chew?: number;
+  /** Render-only ease after an auto-step (1 = just stepped up a tile, decays to 0). */
+  lift?: number;
 }
+
+/** How fast a walker's drawn body catches up after an auto-step (per second). */
+export const ENEMY_STEP_EASE = 9;
 
 /** Invulnerability after an enemy is hit (also the length of the hit flash and squash). */
 export const ENEMY_HIT_IFRAMES = 0.15;
@@ -102,6 +107,30 @@ function moveAxis(world: World, e: Enemy, dx: number, dy: number): { hitX: boole
   return { hitX, hitY };
 }
 
+/**
+ * Walker auto-step: pressed into a one-tile ledge with headroom, climb it instead of stopping.
+ * Two-tile walls and low ceilings refuse. Returns true when the walker moved up one tile.
+ */
+export function enemyStepUp(world: World, e: Enemy, dir: number): boolean {
+  if (dir === 0) return false;
+  const ox = e.x;
+  const oy = e.y;
+  e.x = ox + Math.sign(dir) * 0.06;
+  const blocked = enemyBoxHits(world, e);
+  e.y = oy - 1;
+  const clearAhead = !enemyBoxHits(world, e);
+  e.x = ox;
+  const clearHere = !enemyBoxHits(world, e);
+  if (!blocked || !clearAhead || !clearHere) {
+    e.x = ox;
+    e.y = oy;
+    return false;
+  }
+  e.x = ox + Math.sign(dir) * 0.06;
+  e.lift = Math.min(1, (e.lift ?? 0) + 1);
+  return true;
+}
+
 /** Advance one enemy. `px`,`py` is the player's feet position. */
 export function stepEnemy(world: World, e: Enemy, dt: number, px: number, py: number): void {
   const d = ENEMIES[e.kind];
@@ -133,19 +162,25 @@ export function stepEnemy(world: World, e: Enemy, dt: number, px: number, py: nu
   const grounded = world.isSolid(Math.floor(e.x), Math.floor(e.y + 0.05));
   // Hoppers leap at a nearby player on a fixed rhythm (phase keeps a pack out of sync).
   if (d.hop && grounded && near && Math.floor((e.age + e.phase) / 1.6) !== Math.floor((e.age + e.phase - dt) / 1.6)) e.vy = -11;
+  if (e.lift) e.lift = Math.max(0, e.lift - dt * ENEMY_STEP_EASE);
   const r = moveAxis(world, e, e.vx * dt, e.vy * dt);
   if (r.hitY) e.vy = 0;
+  // One-tile ledges are no obstacle (Starbound-style auto-step), so chases flow over hills.
+  const stepped = r.hitX && grounded && !knock && e.vy >= 0 && enemyStepUp(world, e, e.dir);
   if (e.raid) {
-    // Raiders never turn back: they hop up steps and walls in their way and walk off ledges.
-    if (r.hitX && grounded) e.vy = -11;
+    // Raiders never turn back: they hop up taller walls in their way and walk off ledges.
+    if (r.hitX && grounded && !stepped) e.vy = -11;
     return;
   }
+  if (stepped) return;
   if (r.hitX) {
     e.dir = -e.dir;
     e.vx = 0;
   } else if (grounded && !knock) {
+    // Walk down one-tile drops too; turn only at a real ledge (two or more tiles down).
     const ahead = Math.floor(e.x + e.dir * (d.halfW + 0.3));
-    if (!world.isSolid(ahead, Math.floor(e.y + 0.05))) e.dir = -e.dir;
+    const fy = Math.floor(e.y + 0.05);
+    if (!world.isSolid(ahead, fy) && !world.isSolid(ahead, fy + 1)) e.dir = -e.dir;
   }
 }
 

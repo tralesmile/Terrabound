@@ -13,7 +13,7 @@ import { roomEdges } from '../sim/rooms';
 import { furnitureArt, screenLines } from './furniture';
 import { wideSide } from '../sim/wide';
 import { REACH } from '../sim/game';
-import { onLadder } from '../sim/physics';
+import { onLadder, stepEase } from '../sim/physics';
 import { ENEMIES } from '../sim/enemies';
 import { hash2 } from '../sim/rng';
 import { T, TILES } from '../sim/tiles';
@@ -369,7 +369,7 @@ export class Renderer {
     const px = this.sx(b.x, shakeX);
     // After an auto-step the body rises over ~0.1 s instead of popping up a whole tile.
     const lift = game.stepLift;
-    const py = Math.round(this.sy(b.y + lift * lift * (3 - 2 * lift), shakeY));
+    const py = Math.round(this.sy(b.y + stepEase(lift), shakeY));
     if (game.mining) {
       const hx = px + game.facing * 5 * scale;
       const hy = py - 14 * scale;
@@ -419,7 +419,8 @@ export class Renderer {
     for (const e of game.enemies) {
       const d = ENEMIES[e.kind];
       const ex = this.sx(e.x, shakeX);
-      const ey = this.sy(e.y, shakeY);
+      // After an auto-step the drawn body eases up from the old floor instead of popping.
+      const ey = this.sy(e.y + stepEase(e.lift ?? 0), shakeY);
       const w = d.halfW * 2 * ts;
       const h = d.h * ts;
       if (e.raid) {

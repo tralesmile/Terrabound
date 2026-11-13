@@ -102,6 +102,12 @@ export function unstick(world: World, b: Body, maxRows = 6): boolean {
   return !boxCollides(world, b.x, b.y);
 }
 
+/** Render ease for an auto-step: smoothstep of the lift left (1 = just stepped, drawn a full tile lower). */
+export function stepEase(lift: number): number {
+  const l = Math.max(0, Math.min(1, lift));
+  return l * l * (3 - 2 * l);
+}
+
 /** How far past the wall face an auto-step moves the body (tiles), so it ends up over the ledge. */
 export const STEP_NUDGE = 0.06;
 
