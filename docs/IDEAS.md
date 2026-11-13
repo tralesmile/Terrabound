@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 43
+
+- Done this run: icon HUD (square glyph buttons two wide with the cog, key hints on desktop, 44 px on touch; carried 1); longer lore logs (2-3 more lines each, carried 8); feet follow the drawn slope diagonals (render-only sink, no more half-tile float).
+- Weakest graphics: in the Circuit layer the open cave (rust back wall) reads brighter than the solid blocks (27-deep-layer), because light stops at solids; a per-layer back wall (dark green circuit mesh in Circuit, basalt in Plasma) and a faint top-face highlight on lit floors would fix the inversion.
+- Weakest feel: enemies still float over slope caps (only the player sinks); reuse slopeSink for walkers in drawEnemy.
+- Weakest UI: desktop has no tooltip for the new glyph buttons; a hover label (hudButtonsShown already has the words) under the button.
+- Weakest progression: lore logs are found at random terminals; place them in story order by depth so the arc reads in sequence.
+
 ## 2026-11-13 run 42
 
 - Done this run: walkers auto-step (chases flow over hills, carried 1); slim goal card (one row + hairline bar, carried 2); cave-ceiling slope caps. Found on the way: the Scrap layer's rock is metal, which never sloped, so the whole first underground layer was stair-steps; natural metal slopes now.
@@ -15,10 +23,3 @@
 - Weakest UI (carried 1): the goal card is a wide dark panel; one line + bar would free a third of the top-left.
 - Weakest graphics: cave ceilings stay stair-stepped; mirror the caps for bottom corners (S+E / S+W).
 - Weakest story (carried 6): logs are one line each; 3-4 lines per log.
-
-## 2026-11-13 run 40
-
-- Done this run: arrival toasts fold into one pill (carried 3 runs); cinder cone eruptions with a 2.4 s rumble telegraph, lava bombs and glowing landing marks (carried 1).
-- Weakest graphics (carried 1): stair-step block silhouettes; half-tile slope caps on exposed diagonal edges (Terraria slopes).
-- Weakest UI: the goal card and toast pills are both wide, dark panels; a slimmer goal card (one line + bar) would free a third of the top-left.
-- Weakest story (carried 5): logs are one line each; 3-4 lines per log.

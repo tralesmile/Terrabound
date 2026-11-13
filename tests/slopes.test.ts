@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MASKS, SHAPES, SLOPE_CL, SLOPE_CR, SLOPE_L, SLOPE_R, isCeilingSlope, slopeBottom, slopePixel, slopeShape, slopeTop, slopes } from '../src/render/autotile';
+import { MASKS, SHAPES, SLOPE_CL, SLOPE_CR, SLOPE_L, SLOPE_R, isCeilingSlope, slopeBottom, slopePixel, nextSink, slopeShape, slopeSink, slopeTop, slopes } from '../src/render/autotile';
 import { TS, VARIANTS, atlasCol, autotilePixels } from '../src/render/sprites';
 import { T } from '../src/sim/tiles';
 import { World } from '../src/sim/world';
@@ -227,5 +227,37 @@ describe('cave ceiling slope caps (render)', () => {
       expect(px[0]).not.toBeNull();
       expect(px.filter((c) => c !== null).length).toBe((TS * (TS + 1)) / 2);
     }
+  });
+});
+
+describe('walking the drawn diagonal (render-only foot sink)', () => {
+  // Cap at (1,1) falls right to the step at (2,2); flat ground at x 0 on row 1.
+  const right = grid(['.....', '##...', '###..', '####.']);
+  const left = grid(['.....', '...##', '..###', '.####']);
+  it('flat ground never sinks; a cap sinks linearly from its high edge to its low edge', () => {
+    expect(slopeSink(right, 0.5, 1)).toBe(0);
+    expect(slopeSink(right, 1.0, 1)).toBeCloseTo(0);
+    expect(slopeSink(right, 1.5, 1)).toBeCloseTo(0.5);
+    expect(slopeSink(right, 1.9, 1)).toBeCloseTo(0.9);
+    expect(slopeSink(left, 3.5, 1)).toBeCloseTo(0.5);
+    expect(slopeSink(left, 3.9, 1)).toBeCloseTo(0.1);
+  });
+  it('past the low end, still held up by the cap, the feet stay on the lower step', () => {
+    expect(slopeSink(right, 2.2, 1)).toBe(1);
+    expect(slopeSink(left, 2.8, 1)).toBe(1);
+  });
+  it('mid-air, on built blocks or off the tile grid line it does not sink', () => {
+    expect(slopeSink(right, 1.5, 0.6)).toBe(0);
+    expect(slopeSink(right, 1.5, 1, (x, y) => x === 1 && y === 1)).toBe(0);
+  });
+  it('grounded follows the target (eased only for big jumps); falling keeps the sink above the floor; rising fades it', () => {
+    expect(nextSink(0.4, 0.5, 0, 2, 1 / 60)).toBe(0.5);
+    const eased = nextSink(0, 1, 0, 2, 1 / 60);
+    expect(eased).toBeGreaterThan(0.3);
+    expect(eased).toBeLessThan(1);
+    // Dropping off the low end: physical feet 0.3 below the cap row, floor 0.7 below: drawn stays on the floor line.
+    expect(nextSink(1, null, 5, 0.7, 1 / 60)).toBeCloseTo(0.7);
+    expect(nextSink(1, null, -8, 2, 0.1)).toBeLessThan(0.3);
+    expect(nextSink(0.5, null, 3, 0, 1 / 60)).toBe(0);
   });
 });

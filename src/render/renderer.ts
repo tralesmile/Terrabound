@@ -56,7 +56,7 @@ import { GEAR, type RangedKind } from '../sim/gear';
 import { BOSSES, phase as bossPhase } from '../sim/bosses';
 import { drawBossArt } from './bossart';
 import { ACT_INFO } from '../sim/drones';
-import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, isCeilingSlope, leafMask, SLOPE_CR, SLOPE_R, slopeBottom, slopeShape, slopeTop } from './autotile';
+import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, isCeilingSlope, leafMask, nextSink, slopeSink, SLOPE_CR, SLOPE_R, slopeBottom, slopeShape, slopeTop } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape } from './decor';
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
@@ -236,6 +236,9 @@ export class Renderer {
     this.camY = h <= halfH * 2 ? h / 2 : Math.min(h - halfH + 2, Math.max(-6 + halfH, this.camY));
   }
 
+  /** How far below the physical feet the player is drawn so it walks the slope-cap diagonals (tiles). */
+  footSink = 0;
+
   /** Back-wall layer: cave walls underground, player-built plates; nothing (sky) otherwise. */
   private drawBack(ctx: CanvasRenderingContext2D, world: Game['world'], tx: number, ty: number, dx: number, dy: number, ts: number): void {
     const wl = world.wall(tx, ty);
@@ -371,7 +374,18 @@ export class Renderer {
     const px = this.sx(b.x, shakeX);
     // After an auto-step the body rises over ~0.1 s instead of popping up a whole tile.
     const lift = game.stepLift;
-    const py = Math.round(this.sy(b.y + stepEase(lift), shakeY));
+    // Floor slope caps are drawn diagonals: the feet follow them (render only; the sim floor stays square).
+    const solidAt = (x: number, y: number): boolean => world.isSolid(x, y);
+    let room = 2;
+    for (let k = 0; k <= 2; k++) {
+      if (solidAt(Math.floor(b.x), Math.floor(b.y) + k)) {
+        room = Math.floor(b.y) + k - b.y;
+        break;
+      }
+    }
+    const sinkTarget = b.onGround && !game.riding ? slopeSink((x, y) => world.get(x, y), b.x, b.y, (x, y) => world.edits.has(y * world.w + x)) : game.riding ? 0 : null;
+    this.footSink = nextSink(this.footSink, sinkTarget, b.vy, Math.max(0, room), dtFrame);
+    const py = Math.round(this.sy(b.y + Math.max(stepEase(lift), this.footSink), shakeY));
     if (game.mining) {
       const hx = px + game.facing * 5 * scale;
       const hy = py - 14 * scale;

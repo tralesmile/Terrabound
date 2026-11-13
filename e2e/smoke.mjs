@@ -567,6 +567,22 @@ try {
       if (c.y <= stair.top + 0.01 && crawlShot) break;
     }
     check('a chasing crawler auto-steps up the one-tile ledge (eased)', crawl.y <= stair.top + 0.01 && crawl.lift > 0, JSON.stringify({ stair, crawl }));
+    // The feet follow the drawn diagonal: half way across the cap the player is drawn half a tile lower.
+    const sinkAt = async (x) => {
+      await page.evaluate(([px, py]) => {
+        const g = window.__terrabound.game;
+        g.enemies = [];
+        g.body.x = px;
+        g.body.y = py;
+        g.body.vx = g.body.vy = 0;
+      }, [x, stair.top]);
+      await page.waitForTimeout(250);
+      return page.evaluate(() => ({ sink: window.__terrabound.renderer.footSink, ground: window.__terrabound.game.body.onGround, y: window.__terrabound.game.body.y }));
+    };
+    const onCap = await sinkAt(stair.x + 0.5);
+    await page.screenshot({ path: path.join(out, '11f-slope-walk.png') });
+    const onFlat = await sinkAt(stair.x - 0.5);
+    check('standing on a slope cap draws the feet on the diagonal, flat ground does not sink', onCap.ground && onCap.sink > 0.35 && onCap.sink < 0.65 && onFlat.sink < 0.05, JSON.stringify({ onCap, onFlat }));
     await page.evaluate(() => { window.__terrabound.game.enemies = []; });
   }
   // Cave ceilings soften too: stand under a one-tile ceiling staircase and count the upside-down caps.

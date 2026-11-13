@@ -117,6 +117,40 @@ export function slopeShape(get: (x: number, y: number) => number, x: number, y: 
 }
 
 /**
+ * Walk the drawn diagonal (render only): how far below the physical feet a grounded body standing
+ * at (x, y) should be drawn so it follows a floor slope cap instead of floating over the cut corner.
+ * 0 on flat ground; on a SLOPE_R cap it grows from 0 at the high edge to 1 at the low edge, and stays
+ * 1 while the centre has passed the low edge but the body is still held up by the cap (SLOPE_L mirrors).
+ */
+export function slopeSink(get: (x: number, y: number) => number, x: number, y: number, built?: (x: number, y: number) => boolean): number {
+  const ty = Math.round(y);
+  if (Math.abs(y - ty) > 1e-3) return 0;
+  const cx = Math.floor(x);
+  const under = slopeShape(get, cx, ty, built);
+  if (under === SLOPE_R) return Math.min(1, Math.max(0, x - cx));
+  if (under === SLOPE_L) return Math.min(1, Math.max(0, cx + 1 - x));
+  if (isBlock(get(cx, ty))) return 0;
+  // Centre over the air past the low end: the cap beside it still carries the feet.
+  if (slopeShape(get, cx - 1, ty, built) === SLOPE_R) return 1;
+  if (slopeShape(get, cx + 1, ty, built) === SLOPE_L) return 1;
+  return 0;
+}
+
+/**
+ * Next drawn sink. Grounded: follow the target (eased so a step on or off a cap never pops).
+ * Airborne: rising lets it fade quickly; falling keeps it but never draws the feet below `room`
+ * (the distance down to the floor under the centre), so dropping off a cap's low end is seamless.
+ */
+export function nextSink(prev: number, target: number | null, vy: number, room: number, dt: number): number {
+  if (target !== null) {
+    if (Math.abs(target - prev) < 0.25) return target;
+    return prev + (target - prev) * Math.min(1, dt * 30);
+  }
+  const s = vy < 0 ? prev * Math.exp(-dt * 14) : prev;
+  return Math.max(0, Math.min(s, room));
+}
+
+/**
  * Pixel class inside a slope cap. For SLOPE_R the cut is above the diagonal running from the
  * top-left corner to the bottom-right corner; the diagonal itself is outline, one row in is lit.
  * SLOPE_L mirrors it.

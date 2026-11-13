@@ -85,7 +85,8 @@ World size and variety:
 - [x] Cone eruptions (rumble telegraph, lava bombs that burn and knock back, never break blocks); discovery + codex gift + award fold into one toast pill (run 40)
 - [x] Half-tile slope caps on one-tile staircase corners (render), auto-step over one-tile ledges (sim, eased), codex field-guide notes for every place incl. cone eruptions (run 41)
 - [x] Walkers auto-step one-tile ledges and walk down one-tile drops (pets fly, nothing to do); slim one-row goal card; cave-ceiling slope caps; natural Scrap-layer metal slopes (player-placed blocks stay square) (run 42)
-- [ ] Follow-ups (scheduled runs may take these): physical slopes (walk the diagonal, no half-tile float); icon HUD buttons (sound/map/home/shop as square glyph buttons like the cog); longer lore logs (3-4 lines each)
+- [x] Icon HUD (square glyph buttons, two wide, key hints, 44 px touch), longer lore logs (2-3 more lines each in the reader), the player's feet follow slope-cap diagonals (render-only sink) (run 43)
+- [ ] Follow-ups (scheduled runs may take these): per-layer back walls so open caves never read brighter than solid rock (Circuit mesh, Plasma basalt); enemies follow slope diagonals too; hover labels for HUD glyphs on desktop; lore logs placed in story order by depth
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 
