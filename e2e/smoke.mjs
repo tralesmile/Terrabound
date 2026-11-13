@@ -165,6 +165,12 @@ try {
   await page.keyboard.press('Space');
   await page.waitForTimeout(300);
   check('any key starts the game', (await page.evaluate(() => window.__terrabound.ui.screen)) === 'play');
+  await page.waitForTimeout(100);
+  const dIcons = await page.evaluate(() => {
+    const rs = window.__terrabound.ui.rects.filter((r) => ['settings', 'mute', 'map'].includes(r.a.k));
+    return { n: rs.length, square: rs.every((r) => Math.abs(r.w - r.h) < 0.5), right: Math.max(...rs.map((r) => r.x + r.w)), width: Math.max(...rs.map((r) => r.x + r.w)) - Math.min(...rs.map((r) => r.x)) };
+  });
+  check('desktop HUD: cog, sound and map are square glyph buttons at the right edge', dIcons.n === 3 && dIcons.square && dIcons.right > 1200 && dIcons.width < 160, JSON.stringify(dIcons));
 
   // Walk right with real key input.
   const x0 = await page.evaluate(() => window.__terrabound.game.body.x);
@@ -3005,6 +3011,27 @@ try {
   check('tap starts the game on mobile', (await page.evaluate(() => window.__terrabound.ui.screen)) === 'play');
   check('touch mode detected', await page.evaluate(() => window.__terrabound.ui.touch));
   await page.screenshot({ path: path.join(out, '06-mobile-play.png') });
+  // Icon HUD: square glyph buttons, two wide, cog first; the column is far narrower than the old text column.
+  const hudIcons = await page.evaluate(() => {
+    const ui = window.__terrabound.ui;
+    const ks = ['settings', 'mute', 'map', 'shop', 'mode', 'recall'];
+    const rs = ui.rects.filter((r) => ks.includes(r.a.k));
+    const x0 = Math.min(...rs.map((r) => r.x));
+    const x1 = Math.max(...rs.map((r) => r.x + r.w));
+    const y1 = Math.max(...rs.map((r) => r.y + r.h));
+    const mode = rs.find((r) => r.a.k === 'mode');
+    return { n: rs.length, square: rs.every((r) => Math.abs(r.w - r.h) < 0.5), size: Math.min(...rs.map((r) => r.w)), width: x1 - x0, height: y1, shown: ui.hudButtonsShown, mode: mode ? { x: mode.x + mode.w / 2, y: mode.y + mode.h / 2 } : null, place: ui.placeMode };
+  });
+  check('mobile HUD buttons are square glyph buttons in a narrow two-wide grid', hudIcons.n >= 4 && hudIcons.square && hudIcons.size >= 44 && hudIcons.width < 390 * 0.32 && hudIcons.shown.includes('Map') && hudIcons.shown.includes('Mode: dig'), JSON.stringify(hudIcons));
+  if (hudIcons.mode) {
+    await page.touchscreen.tap(hudIcons.mode.x, hudIcons.mode.y);
+    await page.waitForTimeout(250);
+    const modeAfter = await page.evaluate(() => ({ place: window.__terrabound.ui.placeMode, shown: window.__terrabound.ui.hudButtonsShown }));
+    check('tapping the dig/build glyph switches mode and its glyph', modeAfter.place !== hudIcons.place && modeAfter.shown.includes('Mode: build'), JSON.stringify(modeAfter));
+    await page.screenshot({ path: path.join(out, '06d-mobile-icon-hud.png') });
+    await page.touchscreen.tap(hudIcons.mode.x, hudIcons.mode.y);
+    await page.waitForTimeout(250);
+  }
   await toastCheck(page, 'mobile', '46b-mobile-toasts.png');
   const canvasOk = await page.evaluate(() => {
     const c = document.getElementById('game');

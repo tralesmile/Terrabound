@@ -9,6 +9,8 @@ import type { Game, Tool } from '../sim/game';
 import { MAP_ZOOMS, MapView } from './map';
 import { FLY_TIME, Flyers, flyerPos, pulseAmount } from './flyers';
 import { safeFrame, type Insets } from './safearea';
+import { hudButtons, hudGridPos, type HudButton } from './hudbuttons';
+import { drawHudGlyph } from './hudglyphs';
 import { ICON, drawIcon } from '../render/icons';
 import { TRADER_W, drawPlayer, drawRows, robotRows, type RobotKind } from '../render/sprites';
 import { ROBOT_LOOK, playerGear } from '../render/renderer';
@@ -322,6 +324,32 @@ export class UI {
     ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
     this.text(ctx, label, x + w / 2, y + h / 2, Math.round(u * 0.95), enabled ? '#ffffff' : '#8a90a2', 'center', w - 6);
     if (enabled) this.rects.push({ x, y, w, h, a });
+  }
+
+  /** Labels of the glyph buttons drawn last frame (tests, accessibility). */
+  hudButtonsShown: string[] = [];
+
+  /** Square HUD button with a code-drawn glyph, an optional charge fill, "!" badge and key hint. */
+  private glyphButton(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, b: HudButton, game: Game, time: number): void {
+    this.button(ctx, x, y, s, s, '', { k: b.action } as UiAction, 1, { color: b.color, pulse: b.pulse || (b.badge && Math.floor(time * 2) % 2 === 0) });
+    if (b.fill) {
+      ctx.fillStyle = 'rgba(159,246,255,0.35)';
+      const fh = (s - 4) * b.fill;
+      ctx.fillRect(x + 2, y + s - 2 - fh, s - 4, fh);
+    }
+    drawHudGlyph(ctx, b.glyph, x + s / 2, y + s / 2, s * 0.62, b.color);
+    if (b.badge) {
+      const r = s * 0.17;
+      ctx.fillStyle = '#ffcf4a';
+      ctx.beginPath();
+      ctx.arc(x + s - r * 0.9, y + r * 0.9, r, 0, Math.PI * 2);
+      ctx.fill();
+      this.text(ctx, '!', x + s - r * 0.9, y + r * 0.95, Math.round(r * 1.6), '#2a1a00', 'center');
+    }
+    if (!this.touch && b.bind) {
+      const kl = keyLabel(game.keys[b.bind]);
+      if (kl.length <= 2) this.text(ctx, kl, x + s - 4, y + s - s * 0.16, Math.round(s * 0.24), '#9fb4c8', 'right');
+    }
   }
 
   /** Square settings button with a drawn cog (no icon font needed). */
@@ -1193,10 +1221,12 @@ export class UI {
     const bw0 = Math.min(w * 0.45, u * 14);
     const bh = u * 1.25;
     // Left-handed touch (move stick on the right) mirrors the status block and the button column.
-    const bwid = u * 5.2;
-    const bhgt = u * 2.4;
+    // Square glyph buttons; at least 44 px on touch (finger-sized targets).
+    const bhgt = this.touch ? Math.max(u * 2.4, 44) : u * 2.4;
+    const bgap = u * 0.5;
+    const bwid = bhgt * 2 + bgap;
     const hs = bh * 2 + u * 0.4;
-    const anc = hudAnchors(w, u, bw0, hs, bwid, bhgt, this.touch && this.stickSide === 1);
+    const anc = hudAnchors(w, u, bw0, hs, bwid, 0, this.touch && this.stickSide === 1);
     const bw = anc.barW;
     this.hudMirrored = this.touch && this.stickSide === 1;
     const x = anc.x;
@@ -1250,46 +1280,29 @@ export class UI {
       hudLow = Math.max(hudLow, y + u * 2.1);
     }
 
-    // Right-side buttons.
-    let by = u;
-    const bx = anc.bx;
-    const gw = bhgt;
-    this.button(ctx, bx, by, bwid, bhgt, game.muted ? 'SOUND OFF' : game.musicOn ? 'SOUND ON' : 'MUSIC OFF', { k: 'mute' }, u * 0.8);
-    this.gearButton(ctx, anc.gearX, by, gw, bhgt);
-    by += bhgt + u * 0.5;
-    this.button(ctx, bx, by, bwid, bhgt, 'MAP', { k: 'map' }, u * 0.9);
-    by += bhgt + u * 0.5;
-    if (game.recallT > 0) {
-      const pct = Math.min(99, Math.floor((game.recallT / RECALL_TIME) * 100));
-      this.button(ctx, bx, by, bwid, bhgt, `BEAM ${pct}%`, { k: 'recall' }, u * 0.8, { color: '#1f6f78', pulse: true });
-      by += bhgt + u * 0.5;
-    } else if (game.canRecall()) {
-      this.button(ctx, bx, by, bwid, bhgt, 'HOME', { k: 'recall' }, u * 0.9);
-      by += bhgt + u * 0.5;
-    }
-    if (game.isAtBase() && game.bays().length > 0) {
-      this.button(ctx, bx, by, bwid, bhgt, 'DRONES', { k: 'drones' }, u * 0.85, { color: '#2a3550' });
-      by += bhgt + u * 0.5;
-    }
-    if (game.isAtBase()) {
-      const can = game.affordableUpgrades().length > 0;
-      this.button(ctx, bx, by, bwid, bhgt, can ? 'SHOP !' : 'SHOP', { k: 'shop' }, u, { pulse: can && Math.floor(time * 2) % 2 === 0 });
-      by += bhgt + u * 0.5;
-    }
-    if (this.touch) this.button(ctx, bx, by, bwid, bhgt, this.placeMode ? 'MODE BUILD' : 'MODE DIG', { k: 'mode' }, u * 0.8, { color: this.placeMode ? '#7a5a1f' : '#1f6f78' });
-    if (this.touch) by += bhgt + u * 0.5;
-    if (game.canMount()) {
-      this.button(ctx, bx, by, bwid, bhgt, game.riding ? 'GET OFF' : 'RIDE', { k: 'ride' }, u * 0.85, { color: game.riding ? '#7a5a1f' : '#1f6f78' });
-      by += bhgt + u * 0.5;
-    }
-    if (this.touch && game.hook) {
-      this.button(ctx, bx, by, bwid, bhgt, this.reeling ? 'REELING' : 'HOLD REEL', { k: 'reel' }, u * 0.75, { color: this.reeling ? '#7a5a1f' : '#1f6f78' });
-      by += bhgt + u * 0.5;
-    }
-    if (this.touch && game.gear.dash) {
-      this.button(ctx, bx, by, bwid, bhgt, 'DASH', { k: 'dash' }, u * 0.9);
-      by += bhgt + u * 0.5;
-    }
+    // Right-side buttons: a two-wide grid of square glyph buttons (cog first).
+    const btns = hudButtons({
+      muted: game.muted,
+      musicOn: game.musicOn,
+      recall: game.recallT > 0 ? game.recallT / RECALL_TIME : 0,
+      canRecall: game.canRecall(),
+      atBase: game.isAtBase(),
+      hasBays: game.isAtBase() && game.bays().length > 0,
+      canAfford: game.isAtBase() && game.affordableUpgrades().length > 0,
+      touch: this.touch,
+      placeMode: this.placeMode,
+      canMount: game.canMount(),
+      riding: !!game.riding,
+      hooked: !!game.hook,
+      reeling: this.reeling,
+      dash: !!game.gear.dash,
+    });
+    this.gearButton(ctx, anc.bx, u, bhgt, bhgt);
+    btns.forEach((b, i) => {
+      const p = hudGridPos(i + 1, bhgt, bgap);
+      this.glyphButton(ctx, anc.bx + p.dx, u + p.dy, bhgt, b, game, time);
+    });
+    this.hudButtonsShown = btns.map((b) => b.label);
 
     // Hotbar: tools first, then placeable blocks.
     const gap = u * 0.4;
