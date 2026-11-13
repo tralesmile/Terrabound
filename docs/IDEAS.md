@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 52
+
+- Done this run: boss hits now spray sparks in the boss's own colours from the face that was hit, back toward the attacker, with the damage number at the hit point (26k); the Hollow AI fights over a glowing floor circuit whose pulse rings roll outward, red and faster once enraged (28e).
+- Weakest combat feel: boss hits still have no sound variation per boss (metal clank for the Colossus, crystal ping for the Golem); a per-boss hit timbre in audio.ts is cheap and sells the sparks.
+- Weakest arena play: the circuit is only decoration; in phase 2 let a pulse crest zap the floor (telegraphed, jump to dodge), the Dome Keeper/Terraria way of making a finale demand movement.
+- Weakest progression: the dive report still only shows on death; a lighter "dive banked" card on beam-home (carried).
+- Weakest UI: Core-layer toasts and the boss title can crowd the top band on small phones (carried; check 06-mobile with a boss up).
+
 ## 2026-11-13 run 51
 
 - Done this run: boss bolts leave a fading accent trail (26j); the Hollow AI wears a battered plate shell that breaks off with debris, exposing glowing seams and core cracks as it loses health (28b/28c); the boss bar got a lagging damage chip and a phase notch (28d).

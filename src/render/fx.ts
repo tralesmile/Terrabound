@@ -1,5 +1,6 @@
 /** Cosmetic effects only. Nothing here may affect game state, so the simulation stays deterministic and testable. */
 import { ENEMY_HIT_IFRAMES } from '../sim/enemies';
+import { sparkVelocities, type SparkSpec } from './hitspark';
 
 export interface Particle {
   x: number;
@@ -535,6 +536,19 @@ export class Fx {
         size: 1 + Math.floor(Math.random() * 2),
       });
     }
+  }
+
+  /** Boss hit: sparks in the boss's colours spray from the hit face back toward `dir`, with a small accent ring. Returns sparks added. */
+  bossSparks(x: number, y: number, dir: number, spec: SparkSpec): number {
+    let added = 0;
+    const vel = sparkVelocities(dir, spec.n, spec.speed, Math.random);
+    for (let i = 0; i < vel.length && this.particles.length < MAX_PARTICLES; i++) {
+      const life = 0.22 + Math.random() * 0.25;
+      this.particles.push({ x, y, vx: vel[i].vx, vy: vel[i].vy, life, max: life, color: spec.colors[i % spec.colors.length], size: i % 3 === 0 ? 3 : 2, g: 10 });
+      added++;
+    }
+    this.ring(x, y, 0.55, spec.colors[0], 0.16);
+    return added;
   }
 
   text(x: number, y: number, text: string, color: string): void {

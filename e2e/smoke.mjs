@@ -1780,6 +1780,37 @@ try {
       return { pink, debris: fx.particles.filter((q) => q.color === renderer.shellDebris).length, breaks: renderer.shellBreaks, left: renderer.shellLeft };
     });
     const hollowFull = await corePink();
+    // Arena floor circuit: pink traces along the floor in phase 1, red in phase 2 (sampled over a second of pulses).
+    const arenaGlow = () => page.evaluate(async () => {
+      const { game, renderer } = window.__terrabound;
+      const ctx = document.querySelector('canvas').getContext('2d');
+      let pink = 0;
+      let red = 0;
+      // The boss can drift while held; put it back afterwards so later checks see the same scene.
+      const home = { x: game.boss.x, y: game.boss.y };
+      for (let f = 0; f < 10; f++) {
+        const b = game.boss;
+        const cells = renderer.arenaCells.filter((c) => Math.abs(c.x + 0.5 - b.x) > 2.5 && Math.abs(c.x + 0.5 - b.x) < 9);
+        for (const c of cells) {
+          const a = renderer.worldToScreen(c.x, c.y - 0.15);
+          const z = renderer.worldToScreen(c.x + 1, c.y);
+          const w = Math.round(z.x - a.x);
+          const h = Math.max(1, Math.round(z.y - a.y));
+          if (a.x < 0 || a.y < 0 || w <= 0) continue;
+          const d = ctx.getImageData(Math.round(a.x), Math.round(a.y), w, h).data;
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i] > 190 && d[i + 1] < 150 && d[i + 2] > 190) pink++;
+            else if (d[i] > 190 && d[i + 1] < 120 && d[i + 2] < 130) red++;
+          }
+        }
+        await new Promise((r) => setTimeout(r, 130));
+      }
+      const drift = +(game.boss.x - home.x).toFixed(2);
+      game.boss.x = home.x;
+      game.boss.y = home.y;
+      return { cells: renderer.arenaCells.length, pink, red, drift };
+    });
+    const arena1 = await arenaGlow();
     await page.screenshot({ path: path.join(out, '28b-hollow-shell.png') });
     const barPale = () => page.evaluate(() => {
       const c = document.querySelector('canvas');
@@ -1797,6 +1828,9 @@ try {
     const hollowShed = await corePink();
     await page.waitForTimeout(400);
     const hollowHurt = await corePink();
+    const arena2 = await arenaGlow();
+    await page.screenshot({ path: path.join(out, '28e-hollow-arena.png') });
+    check('the Hollow AI arena floor glows with a pink circuit that turns red in phase 2', arena1.cells > 20 && arena1.pink > 80 && arena2.red > 80 && arena2.red > arena2.pink, JSON.stringify({ arena1, arena2 }));
     await page.screenshot({ path: path.join(out, '28c-hollow-cracked.png') });
     check('the Hollow AI wears a plate shell that breaks off with debris as it is hurt', hollowFull.left === 8 && hollowHurt.left === 3 && hollowShed.breaks === hollowFull.breaks + 1 && hollowShed.debris >= 14, JSON.stringify({ full: hollowFull, shed: hollowShed, hurt: hollowHurt }));
     check('a hurt Hollow AI glows through shed-plate seams and core cracks', hollowHurt.pink > hollowFull.pink + 60, JSON.stringify({ full: hollowFull.pink, hurt: hollowHurt.pink }));
@@ -1839,6 +1873,7 @@ try {
     const teleWarn = await teleSample();
     await page.screenshot({ path: path.join(out, '26f-boss-charge.png') });
     check('a charge wind-up paints a red chevron lane toward where the dash ends', reds(teleWarn.ahead) > reds(teleIdle.ahead) + 30 && pxDiff(teleIdle.ahead, teleWarn.ahead) > 40, JSON.stringify({ idle: reds(teleIdle.ahead), warn: reds(teleWarn.ahead), diff: pxDiff(teleIdle.ahead, teleWarn.ahead) }));
+    await page.evaluate(() => { const b = window.__terrabound.game.boss; window.__preDash = { x: b.x, y: b.y, f: b.facing }; });
     await holdAt('charge', 0.3);
     await page.waitForTimeout(80);
     const p0 = (await teleSample()).parts;
@@ -1846,6 +1881,8 @@ try {
     const teleDash = await teleSample();
     await page.screenshot({ path: path.join(out, '26g-boss-dash.png') });
     check('a dashing boss leaves speed streaks and kicks up dust behind it', pxDiff(teleIdle.behind, teleDash.behind) > 40 && teleDash.parts - p0 >= 8, JSON.stringify({ diff: pxDiff(teleIdle.behind, teleDash.behind), parts: teleDash.parts - p0 }));
+    // A dash travels a wall-clock-dependent distance (up to the arena edge); bring the boss back on screen.
+    await page.evaluate(() => { const b = window.__terrabound.game.boss; const p = window.__preDash; b.x = p.x; b.y = p.y; b.facing = p.f; });
     await holdAt('volley', -0.05);
     await page.waitForTimeout(300);
     const teleVolley = await teleSample();
@@ -1895,6 +1932,23 @@ try {
     check('boss bolts draw a fading trail back along their path', pxDiff(trailOff, trailOn) > 40, JSON.stringify({ diff: pxDiff(trailOff, trailOn) }));
     await page.evaluate(() => { clearInterval(window.__bossHold); window.__terrabound.game.boss.id = 'colossus'; });
   }
+  // Boss hit sparks: a hit sprays sparks in the boss's accent colour from the face toward the attacker.
+  const sparks = await page.evaluate(async () => {
+    const { game, fx } = window.__terrabound;
+    const b = game.boss;
+    if (!b) return { ok: false };
+    b.iframes = 0;
+    const p0 = fx.particles.length;
+    game.damageBoss(20);
+    await new Promise((res) => setTimeout(res, 50));
+    const fresh = fx.particles.slice(p0);
+    const accent = fresh.filter((q) => q.color === '#c77a5e');
+    const side = Math.sign(game.body.x - b.x) || 1;
+    return { ok: true, n: fresh.length, accent: accent.length, toward: accent.filter((q) => Math.sign(q.vx) === side).length, ring: fx.rings.some((r) => r.color === '#c77a5e') };
+  });
+  await page.waitForTimeout(60);
+  await page.screenshot({ path: path.join(out, '26k-boss-hit-sparks.png') });
+  check('a boss hit sprays accent-coloured sparks back toward the attacker', sparks.ok && sparks.accent >= 3 && sparks.toward === sparks.accent && sparks.ring, JSON.stringify(sparks));
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     g.damageBoss(9999);
@@ -3049,13 +3103,14 @@ try {
     const g = window.__terrabound.game;
     return { tile: g.world.get(x0 + 6, y - 1), corn: g.carried.glowcorn ?? 0, seeds: g.carried.corn_seed ?? 0 };
   }, farm);
-  await page.screenshot({ path: path.join(out, '41b-harvest.png') });
   {
     // Harvested produce arcs into the hotbar/bag as icons (pickup flyers) and the slot pulses.
+    // Read the flyers before the screenshot: under CPU load a screenshot can outlast the flight.
     const fly = await page.evaluate(() => {
       const f = window.__terrabound.ui.flyers;
       return { spawned: f.spawned, inFlight: f.list.length, pulses: f.pulse.size };
     });
+    await page.screenshot({ path: path.join(out, '41b-harvest.png') });
     await page.waitForTimeout(700);
     const after = await page.evaluate(() => window.__terrabound.ui.flyers.list.length);
     await page.evaluate(() => {

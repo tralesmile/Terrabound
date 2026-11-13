@@ -97,7 +97,8 @@ World size and variety:
 - [x] Crystal Golem and Frost Titan art pass + glittering slam shards; layer ambient reaches enemies, pets and NPCs (run 49)
 - [x] Ranged-boss telegraphs: charge lane with chevrons + end post, dash streaks and dust/embers, volley muzzle orb, summon cracks with sprouts (run 50)
 - [x] Boss bolts leave a fading accent trail; Hollow AI art pass: battered plate shell that sheds plates with debris, glowing seams and core cracks as it is hurt; boss bar damage chip + phase notch (run 51)
-- [ ] Follow-ups (scheduled runs may take these): Hollow AI arena (pulsing circuit floor ring, red in phase 2); per-boss hit sparks in the boss accent colour
+- [x] Hollow AI arena floor circuit (pink pulse rings rolling outward, red and faster in phase 2); boss hit sparks in each boss's colours from the hit face toward the attacker, damage number at the hit point (run 52)
+- [ ] Follow-ups (scheduled runs may take these): Core-layer HUD/boss-title overlap check on small phones; arena hazard telegraphs on the circuit (phase 2 floor zaps)
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 

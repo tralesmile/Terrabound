@@ -197,6 +197,19 @@ export function stepBoss(b: Boss, world: World, dt: number, px: number, py: numb
   return out;
 }
 
+/**
+ * Where a hit from (x, y) lands on the boss body: the nearest point of its box, so hit sparks
+ * spray from the surface facing the attacker. A point inside the box (a shot that just entered)
+ * snaps out to the nearer side edge.
+ */
+export function bossContact(b: Boss, x: number, y: number): { x: number; y: number } {
+  const d = BOSSES[b.id];
+  const cy = Math.max(b.y - d.h, Math.min(b.y, y));
+  if (Math.abs(x - b.x) >= d.halfW) return { x: b.x + Math.sign(x - b.x) * d.halfW, y: cy };
+  const inside = y > b.y - d.h && y < b.y;
+  return { x: inside ? b.x + (x >= b.x ? 1 : -1) * d.halfW : x, y: cy };
+}
+
 /** Does the boss body overlap a box centred at (x, y) with half size (hw, hh)? */
 export function bossHits(b: Boss, x: number, y: number, hw: number, hh: number): boolean {
   const d = BOSSES[b.id];

@@ -1,3 +1,4 @@
+import { hitSparkSpec } from './render/hitspark';
 import { giftText } from './sim/achievements';
 import { PAINT_SLOT_NAMES } from './sim/paints';
 import { VEHICLES } from './sim/garage';
@@ -623,7 +624,8 @@ function boot(): void {
         fx.slamImpact(e.x, e.y, e.halfW, SLAM_RADIUS, TILE_COLORS[game.world.get(Math.floor(e.x), Math.floor(e.y + 0.05))] ?? '#c9a35a', e.accent, game.boss ? slamShards(game.boss.id) : null);
         break;
       case 'bosshit':
-        fx.text(e.x, e.y, `${Math.round(e.dmg)}`, '#ffd24a');
+        fx.text(e.hx, e.hy - 0.4, `${Math.round(e.dmg)}`, '#ffd24a');
+        fx.bossSparks(e.hx, e.hy, e.dir, hitSparkSpec(e.id, e.dmg));
         break;
       case 'bossdown':
         ui.toast(`${BOSSES[e.id].name} defeated!`, '#ffcf4a', 4);

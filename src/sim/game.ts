@@ -34,7 +34,7 @@ import { chestLoot } from './loot';
 import { SOIL_TILES, growTime, inLavafall, stepSaplings, type Structure } from './structures';
 import { ERUPT, bombHits, coneLive, craterOf, launchMarked, nearestCone, nextGap, stepBomb, type LavaBomb } from './eruptions';
 import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
-import { BIOME_BOSSES, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
+import { BIOME_BOSSES, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossContact, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
 import { BIOMES, type BiomeId } from './biomes';
 import { LAYERS, layerAt, openGates } from './layers';
 import { METEOR_RATE, weatherAt, weatherEnemy, type WeatherKind } from './weather';
@@ -169,7 +169,7 @@ export type GameEvent =
   | { t: 'bossspawn'; id: BossId }
   | { t: 'bosswarn'; kind: AttackKind }
   | { t: 'bossslam'; x: number; y: number; halfW: number; accent: string }
-  | { t: 'bosshit'; x: number; y: number; dmg: number }
+  | { t: 'bosshit'; id: BossId; x: number; y: number; dmg: number; hx: number; hy: number; dir: number }
   | { t: 'bossdown'; id: BossId; first: boolean }
   | { t: 'bossgone' }
   | { t: 'nosummon'; reason: string }
@@ -1804,7 +1804,7 @@ export class Game {
   explode(x: number, y: number, dmg: number, radius = BOMB_RADIUS): void {
     const r = radius;
     for (const e of this.enemies) if (Math.hypot(e.x - x, e.y - 0.4 - y) <= r + 0.5) this.damageEnemy(e, dmg, Math.sign(e.x - x) || 1);
-    if (this.boss && Math.abs(this.boss.x - x) < BOSSES[this.boss.id].halfW + r && y > this.boss.y - BOSSES[this.boss.id].h - r && y < this.boss.y + r) this.damageBoss(dmg);
+    if (this.boss && Math.abs(this.boss.x - x) < BOSSES[this.boss.id].halfW + r && y > this.boss.y - BOSSES[this.boss.id].h - r && y < this.boss.y + r) this.damageBoss(dmg, x, y);
     for (let ty = Math.floor(y - r); ty <= Math.ceil(y + r); ty++) {
       for (let tx = Math.floor(x - r); tx <= Math.ceil(x + r); tx++) {
         if (Math.hypot(tx + 0.5 - x, ty + 0.5 - y) > r) continue;
@@ -1974,7 +1974,7 @@ export class Game {
         if (this.boss && bossHits(this.boss, s.x, s.y, 0.1, 0.1)) {
           if (s.bomb) this.explode(s.x, s.y, s.dmg ?? 20);
           else if (!s.pierce || !s.hit?.includes(-1)) {
-            this.damageBoss(s.dmg ?? PISTOL_DMG);
+            this.damageBoss(s.dmg ?? PISTOL_DMG, s.x, s.y);
             s.hit?.push(-1);
             this.emit({ t: 'shothit', x: s.x, y: s.y });
           }
@@ -2449,13 +2449,15 @@ export class Game {
     return this.save.bosses.includes(id);
   }
 
-  damageBoss(dmg: number): void {
+  /** `fromX/fromY`: where the hit came from (player, shot, blast); defaults to the player. */
+  damageBoss(dmg: number, fromX = this.body.x, fromY = this.body.y - BODY_H / 2): void {
     const bs = this.boss;
     if (!bs || bs.iframes > 0 || bs.hp <= 0) return;
     bs.hp -= dmg;
     bs.iframes = 0.12;
     this.hitStop = HITSTOP;
-    this.emit({ t: 'bosshit', x: bs.x, y: bs.y - BOSSES[bs.id].h / 2, dmg });
+    const c = bossContact(bs, fromX, fromY);
+    this.emit({ t: 'bosshit', id: bs.id, x: bs.x, y: bs.y - BOSSES[bs.id].h / 2, dmg, hx: c.x, hy: c.y, dir: Math.sign(fromX - bs.x) || 1 });
     if (bs.hp <= 0) this.defeatBoss();
   }
 
