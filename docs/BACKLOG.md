@@ -96,7 +96,8 @@ World size and variety:
 - [x] Layer-tinted ambient on the player sprite in deep layers (circuit green, plasma pink, core violet) (run 48)
 - [x] Crystal Golem and Frost Titan art pass + glittering slam shards; layer ambient reaches enemies, pets and NPCs (run 49)
 - [x] Ranged-boss telegraphs: charge lane with chevrons + end post, dash streaks and dust/embers, volley muzzle orb, summon cracks with sprouts (run 50)
-- [ ] Follow-ups (scheduled runs may take these): Hollow AI art pass and arena (shard ring, impact juice); bolt trails on volley bolts
+- [x] Boss bolts leave a fading accent trail; Hollow AI art pass: battered plate shell that sheds plates with debris, glowing seams and core cracks as it is hurt; boss bar damage chip + phase notch (run 51)
+- [ ] Follow-ups (scheduled runs may take these): Hollow AI arena (pulsing circuit floor ring, red in phase 2); per-boss hit sparks in the boss accent colour
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 

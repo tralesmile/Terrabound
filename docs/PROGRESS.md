@@ -708,3 +708,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 
 **Known issues:** dive tally lives in memory, so a reload mid-dive restarts it (world persists); the dive card shows only on death; SHARE from the card shares the fresh pad view with lifetime stats; summon sprouts draw under the boss body; the game keeps running behind the card (safe at the pad); tall cones put bomb arcs above the screen from the foot; drone mining counts toward "mined"; e2e farm uses raw tile ids.
 
+
+## 2026-11-13 Scheduled run 51
+
+**Done:** baseline green (813 tests). Creative review: the final boss (28-final-boss) was still a dark disc with an eye, boss bolts were plain dots, and the boss bar was a flat strip that hid how much a hit took. Boss bolt trails (src/render/bosstele.ts `boltTrail`, `BOLT_LIFE` now a sim constant): seven fading accent dots back along the bolt's path, growing in from the muzzle (26j-bolt-trail). Hollow AI art pass (src/render/bossart.ts `shellPlates`/`coreCracks`/`crackPath`/`drawCoreShell`, pose `hp`): a ring of eight riveted armour plates round the core breaks off in a scattered order as health drops, each loss throws armour debris, a ring and a shake (renderer `shellLeft`), shed plates leave glowing seams and up to five glowing cracks open across the core (28b-hollow-shell, 28c-hollow-cracked). Boss bar (src/ui/bossbar.ts `stepChip`): a pale damage chip holds 0.4 s then drains to the fill; a notch marks the 50% phase change (28d-boss-bar-chip).
+
+**Numbers:** 827 unit tests (new: bolttrail 3, hollowshell 4, bossbar 4... see gate), e2e adds bolt trail, shell shed + debris, seams/cracks glow, bar chip checks. Bundle ~432 kB (~150 kB gzip).
+
+**Next:** Hollow AI arena (pulsing floor ring, red in phase 2); a lighter dive report on beam-home; dive stats on the share card; P1.9 follow-ups (plane with cargo, charge station); equipment slots (P3).
+
+**Known issues:** the shell plates draw in front of the back half of the shard orbit but behind the front half (intended); the chip uses UI time, so it pauses with the tab; dive tally lives in memory; the dive card shows only on death; tall cones put bomb arcs above the screen from the foot; drone mining counts toward "mined"; e2e farm uses raw tile ids.

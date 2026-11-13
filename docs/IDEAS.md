@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 51
+
+- Done this run: boss bolts leave a fading accent trail (26j); the Hollow AI wears a battered plate shell that breaks off with debris, exposing glowing seams and core cracks as it loses health (28b/28c); the boss bar got a lagging damage chip and a phase notch (28d).
+- Weakest UI: the Core-layer HUD toasts and boss title overlap the top band on small phones; check 06-mobile with a boss up.
+- Weakest boss arena: the Hollow AI fights over a plain Core floor; a pulsing circuit ring on the floor that turns red in phase 2 would sell the finale.
+- Weakest progression: the dive report still only shows on death; a lighter "dive banked" card on beam-home (carried).
+- Weakest controls: digit keys 6-0 still not remappable (carried).
+
 ## 2026-11-13 run 50
 
 - Done this run: ranged-boss telegraphs (charge lane + chevrons + end post, dash streaks and dust/embers, volley muzzle orb, summon cracks with sprouts; 26f-26i) and a SIGNAL LOST dive report card (04b).
@@ -32,11 +40,3 @@
 - Weakest boss art: the Crystal Golem and Frost Titan are still plain rects with eyes (promoted to BACKLOG P1.10).
 - Weakest touch UI: item actions need the inventory; a long-press on a hotbar slot opening HOLD / move / DROP would save trips (last P1.6 follow-up).
 - Weakest graphics: in the Circuit layer the suit reads flat red-orange under the lamp (27-deep-layer); a cool layer-tinted ambient on the player sprite would seat them in the scene.
-
-## 2026-11-13 run 46
-
-- Done this run: boss slam impact (flat pale shockwave ring as wide as SLAM_RADIUS so you see where it hurt, dust walls both ways, chunks thrown up from each fist; 26c-boss-impact), surface dirt cross-section (darker organic topsoil band + fine wandering root threads in the first 6 rows of warm soil; 43-strata), old long toasts fold to a one-line ghost after 2.5 s (frees the top-left of the world).
-- Weakest graphics: deep-layer lit caves are still one flat tone near the lamp; a soft rim light on the walkable floor edge (reuse rimlight) would read the ledge (last P1.10 follow-up).
-- Weakest boss feel: only the Junk Colossus has an art pass + slam juice; the Crystal Golem and Frost Titan are still plain rects with eyes (promote a per-boss art pass to BACKLOG).
-- Weakest controls: hotbar order is still fixed (PLACEABLE order); drag-to-arrange (P1.6 follow-up) remains the top controls gap.
-- Weakest progression: no run-summary/share card yet (P4), so a good dive has no shareable payoff — a retention lever left on the table.

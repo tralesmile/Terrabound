@@ -213,3 +213,6 @@
 - **Pixel checks over a boss must diff against an idle sample.** The summon sprout region overlaps the green Vine Queen's legs, so an absolute green count would pass with no sprouts. Guard: sample idle and wind-up at the same spot and require a margin.
 - **Retro (run 50):** three slices, two ships. Applying slice 3 on top of slice 2 and running one e2e for both (separate commits) saved a full gate (~8 min).
 
+
+- **A colour-count check must not include parts that change colour with the state you are testing.** The Hollow AI "hurt glows more pink" check counted the iris, which turns red when enraged, so a hurt boss counted *fewer* pinks (3956 -> 871) although seams and cracks were drawn. Guard: sample only the annulus where the new art lives (outside the iris), and look at the screenshot before trusting a pixel count.
+- **Retro (run 51):** three slices, one combined gate. Drafting each slice (code + unit test) in the scratchpad while the previous e2e ran, then applying after EXIT, kept CPU free for the frame probes.
