@@ -83,7 +83,8 @@ World size and variety:
 - [x] Lava contact juice (hop, sizzle, charred suit with embers and smoke), Ash Dunes surface variety (drift caps, clustered glowing crust cracks), e2e frame-time probe over lava (found and fixed an 18 ms shimmer) (run 38)
 - [x] Ruin weathering (cracked bricks, soot, vines/icicles, stained old plates), cinder cones with smoking craters (codex: Cinder cone), frame-time probes for a boss fight and a dust storm (run 39)
 - [x] Cone eruptions (rumble telegraph, lava bombs that burn and knock back, never break blocks); discovery + codex gift + award fold into one toast pill (run 40)
-- [ ] Follow-ups (scheduled runs may take these): half-tile slope caps on exposed diagonal block edges (softer hills); cone eruption codex hint
+- [x] Half-tile slope caps on one-tile staircase corners (render), auto-step over one-tile ledges (sim, eased), codex field-guide notes for every place incl. cone eruptions (run 41)
+- [ ] Follow-ups (scheduled runs may take these): slope caps on cave ceilings (bottom corners); enemies and pets auto-step too; slimmer goal card (one line + bar)
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 

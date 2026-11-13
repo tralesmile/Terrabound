@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 41
+
+- Done this run: half-tile slope caps on staircase corners (carried 2 runs; 11c-slopes); auto-step over one-tile ledges (every surface bump used to need a jump, Starbound/Terraria walk up them); codex field-guide notes.
+- Weakest feel: walkers (enemies, pets) still stop at one-tile steps; give them the same stepUp so chases flow over hills.
+- Weakest UI (carried 1): the goal card is a wide dark panel; one line + bar would free a third of the top-left.
+- Weakest graphics: cave ceilings stay stair-stepped; mirror the caps for bottom corners (S+E / S+W).
+- Weakest story (carried 6): logs are one line each; 3-4 lines per log.
+
 ## 2026-11-13 run 40
 
 - Done this run: arrival toasts fold into one pill (carried 3 runs); cinder cone eruptions with a 2.4 s rumble telegraph, lava bombs and glowing landing marks (carried 1).
@@ -14,11 +22,3 @@
 - Weakest UI (carried 2): three stacked top-left panels (goal, award, discovered) cover the world on arrival; merge award + discovered into one pill and fade it sooner.
 - Weakest feel: cinder cones are scenery; a rare eruption that lobs a few lava bombs (telegraphed rumble + glow) would make the Ash Dunes dangerous and lively (Dome Keeper waves, Noita chaos).
 - Weakest story (carried 4): logs are one line each; 3-4 lines per log.
-
-## 2026-11-13 run 38
-
-- Done this run: lava contact juice (hop, sizzle, charred suit; carried 1 run); Ash Dunes drift caps and clustered crust cracks instead of even orange dots (carried 1 run); frame-time probe found the heat shimmer at 18 ms a frame and fixed it.
-- Weakest graphics: ruins (11-biome-ash) are a flat grid of identical blue-grey blocks; weathered edges, soot streaks, broken corners and vines would make them read as old (Terraria dungeons, Core Keeper ruins).
-- Weakest UI: three stacked top-left panels (goal, codex reward, discovered) cover a big slice of the world on arrival; merge reward + discovered into one pill (Dome Keeper keeps the view clear).
-- Weakest perf (next): run the same plain-vs-scene probe in a boss fight and in a storm; anything over 1.5x plain gets fixed before phones.
-- Weakest story (carried 3): logs are one line each; 3-4 lines per log.

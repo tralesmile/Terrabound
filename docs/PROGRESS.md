@@ -606,3 +606,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** half-tile slope caps on exposed diagonal edges; slimmer goal card; longer lore logs; P1.9 follow-ups (plane with cargo, charge station).
 
 **Known issues:** tall cones put the top of the bomb arcs above the screen when the player stands at the foot (the marks still warn; 22k); an eruption can start 12 s after reaching a cone on a fresh dive (by design, so players meet it); bombs pass through the player's i-frames silently; the log reader leaves empty space on desktop; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).
+
+## 2026-11-13 Scheduled run 41
+
+**Done:** baseline green (703 tests). Creative review: every surface bump needed a jump and hills read as stair-steps (carried 2 runs; 11-biome-frost, 11-biome-jungle). Slope caps (src/render/autotile.ts `slopeShape`/`slopePixel`, atlas gains 2 shapes): natural-ground corners on a one-tile staircase render as 45 degree half-tile caps; moss, snow and ash drifts follow the diagonal, strata shade and cave rims skip the cut, surface slopes show sky instead of their back wall (11c-slopes). Auto-step (src/sim/physics.ts `stepUp`): a grounded walker pressed into a one-tile ledge with headroom climbs it (85% speed kept), the drawn body eases up over ~0.1 s (`game.stepLift`), soft scuff sound; two-tile walls, low ceilings, swimming, ropes and the Sky Jet are unchanged. Codex places get a field-guide note once found (`POI_NOTES`); the cinder cone warns about eruptions and says a block plugs the crater.
+
+**Numbers:** 713 unit tests (new: slopes 8, codex notes 2), 199 e2e checks all green (new: slope caps drawn, walk up a real staircase without jumping, codex note shown), bundle 394.5 kB (137.8 kB gzip).
+
+**Next:** enemies and pets auto-step; slope caps on cave ceilings; slimmer goal card; longer lore logs; P1.9 follow-ups (plane with cargo, charge station).
+
+**Known issues:** slopes are render-only, so a player standing on the outer half of a cap floats up to half a tile above the drawn diagonal (the auto-step makes walking over them smooth); the drill tank now climbs one-tile steps instead of drilling them (dig by aiming still works); tall cones put bomb arcs above the screen from the foot; the log reader leaves empty space on desktop; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).
