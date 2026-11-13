@@ -5,7 +5,7 @@ import { drawIcon } from './icons';
 import { charRemap, emberAt } from './scorchfx';
 import { drawBossArt } from './bossart';
 import type { BossId } from '../sim/bosses';
-import { EDGE_E, EDGE_N, EDGE_S, EDGE_W, MASKS, edgeMask, edgePixel, growsMoss } from './autotile';
+import { EDGE_E, EDGE_N, EDGE_S, EDGE_W, MASKS, SHAPES, edgeMask, edgePixel, growsMoss, slopePixel } from './autotile';
 
 /** Tile size in logical pixels. All art is generated in code: zero asset files, zero asset cost, tiny bundle. */
 export const TS = 16;
@@ -187,16 +187,17 @@ export function autotilePixels(id: number, v: number, mask: number): (string | n
   const look = LOOK[id];
   const px = tileTexture(id, v);
   if (!look) return px;
+  const slope = mask >= MASKS;
   for (let y = 0; y < TS; y++) {
     for (let x = 0; x < TS; x++) {
-      const e = edgePixel(mask, x, y, TS);
+      const e = slope ? slopePixel(mask, x, y, TS) : edgePixel(mask, x, y, TS);
       if (e === 'x') px[y * TS + x] = null;
       else if (e === 'o') px[y * TS + x] = OUTLINE;
       else if (e === 'l') px[y * TS + x] = look.light;
       else if (e === 'd') px[y * TS + x] = look.dark;
     }
   }
-  if (look.trim) applyTrim(px, mask, look.trim);
+  if (look.trim && !slope) applyTrim(px, mask, look.trim);
   return px;
 }
 
@@ -309,9 +310,9 @@ function hexRgb(c: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-/** Atlas: one row per tile id; columns are MASKS x VARIANTS autotile cells (see atlasCol). */
+/** Atlas: one row per tile id; columns are SHAPES x VARIANTS autotile cells (16 edge masks + 2 slope caps; see atlasCol). */
 export function buildAtlas(): HTMLCanvasElement {
-  const cols = MASKS * VARIANTS;
+  const cols = SHAPES * VARIANTS;
   const canvas = makeCanvas(TS * cols, TS * TILES.length);
   const ctx = canvas.getContext('2d');
   if (!ctx) return canvas;
@@ -319,7 +320,7 @@ export function buildAtlas(): HTMLCanvasElement {
   const cache = new Map<string, [number, number, number]>();
   for (let id = 1; id < TILES.length; id++) {
     if (!LOOK[id]) continue;
-    for (let mask = 0; mask < MASKS; mask++) {
+    for (let mask = 0; mask < SHAPES; mask++) {
       for (let v = 0; v < VARIANTS; v++) {
         const px = autotilePixels(id, v, mask);
         const ox = atlasCol(v, mask) * TS;

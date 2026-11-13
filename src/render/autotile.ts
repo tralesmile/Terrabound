@@ -75,3 +75,49 @@ export function leafMask(get: (x: number, y: number) => number, x: number, y: nu
   if (!joined(get(x - 1, y))) m |= EDGE_W;
   return m;
 }
+
+/** Pseudo-masks for half-tile slope caps (atlas shapes after the 16 edge masks). */
+export const SLOPE_R = MASKS; // top-right half cut: ground falls away to the right
+export const SLOPE_L = MASKS + 1; // top-left half cut: ground falls away to the left
+export const SHAPES = MASKS + 2;
+
+/** Natural ground that softens into slopes (built blocks keep their square architecture). */
+const SLOPED = new Set<number>([T.RUST, T.SOIL, T.ASH, T.FROST, T.SAND, T.BASALT, T.CIRCUIT, T.PLASMA_ROCK, T.CORE_ROCK, T.IRON, T.COPPER]);
+
+export function slopes(t: number): boolean {
+  return SLOPED.has(t);
+}
+
+/**
+ * A step corner becomes a 45 degree half-tile cap when it sits on a staircase: open above and on one
+ * side, solid below and on the other side, and the ground continues one tile down on the open side.
+ * Single-width pillars and overhangs stay square. Returns SLOPE_R, SLOPE_L or 0.
+ */
+export function slopeShape(get: (x: number, y: number) => number, x: number, y: number): number {
+  const t = get(x, y);
+  if (!slopes(t)) return 0;
+  const m = edgeMask(get, x, y);
+  if (m === (EDGE_N | EDGE_E) && isBlock(get(x + 1, y + 1))) return SLOPE_R;
+  if (m === (EDGE_N | EDGE_W) && isBlock(get(x - 1, y + 1))) return SLOPE_L;
+  return 0;
+}
+
+/**
+ * Pixel class inside a slope cap. For SLOPE_R the cut is above the diagonal running from the
+ * top-left corner to the bottom-right corner; the diagonal itself is outline, one row in is lit.
+ * SLOPE_L mirrors it.
+ */
+export function slopePixel(shape: number, x: number, y: number, size: number): EdgePx {
+  const L = size - 1;
+  const sx = shape === SLOPE_L ? L - x : x;
+  if (sx > y) return 'x';
+  if (sx === y) return 'o';
+  if (sx === y - 1) return 'l';
+  // The bottom row and the open side keep the cell's usual outline where the slope meets them.
+  return '';
+}
+
+/** First solid art row in column `x` of a slope cap (where moss or snow sits). */
+export function slopeTop(shape: number, x: number, size: number): number {
+  return shape === SLOPE_L ? size - 1 - x : x;
+}

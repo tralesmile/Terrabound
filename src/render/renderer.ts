@@ -56,7 +56,7 @@ import { GEAR, type RangedKind } from '../sim/gear';
 import { BOSSES, phase as bossPhase } from '../sim/bosses';
 import { drawBossArt } from './bossart';
 import { ACT_INFO } from '../sim/drones';
-import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, leafMask } from './autotile';
+import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, leafMask, SLOPE_R, slopeShape, slopeTop } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape } from './decor';
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
@@ -160,6 +160,8 @@ export class Renderer {
   ashCracksDrawn = 0;
   /** Ash drift caps drawn since the last reset (read by e2e). */
   ashDriftsDrawn = 0;
+  /** Slope caps baked into chunks (e2e reads it). */
+  slopesDrawn = 0;
   /** Ruin weathering: cracked bricks, soot streaks, vines and icicles hanging off undersides. */
   private ruinCracks = stripOf(RCRACK_VARIANTS, TS, ruinCrackPixels);
   private ruinSoot = stripOf(SOOT_VARIANTS, TS, sootPixels);
@@ -365,7 +367,9 @@ export class Renderer {
     // Player and mining beam.
     const b = game.body;
     const px = this.sx(b.x, shakeX);
-    const py = this.sy(b.y, shakeY);
+    // After an auto-step the body rises over ~0.1 s instead of popping up a whole tile.
+    const lift = game.stepLift;
+    const py = Math.round(this.sy(b.y + lift * lift * (3 - 2 * lift), shakeY));
     if (game.mining) {
       const hx = px + game.facing * 5 * scale;
       const hy = py - 14 * scale;
@@ -1163,12 +1167,20 @@ export class Renderer {
     }
     const v = Math.floor(hash2(tx, ty, 7) * VARIANTS);
     const mask = isBlock(t) ? edgeMask(get, tx, ty) : MASKS - 1;
-    // Rounded corners are transparent: show the cave wall behind them underground.
-    if (mask !== 0) this.drawBack(ctx, world, tx, ty, dx, dy, ts);
-    ctx.drawImage(this.atlas, atlasCol(v, mask) * TS, t * TS, TS, TS, dx, dy, ts, ts);
-    if (hasStrata(t) && !world.edits.has(ty * world.w + tx)) this.drawStrata(ctx, tx, ty - world.surface[tx], ty, dx, dy, ts, mask);
+    // Step corners on a staircase become 45 degree half-tile caps (softer hills; render only).
+    const slope = mask !== 0 && mask !== MASKS - 1 ? slopeShape(get, tx, ty) : 0;
+    if (slope) this.slopesDrawn++;
+    // Rounded corners are transparent: show the cave wall behind them underground. A surface slope
+    // shows the sky instead (its own back wall would read as a dark notch above the ground line).
+    if (mask !== 0 && !(slope && ty <= world.surface[tx])) this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+    ctx.drawImage(this.atlas, atlasCol(v, slope || mask) * TS, t * TS, TS, TS, dx, dy, ts, ts);
+    if (hasStrata(t) && !world.edits.has(ty * world.w + tx)) this.drawStrata(ctx, tx, ty - world.surface[tx], ty, dx, dy, ts, mask, slope);
     if (this.oreMarks && hasGlyph(t)) drawGlyph(ctx, t, dx, dy, ts);
     if (t === T.RUIN) this.drawRuinWeather(ctx, world, tx, ty, dx, dy, ts);
+    if (slope) {
+      if (ty <= world.surface[tx]) this.drawSlopeCap(ctx, world, t, v, slope, tx, dx, dy, scale);
+      return;
+    }
     if (t === T.ASH && !world.edits.has(ty * world.w + tx)) {
       const cv = crackAt(tx, ty, ty - world.surface[tx]);
       if (cv >= 0) {
@@ -1183,6 +1195,28 @@ export class Renderer {
         ctx.drawImage(this.ashDrift, (((tx % DRIFT_VARIANTS) + DRIFT_VARIANTS) % DRIFT_VARIANTS) * TS, 0, TS, DRIFT_H, dx, dy, ts, DRIFT_H * scale);
         this.ashDriftsDrawn++;
       }
+    }
+  }
+
+  /** Moss, snow or an ash drift laid along a slope cap, one art column at a time (baked into the chunk). */
+  private drawSlopeCap(ctx: CanvasRenderingContext2D, world: Game['world'], t: number, v: number, slope: number, tx: number, dx: number, dy: number, scale: number): void {
+    let src: HTMLCanvasElement | null = null;
+    let sx = v * TS;
+    let h = MOSS_H;
+    if (growsMoss(t) && world.biome[tx] !== B.ASH) src = this.moss;
+    else if (growsSnow(t)) {
+      src = this.decor.snow;
+      h = SNOW_H;
+    } else if (t === T.ASH) {
+      src = this.ashDrift;
+      sx = (((tx % DRIFT_VARIANTS) + DRIFT_VARIANTS) % DRIFT_VARIANTS) * TS;
+      h = DRIFT_H;
+    }
+    if (!src) return;
+    for (let i = 0; i < TS; i++) {
+      const top = slopeTop(slope, i, TS);
+      const rows = Math.min(h, TS - top);
+      if (rows > 0) ctx.drawImage(src, sx + i, 0, 1, rows, dx + i * scale, dy + top * scale, scale, rows * scale);
     }
   }
 
@@ -1210,9 +1244,19 @@ export class Renderer {
   }
 
   /** Soil strata bands, band seams and rare buried bones / pipes in natural ground near the surface. */
-  private drawStrata(ctx: CanvasRenderingContext2D, tx: number, depth: number, ty: number, dx: number, dy: number, ts: number, mask: number): void {
+  private drawStrata(ctx: CanvasRenderingContext2D, tx: number, depth: number, ty: number, dx: number, dy: number, ts: number, mask: number, slope = 0): void {
     const sh = strataShade(depth, tx);
     const u = ts / 16;
+    if (slope) {
+      // Slope caps: shade only the solid wedge under the diagonal, no seam (it would float in the cut).
+      if (sh.dark <= 0) return;
+      ctx.fillStyle = `rgba(10,6,14,${sh.dark.toFixed(3)})`;
+      for (let i = 0; i < TS; i++) {
+        const top = slopeTop(slope, i, TS) + 1;
+        if (top < TS) ctx.fillRect(dx + i * u, dy + top * u, u, ts - top * u);
+      }
+      return;
+    }
     if (sh.dark > 0) {
       ctx.fillStyle = `rgba(10,6,14,${sh.dark.toFixed(3)})`;
       if (mask === 0) ctx.fillRect(dx, dy, ts, ts);
@@ -2478,6 +2522,7 @@ export class Renderer {
       this.light = computeLight(world, x0, y0, lw, lh, sources, skyLevel);
       // Faces of cave rock toward lit air get a thin warm rim, strongest toward the lamp (3D read in caves).
       this.rims = computeRims(world, this.light, x0 + margin, y0 + margin, lw - margin * 2, lh - margin * 2, b.x, b.y - BODY_H / 2);
+      this.rims = this.rims.filter((r) => !rimOnCut(world, r));
       if (!this.lightCanvas || this.lightCanvas.width !== lw || this.lightCanvas.height !== lh) this.lightCanvas = makeCanvas(lw, lh);
       const lctx = this.lightCanvas.getContext('2d');
       if (lctx) {
@@ -2512,3 +2557,11 @@ export class Renderer {
 }
 
 export { TILE_COLORS };
+
+/** A rim on the cut side (top or open side) of a slope cap would float in the air: skip it. */
+function rimOnCut(world: Game['world'], r: Rim): boolean {
+  if (r.side !== 0 && r.side !== 1 && r.side !== 3) return false;
+  const shape = slopeShape((x, y) => world.get(x, y), r.x, r.y);
+  if (!shape) return false;
+  return r.side === 0 || r.side === (shape === SLOPE_R ? 1 : 3);
+}

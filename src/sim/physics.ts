@@ -101,3 +101,23 @@ export function unstick(world: World, b: Body, maxRows = 6): boolean {
   }
   return !boxCollides(world, b.x, b.y);
 }
+
+/** How far past the wall face an auto-step moves the body (tiles), so it ends up over the ledge. */
+export const STEP_NUDGE = 0.06;
+
+/**
+ * Auto-step (Starbound-style): a grounded body pressed against a one-tile ledge with headroom climbs
+ * onto it instead of stopping dead. Taller walls, low ceilings and ledges with no room above refuse.
+ * Returns true when the body moved up one tile.
+ */
+export function stepUp(world: World, b: Body, dir: number): boolean {
+  if (dir === 0) return false;
+  const nx = b.x + Math.sign(dir) * STEP_NUDGE;
+  if (!boxCollides(world, nx, b.y)) return false;
+  const ny = b.y - 1;
+  if (boxCollides(world, b.x, ny) || boxCollides(world, nx, ny)) return false;
+  b.x = nx;
+  b.y = ny;
+  b.onGround = true;
+  return true;
+}

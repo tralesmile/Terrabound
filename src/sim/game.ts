@@ -8,7 +8,7 @@ import { decodeSeed, encodeSeed } from './seedcode';
 import { noteBoss, noteDepth, noteLoot, startAttempt, type RecordBeat, type WorldRecord } from './records';
 import { hash2, mixSeed, mulberry32 } from './rng';
 import { ENEMIES, ENEMY_HIT_IFRAMES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
-import { type Body, moveX, moveY, onLadder, probeGround, unstick, BODY_H, HALF_W } from './physics';
+import { type Body, moveX, moveY, onLadder, probeGround, stepUp, unstick, BODY_H, HALF_W } from './physics';
 import { defaultSave, type SaveData } from './save';
 import {
   type Inventory,
@@ -59,6 +59,9 @@ import { BASE_HALF, BASE_ROWS, captureBase, captureWalls, stampBase, stampWalls 
 import { PAD_HALF, SPAWN_LIGHT_MAX, W, World, generateWorld } from './world';
 
 export const GRAVITY = 42;
+/** Auto-step: share of walking speed kept after climbing a ledge, and how fast the drawn body catches up (tiles/s). */
+export const STEP_KEEP = 0.85;
+export const STEP_EASE = 9;
 export const MAX_FALL = 28;
 export const JUMP_V = 15.5;
 export const FALL_SAFE = 19;
@@ -172,6 +175,7 @@ export type GameEvent =
   | { t: 'bank'; total: number }
   | { t: 'death'; lost: number; medic: boolean }
   | { t: 'jump' }
+  | { t: 'step' }
   | { t: 'land'; speed: number }
   | { t: 'lowbattery' }
   | { t: 'upgrade'; id: string }
@@ -341,6 +345,8 @@ export class Game {
   private fallBurn = 0;
   /** Seconds of charred suit left after a lava burn (render tints the player, read by e2e). */
   scorch = 0;
+  /** Render-only ease after an auto-step: tiles the drawn body still sits below the real one (decays to 0). */
+  stepLift = 0;
   /** Base power grid snapshot (solar vs smelters), refreshed twice a second. */
   power: PowerState = newPower();
   private smeltProgress = 0;
@@ -1516,7 +1522,15 @@ export class Game {
       }
     }
     b.onGround = false;
-    moveX(this.world, b, b.vx * dt);
+    const walkVx = b.vx;
+    const blocked = moveX(this.world, b, b.vx * dt);
+    this.stepLift = Math.max(0, this.stepLift - dt * STEP_EASE);
+    // Walking into a one-tile ledge climbs it (no jump needed for every bump in the ground).
+    if (blocked && grounded && c.moveX !== 0 && Math.sign(c.moveX) === Math.sign(walkVx) && !this.inLiquid && !this.hook && veh !== 'sky_jet' && b.vy >= 0 && stepUp(this.world, b, walkVx)) {
+      b.vx = walkVx * STEP_KEEP;
+      this.stepLift = Math.min(1, this.stepLift + 1);
+      this.emit({ t: 'step' });
+    }
     const impact = b.vy;
     moveY(this.world, b, b.vy * dt, c.down);
     if (this.hook) this.stepRope(dt, c);

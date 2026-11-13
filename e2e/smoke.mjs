@@ -493,6 +493,48 @@ try {
   const weather = await page.evaluate(() => ({ ...window.__terrabound.renderer.ruinWeather }));
   check('ruins weather: cracked bricks, soot streaks, hanging vines or icicles, stained back plates', !!ruinAt && weather.cracks > 3 && weather.soot > 0 && weather.hang > 0 && weather.grime > 5, JSON.stringify({ ruinAt, weather }));
   await page.screenshot({ path: path.join(out, '11b-ruin-weathered.png') });
+  // Slope caps and auto-step: find a one-tile surface staircase falling right, look at it, then walk up it.
+  const stair = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const S = w.surface;
+    for (let x = w.padX + 12; x < w.w - 12; x++) {
+      if (S[x - 1] === S[x] && S[x + 1] === S[x] + 1 && S[x + 2] === S[x] + 1 && S[x + 3] === S[x] + 1) {
+        let open = true;
+        for (let dx = -1; dx <= 3; dx++) for (let dy = 1; dy <= 3; dy++) if (w.get(x + dx, S[x + dx] - dy) !== 0) open = false;
+        if (!open) continue;
+        const r = window.__terrabound.renderer;
+        r.slopesDrawn = 0;
+        r.chunks.clear();
+        g.enemies = [];
+        g.hp = g.derived.maxHp;
+        g.body.x = x + 2.5;
+        g.body.y = S[x + 2];
+        g.body.vx = g.body.vy = 0;
+        return { x, top: S[x], low: S[x + 2] };
+      }
+    }
+    return null;
+  });
+  await page.waitForFunction(() => {
+    const { renderer: r, game: g } = window.__terrabound;
+    return Math.abs(r.camX - g.body.x) < 0.3 && Math.abs(r.camY - g.body.y) < 1.5;
+  }, null, { timeout: 4000 }).catch(() => {});
+  await page.waitForTimeout(200);
+  const slopesDrawn = await page.evaluate(() => window.__terrabound.renderer.slopesDrawn);
+  check('surface staircases soften into half-tile slope caps', !!stair && slopesDrawn > 0, JSON.stringify({ stair, slopesDrawn }));
+  await page.screenshot({ path: path.join(out, '11c-slopes.png') });
+  if (stair) {
+    await page.keyboard.down('KeyA');
+    let lifted = 0;
+    for (let i = 0; i < 12; i++) {
+      await page.waitForTimeout(40);
+      lifted = Math.max(lifted, await page.evaluate(() => window.__terrabound.game.stepLift));
+    }
+    await page.keyboard.up('KeyA');
+    const after = await page.evaluate(() => ({ y: window.__terrabound.game.body.y, x: window.__terrabound.game.body.x }));
+    check('walking into a one-tile step climbs it without jumping (eased)', after.y <= stair.top && lifted > 0, JSON.stringify({ stair, after, lifted }));
+  }
   await toastCheck(page, 'desktop', '46-toasts.png');
   // Underground points of interest: stand beside a data shrine and check that its terminal glows.
   const shrine = await page.evaluate(() => {

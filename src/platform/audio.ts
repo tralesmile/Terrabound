@@ -181,6 +181,10 @@ export class Sfx {
       case 'jump':
         this.tone(300, 0.12, 'square', 0.06, 560);
         break;
+      case 'step':
+        // A soft scuff, quieter than a jump.
+        if (this.ok('step', 90)) this.noise(0.04, 0.06);
+        break;
       case 'land':
         if (e.speed > 6) this.noise(0.08, 0.15);
         break;
