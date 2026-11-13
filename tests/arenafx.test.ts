@@ -35,3 +35,16 @@ describe('Hollow AI arena floor', () => {
     expect(arenaColor(b)).toBe('#ff3a4a');
   });
 });
+
+describe('Hollow AI safe pads (render)', () => {
+  it('pad rims breathe at rest and flare as a zap crest reaches them', async () => {
+    const { padFlare } = await import('../src/render/arenafx');
+    const rest = padFlare(120, null, 0);
+    expect(rest).toBeGreaterThan(0.3);
+    expect(rest).toBeLessThan(0.8);
+    const z = { t: 20 / 11, x0: 100, y0: 20, hit: false };
+    expect(padFlare(120, z, 0)).toBeGreaterThan(0.95);
+    expect(padFlare(140, z, 0)).toBeCloseTo(rest, 5);
+    expect(padFlare(120, { ...z, t: -0.3 }, 0)).toBeCloseTo(rest, 5);
+  });
+});

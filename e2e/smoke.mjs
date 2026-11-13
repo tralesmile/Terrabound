@@ -1961,6 +1961,42 @@ try {
     await page.screenshot({ path: path.join(out, '28f-hollow-zap.png') });
     await page.evaluate(() => { clearInterval(window.__zapHold); const b = window.__terrabound.game.boss; if (b) { b.zap = null; b.zapCd = 99; } });
     check('an enraged Hollow AI charges the floor, then a white-hot zap crest with arcs rolls outward', zapWarn.lit >= 3 && zapWarn.white > 10 && zapWave.lit >= 4 && zapWave.white > 40, JSON.stringify({ zapWarn, zapWave }));
+    // Insulator pads: two slate plates with teal rims in the arena never conduct. Stand the player on
+    // one as a live (unspent) crest crosses it: no damage, and the pad shows teal, not zap red.
+    const padTest = await page.evaluate(async () => {
+      const { game, renderer } = window.__terrabound;
+      const b = game.boss;
+      const c = Math.round((b.ax0 + b.ax1) / 2);
+      const mid = c + 11 + 0.5;
+      const cell = renderer.arenaCells.find((q) => q.x === Math.floor(mid));
+      if (!cell) return { err: 'no pad cell', cells: renderer.arenaCells.length };
+      window.__padHome = { x: game.body.x, y: game.body.y };
+      window.__padStand = setInterval(() => { const p = game.body; p.x = mid; p.y = cell.y; p.vx = 0; p.vy = 0; }, 4);
+      await new Promise((r) => setTimeout(r, 500));
+      game.iframes = 0;
+      const hp0 = game.hp;
+      const t = Math.abs(mid - b.x) / 11;
+      clearInterval(window.__zapHold);
+      window.__zapHold = setInterval(() => { const q = game.boss; if (!q) return; q.zapCd = 99; if (!q.zap || q.zap.t !== t) q.zap = { t, x0: b.x, y0: cell.y, hit: false }; game.iframes = 0; }, 4);
+      await new Promise((r) => setTimeout(r, 250));
+      const ctx = document.querySelector('canvas').getContext('2d');
+      let teal = 0;
+      let red = 0;
+      for (let x = Math.floor(mid) - 1; x <= Math.floor(mid) + 1; x++) {
+        const a = renderer.worldToScreen(x, cell.y - 0.6);
+        const z = renderer.worldToScreen(x + 1, cell.y + 0.4);
+        const d = ctx.getImageData(Math.round(a.x), Math.round(a.y), Math.max(1, Math.round(z.x - a.x)), Math.max(1, Math.round(z.y - a.y))).data;
+        for (let i = 0; i < d.length; i += 4) {
+          if (d[i] < 140 && d[i + 1] > 190 && d[i + 2] > 160) teal++;
+          if (d[i] > 220 && d[i + 1] < 90 && d[i + 2] < 110) red++;
+        }
+      }
+      return { teal, red, pads: renderer.padCells, hurt: hp0 - game.hp, onGround: game.body.onGround, spent: game.boss ? game.boss.zap.hit : null };
+    });
+    await page.screenshot({ path: path.join(out, '28g-safe-pad.png') });
+    await page.evaluate(() => { clearInterval(window.__zapHold); clearInterval(window.__padStand); const { game } = window.__terrabound; const b = game.boss; if (b) { b.zap = null; b.zapCd = 99; } if (window.__padHome) { game.body.x = window.__padHome.x; game.body.y = window.__padHome.y; game.body.vx = game.body.vy = 0; } });
+    await page.waitForTimeout(300);
+    check('Hollow AI arena insulator pads glow teal and a zap crest crossing one leaves the player unhurt', padTest.pads >= 6 && padTest.teal > 40 && padTest.red < padTest.teal / 4 && padTest.hurt === 0 && padTest.spent === false, JSON.stringify(padTest));
     check('the Hollow AI arena floor glows with a pink circuit that turns red in phase 2', arena1.cells > 20 && arena1.pink > 80 && arena2.red > 80 && arena2.red > arena2.pink, JSON.stringify({ arena1, arena2 }));
     await page.screenshot({ path: path.join(out, '28c-hollow-cracked.png') });
     check('the Hollow AI wears a plate shell that breaks off with debris as it is hurt', hollowFull.left === 8 && hollowHurt.left === 3 && hollowShed.breaks === hollowFull.breaks + 1 && hollowShed.debris >= 14, JSON.stringify({ full: hollowFull, shed: hollowShed, hurt: hollowHurt }));

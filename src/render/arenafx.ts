@@ -4,7 +4,7 @@
  * The helpers are pure so the geometry and timing are unit-tested.
  */
 import { BOSSES, phase, type Boss } from '../sim/bosses';
-import { ZAP_HALF, ZAP_WARN, zapRadius, type Zap } from '../sim/arenazap';
+import { ZAP_HALF, ZAP_WARN, onSafePad, safePads, zapRadius, type Zap } from '../sim/arenazap';
 
 export interface FloorCell {
   /** Tile column. */
@@ -72,12 +72,63 @@ function hexA(hex: string, a: number): string {
   return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a.toFixed(3)})`;
 }
 
-/** Draw the glowing floor circuit for the Hollow AI fight. */
-export function drawArenaFloor(ctx: CanvasRenderingContext2D, b: Boss, floor: FloorCell[], v: ArenaView, time: number): void {
+/** Safe-pad colours: insulator slate with a cool teal rim (reads against the pink/red circuit). */
+export const PAD_RIM = '#5affd0';
+export const PAD_PLATE = '#26323e';
+
+/**
+ * Brightness 0..1 of a safe pad's rim: a slow breath, flaring as a zap crest reaches the pad
+ * (the wave "bounces off" the insulator). Pure.
+ */
+export function padFlare(padMid: number, z: Zap | null, time: number): number {
+  const breath = 0.55 + 0.15 * Math.sin(time * 3);
+  if (!z || z.t < 0) return breath;
+  const near = Math.abs(Math.abs(padMid - z.x0) - zapRadius(z));
+  return Math.max(breath, Math.min(1, 1.2 - near / 2.5));
+}
+
+/** Draw one insulator pad cell: a slate plate set into the floor top, ribbed, with a teal rim. */
+function drawPadCell(ctx: CanvasRenderingContext2D, c: FloorCell, v: ArenaView, k: number, edge: -1 | 0 | 1): void {
+  const px = v.sx(c.x);
+  const py = v.sy(c.y);
+  const ts = v.ts;
+  const th = Math.round(ts * 0.38);
+  ctx.fillStyle = PAD_PLATE;
+  ctx.fillRect(px, py, ts, th);
+  // Ceramic ribs: three pale bands across the plate.
+  ctx.fillStyle = 'rgba(200,220,230,0.35)';
+  for (let i = 1; i <= 3; i++) ctx.fillRect(px + Math.round((ts * i) / 4) - Math.max(1, Math.round(v.u / 2)), py + th * 0.3, Math.max(1, Math.round(v.u)), th * 0.55);
+  // Rim along the top, and a glow rising above it.
+  const lw = Math.max(2, Math.round(v.u * 2));
+  ctx.fillStyle = hexA(PAD_RIM, 0.5 + 0.5 * k);
+  ctx.fillRect(px, py - lw, ts, lw);
+  ctx.fillStyle = hexA(PAD_RIM, 0.18 * k);
+  ctx.fillRect(px, py - lw - ts * 0.7, ts, ts * 0.7);
+  // End caps: a darker insulator post at each end of the pad.
+  if (edge !== 0) {
+    const w = Math.max(2, Math.round(ts * 0.14));
+    const x = edge < 0 ? px : px + ts - w;
+    ctx.fillStyle = '#10161c';
+    ctx.fillRect(x, py - lw * 2, w, th + lw * 2);
+    ctx.fillStyle = hexA(k > 0.85 ? '#ffffff' : PAD_RIM, 0.8);
+    ctx.fillRect(x, py - lw * 2, w, lw);
+  }
+}
+
+/** Draw the glowing floor circuit for the Hollow AI fight. Returns how many pad cells were drawn. */
+export function drawArenaFloor(ctx: CanvasRenderingContext2D, b: Boss, floor: FloorCell[], v: ArenaView, time: number): number {
   const col = arenaColor(b);
   const ph = phase(b);
   const lw = Math.max(2, Math.round(v.u * 2));
+  const pads = safePads(b);
+  let padCells = 0;
   for (const c of floor) {
+    const pad = pads.find(([a, z]) => c.x >= a && c.x < z);
+    if (pad) {
+      padCells++;
+      drawPadCell(ctx, c, v, padFlare((pad[0] + pad[1]) / 2, b.zap, time), c.x === pad[0] ? -1 : c.x === pad[1] - 1 ? 1 : 0);
+      continue;
+    }
     const k = arenaPulse(c.x + 0.5 - b.x, time, ph);
     const px = v.sx(c.x);
     const py = v.sy(c.y);
@@ -98,6 +149,7 @@ export function drawArenaFloor(ctx: CanvasRenderingContext2D, b: Boss, floor: Fl
       ctx.fillRect(px + v.ts / 2 - lw / 4, py, Math.max(1, lw / 2), v.ts * 0.55);
     }
   }
+  return padCells;
 }
 
 /** Zap colours: a white-hot core and the enraged red edge. */
@@ -136,13 +188,15 @@ export function zapArc(seed: number, h: number, n = 5): { dx: number; dy: number
   return out;
 }
 
-/** Draw the floor zap (telegraph pool or rolling crest with arcs) over the arena floor. */
-export function drawArenaZap(ctx: CanvasRenderingContext2D, z: Zap, floor: FloorCell[], v: ArenaView, time: number): number {
+/** Draw the floor zap (telegraph pool or rolling crest with arcs) over the arena floor, skipping safe pads. */
+export function drawArenaZap(ctx: CanvasRenderingContext2D, z: Zap, floor: FloorCell[], v: ArenaView, time: number, pads: [number, number][] = []): number {
   const lw = Math.max(2, Math.round(v.u * 2));
   const tick = Math.floor(time * 20);
   let lit = 0;
   for (const c of floor) {
     if (Math.abs(c.y - z.y0) > 4) continue;
+    // Insulator pads never conduct: the crest skips them.
+    if (onSafePad(pads, c.x + 0.5)) continue;
     const k = zapGlow(c.x + 0.5 - z.x0, z);
     if (k <= 0.02) continue;
     lit++;

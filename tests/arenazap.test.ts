@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BOSSES, makeBoss } from '../src/sim/bosses';
 import { FIXED_DT, Game, NO_CONTROLS } from '../src/sim/game';
 import { defaultSave } from '../src/sim/save';
-import { floorBelow, stepZap, zapHits, zapRadius, zapsNow, ZAP_HALF, ZAP_REST, ZAP_REACH, ZAP_SPEED, ZAP_WARN } from '../src/sim/arenazap';
+import { floorBelow, onSafePad, safePads, SAFE_PAD_OFFSETS, SAFE_PAD_W, stepZap, zapHits, zapRadius, zapsNow, ZAP_HALF, ZAP_REST, ZAP_REACH, ZAP_SPEED, ZAP_WARN } from '../src/sim/arenazap';
 
 const flat = (_x: number, y: number) => y >= 20;
 
@@ -66,6 +66,33 @@ describe('Hollow AI floor zaps', () => {
     const gap = starts[1] - starts[0];
     expect(gap).toBeCloseTo(ZAP_WARN + ZAP_REACH / ZAP_SPEED + ZAP_REST, 1);
     expect(gap).toBeLessThan(6);
+  });
+
+  it('two insulator pads sit symmetric about the arena centre, inside the arena; other bosses have none', () => {
+    const b = enraged();
+    const pads = safePads(b);
+    expect(pads.length).toBe(SAFE_PAD_OFFSETS.length);
+    const c = (b.ax0 + b.ax1) / 2;
+    for (const [a, z] of pads) {
+      expect(z - a).toBe(SAFE_PAD_W);
+      expect(a).toBeGreaterThan(b.ax0);
+      expect(z).toBeLessThan(b.ax1);
+    }
+    expect(pads[0][0] + pads[0][1] + pads[1][0] + pads[1][1]).toBeCloseTo(4 * (Math.round(c) + 0.5), 5); // symmetric about the centre tile
+    expect(onSafePad(pads, pads[0][0] + 0.1)).toBe(true);
+    expect(onSafePad(pads, pads[0][1])).toBe(false);
+    expect(onSafePad(pads, c)).toBe(false);
+    expect(safePads(makeBoss('golem', 100, 20))).toEqual([]);
+  });
+
+  it('a crest passing over a safe pad leaves the player unhurt and the wave unspent', () => {
+    const b = enraged();
+    const pads = safePads(b);
+    const px = pads[1][0] + 1.5;
+    const z = { t: (px - 100) / ZAP_SPEED, x0: 100, y0: 20, hit: false };
+    expect(zapHits(z, px, 20, true, pads)).toBe(false);
+    expect(z.hit).toBe(false);
+    expect(zapHits(z, px, 20, true)).toBe(true);
   });
 
   it('floorBelow finds the first floor row under a point', () => {

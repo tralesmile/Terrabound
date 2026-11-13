@@ -34,7 +34,7 @@ import { chestLoot } from './loot';
 import { SOIL_TILES, growTime, inLavafall, stepSaplings, type Structure } from './structures';
 import { ERUPT, bombHits, coneLive, craterOf, launchMarked, nearestCone, nextGap, stepBomb, type LavaBomb } from './eruptions';
 import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
-import { ZAP_DMG, stepZap, zapHits } from './arenazap';
+import { ZAP_DMG, safePads, stepZap, zapHits } from './arenazap';
 import { BIOME_BOSSES, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossContact, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
 import { BIOMES, type BiomeId } from './biomes';
 import { LAYERS, layerAt, openGates } from './layers';
@@ -2526,7 +2526,7 @@ export class Game {
     }
     // Phase-2 floor zaps: a telegraphed wave rolls out along the floor; jump over the crest.
     if (stepZap(bs, dt, (x, y) => this.world.isSolid(x, y)) && bs.zap) this.emit({ t: 'zapwarn', x: bs.zap.x0, y: bs.zap.y0 });
-    if (this.iframes === 0 && zapHits(bs.zap, b.x, b.y, b.onGround)) {
+    if (this.iframes === 0 && zapHits(bs.zap, b.x, b.y, b.onGround, safePads(bs))) {
       this.hurt(ZAP_DMG);
       this.iframes = 0.5;
       b.vy = -7;

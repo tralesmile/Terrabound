@@ -29,6 +29,24 @@ export interface Zap {
   hit: boolean;
 }
 
+/** Insulator pads: tile offsets from the arena centre where the floor never conducts. */
+export const SAFE_PAD_OFFSETS = [-11, 11] as const;
+/** Pad width (tiles). */
+export const SAFE_PAD_W = 3;
+
+/** Safe pads of a zapping boss's arena as [x0, x1) tile spans (none for other bosses). Pure. */
+export function safePads(b: Boss): [number, number][] {
+  if (BOSSES[b.id].floorZaps !== true) return [];
+  const c = Math.round((b.ax0 + b.ax1) / 2);
+  return SAFE_PAD_OFFSETS.map((o) => [c + o - 1, c + o - 1 + SAFE_PAD_W] as [number, number]);
+}
+
+/** Is tile column / x position on a safe pad? */
+export function onSafePad(pads: [number, number][], x: number): boolean {
+  for (const [a, z] of pads) if (x >= a && x < z) return true;
+  return false;
+}
+
 /** Does this boss zap its floor (and is it angry enough yet)? */
 export function zapsNow(b: Boss): boolean {
   return BOSSES[b.id].floorZaps === true && phase(b) === 2;
@@ -67,9 +85,10 @@ export function stepZap(b: Boss, dt: number, isSolid: (x: number, y: number) => 
   return 'warn';
 }
 
-/** Does the wave hurt a player at feet (px, py) this frame? Marks the wave as spent when it does. */
-export function zapHits(z: Zap | null, px: number, py: number, onGround: boolean): boolean {
+/** Does the wave hurt a player at feet (px, py) this frame? Standing on a safe pad never does. Marks the wave as spent when it does. */
+export function zapHits(z: Zap | null, px: number, py: number, onGround: boolean, pads: [number, number][] = []): boolean {
   if (!z || z.hit || z.t < 0 || !onGround) return false;
+  if (onSafePad(pads, px)) return false;
   if (Math.abs(py - z.y0) > ZAP_FLOOR_SPAN) return false;
   if (Math.abs(Math.abs(px - z.x0) - zapRadius(z)) > ZAP_HALF) return false;
   z.hit = true;
