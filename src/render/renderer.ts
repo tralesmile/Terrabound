@@ -1688,23 +1688,65 @@ export class Renderer {
     const u = this.scale;
     const canvas = ctx.canvas;
     const rh = SHIMMER_ROW * u;
-    for (const run of shimmerRuns(this.shimmerCells)) {
+    const bandH = SHIMMER_ROWS * u;
+    const runs = shimmerRuns(this.shimmerCells);
+    // One snapshot of the union of every run's band into a scratch canvas. A canvas drawn onto
+    // itself forces a flush and a copy per call (12-19 ms a frame over a pool in the e2e probe);
+    // one readback a frame costs a fraction of that.
+    let bx0 = this.w;
+    let by0 = this.h;
+    let bx1 = 0;
+    let by1 = 0;
+    for (const run of runs) {
       const x = this.sx(run.tx, shakeX);
-      const w = run.n * TS * u;
       const top = this.sy(run.ty, shakeY);
+      bx0 = Math.min(bx0, x);
+      bx1 = Math.max(bx1, x + run.n * TS * u);
+      by0 = Math.min(by0, top - bandH);
+      by1 = Math.max(by1, top);
+    }
+    const sx0 = Math.max(0, Math.floor(bx0));
+    const sy0 = Math.max(0, Math.floor(by0));
+    const sw = Math.min(this.w, Math.ceil(bx1)) - sx0;
+    const sh = Math.min(this.h, Math.ceil(by1)) - sy0;
+    if (sw <= 0 || sh <= 0) {
+      this.shimmerCells.length = 0;
+      return;
+    }
+    const snap = this.shimmerSnap(sw, sh);
+    const sc = snap.getContext('2d');
+    if (!sc) {
+      this.shimmerCells.length = 0;
+      return;
+    }
+    sc.clearRect(0, 0, sw, sh);
+    sc.drawImage(canvas, sx0, sy0, sw, sh, 0, 0, sw, sh);
+    for (const run of runs) {
+      const x = Math.max(sx0, Math.round(this.sx(run.tx, shakeX)));
+      const w = Math.min(sx0 + sw, Math.round(this.sx(run.tx, shakeX) + run.n * TS * u)) - x;
+      const top = this.sy(run.ty, shakeY);
+      if (w <= 0) continue;
       for (let r = 0; r < SHIMMER_ROWS / SHIMMER_ROW; r++) {
         const off = shimmerShift(time, r, run.tx);
         if (off === 0) continue;
-        const y = top - (r + 1) * rh;
-        if (y < 0 || y + rh > this.h || x + w < 0 || x > this.w) continue;
-        const sx = Math.max(0, x);
-        const sw = Math.min(this.w, x + w) - sx;
-        if (sw <= 0) continue;
-        ctx.drawImage(canvas, sx, y, sw, rh, sx + off * u, y, sw, rh);
+        const y = Math.round(top - (r + 1) * rh);
+        if (y < sy0 || y + rh > sy0 + sh) continue;
+        ctx.drawImage(snap, x - sx0, y - sy0, w, rh, x + off * u, y, w, rh);
         this.shimmerRows++;
       }
     }
     this.shimmerCells.length = 0;
+  }
+
+  private snapCanvas: HTMLCanvasElement | null = null;
+  /** Scratch canvas at least w x h for the shimmer snapshot (grown, never shrunk). */
+  private shimmerSnap(w: number, h: number): HTMLCanvasElement {
+    let c = this.snapCanvas;
+    if (!c || c.width < w || c.height < h) {
+      c = makeCanvas(Math.max(w, c?.width ?? 0), Math.max(h, c?.height ?? 0));
+      this.snapCanvas = c;
+    }
+    return c;
   }
 
   /** Where the pet is this frame: dry, at the surface or under (e2e). */

@@ -1077,6 +1077,47 @@ try {
     await page.screenshot({ path: path.join(out, '22h-scorched.png'), clip: { x: Math.max(0, charred.box[0] - 120), y: Math.max(0, charred.box[1] - 140), width: 240, height: 180 } });
     const clean = await sample(0);
     check('a lava burn chars the suit: darker sprite with glowing embers', charred.shown === 1 && clean.shown === 0 && Math.abs(charred.box[0] - clean.box[0]) < 12 && charred.lum < clean.lum * 0.9 && charred.ember > 0, JSON.stringify({ charred, clean }));
+    // Frame-time probe over the heaviest lava scene (pool shimmer, lavafall sheet, embers, charred
+    // smoke) against a plain scene at the pad, in the same browser so machine speed cancels out.
+    // Each frame is timed with a 1 px readback, which forces the raster to finish (draw() alone only
+    // records commands). Run 38 found the old per-row self-copy shimmer at 18 ms vs 6 ms plain.
+    const probe = await page.evaluate(async (lf) => {
+      const { game, renderer, fx } = window.__terrabound;
+      const c = document.getElementById('game').getContext('2d');
+      const time = async (x, y) => {
+        game.body.x = x;
+        game.body.y = y;
+        game.body.vx = game.body.vy = 0;
+        renderer.camX = x;
+        renderer.camY = y;
+        for (let i = 0; i < 20; i++) await new Promise((r) => requestAnimationFrame(r));
+        game.scorch = 1.2;
+        const ms = [];
+        let t = performance.now() / 1000;
+        for (let i = 0; i < 60; i++) {
+          t += 1 / 60;
+          fx.scorchSmoke(1 / 60, 1, game.body.x, game.body.y - 1.5);
+          fx.update(1 / 60);
+          const a = performance.now();
+          renderer.draw(game, fx, null, t);
+          c.getImageData(0, 0, 1, 1);
+          ms.push(performance.now() - a);
+        }
+        ms.sort((p, q) => p - q);
+        return { median: +ms[30].toFixed(2), p95: +ms[57].toFixed(2), shimmer: renderer.shimmerRows, falls: renderer.lavafallsShown };
+      };
+      const w = game.world;
+      const plain = await time(w.padX + 0.5, w.surface[w.padX] - 0.01);
+      const lava = await time(lf.col + 4.5, w.surface[lf.col + 4] - 0.01);
+      game.scorch = 0;
+      return { plain, lava };
+    }, fall);
+    console.log('frame-time probe', JSON.stringify(probe));
+    check(
+      'frame time over lava stays close to a plain scene (median < 1.5x plain + 2 ms)',
+      probe.lava.falls >= 1 && probe.lava.shimmer > 0 && probe.lava.median < probe.plain.median * 1.5 + 2,
+      JSON.stringify(probe),
+    );
   }
   // Grappling hook: tool 5, click a ceiling, swing.
   const hookAt = await page.evaluate(() => {
