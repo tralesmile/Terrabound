@@ -45,7 +45,7 @@ import { daylight } from './daynight';
 import { awaySeconds, simulateOffline, OFFLINE_MIN, type OfflineResult } from './offline';
 import { automationHint, stepGrid, newPower, scanMachines, stepSmelting, stepMining, stepDrones, SMELT_RUST, type PowerState } from './power';
 import { DRONE_ROLES, ENEMY_NEAR, HP_LOW, DEEP_AT, RULE_MAX, ROLE_INFO, sanitizeRules, type DroneRule, listBays, nextRole, roleOf, stepFieldDrones, surveyBays, syncDrones, type DroneEvent, type DroneRole, type FieldDrone, GUARD_DMG } from './drones';
-import { LIQUID_HZ, coolMagma, flowLiquids, isLiquid } from './liquids';
+import { FULL, LIQUID_HZ, coolMagma, flowLiquids, isLiquid, levelAt } from './liquids';
 import { isNight, DAY_LENGTH } from './daynight';
 import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
 import { findRooms, mountOk, roomHint, type Room } from './rooms';
@@ -1518,9 +1518,13 @@ export class Game {
     if (!c.jump && b.vy < -6 && !this.hook && veh !== 'sky_jet' && !this.padLaunch) b.vy = -6;
     this.prevJump = c.jump;
 
-    const swimT = this.world.get(Math.floor(b.x), Math.floor(b.y - BODY_H / 2));
+    // Swimming once the body's middle is under the liquid's surface (cells hold levels, liquids.ts).
+    const midY = b.y - BODY_H / 2;
+    const swimT = this.world.get(Math.floor(b.x), Math.floor(midY));
+    const swimLvl = levelAt(this.world, Math.floor(b.x), Math.floor(midY));
+    const covered = isLiquid(this.world.get(Math.floor(b.x), Math.floor(midY) - 1)) || midY - Math.floor(midY) >= 1 - swimLvl / FULL;
     const wasLiquid = this.inLiquid;
-    this.inLiquid = isLiquid(swimT) ? swimT : 0;
+    this.inLiquid = isLiquid(swimT) && covered ? swimT : 0;
     // Falling lava (Ash Dunes lavafalls) burns like the magma it pours into.
     this.fallBurn = Math.max(0, this.fallBurn - dt);
     if (this.fallBurn <= 0 && inLavafall(this.world, b.x, b.y, HALF_W, BODY_H)) {

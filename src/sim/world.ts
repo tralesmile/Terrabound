@@ -23,6 +23,11 @@ export class World {
   readonly tiles: Uint8Array;
   /** Back walls behind tiles (W ids). Underground is lined with natural cave walls. */
   readonly walls: Uint8Array;
+  /**
+   * Liquid level per cell in sixteenths (liquids.ts): 0 means full, so any liquid tile written by worldgen
+   * or set() is a full cell. Not part of edits/version: levels change every flow tick and render per frame.
+   */
+  readonly fill: Uint8Array;
   /** Surface row (first solid row) per column, before digging. */
   readonly surface: Int16Array;
   /** Surface biome per column (B ids in biomes.ts). */
@@ -59,6 +64,7 @@ export class World {
   ) {
     this.tiles = new Uint8Array(w * h);
     this.walls = new Uint8Array(w * h);
+    this.fill = new Uint8Array(w * h);
     this.surface = new Int16Array(w);
     this.biome = new Uint8Array(w);
     this.padX = Math.floor(w / 2);
@@ -82,6 +88,7 @@ export class World {
     this.crops.delete(i); // a new stage (or anything else) restarts the stage timer; plantCrop / stepCrops set it
     if (t !== T.CHEST && this.chests.delete(i)) this.chestVersion++;
     this.tiles[i] = t;
+    this.fill[i] = 0;
     this.version++;
     this.mark(i);
     this.edits.set(i, t);

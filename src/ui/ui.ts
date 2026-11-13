@@ -10,6 +10,7 @@ import type { Game, Tool } from '../sim/game';
 import { MAP_ZOOMS, MapView } from './map';
 import { FLY_TIME, Flyers, flyerPos, pulseAmount } from './flyers';
 import { safeFrame, type Insets } from './safearea';
+import { itemTip, itemUse, type ItemTip } from './itemtip';
 import { hudButtons, hudGridPos, type HudButton, hoverLabel, type LabelRect } from './hudbuttons';
 import { drawHudGlyph } from './hudglyphs';
 import { ICON, drawIcon } from '../render/icons';
@@ -19,7 +20,6 @@ import { FOOD, bestHeal, healCount } from '../sim/fishing';
 import { GEAR, GEAR_IDS, GEAR_SLOTS, type GearId } from '../sim/gear';
 import { BOSSES, bossForBeacon } from '../sim/bosses';
 import { PHASE_NOTCH, newChip, stepChip, type ChipState } from './bossbar';
-import { BIOMES, type BiomeId } from '../sim/biomes';
 import { LAYERS } from '../sim/layers';
 import { MAX_PART, PART_IDS, VEHICLES, VEHICLE_IDS, partCost, vehicleStats, type PartId, type VehicleId } from '../sim/garage';
 import { WEATHER } from '../sim/weather';
@@ -337,6 +337,57 @@ export class UI {
 
   /** Labels of the glyph buttons drawn last frame (tests, accessibility). */
   hudButtonsShown: string[] = [];
+  /** Item cells drawn this frame (frame coords) and the panels drawn over them, for hover tooltips. */
+  private itemRects: { x: number; y: number; w: number; h: number; id: ItemId | Tool | GearId; count: number | null }[] = [];
+  private tipCovers: { x: number; y: number; w: number; h: number; at: number }[] = [];
+  /** Tooltip for the world thing under the mouse (an item lying on the ground; set by main each frame). */
+  worldTip: ItemTip | null = null;
+  /** Title of the item tooltip shown last frame (e2e). */
+  tipShown = '';
+
+  /** Desktop: name and explain the item under the mouse (UI cell first, else the item on the ground). */
+  private drawItemTip(ctx: CanvasRenderingContext2D, w: number, h: number, ox: number, oy: number): void {
+    this.tipShown = '';
+    if (!this.hover || this.touch) return;
+    const mx = this.hover.x - ox;
+    const my = this.hover.y - oy;
+    const inside = (r: { x: number; y: number; w: number; h: number }): boolean => mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h;
+    let tip: ItemTip | null = null;
+    for (let i = this.itemRects.length - 1; i >= 0; i--) {
+      const r = this.itemRects[i];
+      if (!inside(r)) continue;
+      // A panel drawn after this cell, over the mouse, hides it.
+      if (this.tipCovers.some((c) => c.at > i && inside(c))) break;
+      tip = itemTip(r.id, r.count);
+      break;
+    }
+    if (!tip && this.worldTip && !this.blocks(this.hover.x, this.hover.y)) tip = this.worldTip;
+    if (!tip) return;
+    this.tipShown = tip.title;
+    const u = uiUnit(w, h, this.uiScale);
+    const fs = Math.round(u * 0.85);
+    const ls = Math.round(u * 0.7);
+    ctx.font = `bold ${fs}px ${FONT}`;
+    let tw = ctx.measureText(tip.title).width;
+    ctx.font = `${ls}px ${FONT}`;
+    for (const l of tip.lines) tw = Math.max(tw, ctx.measureText(l).width);
+    tw = Math.min(tw + u * 1.4, w * 0.6);
+    const th = fs + u * 1.1 + tip.lines.length * (ls + u * 0.35);
+    // Beside the cursor, flipped to stay on screen.
+    let tx = mx + u * 1.2;
+    let ty = my + u * 1.2;
+    if (tx + tw > w - 4) tx = mx - tw - u * 0.6;
+    if (ty + th > h - 4) ty = my - th - u * 0.6;
+    tx = Math.max(4, tx);
+    ty = Math.max(4, ty);
+    ctx.fillStyle = 'rgba(8,10,18,0.95)';
+    ctx.fillRect(tx, ty, tw, th);
+    ctx.fillStyle = tip.color === '#ffffff' ? '#36e0e8' : tip.color;
+    ctx.fillRect(tx, ty, 2, th);
+    this.text(ctx, tip.title, tx + u * 0.7, ty + u * 0.45 + fs * 0.85, fs, tip.color, 'left', tw - u);
+    tip.lines.forEach((l, i) => this.text(ctx, l, tx + u * 0.7, ty + u * 0.9 + fs + (i + 0.8) * (ls + u * 0.35), ls, '#b8c0d4', 'left', tw - u));
+  }
+
   /** Mouse position in CSS px (desktop only, set by main each frame) for HUD hover labels. */
   hover: { x: number; y: number } | null = null;
   /** Label of the HUD button the mouse is over ('' when none); for tests. */
@@ -413,9 +464,12 @@ export class UI {
   draw(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, time: number): void {
     const f = safeFrame(w, h, this.insets);
     this.frame = f;
+    this.itemRects.length = 0;
+    this.tipCovers.length = 0;
     ctx.save();
     ctx.translate(f.x, f.y);
     this.drawFrame(ctx, game, f.w, f.h, time);
+    this.drawItemTip(ctx, f.w, f.h, f.x, f.y);
     ctx.restore();
     if (f.x !== 0 || f.y !== 0) for (const r of this.rects) {
       r.x += f.x;
@@ -796,6 +850,7 @@ export class UI {
       ctx.fillText(label, x + size - 4, y + size - 4);
     }
     if (a) this.rects.push({ x, y, w: size, h: size, a });
+    this.itemRects.push({ x, y, w: size, h: size, id, count });
   }
 
   /** Grid of item cells; returns the height used. */
@@ -807,6 +862,7 @@ export class UI {
   }
 
   private panel(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
+    this.tipCovers.push({ x, y, w, h, at: this.itemRects.length });
     ctx.fillStyle = 'rgba(8,10,18,0.97)';
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = '#36e0e8';
@@ -1194,8 +1250,7 @@ export class UI {
     if (sel) {
       const def = ITEMS[sel];
       const food = FOOD[sel];
-      const bossFor = bossForBeacon(sel);
-      const what = bossFor ? `Summons the ${BOSSES[bossFor].name}. Use it in the ${BIOMES[BOSSES[bossFor].biome as BiomeId].name}, away from the pad.` : food ? `Eat: +${food.hp} HP${food.battery ? `, +${food.battery} battery` : ''}` : def.places !== null || def.placesWall !== undefined ? 'Build with it (right click / BUILD mode)' : 'Material: spend it at the workshop';
+      const what = itemUse(sel);
       this.text(ctx, def.name, rx, ry + u * 0.4, Math.round(u * 0.95), '#fff', 'left', rw);
       this.text(ctx, what, rx, ry + u * 1.6, Math.round(u * 0.72), '#9aa3b8', 'left', rw);
       ry += u * 2.4;

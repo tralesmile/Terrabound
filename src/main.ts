@@ -2,6 +2,8 @@ import { hitSparkSpec } from './render/hitspark';
 import { giftText } from './sim/achievements';
 import { PAINT_SLOT_NAMES } from './sim/paints';
 import { VEHICLES } from './sim/garage';
+import { dropAt } from './sim/drops';
+import { itemTip } from './ui/itemtip';
 import { FTUE_STEPS } from './sim/ftue';
 import { audioGains, shakeMul, uiScale } from './sim/settings';
 import { CROPS } from './sim/farming';
@@ -875,6 +877,10 @@ function boot(): void {
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ui.hover = input.mouse.has && !ui.touch ? { x: input.mouse.x, y: input.mouse.y } : null;
+      // Items lying in the world name themselves under the mouse.
+      const wp = ui.hover && ui.screen === 'play' ? renderer.screenToWorld(input.mouse.x * dpr, input.mouse.y * dpr) : null;
+      const hd = wp ? dropAt(game.drops, wp.x, wp.y) : null;
+      ui.worldTip = hd ? itemTip(hd.item, hd.n) : null;
       ui.draw(ctx, game, canvas.clientWidth, canvas.clientHeight, clock);
       const st = input.stick();
       if (st) {

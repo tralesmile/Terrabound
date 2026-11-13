@@ -1,3 +1,5 @@
+import { GEAR } from '../sim/gear';
+import { PET_ART, petPalette, petRows, type PetArtId } from './petart';
 import { hash2 } from '../sim/rng';
 import { T, TILES } from '../sim/tiles';
 import type { EnemyKind } from '../sim/enemies';
@@ -1250,6 +1252,15 @@ export function drawGallery(canvas: HTMLCanvasElement): void {
   for (const act of Object.keys(DRONE_COLS)) {
     drawRows(ctx, droneRows(act, 0.01), dxg, 110, z, false, DRONE_W, undefined, { e: DRONE_COLS[act] });
     dxg += DRONE_W * z + 14;
+  }
+  // Pets at 4x (both frames each), beside the drones.
+  let pxg = 620;
+  for (const id of ['scout_bot', 'glow_moth', 'spark_pup'] as PetArtId[]) {
+    const g = GEAR[id];
+    for (const t of [0.01, 0.09]) {
+      drawRows(ctx, petRows(id, t, false), pxg, 182, 4, false, PET_ART[id].w, undefined, petPalette(g.color ?? '#9aa3b8', g.accent ?? '#36e0e8'));
+      pxg += PET_ART[id].w * 4 + 8;
+    }
   }
   // Bosses at 2x in the free space bottom right: four walkers, then the wyrm and the core.
   const pose = { facing: 1, age: 0.3, flash: false, lift: 0, reach: 0, enraged: false, lookX: -1, lookY: 0.4 };

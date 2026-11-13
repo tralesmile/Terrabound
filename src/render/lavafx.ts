@@ -82,3 +82,12 @@ export function fallShade(ax: number, ay: number, time: number, width: number): 
   if (s < -1.1) return 0;
   return 1;
 }
+
+/**
+ * Ragged edges of a lavafall sheet: how many art px (0-2) each side is pulled in on row `ay`.
+ * The ripple travels down with the pour (depends on time only through ay - FALL_SPEED * t).
+ */
+export function fallEdges(ay: number, time: number): [number, number] {
+  const v = ay - time * FALL_SPEED;
+  return [Math.round(1 + Math.sin(v * 0.21)), Math.round(1 + Math.sin(v * 0.17 + 2))];
+}

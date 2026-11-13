@@ -7,6 +7,7 @@
  * previous entry's last index (first entry: from -1); run (default 1) repeats the value on consecutive indices.
  * Fog format: base36 run lengths joined by ",", alternating unseen/seen, starting with unseen.
  */
+import { FULL, isLiquid } from './liquids';
 import { STAGE_TIME, cropAt } from './farming';
 import { ITEM_IDS, T, TILES, type Inventory } from './tiles';
 import type { World } from './world';
@@ -132,12 +133,27 @@ function growingCrop(tile: number): boolean {
   return c !== null && c.stage < 2;
 }
 
+/**
+ * Edits with partial liquid cells rounded to whole ones (saves store tile ids, not levels): under half
+ * full saves as air, the rest as a full cell. Rounding each way keeps reloads from slowly adding water.
+ */
+function liquidRounded(world: World): Map<number, number> {
+  let out: Map<number, number> | null = null;
+  const f = world.fill;
+  for (let i = 0; i < f.length; i++) {
+    if (f[i] === 0 || !isLiquid(world.tiles[i])) continue;
+    out ??= new Map(world.edits);
+    out.set(i, f[i] < FULL / 2 ? T.AIR : world.tiles[i]);
+  }
+  return out ?? world.edits;
+}
+
 export function captureDiff(world: World, fog: FogMap): WorldDiff {
   const sap = new Map<number, number>();
   for (const [i, t] of world.saplings) sap.set(i, Math.max(1, Math.ceil(t)));
   // Crop stage timers share the sapling diff (the tile at the index says which it is; no save field change).
   for (const [i, t] of world.crops) sap.set(i, Math.max(1, Math.ceil(t)));
-  return { tiles: encodeEdits(world.edits), walls: encodeEdits(world.wallEdits), fog: encodeFog(fog.seen), chests: encodeChests(world.chests), saplings: encodeEdits(sap) };
+  return { tiles: encodeEdits(liquidRounded(world)), walls: encodeEdits(world.wallEdits), fog: encodeFog(fog.seen), chests: encodeChests(world.chests), saplings: encodeEdits(sap) };
 }
 
 /** Replay saved edits onto a freshly generated world of the same seed. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { coolMagma, flowLiquids, isLiquid } from '../src/sim/liquids';
+import { FULL, volumeOf, coolMagma, flowLiquids, isLiquid } from '../src/sim/liquids';
 import { T, TILES } from '../src/sim/tiles';
 import { World } from '../src/sim/world';
 
@@ -46,8 +46,8 @@ describe('water cools magma into basalt', () => {
     }
     expect(cooled).toBeGreaterThan(0);
     expect(count(w, T.BASALT)).toBe(cooled);
-    // Every cooled cell used up at least one water cell, and no magma touches water afterwards.
-    expect(count(w, T.WATER)).toBeLessThanOrEqual(water0 - cooled);
+    // Every cooled cell flashed at least one water cell (of some level) to steam; none touches water afterwards.
+    expect(volumeOf(w, T.WATER)).toBeLessThanOrEqual(water0 * FULL - cooled);
     for (let x = 1; x < 29; x++) if (w.get(x, 17) === T.MAGMA) expect(w.get(x, 16)).not.toBe(T.WATER);
     expect(coolMagma(w, 15, 10)).toEqual([]);
   });

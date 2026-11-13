@@ -1,6 +1,6 @@
 import { B } from '../src/sim/biomes';
 import { describe, expect, it } from 'vitest';
-import { flowLiquids, isLiquid } from '../src/sim/liquids';
+import { FULL, flowLiquids, isLiquid, levelAt, volumeOf } from '../src/sim/liquids';
 import { FIXED_DT, Game, NO_CONTROLS, SINK, type Controls } from '../src/sim/game';
 import { defaultSave } from '../src/sim/save';
 import { T } from '../src/sim/tiles';
@@ -16,28 +16,48 @@ function box(w = 30, h = 20): World {
 const count = (w: World, t: number): number => w.tiles.reduce((a, v) => a + (v === t ? 1 : 0), 0);
 
 describe('liquid flow', () => {
-  it('falls, spreads, levels out, conserves volume and then stops changing', () => {
+  it('falls, spreads, levels out flat, conserves volume and then stops changing', () => {
     const w = box();
     for (let y = 2; y < 10; y++) for (let x = 5; x < 8; x++) w.set(x, y, T.WATER);
-    const vol = count(w, T.WATER);
+    const vol = volumeOf(w, T.WATER);
+    expect(vol).toBe(24 * FULL);
     let tick = 0;
-    for (; tick < 400; tick++) {
+    for (; tick < 600; tick++) {
       const moved = flowLiquids(w, 15, 10, tick);
-      expect(count(w, T.WATER)).toBe(vol);
+      expect(volumeOf(w, T.WATER)).toBe(vol);
       if (moved === 0 && tick > 10) break;
     }
-    expect(tick).toBeLessThan(400);
-    // 24 cells over a 28-wide floor: a flat layer, no cell left hanging in the air.
+    expect(tick).toBeLessThan(600);
+    // No liquid left hanging over air.
     for (let x = 1; x < 29; x++) for (let y = 1; y < 17; y++) if (w.get(x, y) === T.WATER) expect(w.get(x, y + 1)).not.toBe(T.AIR);
-    let maxH = 0;
-    let minH = 99;
+    // 24 cells over a 28-wide floor: every column holds the same depth within one sixteenth (no steps).
+    const depths: number[] = [];
     for (let x = 1; x < 29; x++) {
-      let hgt = 0;
-      for (let y = 0; y < 18; y++) if (w.get(x, y) === T.WATER) hgt++;
-      maxH = Math.max(maxH, hgt);
-      minH = Math.min(minH, hgt);
+      let d = 0;
+      for (let y = 0; y < 18; y++) d += levelAt(w, x, y);
+      depths.push(d);
     }
-    expect(maxH - minH).toBeLessThanOrEqual(1);
+    expect(Math.max(...depths) - Math.min(...depths)).toBeLessThanOrEqual(1);
+  });
+
+  it('a one-tile step between two halves of a pool levels out (owner bug: water stood in steps)', () => {
+    const w = box(40, 20);
+    for (let x = 1; x < 39; x++) for (let y = 13; y < 18; y++) w.set(x, y, T.WATER);
+    for (let x = 1; x < 15; x++) w.set(x, 12, T.WATER);
+    const vol = volumeOf(w, T.WATER);
+    for (let t = 0; t < 400; t++) flowLiquids(w, 20, 10, t);
+    expect(volumeOf(w, T.WATER)).toBe(vol);
+    const top = (x: number): number => levelAt(w, x, 12);
+    for (let x = 1; x < 39; x++) expect(Math.abs(top(x) - top(20))).toBeLessThanOrEqual(1);
+    expect(top(20)).toBeGreaterThan(3);
+  });
+
+  it('a puddle on a floor keeps some depth instead of a 1 px film', () => {
+    const w = box();
+    w.set(14, 16, T.WATER);
+    for (let t = 0; t < 200; t++) flowLiquids(w, 15, 10, t);
+    for (let x = 1; x < 29; x++) if (w.get(x, 16) === T.WATER) expect(levelAt(w, x, 16)).toBeGreaterThanOrEqual(2);
+    expect(volumeOf(w, T.WATER)).toBe(FULL);
   });
 
   it('drains into a hole dug below and never passes through solid', () => {
@@ -45,13 +65,13 @@ describe('liquid flow', () => {
     for (let x = 1; x < 29; x++) w.set(x, 10, T.METAL);
     for (let x = 5; x < 10; x++) w.set(x, 9, T.WATER);
     for (let t = 0; t < 50; t++) flowLiquids(w, 15, 10, t);
-    expect(count(w, T.WATER)).toBe(5);
+    expect(volumeOf(w, T.WATER)).toBe(5 * FULL);
     for (let y = 11; y < 18; y++) for (let x = 1; x < 29; x++) expect(w.get(x, y)).not.toBe(T.WATER);
     w.set(6, 10, T.AIR);
-    for (let t = 0; t < 200; t++) flowLiquids(w, 15, 10, t);
+    for (let t = 0; t < 300; t++) flowLiquids(w, 15, 10, t);
     let below = 0;
-    for (let y = 11; y < 18; y++) for (let x = 1; x < 29; x++) if (w.get(x, y) === T.WATER) below++;
-    expect(below).toBe(5);
+    for (let y = 11; y < 18; y++) for (let x = 1; x < 29; x++) below += levelAt(w, x, y);
+    expect(below).toBe(5 * FULL);
   });
 
   it('only flows inside the window around the player', () => {
@@ -155,9 +175,9 @@ describe('swimming', () => {
   it('magma flows like any liquid and conserves volume', () => {
     const w = box();
     for (let y = 2; y < 6; y++) for (let x = 5; x < 8; x++) w.set(x, y, T.MAGMA);
-    const vol = count(w, T.MAGMA);
-    for (let tick = 0; tick < 200; tick++) flowLiquids(w, 15, 10, tick);
-    expect(count(w, T.MAGMA)).toBe(vol);
+    const vol = volumeOf(w, T.MAGMA);
+    for (let tick = 0; tick < 400; tick++) flowLiquids(w, 15, 10, tick);
+    expect(volumeOf(w, T.MAGMA)).toBe(vol);
     for (let x = 1; x < 29; x++) for (let y = 1; y < 17; y++) if (w.get(x, y) === T.MAGMA) expect(w.get(x, y + 1)).not.toBe(T.AIR);
   });
 

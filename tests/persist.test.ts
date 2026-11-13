@@ -112,3 +112,22 @@ describe('persistent world', () => {
     expect(parseSave(out).seedBase).toBe(s.seedBase);
   });
 });
+
+describe('saving liquid levels', () => {
+  it('rounds partial liquid cells: under half saves as air, the rest as a full cell', async () => {
+    const { captureDiff } = await import('../src/sim/persist');
+    const { World } = await import('../src/sim/world');
+    const w = new World(10, 10, 1);
+    w.set(2, 5, T.WATER);
+    w.set(3, 5, T.WATER);
+    w.set(4, 5, T.WATER);
+    w.fill[5 * 10 + 2] = 3;
+    w.fill[5 * 10 + 3] = 12;
+    const d = decodeEdits(captureDiff(w, new FogMap(w)).tiles, 100, 30);
+    expect(d.get(5 * 10 + 2)).toBe(T.AIR);
+    expect(d.get(5 * 10 + 3)).toBe(T.WATER);
+    expect(d.get(5 * 10 + 4)).toBe(T.WATER);
+    // The live world keeps its levels.
+    expect(w.fill[5 * 10 + 2]).toBe(3);
+  });
+});

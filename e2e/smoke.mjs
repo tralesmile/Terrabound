@@ -753,30 +753,6 @@ try {
   await page.waitForTimeout(500);
   const swim = await page.evaluate(() => ({ inLiquid: window.__terrabound.game.inLiquid, y: window.__terrabound.game.body.y }));
   await page.screenshot({ path: path.join(out, '17-water.png') });
-  // Living water: the pool's surface crest rolls (two draws at different times differ) and deep cells shade darker.
-  const waves = poolAt ? await page.evaluate(({ x, y }) => {
-    const t = window.__terrabound;
-    const g = t.game;
-    const w = g.world;
-    // The pool can settle a cell while the swimmer moves: find its live surface below or above the start.
-    let top = y;
-    while (w.get(x, top) !== 25 && top < y + 6) top++;
-    while (w.get(x, top - 1) === 25) top--;
-    const r = t.renderer;
-    const ts = 16 * r.scale;
-    const ctx = document.getElementById('game').getContext('2d');
-    // A 5-tile strip centred on the pool: the swimmer covers about one tile of it.
-    const px = Math.round(r.w / 2 + (x - 2 - r.camX) * ts);
-    const py = Math.round(r.h / 2 + (top - r.camY) * ts);
-    const strip = () => Array.from(ctx.getImageData(px, py, Math.round(ts * 5), Math.round(ts / 4)).data).join(',');
-    const frames = [];
-    for (const time of [1, 1.4, 1.8, 2.2, 2.6, 3.0]) {
-      r.draw(g, t.fx, null, time);
-      frames.push(strip());
-    }
-    return { shown: r.liquidShown, top, changed: new Set(frames).size > 1, parked: g.parkedVehicle(), x, px, py, owned: g.save.gear.owned };
-  }, poolAt) : null;
-  check('water surface crest rolls over time and liquid cells draw per frame', !!waves && waves.changed && waves.shown > 0, JSON.stringify(waves));
   await page.keyboard.down('KeyW');
   let swamUp = swim.y;
   for (let i = 0; i < 8; i++) {
@@ -798,6 +774,27 @@ try {
     g.enemies = [];
     return { x, top };
   }, poolAt) : null;
+  await page.waitForTimeout(150);
+  // Living water: the pool's surface crest rolls (two draws at different times differ) and deep cells shade darker.
+  // Measured on the sealed tank (natural pools may still be settling: levels flow).
+  const waves = tank ? await page.evaluate(({ x, top }) => {
+    const t = window.__terrabound;
+    const g = t.game;
+    const r = t.renderer;
+    const ts = 16 * r.scale;
+    const ctx = document.getElementById('game').getContext('2d');
+    // A 5-tile strip centred on the pool: the swimmer covers about one tile of it.
+    const px = Math.round(r.w / 2 + (x - 2 - r.camX) * ts);
+    const py = Math.round(r.h / 2 + (top - r.camY) * ts);
+    const strip = () => Array.from(ctx.getImageData(px, py, Math.round(ts * 5), Math.round(ts / 4)).data).join(',');
+    const frames = [];
+    for (const time of [1, 1.4, 1.8, 2.2, 2.6, 3.0]) {
+      r.draw(g, t.fx, null, time);
+      frames.push(strip());
+    }
+    return { shown: r.liquidShown, top, changed: new Set(frames).size > 1, parked: g.parkedVehicle(), x, px, py, owned: g.save.gear.owned };
+  }, tank) : null;
+  check('water surface crest rolls over time and liquid cells draw per frame', !!waves && waves.changed && waves.shown > 0, JSON.stringify(waves));
   const bubbled = tank ? await page.evaluate(async ({ x, top }) => {
     const t = window.__terrabound;
     const g = t.game;
@@ -1589,6 +1586,26 @@ try {
       JSON.stringify(probe),
     );
   }
+  // Hover tooltips: a hotbar cell names its tool; an item lying on the ground names itself.
+  const toolCell = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'settool' && r.a.t === 'rod'));
+  if (toolCell) await page.mouse.move(toolCell.x + toolCell.w / 2, toolCell.y + toolCell.h / 2);
+  await page.waitForTimeout(120);
+  const hotTip = await page.evaluate(() => window.__terrabound.ui.tipShown);
+  await page.screenshot({ path: path.join(out, '22h-tooltip-hotbar.png') });
+  check('hovering a hotbar cell shows what it is', hotTip === 'Fishing rod', JSON.stringify({ hotTip, toolCell }));
+  const dropPos = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.enemies = [];
+    g.drops.push({ item: 'crystal', n: 3, x: g.body.x + 3, y: g.body.y, vx: 0, vy: 0, age: 0, noPick: 99 });
+    const r = window.__terrabound.renderer;
+    const p = r.worldToScreen(g.body.x + 3, g.body.y - 0.47);
+    return { x: p.x / devicePixelRatio, y: p.y / devicePixelRatio };
+  });
+  await page.mouse.move(dropPos.x, dropPos.y);
+  await page.waitForTimeout(150);
+  const groundTip = await page.evaluate(() => window.__terrabound.ui.tipShown);
+  await page.screenshot({ path: path.join(out, '22h-tooltip-ground.png') });
+  check('hovering an item on the ground names it', groundTip.startsWith('Crystal'), JSON.stringify({ groundTip, dropPos }));
   // Grappling hook: tool 5, click a ceiling, swing.
   const hookAt = await page.evaluate(() => {
     const g = window.__terrabound.game;

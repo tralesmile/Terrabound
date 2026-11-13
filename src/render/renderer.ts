@@ -3,9 +3,10 @@ import { computeRims, floorGlowBands, rimColor, type Rim } from './rimlight';
 import { buriedDecal, decalRects, hasStrata, rootThreads, strataShade, topsoilShade } from './strata';
 import type { Game, Hook, Shot } from '../sim/game';
 import { petSwimPose, petWater, type PetWater } from './petfx';
+import { PET_ART, petPalette, petRows, type PetArtId } from './petart';
 import { coneCrater, lavafallSpan } from '../sim/structures';
-import { FALL_W, LAVA_BLOCK, SHIMMER_ROW, SHIMMER_ROWS, fallShade, lavaDepthShade, lavaShade, shimmerRuns, shimmerShift } from './lavafx';
-import { acidBubble, causticBand, depthShade, surfaceGlint, waveOffsets } from './liquidfx';
+import { FALL_W, LAVA_BLOCK, SHIMMER_ROW, SHIMMER_ROWS, fallShade, lavaDepthShade, lavaShade, shimmerRuns, shimmerShift, fallEdges } from './lavafx';
+import { acidBubble, causticDapples, depthRamp, liquidFalling, streamGap, streamWidth, surfaceGlint, waveOffsets } from './liquidfx';
 import { cropAt, isCropTile, isWatered } from '../sim/farming';
 import { cropSway, drawCropTile, ripeSparkle, sprinklerDrops } from './crops';
 import { NPC_INFO, type Mood, type Npc } from '../sim/npcs';
@@ -17,7 +18,7 @@ import { onLadder, stepEase } from '../sim/physics';
 import { ENEMIES } from '../sim/enemies';
 import { hash2 } from '../sim/rng';
 import { T, TILES } from '../sim/tiles';
-import { isLiquid } from '../sim/liquids';
+import { isLiquid, levelAt as liquidLevel } from '../sim/liquids';
 import { W } from '../sim/world';
 import { BODY_H } from '../sim/physics';
 import { HIT_SQUASH_TIME, hitSquash, hurtSquash, hurtVignette, softFlash, magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx } from './fx';
@@ -32,6 +33,12 @@ export function swimTilt(vx: number, vy: number): number {
   // Sinking counts for less than stroking, so a sideways swim stays roughly level.
   const a = Math.atan2(vx, -vy * (vy > 0 ? 0.4 : 1));
   return Math.max(-1.8, Math.min(1.8, a));
+}
+/** #rrggbb plus alpha as rgba(). */
+function hexA(hex: string, a: number): string {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return hex;
+  const n = parseInt(hex.slice(1, 7), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a.toFixed(3)})`;
 }
 /** Vehicle tilt from the ground rows under the left and right wheels (positive: right side lower). */
 export function vehicleTilt(gyLeft: number, gyRight: number): number {
@@ -126,7 +133,9 @@ export const CHUNK = 32;
 /** Cache size before far chunks are evicted. */
 export const MAX_CHUNKS = 48;
 /** Liquid body colours (chunk fill and the per-frame crest fill must match). */
-const LIQUID_FILL = { water: 'rgba(40,130,220,0.6)', acid: 'rgba(120,255,80,0.55)' } as const;
+/** Liquid body colours by depth (one step per 8 art px): bright shallows to deep blue / murky green. */
+const WATER_DEPTH = depthRamp([70, 165, 235, 0.5], [14, 42, 110, 0.86], 12);
+const ACID_DEPTH = depthRamp([140, 255, 90, 0.5], [30, 90, 20, 0.86], 12);
 /** Lava crust shades by lavaShade value (1 = base melt, not drawn). */
 const LAVA_SHADES = ['rgba(96,22,12,0.78)', '', '#ffa53a', '#ffe8a0'] as const;
 const chunkKey = (cx: number, cy: number): number => cy * 4096 + cx;
@@ -305,6 +314,12 @@ export class Renderer {
       tx: Math.floor(this.camX + (sx - this.w / 2) / ts),
       ty: Math.floor(this.camY + (sy - this.h / 2) / ts),
     };
+  }
+
+  /** Device px to world coords in tiles (fractional), for hovering things smaller than a tile. */
+  screenToWorld(sx: number, sy: number): { x: number; y: number } {
+    const ts = TS * this.scale;
+    return { x: this.camX + (sx - this.w / 2) / ts, y: this.camY + (sy - this.h / 2) / ts };
   }
 
   /** World tile coords to device px (no shake), for screen-space effects like pickup flyers. */
@@ -589,49 +604,40 @@ export class Renderer {
         ctx.rotate(pose.tilt);
         ctx.translate(-pxp, -pyp);
       }
-      if (petId === 'glow_moth') {
-        const flap = water === 'dry' ? (Math.sin(time * 18) > 0 ? 3 : 1) : pose.paddle ? 2 : 1;
-        ctx.fillStyle = 'rgba(200,255,216,0.25)';
-        ctx.beginPath();
-        ctx.arc(pxp, pyp, u * 9, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = pd.color;
-        ctx.fillRect(pxp - u * (2 + flap), pyp - u * 2, u * flap, u * 3);
-        ctx.fillRect(pxp + u * 2, pyp - u * 2, u * flap, u * 3);
-        ctx.fillStyle = pd.accent;
-        ctx.fillRect(pxp - u * 2, pyp - u * 2, u * 4, u * 3);
-      } else {
-        ctx.fillStyle = '#14181f';
-        ctx.fillRect(pxp - u * 4, pyp - u * 3, u * 8, u * 6);
-        ctx.fillStyle = pd.color;
-        ctx.fillRect(pxp - u * 3, pyp - u * 2, u * 6, u * 4);
-        ctx.fillStyle = pd.accent;
-        ctx.fillRect(pxp + game.facing * u * 1 - u, pyp - u, u * 2, u * 1.5);
-        if (petId === 'scout_bot') {
-          ctx.fillStyle = '#c9d0e4';
-          if (water === 'dry') {
-            const r = Math.floor(time * 20) % 2 ? 5 : 3;
-            ctx.fillRect(pxp - u * r, pyp - u * 4.5, u * r * 2, u);
-          } else {
-            // Rotor folded flat; a little prop spins at the back.
-            ctx.fillRect(pxp - u * 2, pyp - u * 4, u * 4, u);
-            const bx = pxp - game.facing * u * 5;
-            ctx.fillRect(bx - u * 0.5, pyp - u * (pose.paddle ? 2.5 : 1), u, u * (pose.paddle ? 5 : 2));
+      const art = PET_ART[petId as PetArtId];
+      if (art) {
+        const swimming = water !== 'dry';
+        const rows = petRows(petId as PetArtId, time, swimming);
+        const pw = art.w;
+        const ph = rows.length;
+        if (petId === 'glow_moth') {
+          // Soft additive glow (not a flat disc) and a little glitter trailing behind.
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          const g = ctx.createRadialGradient(pxp, pyp, u, pxp, pyp, u * 12);
+          g.addColorStop(0, hexA(pd.accent, 0.32));
+          g.addColorStop(1, hexA(pd.accent, 0));
+          ctx.fillStyle = g;
+          ctx.fillRect(pxp - u * 12, pyp - u * 12, u * 24, u * 24);
+          for (let k = 0; k < 3; k++) {
+            const ph2 = (time * 0.8 + k / 3) % 1;
+            ctx.fillStyle = hexA(pd.accent, 0.8 * (1 - ph2));
+            ctx.fillRect(pxp - game.facing * u * (6 + ph2 * 10) + Math.sin(time * 3 + k * 2) * u * 2, pyp + u * (2 + ph2 * 4), u, u);
           }
-        } else {
-          // Spark pup: ears and a tail.
-          ctx.fillStyle = pd.color;
-          ctx.fillRect(pxp - u * 3, pyp - u * 4, u * 2, u * 2);
-          ctx.fillRect(pxp + u, pyp - u * 4, u * 2, u * 2);
-          ctx.fillRect(pxp - game.facing * u * 4.5, pyp - u * 2 + (Math.floor(time * 6) % 2) * u, u * 1.5, u);
-          if (water !== 'dry') {
-            // Doggy paddle: front and back paws stroke in turn under the body.
-            ctx.fillStyle = pd.accent;
-            const k = pose.paddle;
-            ctx.fillRect(pxp + game.facing * u * (2 + k) - u, pyp + u * 3, u * 2, u);
-            ctx.fillRect(pxp - game.facing * u * (3 - k) - u, pyp + u * (3 + k), u * 2, u);
+          ctx.restore();
+        } else if (!swimming) {
+          // Hover thrusters / pads flicker under the bot and the pup.
+          ctx.fillStyle = hexA(pd.accent, Math.floor(time * 16) % 2 ? 0.9 : 0.5);
+          const fy = pyp + (ph / 2) * u;
+          if (petId === 'scout_bot') {
+            ctx.fillRect(pxp - u * 3, fy, u * 2, u * (Math.floor(time * 16) % 2 ? 2 : 1));
+            ctx.fillRect(pxp + u * 2, fy, u * 2, u * (Math.floor(time * 16 + 1) % 2 ? 2 : 1));
+          } else {
+            ctx.fillRect(pxp - u * 4, fy, u * 3, u);
+            ctx.fillRect(pxp + u * 3, fy, u * 3, u);
           }
         }
+        drawRows(ctx, rows, pxp - (pw / 2) * u, pyp - (ph / 2) * u, u, game.facing < 0, pw, undefined, petPalette(pd.color, pd.accent));
       }
       ctx.restore();
     }
@@ -1163,25 +1169,9 @@ export class Renderer {
       return;
     }
     if (t === T.WATER || t === T.ACID_POOL || t === T.MAGMA) {
+      // Liquids hold levels and move every flow tick: the chunk keeps only the wall behind them and the
+      // body is drawn per frame at its real level (drawLiquid, drawMagma).
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
-      const acid = t === T.ACID_POOL;
-      const magma = t === T.MAGMA;
-      ctx.fillStyle = magma ? '#ff5a1f' : acid ? LIQUID_FILL.acid : LIQUID_FILL.water;
-      const aboveT = world.get(tx, ty - 1);
-      // Water and acid surface cells leave the top 2 art px open: the rolling crest fills them per frame.
-      const open = !magma && aboveT !== T.WATER && aboveT !== T.ACID_POOL && aboveT !== T.MAGMA ? (ts / 16) * 2 : 0;
-      ctx.fillRect(dx, dy + open, ts, ts - open);
-      // Magma crust, veins and depth are drawn per frame (drawMagma, lavafx.ts) so the pool flows.
-      const above = world.get(tx, ty - 1);
-      if (above !== T.WATER && above !== T.ACID_POOL && above !== T.MAGMA) {
-        // Surface: magma keeps a static bright line; water and acid crests roll per frame (drawLiquid).
-        if (magma) {
-          ctx.fillStyle = '#ffd27a';
-          ctx.fillRect(dx, dy, ts, Math.max(1, ts / 8));
-        }
-        // Colour-blind assist: a warning mark on every third surface cell of acid and magma.
-        if (this.oreMarks && !(t === T.WATER) && tx % 3 === 0) drawGlyph(ctx, t, dx, dy, ts);
-      }
       return;
     }
     if (t === T.SPRINKLER || t === T.POT || isCropTile(t)) {
@@ -1943,49 +1933,65 @@ export class Renderer {
   private drawLiquid(ctx: CanvasRenderingContext2D, world: Game['world'], t: number, tx: number, ty: number, dx: number, dy: number, ts: number, time: number): void {
     const u = ts / 16;
     const acid = t === T.ACID_POOL;
-    let depth = 0;
-    while (depth < 4 && world.get(tx, ty - depth - 1) === t) depth++;
+    const pal = acid ? ACID_DEPTH : WATER_DEPTH;
+    const lvl = liquidLevel(world, tx, ty);
     this.liquidShown++;
-    const shade = depthShade(depth);
-    if (shade > 0) {
-      ctx.fillStyle = acid ? `rgba(10,40,10,${shade})` : `rgba(4,16,48,${shade})`;
-      ctx.fillRect(dx, dy, ts, ts);
+    const above = world.get(tx, ty - 1);
+    const covered = above === t;
+    // Falling liquid (nothing to rest on yet) draws as a stream, its width set by how much is pouring.
+    if (liquidFalling(world, tx, ty, t)) {
+      const wpx = streamWidth(lvl);
+      const sx = dx + Math.floor((16 - wpx) / 2) * u;
+      ctx.fillStyle = pal[2];
+      ctx.fillRect(sx, dy, wpx * u, ts + streamGap(world, tx, ty, t) * ts);
+      ctx.fillStyle = acid ? 'rgba(220,255,160,0.7)' : 'rgba(200,235,255,0.7)';
+      for (const k of [0, 1]) {
+        const yy = Math.floor((time * 40 + tx * 7 + k * 8) % 16);
+        ctx.fillRect(sx + (k ? wpx - 2 : 1) * u, dy + yy * u, u, 3 * u);
+      }
+      return;
+    }
+    // Depth in art px at the top of this cell (counting the cells of liquid above), for a smooth gradient.
+    let cells = 0;
+    while (cells < 6 && world.get(tx, ty - cells - 1) === t) cells++;
+    const topPx = covered ? 0 : 16 - lvl;
+    const depth0 = cells * 16 - (cells > 0 ? 16 - liquidLevel(world, tx, ty - cells) : 0);
+    for (let y = topPx; y < 16; y += 4) {
+      const h = Math.min(4, 16 - y);
+      ctx.fillStyle = pal[Math.min(pal.length - 1, Math.floor((depth0 + y - topPx) / 8))];
+      ctx.fillRect(dx, dy + y * u, ts, h * u);
     }
     if (acid) {
       const b = acidBubble(time, tx, ty);
-      if (b && !(depth === 0 && b.y < 3)) {
+      if (b && b.y >= topPx + 2) {
         ctx.fillStyle = 'rgba(220,255,160,0.8)';
         ctx.fillRect(dx + b.x * u, dy + b.y * u, b.r * u, b.r * u);
       }
     }
-    if (depth > 0) {
-      const c = causticBand(time, tx, depth);
-      if (c) {
-        ctx.fillStyle = acid ? `rgba(220,255,160,${c.a})` : `rgba(170,225,255,${c.a})`;
-        ctx.fillRect(dx + c.x * u, dy, c.w * u, ts);
+    // Light dapples drift under the surface (short dashes, not bars).
+    if (depth0 < 40) {
+      for (const d of causticDapples(time, tx, ty)) {
+        if (d.y < topPx + 2) continue;
+        ctx.fillStyle = acid ? `rgba(220,255,160,${d.a})` : `rgba(190,232,255,${d.a})`;
+        ctx.fillRect(dx + d.x * u, dy + d.y * u, d.w * u, u);
       }
-      return;
     }
-    const above = world.get(tx, ty - 1);
-    if (above === T.MAGMA) return;
-    const crest = acid ? '#c8ff8a' : '#bfe6ff';
-    const offs = waveOffsets(time, tx);
+    if (covered) return;
+    // Surface: a rolling crest at the real level (thin puddles stay flat), soft foam under it, glints.
+    const crest = acid ? '#c8ff8a' : '#cfeeff';
+    const offs = lvl >= 4 ? waveOffsets(time, tx) : [1, 1, 1, 1];
     for (let c = 0; c < 4; c++) {
-      const o = offs[c] ?? 1;
-      if (o < 2) {
-        ctx.fillStyle = acid ? LIQUID_FILL.acid : LIQUID_FILL.water;
-        ctx.fillRect(dx + c * 4 * u, dy + o * u, 4 * u, (2 - o) * u);
-      }
+      const o = Math.min(1, offs[c] ?? 1);
+      const cy = Math.max(0, topPx - 1 + o);
       ctx.fillStyle = crest;
-      ctx.fillRect(dx + c * 4 * u, dy + o * u, 4 * u, u);
-      // Softer foam under the crest; above it the tile shows the air it sits in.
-      ctx.fillStyle = acid ? 'rgba(200,255,140,0.35)' : 'rgba(160,215,255,0.35)';
-      ctx.fillRect(dx + c * 4 * u, dy + (o + 1) * u, 4 * u, u);
+      ctx.fillRect(dx + c * 4 * u, dy + cy * u, 4 * u, u);
+      ctx.fillStyle = acid ? 'rgba(200,255,140,0.3)' : 'rgba(170,220,255,0.3)';
+      ctx.fillRect(dx + c * 4 * u, dy + (cy + 1) * u, 4 * u, u);
     }
     const g = surfaceGlint(time, tx);
-    if (g) {
+    if (g && lvl >= 4) {
       ctx.fillStyle = `rgba(255,255,255,${0.9 * g.a})`;
-      ctx.fillRect(dx + g.x * u, dy + ((offs[Math.min(3, g.x >> 2)] ?? 1) + 1) * u, 2 * u, u);
+      ctx.fillRect(dx + g.x * u, dy + topPx * u, 2 * u, u);
     }
   }
 
@@ -2104,8 +2110,15 @@ export class Renderer {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
       const pulse = 0.5 + 0.5 * Math.sin(time * 3.1 + f.x);
-      ctx.fillStyle = `rgba(255,110,30,${(0.18 + 0.08 * pulse).toFixed(3)})`;
-      ctx.fillRect(left - ts, top, ts, (f.y1 - f.y0) * ts);
+      // Fades away from the pour on both sides (a flat rect read as a pale stripe of fog).
+      const side = ctx.createLinearGradient(left - ts * 1.2, 0, left + (FALL_W + 19) * u, 0);
+      const a = (0.16 + 0.07 * pulse).toFixed(3);
+      side.addColorStop(0, 'rgba(255,110,30,0)');
+      side.addColorStop(0.4, `rgba(255,110,30,${a})`);
+      side.addColorStop(0.6, `rgba(255,110,30,${a})`);
+      side.addColorStop(1, 'rgba(255,110,30,0)');
+      ctx.fillStyle = side;
+      ctx.fillRect(left - ts * 1.2, top, ts * 1.2 + (FALL_W + 19) * u, (f.y1 - f.y0) * ts);
       const fy = this.sy(f.y1, shakeY);
       const g = ctx.createRadialGradient(left + 5 * u, fy, u, left + 5 * u, fy, ts * 2.2);
       g.addColorStop(0, `rgba(255,150,50,${(0.35 + 0.1 * pulse).toFixed(3)})`);
@@ -2119,11 +2132,21 @@ export class Renderer {
         ctx.fillStyle = s === 1 ? '#ff5a1f' : LAVA_SHADES[s];
         ctx.fillRect(left - ts + bx * u, top, LAVA_BLOCK * u, 3 * u);
       }
-      // The sheet: base melt, then streaks in whole art px.
-      ctx.fillStyle = '#ff5a1f';
-      ctx.fillRect(left, top, FALL_W * u, rows * u);
+      // Soft glow around the pour, so it reads as hot liquid rather than a painted slab.
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = `rgba(255,120,40,${(0.14 + 0.05 * pulse).toFixed(3)})`;
+      ctx.fillRect(left - 3 * u, top, (FALL_W + 6) * u, rows * u);
+      ctx.restore();
+      // The sheet: wavy ragged edges that ripple downward, base melt, then streaks in whole art px.
       for (let ay = 0; ay < rows; ay += LAVA_BLOCK) {
-        for (let ax = 0; ax < FALL_W; ax++) {
+        const [inL, inR] = fallEdges(ay, time);
+        ctx.fillStyle = '#ff5a1f';
+        ctx.fillRect(left + inL * u, top + ay * u, (FALL_W - inL - inR) * u, LAVA_BLOCK * u);
+        ctx.fillStyle = '#a8260e';
+        ctx.fillRect(left + inL * u, top + ay * u, u, LAVA_BLOCK * u);
+        ctx.fillRect(left + (FALL_W - inR - 1) * u, top + ay * u, u, LAVA_BLOCK * u);
+        for (let ax = inL + 1; ax < FALL_W - inR - 1; ax++) {
           const s = fallShade(ax, ay, time, FALL_W);
           if (s === 1) continue;
           ctx.fillStyle = s === 0 ? '#a8260e' : LAVA_SHADES[s];
@@ -2232,14 +2255,33 @@ export class Renderer {
     let depth = 0;
     while (depth < 3 && world.get(tx, ty - depth - 1) === T.MAGMA) depth++;
     this.lavaShown++;
+    const lvl = liquidLevel(world, tx, ty);
+    // Falling lava: a glowing rope with a white-hot core, width set by how much is pouring.
+    if (liquidFalling(world, tx, ty, T.MAGMA)) {
+      const wpx = streamWidth(lvl);
+      const sx = dx + Math.floor((16 - wpx) / 2) * u;
+      const hgt = ts + streamGap(world, tx, ty, T.MAGMA) * ts;
+      ctx.fillStyle = '#ff5a1f';
+      ctx.fillRect(sx, dy, wpx * u, hgt);
+      ctx.fillStyle = '#ffa53a';
+      ctx.fillRect(sx + u, dy, Math.max(1, wpx - 2) * u, hgt);
+      ctx.fillStyle = '#ffe8a0';
+      const yy = Math.floor((time * 30 + tx * 5) % 16);
+      ctx.fillRect(sx + Math.floor(wpx / 2) * u, dy + yy * u, u, 4 * u);
+      return;
+    }
     // Flowing crust: world-space ridged noise, so plates and glowing cracks run across cell edges.
     const surface = depth === 0;
-    for (let by = 0; by < 16; by += LAVA_BLOCK) {
+    const topPx = surface ? 16 - lvl : 0;
+    ctx.fillStyle = '#ff5a1f';
+    ctx.fillRect(dx, dy + topPx * u, ts, (16 - topPx) * u);
+    for (let by = topPx - (topPx % LAVA_BLOCK); by < 16; by += LAVA_BLOCK) {
       for (let bx = 0; bx < 16; bx += LAVA_BLOCK) {
         const s = lavaShade(tx * 16 + bx, ty * 16 + by, time, surface);
         if (s === 1) continue;
         ctx.fillStyle = LAVA_SHADES[s];
-        ctx.fillRect(dx + bx * u, dy + by * u, LAVA_BLOCK * u, LAVA_BLOCK * u);
+        const y0 = Math.max(by, topPx);
+        ctx.fillRect(dx + bx * u, dy + y0 * u, LAVA_BLOCK * u, (by + LAVA_BLOCK - y0) * u);
       }
     }
     const shade = lavaDepthShade(depth);
@@ -2249,10 +2291,14 @@ export class Renderer {
     }
     if (!surface) return;
     const above = world.get(tx, ty - 1);
-    // Rolling crest: the bright surface line rises and falls a pixel.
-    const crest = Math.sin(time * 2.4 + tx * 1.3) > 0 ? u : 0;
+    // Rolling crest at the real level: the bright surface line rises and falls a pixel.
+    const crest = Math.sin(time * 2.4 + tx * 1.3) > 0 && lvl >= 4 ? u : 0;
     ctx.fillStyle = '#fff0b0';
-    ctx.fillRect(dx, dy - crest, ts, Math.max(1, u));
+    ctx.fillRect(dx, dy + topPx * u - crest, ts, Math.max(1, u));
+    if (topPx > 0) {
+      // Bubbles and embers below sit on the real surface.
+      dy += topPx * u;
+    }
     if (above !== T.AIR) return;
     // Heat haze: a faint warm glow one tile tall; the picture above also wobbles (drawShimmer).
     ctx.fillStyle = `rgba(255,140,60,${0.05 + 0.05 * p})`;
@@ -2745,7 +2791,7 @@ export class Renderer {
           if (tt === T.TERMINAL) sources.push({ x: xx, y: yy, level: 22 });
           else if ((tt === T.GATE || tt === T.CIRCUIT_ORE || tt === T.PLASMA_ORE || tt === T.CORE_ORE) && !world.isSolid(xx, yy - 1)) sources.push({ x: xx, y: yy, level: tt === T.GATE ? 16 : 12 });
           else if (tt === T.ACID_POOL && world.get(xx, yy - 1) !== T.ACID_POOL) sources.push({ x: xx, y: yy, level: 14 });
-          else if (tt === T.MAGMA && world.get(xx, yy - 1) !== T.MAGMA) sources.push({ x: xx, y: yy, level: 28 });
+          else if (tt === T.MAGMA) sources.push({ x: xx, y: yy, level: world.get(xx, yy - 1) !== T.MAGMA ? 28 : 22 });
           else if (tt === T.AIR && this.fallCells.has(yy * world.w + xx)) sources.push({ x: xx, y: yy, level: 24 });
           else if (tt === T.CRYSTAL && !world.isSolid(xx, yy - 1) || tt === T.CRYSTAL && !world.isSolid(xx, yy + 1)) sources.push({ x: xx, y: yy, level: 18 });
           else if (tt === T.PLANT && yy > world.surface[xx] + 1) sources.push({ x: xx, y: yy, level: 14 });

@@ -99,3 +99,17 @@ export function stepDrops(
   }
   return got;
 }
+
+/** The dropped item whose icon is under world point (wx, wy) (icons float about half a tile up), or null. */
+export function dropAt(drops: readonly Drop[], wx: number, wy: number, r = 0.6): Drop | null {
+  let best: Drop | null = null;
+  let bd = r * r;
+  for (const d of drops) {
+    const dd = (d.x - wx) ** 2 + (d.y - 0.47 - wy) ** 2;
+    if (dd <= bd) {
+      bd = dd;
+      best = d;
+    }
+  }
+  return best;
+}
