@@ -3,6 +3,7 @@ import { T, TILES } from '../sim/tiles';
 import type { EnemyKind } from '../sim/enemies';
 import { drawIcon } from './icons';
 import { charRemap, emberAt, hurtRemap } from './scorchfx';
+import { ambientRemap, type Ambient } from './ambient';
 import { drawBossArt } from './bossart';
 import type { BossId } from '../sim/bosses';
 import { EDGE_E, EDGE_N, EDGE_S, EDGE_W, MASKS, SHAPES, edgeMask, edgePixel, growsMoss, slopePixel } from './autotile';
@@ -978,6 +979,8 @@ function drawEmbers(ctx: CanvasRenderingContext2D, rows: string[], x: number, y:
 }
 
 export interface PlayerPose {
+  /** Deep-layer light colour the suit picks up (render only; none on the surface or in the Scrap layer). */
+  ambient?: Ambient | null;
   facing: number;
   walking: boolean;
   t: number;
@@ -1077,7 +1080,7 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, 
   if (pose.helm) [remap.h, remap.H] = pose.helm;
   const k = pose.hurt ? 0 : pose.scorch ?? 0;
   // Hurt flash tints the suit red (shape and shading stay readable) instead of a flat white silhouette.
-  drawRows(ctx, rows, ox, oy, s, flip, PLAYER_W, undefined, pose.hurt ? hurtRemap(PAL, remap) : k > 0 ? charRemap(PAL, remap, k) : remap);
+  drawRows(ctx, rows, ox, oy, s, flip, PLAYER_W, undefined, pose.hurt ? hurtRemap(PAL, remap) : ambientRemap(PAL, k > 0 ? charRemap(PAL, remap, k) : remap, pose.ambient ?? null));
   if (k > 0) drawEmbers(ctx, rows, ox, oy, s, flip, Math.floor(pose.t * 10), k);
   if (pose.swim && !pose.hurt) drawStrokeArm(ctx, ox, oy, s, flip, pose.t, pose.swim.moving, remap.s ?? SUIT_TIERS[0][0]);
   // Held tool at the front hand (art col ~11, row ~10), drawn at 3/4 scale.

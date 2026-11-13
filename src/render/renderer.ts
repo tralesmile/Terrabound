@@ -69,6 +69,7 @@ import { scorchK } from './scorchfx';
 import { CONE_PUFFS, CRACK_VARIANTS, DRIFT_H, DRIFT_VARIANTS, conePuff, crackAt, crackPixels, driftPixels } from './ashfx';
 import { GRIME_VARIANTS, HANG_H, HANG_VARIANTS, RCRACK_VARIANTS, grimeAt, grimePixels, SOOT_VARIANTS, hangAt, hangKind, hangPixels, ruinCrackAt, ruinCrackPixels, sootAt, sootPixels } from './ruinfx';
 import { layerAt } from '../sim/layers';
+import { layerAmbient } from './ambient';
 
 /** Paints pixel arrays (TS wide) side by side into one strip canvas. */
 function stripOf(n: number, h: number, pixels: (v: number) => (string | null)[]): HTMLCanvasElement {
@@ -203,6 +204,10 @@ export class Renderer {
   camY = 0;
   /** Last frame's player char strength 0..1 after lava contact (read by e2e). */
   scorchShown = 0;
+  /** Layer ambient strength last drawn on the player (0 = none). Debug/e2e. */
+  ambientShown = 0;
+  /** Debug/e2e switch: draw the player without the layer ambient. */
+  noAmbient = false;
   /** Last frame's hurt vignette alpha (read by e2e). */
   lastHurtAlpha = 0;
   /** Mood hearts drawn last frame (read by e2e). */
@@ -758,7 +763,10 @@ export class Renderer {
       ctx.rotate(this.swimAngle);
       ctx.translate(-px, -pivotY);
     }
+    const ambient = this.noAmbient ? null : layerAmbient(layerAt(b.y - game.world.padY));
+    this.ambientShown = ambient?.k ?? 0;
     drawPlayer(ctx, px, py + (seated ? 2 * scale : 0), scale, {
+      ambient,
       swim: swimming ? { moving: swimMoving } : undefined,
       seated,
       wear: { head: eq('head'), body: eq('body'), feet: eq('feet') },

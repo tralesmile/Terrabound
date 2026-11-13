@@ -1746,6 +1746,26 @@ try {
     check('deep-layer lit cave floors get a soft tinted glow on the walkable edge', glow > 6, JSON.stringify({ glow }));
     await page.screenshot({ path: path.join(out, '27d-floor-glow.png'), clip: { x: 440, y: 260, width: 400, height: 300 } });
   }
+  {
+    // The suit picks up the Circuit layer's green light: compare the same spot with the ambient switched off.
+    const suit = async (off) => page.evaluate(async (off) => {
+      const { game, renderer } = window.__terrabound;
+      renderer.noAmbient = off;
+      game.iframes = 0;
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const c = document.getElementById('game');
+      const p = renderer.worldToScreen(game.body.x, game.body.y);
+      const s = renderer.scale;
+      const d = c.getContext('2d').getImageData(Math.round(p.x - 4 * s), Math.round(p.y - 18 * s), Math.round(8 * s), Math.round(16 * s)).data;
+      let gr = 0;
+      for (let i = 0; i < d.length; i += 4) gr += d[i + 1] - d[i];
+      return { gr: Math.round(gr / (d.length / 4)), k: renderer.ambientShown };
+    }, off);
+    const plain = await suit(true);
+    const lit = await suit(false);
+    await page.screenshot({ path: path.join(out, '27e-layer-ambient.png'), clip: { x: 540, y: 300, width: 200, height: 180 } });
+    check('in the Circuit layer the suit picks up the green cave light', lit.k > 0 && plain.k === 0 && lit.gr > plain.gr + 6, JSON.stringify({ plain, lit }));
+  }
   check('deep layers show their name in the HUD', await page.evaluate(() => window.__terrabound.game.layer === 1));
   const rimCave = await page.evaluate(() => window.__terrabound.renderer.lastRimCount);
   check('cave rock facing the lamp gets rim light in a deep cave', rimCave > 20, JSON.stringify({ rimCave }));
