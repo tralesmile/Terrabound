@@ -65,6 +65,25 @@ import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, fra
 import { drawGlyph, hasGlyph } from './glyphs';
 import { ropePoints, ropeSag, twangAmp } from './ropefx';
 import { scorchK } from './scorchfx';
+import { CRACK_VARIANTS, DRIFT_H, DRIFT_VARIANTS, crackAt, crackPixels, driftPixels } from './ashfx';
+
+/** Paints pixel arrays (TS wide) side by side into one strip canvas. */
+function stripOf(n: number, h: number, pixels: (v: number) => (string | null)[]): HTMLCanvasElement {
+  const c = makeCanvas(TS * n, h);
+  const x = c.getContext('2d');
+  if (x) {
+    for (let v = 0; v < n; v++) {
+      const px = pixels(v);
+      for (let i = 0; i < px.length; i++) {
+        const col = px[i];
+        if (!col) continue;
+        x.fillStyle = col;
+        x.fillRect(v * TS + (i % TS), Math.floor(i / TS), 1, 1);
+      }
+    }
+  }
+  return c;
+}
 
 /** Chunk size in tiles for the render cache. */
 /** Per-robot colours: sprite remap, name tag, blanket. */
@@ -132,6 +151,13 @@ export class Renderer {
     this.chunks.clear();
   }
   private moss = buildMoss();
+  /** Ash Dunes: wind-blown drift caps and glowing crust cracks. */
+  private ashDrift = stripOf(DRIFT_VARIANTS, DRIFT_H, driftPixels);
+  private ashCracks = stripOf(CRACK_VARIANTS, TS, crackPixels);
+  /** Ash tiles drawn with cracked crust since the last reset (read by e2e). */
+  ashCracksDrawn = 0;
+  /** Ash drift caps drawn since the last reset (read by e2e). */
+  ashDriftsDrawn = 0;
   private wallAtlas = buildWallAtlas();
   private decor = buildDecor();
   /** Blended sky palette for the camera position (updated each frame). */
@@ -1069,9 +1095,20 @@ export class Renderer {
     ctx.drawImage(this.atlas, atlasCol(v, mask) * TS, t * TS, TS, TS, dx, dy, ts, ts);
     if (hasStrata(t) && !world.edits.has(ty * world.w + tx)) this.drawStrata(ctx, tx, ty - world.surface[tx], ty, dx, dy, ts, mask);
     if (this.oreMarks && hasGlyph(t)) drawGlyph(ctx, t, dx, dy, ts);
+    if (t === T.ASH && !world.edits.has(ty * world.w + tx)) {
+      const cv = crackAt(tx, ty, ty - world.surface[tx]);
+      if (cv >= 0) {
+        ctx.drawImage(this.ashCracks, cv * TS, 0, TS, TS, dx, dy, ts, ts);
+        this.ashCracksDrawn++;
+      }
+    }
     if (mask & EDGE_N && ty <= world.surface[tx]) {
       if (growsMoss(t) && world.biome[tx] !== B.ASH) ctx.drawImage(this.moss, v * TS, 0, TS, MOSS_H, dx, dy, ts, MOSS_H * scale);
       else if (growsSnow(t)) ctx.drawImage(this.decor.snow, v * TS, 0, TS, SNOW_H, dx, dy, ts, SNOW_H * scale);
+      else if (t === T.ASH) {
+        ctx.drawImage(this.ashDrift, (((tx % DRIFT_VARIANTS) + DRIFT_VARIANTS) % DRIFT_VARIANTS) * TS, 0, TS, DRIFT_H, dx, dy, ts, DRIFT_H * scale);
+        this.ashDriftsDrawn++;
+      }
     }
   }
 

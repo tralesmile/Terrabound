@@ -401,6 +401,14 @@ try {
     await page.waitForTimeout(500);
     if (ok) seen.push(biomeNames[b]);
     await page.screenshot({ path: path.join(out, `11-biome-${biomeNames[b]}.png`) });
+    if (biomeNames[b] === 'ash') {
+      // Surface variety: pale drift caps on the dune tops and clustered glowing crust cracks.
+      const ash = await page.evaluate(() => {
+        const r = window.__terrabound.renderer;
+        return { drifts: r.ashDriftsDrawn, cracks: r.ashCracksDrawn };
+      });
+      check('the Ash Dunes show drift caps and cracked glowing crust', ash.drifts > 4 && ash.cracks > 0, JSON.stringify(ash));
+    }
   }
   check('every biome can be visited and renders', seen.length === biomeNames.length, seen.join(','));
   await toastCheck(page, 'desktop', '46-toasts.png');

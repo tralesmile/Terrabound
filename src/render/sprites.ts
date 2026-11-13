@@ -39,7 +39,8 @@ const LOOK: Record<number, Look> = {
   [T.SCAFFOLD]: { base: '#3b4658', light: '#7d8da6', dark: '#2a3242', speck: '#c9a35a', speckCount: 0, detail: 'frame' },
   [T.PAD]: { base: '#2b3a4a', light: '#36e0e8', dark: '#1d2733', detail: 'pad' },
   [T.SOIL]: { base: '#4a3a2a', light: '#5e4a34', dark: '#33281d', speck: '#3f6a34', speckCount: 3, detail: 'roots' },
-  [T.ASH]: { base: '#4a4446', light: '#5e5759', dark: '#343032', speck: '#ff8a3c', speckCount: 1, detail: 'ripples' },
+  // Calm ash gets pale cinders; the orange heat lives in clustered crust cracks (src/render/ashfx.ts).
+  [T.ASH]: { base: '#4a4446', light: '#5e5759', dark: '#343032', speck: '#8a7d78', speckCount: 2, detail: 'ripples' },
   [T.FROST]: { base: '#5a7390', light: '#7f9ab8', dark: '#41566e', speck: '#cfe8ff', speckCount: 3, detail: 'cracks' },
   [T.SAND]: { base: '#6a5a8a', light: '#8272a6', dark: '#4e4268', speck: '#d8b8ff', speckCount: 4, detail: 'ripples' },
   [T.CRYSTAL]: { base: '#3a2a5e', light: '#8a5fd6', dark: '#261c40', detail: 'facets' },
