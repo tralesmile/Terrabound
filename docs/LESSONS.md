@@ -221,3 +221,9 @@
 - **Wall-clock-held boss attacks move the boss a load-dependent distance.** The e2e dash check holds a charge for ~330 ms of real time; on a busier run the Vine Queen dashed to the arena edge, off screen, and the next three checks (volley orb, summon, bolt trail) sampled empty pixels (0 vs 0). Guard: the dash check now saves the boss position before and restores it after. Any e2e that lets the sim run under a held state must restore position before the next pixel sample.
 - **Measure short-lived UI state before a screenshot, not after.** The harvest flyer check read flyers after a screenshot that took longer than the flight under load. Guard: read first, screenshot second.
 - **Retro (run 52):** two slices in one commit and one gate; one ship rejected because an overlapping run pushed docs; `git rebase origin/dev` was clean (docs only).
+- **Never edit files while `npm run ship` runs:** the gate typechecks and tests the working tree, so a ship started before edits failed on half-done code (safely). Ship only from a clean, finished tree.
+- **origin/dev can be ahead of origin/main** while another run is mid-ship; rebasing on main alone left the push rejected after a 10-minute gate. ship.sh now fetches both and fails fast.
+- **Whole-tile liquids cannot level:** a pool with one spare row of water stood in a 1-tile step forever. Liquids now hold levels (World.fill). Tests count volume (volumeOf), not cells.
+- **Bigger worlds move e2e fixtures:** fixed waits after long teleports missed (wait for the camera instead), and the e2e's own tank landed on a cinder cone (pick structures away from earlier edits).
+- **Single-sample frame-time probes flip:** the same scene measured 7 to 14 ms between runs. Alternate the compared scenes three times and compare medians.
+- **Retro:** worldgen was 60% noise hashing; precomputing lattices gave 1.7x with identical output (checksum before and after). Profile before deciding a feature is too expensive.

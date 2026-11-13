@@ -1201,7 +1201,8 @@ try {
     g.selected = 'garage_kit';
     return { tx: x + 2, ty: y - 1 };
   });
-  await page.waitForTimeout(500);
+  // The camera eases after a teleport (longer hops in the big world): wait until it is on the player.
+  await page.waitForFunction(() => { const r = window.__terrabound.renderer; const g = window.__terrabound.game; return Math.abs(r.camX - g.body.x) < 0.3 && Math.abs(r.camY - g.body.y) < 1.5; }, null, { timeout: 4000 }).catch(() => {});
   const bayPos = await tileToCss(page, bay.tx, bay.ty);
   await page.mouse.move(bayPos.x, bayPos.y);
   await page.mouse.down({ button: 'right' });
@@ -1387,11 +1388,13 @@ try {
   }
   // Lavafall: an Ash Dunes crag pours a sheet of lava into a catch pool (seen from beside the pool).
   // Cinder cone: a basalt mound with a glowing crater that smokes and spits embers.
-  const coneAt = await page.evaluate(() => {
+  const coneAt = await page.evaluate((avoid) => {
     const g = window.__terrabound.game;
     const w = g.world;
-    // Away from the world edge (the camera clamps there); stand left so the cone sits right of the HUD panels.
-    const s = w.structures.find((st) => st.kind === 'cone' && st.x0 > 40 && st.x1 < w.w - 40) ?? w.structures.find((st) => st.kind === 'cone');
+    // Away from the world edge (the camera clamps there) and from the e2e's own water tank (built over
+    // the first flooded cave); stand left so the cone sits right of the HUD panels.
+    const clear = (st) => st.x0 > 40 && st.x1 < w.w - 40 && (!avoid || Math.abs((st.x0 + st.x1) / 2 - avoid.x) > 40);
+    const s = w.structures.find((st) => st.kind === 'cone' && clear(st)) ?? w.structures.find((st) => st.kind === 'cone');
     if (!s) return null;
     const stand = s.x0 - 3;
     g.hp = g.derived.maxHp;
@@ -1400,7 +1403,7 @@ try {
     g.body.vx = g.body.vy = 0;
     g.enemies = [];
     return { cx: (s.x0 + s.x1) >> 1, cy: s.y0 };
-  });
+  }, poolAt);
   await page.waitForFunction(() => {
     const { renderer: r, game: g } = window.__terrabound;
     return Math.abs(r.camX - g.body.x) < 0.3 && Math.abs(r.camY - g.body.y) < 1.5;
@@ -1574,10 +1577,16 @@ try {
         return { median: +ms[30].toFixed(2), p95: +ms[57].toFixed(2), shimmer: renderer.shimmerRows, falls: renderer.lavafallsShown };
       };
       const w = game.world;
-      const plain = await time(w.padX + 0.5, w.surface[w.padX] - 0.01);
-      const lava = await time(lf.col + 4.5, w.surface[lf.col + 4] - 0.01);
+      // Alternate the two scenes three times and keep each one's middle run (one pair was at the mercy
+      // of a chunk rebuild or GC landing in either half).
+      const runs = { plain: [], lava: [] };
+      for (let k = 0; k < 3; k++) {
+        runs.lava.push(await time(lf.col + 4.5, w.surface[lf.col + 4] - 0.01));
+        runs.plain.push(await time(w.padX + 0.5, w.surface[w.padX] - 0.01));
+      }
+      const mid = (a) => [...a].sort((x, y) => x.median - y.median)[1];
       game.scorch = 0;
-      return { plain, lava };
+      return { plain: mid(runs.plain), lava: mid(runs.lava) };
     }, fall);
     console.log('frame-time probe', JSON.stringify(probe));
     check(
@@ -1691,12 +1700,24 @@ try {
   check('SUMMON in the inventory calls the Junk Colossus', bossState.boss === 'colossus' && !bossState.inv, JSON.stringify(bossState));
   if (bossState.boss) {
     // Frame-time probe in a boss fight (boss art, health bar, arena, projectiles and fx).
-    await page.evaluate(() => { window.__terrabound.game.iframes = 5; });
-    const bossMs = await timeFrames(page);
-    // Reference: the same spot with the boss hidden (leaving the arena would despawn it).
-    await page.evaluate(() => { const g = window.__terrabound.game; g.__boss = g.boss; g.boss = null; });
-    const plainMs = await timeFrames(page);
-    await page.evaluate(() => { const g = window.__terrabound.game; g.boss = g.__boss; delete g.__boss; });
+    // Boss and plain (the same spot with the boss hidden; leaving the arena would despawn it) are sampled
+    // alternately three times and compared by the median of each: one back-to-back pair was at the mercy
+    // of a chunk rebuild or GC landing in either half (it flipped either way between runs).
+    const runs = { boss: [], plain: [], bossP95: [], plainP95: [] };
+    for (let k = 0; k < 3; k++) {
+      await page.evaluate(() => { window.__terrabound.game.iframes = 5; });
+      const bm = await timeFrames(page);
+      await page.evaluate(() => { const g = window.__terrabound.game; g.__boss = g.boss; g.boss = null; });
+      const pm = await timeFrames(page);
+      await page.evaluate(() => { const g = window.__terrabound.game; g.boss = g.__boss; delete g.__boss; });
+      runs.boss.push(bm.median);
+      runs.plain.push(pm.median);
+      runs.bossP95.push(bm.p95);
+      runs.plainP95.push(pm.p95);
+    }
+    const mid = (a) => [...a].sort((x, y) => x - y)[1];
+    const bossMs = { median: mid(runs.boss), p95: mid(runs.bossP95) };
+    const plainMs = { median: mid(runs.plain), p95: mid(runs.plainP95) };
     console.log('frame-time probe boss', JSON.stringify({ bossMs, plainMs }));
     check('frame time in a boss fight stays close to a plain scene (median < 1.5x plain + 2 ms)', bossMs.median < plainMs.median * 1.5 + 2, JSON.stringify({ bossMs, plainMs }));
     // Colossus art pass: hold the boss in a slam wind-up (arms overhead) vs idle, and compare the air above its head
@@ -2364,17 +2385,18 @@ try {
     await page.screenshot({ path: path.join(out, `30-weather-${kind}.png`) });
     if (kind === 'dust') {
       // Frame-time probe in a dust storm (screen-wide haze and blown particles) vs a plain scene.
-      const stormMs = await timeFrames(page);
-      const plainMs = await page.evaluate(() => {
-        const g = window.__terrabound.game;
-        const keep = g.weather;
-        g.weather = 'clear';
-        return keep;
-      }).then(async (keep) => {
-        const ms = await timeFrames(page);
-        await page.evaluate((k) => { window.__terrabound.game.weather = k; }, keep);
-        return ms;
-      });
+      // Alternated three times, middle run of each (see the boss probe).
+      const sr = [];
+      const pr = [];
+      for (let k = 0; k < 3; k++) {
+        sr.push(await timeFrames(page));
+        const keep = await page.evaluate(() => { const g = window.__terrabound.game; const kw = g.weather; g.weather = 'clear'; return kw; });
+        pr.push(await timeFrames(page));
+        await page.evaluate((kw) => { window.__terrabound.game.weather = kw; }, keep);
+      }
+      const midRun = (a) => [...a].sort((x, y) => x.median - y.median)[1];
+      const stormMs = midRun(sr);
+      const plainMs = midRun(pr);
       console.log('frame-time probe storm', JSON.stringify({ stormMs, plainMs }));
       check('frame time in a dust storm stays close to clear weather (median < 1.5x clear + 2 ms)', stormMs.median < plainMs.median * 1.5 + 2, JSON.stringify({ stormMs, plainMs }));
     }

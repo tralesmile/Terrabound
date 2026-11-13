@@ -34,6 +34,9 @@ describe('back-wall layer: generation', () => {
           // Structures (ruins, ships, vaults) carry built plate walls; everywhere else follows the rule.
           const inStructure = w.structures.some((st) => x >= st.x0 - 1 && x <= st.x1 + 1 && y >= st.y0 - 1 && y <= st.y1 + 1);
           if (inStructure && wl === W.PLATE) continue;
+          // Crater and pool lava open to the sky (cinder cones, Ash lava pools) has sky behind it.
+          const hotOpen = w.structures.some((st) => (st.kind === 'cone' || st.kind === 'lava') && x >= st.x0 && x <= st.x1 && y >= st.y0 && y <= st.y1);
+          if (hotOpen && w.get(x, y) === T.MAGMA && wl === W.NONE) continue;
           if (y < s) expect(wl).toBe(W.NONE);
           else expect([W.CAVE_RUST, W.CAVE_ROCK]).toContain(wl);
         }

@@ -40,3 +40,39 @@ export function valueNoise(x: number, y: number, seed: number): number {
 export function mixSeed(a: number, b: number): number {
   return Math.floor(hash2(a, b, 0x9e3779b9) * 4294967295) >>> 0;
 }
+
+/**
+ * valueNoise(x / sx, y / sy, seed) for integer x in [0, w) and y in [0, h), from a precomputed lattice:
+ * the same hashes, smoothing and blend as valueNoise (bit-identical results), but four table reads
+ * instead of four hashes per sample. Worldgen samples every tile several times, so this is its hot path.
+ */
+export function noiseGrid(seed: number, sx: number, sy: number, w: number, h: number): (x: number, y: number) => number {
+  const lw = Math.floor((w - 1) / sx) + 2;
+  const lh = Math.floor((h - 1) / sy) + 2;
+  const lat = new Float64Array(lw * lh);
+  for (let j = 0; j < lh; j++) for (let i = 0; i < lw; i++) lat[j * lw + i] = hash2(i, j, seed);
+  const cx = new Int32Array(w);
+  const fxs = new Float64Array(w);
+  for (let x = 0; x < w; x++) {
+    const v = x / sx;
+    cx[x] = Math.floor(v);
+    fxs[x] = smooth(v - cx[x]);
+  }
+  const cy = new Int32Array(h);
+  const fys = new Float64Array(h);
+  for (let y = 0; y < h; y++) {
+    const v = y / sy;
+    cy[y] = Math.floor(v);
+    fys[y] = smooth(v - cy[y]);
+  }
+  return (x: number, y: number): number => {
+    const k = cy[y] * lw + cx[x];
+    const fx = fxs[x];
+    const fy = fys[y];
+    const a = lat[k];
+    const b = lat[k + 1];
+    const c = lat[k + lw];
+    const d = lat[k + lw + 1];
+    return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+  };
+}

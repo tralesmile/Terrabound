@@ -76,13 +76,14 @@ World size and variety:
 - [x] Keys 6-0 and - pick arranged bar slots 1-6 (key hints on the slots); touch long-press on a bar slot opens its item actions (run 48)
 - [ ] Follow-ups: gear/armor as real equippable items (P3 equipment slots)
 
-## P1.11 Owner feedback 2026-11-13 (CLAIMED by the interactive session; scheduled runs skip this section and avoid liquids.ts, pets, tooltips and WORLD_W/H)
+## P1.11 Owner feedback 2026-11-13 (done 2026-11-13)
 
-- [ ] Fractional liquid levels (water, acid, lava): pools level out, smooth surfaces
-- [ ] Water and lava art pass, lavafall look
-- [ ] Pet redesign (owner: "pet looks bad")
-- [ ] Hover tooltips for items everywhere
-- [ ] Bigger world (owner: "the world seems small again")
+- [x] Fractional liquid levels (water, acid, lava): pools level out, smooth surfaces, falls drawn as streams
+- [x] Water and lava art pass (depth gradient, dapples, level crest, glowing lava ropes, lavafall edges and halo, every lava cell glows)
+- [x] Pet redesign: pixel-art sprites with animation for scout bot, glow moth and spark pup
+- [x] Hover tooltips for item cells everywhere and for items on the ground
+- [x] Bigger world: 2800 x 480 for new worlds (old saves keep 1400 x 420), 1.5x wider biome bands, worldgen 1.7x faster (noiseGrid)
+- [ ] Follow-ups (scheduled runs may take these): tooltips for world blocks and machines under the cursor; a "start a bigger world" prompt for legacy saves; lava scene renders ~11 ms vs 7.5 ms plain in headless (profile the lavafall rows); splash where a stream lands in a pool
 
 ## P1.10 Owner request 2026-11-12: better driving and swimming graphics, lava (done 2026-11-12)
 

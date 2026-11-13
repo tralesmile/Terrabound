@@ -47,7 +47,7 @@ describe('save v27 build bar order', () => {
     const v26 = JSON.stringify({ v: 26, seedBase: 5, runs: 2, stash: { rust: 4 }, paint: null, paintHelm: null, paintRide: null });
     const s = parseSave(v26);
     expect(s.v).toBe(SAVE_VERSION);
-    expect(s.v).toBe(27);
+    expect(s.v).toBe(28);
     expect(s.hotbar).toEqual([]);
     expect(s.stash.rust).toBe(4);
   });

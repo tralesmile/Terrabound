@@ -1,11 +1,11 @@
-import { valueNoise, hash2 } from './rng';
+import { noiseGrid, valueNoise, hash2 } from './rng';
 import { T, TILES, type Inventory } from './tiles';
 import { BIOMES, biomeLayout, type BiomeId } from './biomes';
 import { decorate, type Structure } from './structures';
 import { LAYERS, layerAt, placeGates } from './layers';
 
-export const WORLD_W = 1400;
-export const WORLD_H = 420;
+export { WORLD_W, WORLD_H } from './worldsize';
+import { WORLD_W, WORLD_H } from './worldsize';
 /** Typical surface row (world-space y of the ground). */
 export const SURFACE_ROW = 40;
 export const PAD_HALF = 4;
@@ -160,7 +160,11 @@ export interface WorldStats {
 
 /** Iron forms stretched seams; each large region of rock has its own seam angle (not round blobs). */
 export function ironSeam(x: number, y: number, seed: number): boolean {
-  const k = Math.min(SEAM_DIRS.length - 1, Math.floor(valueNoise(x / 60, y / 45, seed + 21) * SEAM_DIRS.length));
+  return ironSeamAt(x, y, seed, valueNoise(x / 60, y / 45, seed + 21));
+}
+/** ironSeam with the region noise (which picks the seam angle) already sampled. */
+function ironSeamAt(x: number, y: number, seed: number, region: number): boolean {
+  const k = Math.min(SEAM_DIRS.length - 1, Math.floor(region * SEAM_DIRS.length));
   const [c, sn] = SEAM_DIRS[k];
   return valueNoise((x * c + y * sn) / 8, (y * c - x * sn) / 2.4, seed + 2 + k) > IRON_CUT;
 }
@@ -214,32 +218,44 @@ export function generateWorld(seed: number, w = WORLD_W, h = WORLD_H): World {
     world.surface[x] = Math.max(6, Math.round(padRow + (raw[x] - padRow) * k * k));
   }
 
+  // Precomputed lattices (bit-identical to valueNoise; worldgen's hot path, see noiseGrid).
+  const nCrust = noiseGrid(seed + 11, 5, 5, w, h);
+  const nCave = noiseGrid(seed + 1, 9, 9, w, h);
+  const nTunnel = noiseGrid(seed + 5, 4, 14, w, h);
+  const nCavern = noiseGrid(seed + 19, 20, 12, w, h);
+  const nOre = noiseGrid(seed + 9, 2.5, 2.5, w, h);
+  const nCrystal = noiseGrid(seed + 4, 3, 3, w, h);
+  const nSeamDir = noiseGrid(seed + 21, 60, 45, w, h);
+  const nCopper = noiseGrid(seed + 3, 9, 9, w, h);
+  const nCopperCut = noiseGrid(seed + 23, 4, 4, w, h);
+  const layerRows = new Uint8Array(h);
+  for (let y = 0; y < h; y++) layerRows[y] = layerAt(y - padRow);
   for (let x = 0; x < w; x++) {
     const s = world.surface[x];
     const def = BIOMES[biome[x] as BiomeId];
     for (let y = s; y < h; y++) {
       const d = y - s;
       const i = y * w + x;
-      const layer = LAYERS[layerAt(y - padRow)];
-      let t: number = d < 4 + Math.floor(valueNoise(x / 5, y / 5, seed + 11) * 4) ? def.crust : layer.rock;
+      const layer = LAYERS[layerRows[y]];
+      let t: number = d < 4 + Math.floor(nCrust(x, y) * 4) ? def.crust : layer.rock;
       world.walls[i] = t === T.METAL ? W.CAVE_ROCK : W.CAVE_RUST;
 
       // Caves: smooth noise above a threshold, only below a safe crust. Bigger caverns deeper down.
       if (d > 6 && y < h - 3) {
-        const n = valueNoise(x / 9, y / 9, seed + 1);
+        const n = nCave(x, y);
         if (n > 0.7) t = T.AIR;
-        else if (d > 10 && valueNoise(x / 4, y / 14, seed + 5) > 0.8) t = T.AIR;
-        else if (d > 50 && valueNoise(x / 20, y / 12, seed + 19) > 0.74) t = T.AIR;
+        else if (d > 10 && nTunnel(x, y) > 0.8) t = T.AIR;
+        else if (d > 50 && nCavern(x, y) > 0.74) t = T.AIR;
       }
 
       // Ores replace solid rock only.
       if (t !== T.AIR) {
-        if (layer.ore !== T.IRON && valueNoise(x / 2.5, y / 2.5, seed + 9) > 0.8) t = layer.ore;
-        else if (d > 4 && ironSeam(x, y, seed)) t = T.IRON;
-        else if (d > 22 && copperVein(x, y, seed)) t = T.COPPER;
+        if (layer.ore !== T.IRON && nOre(x, y) > 0.8) t = layer.ore;
+        else if (d > 4 && ironSeamAt(x, y, seed, nSeamDir(x, y))) t = T.IRON;
+        else if (d > 22 && Math.abs(nCopper(x, y) - 0.5) < COPPER_W && nCopperCut(x, y) > 0.3) t = T.COPPER;
         else if (
-          (def.crystalNearSurface && d > 2 && valueNoise(x / 3, y / 3, seed + 4) > 0.8) ||
-          (d > 70 && valueNoise(x / 3, y / 3, seed + 4) > 0.86)
+          (def.crystalNearSurface && d > 2 && nCrystal(x, y) > 0.8) ||
+          (d > 70 && nCrystal(x, y) > 0.86)
         )
           t = T.CRYSTAL;
       }

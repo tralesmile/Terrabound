@@ -728,3 +728,21 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** per-boss hit sound timbre; phase-2 floor zaps riding the arena pulse (telegraphed, jump to dodge); a lighter dive report on beam-home; P1.9 follow-ups (plane with cargo, charge station); equipment slots (P3).
 
 **Known issues:** the arena floor is rescanned every frame (56 columns x up to 20 rows; cheap, cache if the boss probe climbs); sparks are cosmetic only; dive tally lives in memory; the dive card shows only on death; tall cones put bomb arcs above the screen from the foot; drone mining counts toward "mined"; e2e farm uses raw tile ids.
+
+## 2026-11-13 Interactive session: owner feedback (water, lava, pet, tooltips, world size) (save v28)
+
+Owner: "Water looks bad. Pet looks bad. On hover the items should show what they are. Lava also is bad. The world seems small again."
+
+**Done:**
+- Liquids hold levels (World.fill in sixteenths, 0 = full, so every existing set(..., WATER) is a full cell). New flow rules (fall, spread on a difference of 2+, level along the row) conserve volume exactly, settle flat within one unit, keep puddles at least 2/16 deep and make magma viscous. Saves round partial cells (under half becomes air, else full). Swimming uses the real surface height.
+- Water draws per frame at its level: depth gradient in 4 px bands, crest at the surface, drifting dapples (the full-height caustic bars caused the stripes) and falling liquid as a stream bridged across packet gaps. Lava draws at its level, falls as a glowing rope, and every lava cell is a light source (bodies went black at night). The lavafall sheet has rippling ragged edges and a glow halo; the flat pale rect beside it became a fading gradient.
+- Pets: petart.ts string-row sprites with frames (scout bot rotor, moth wing flap with an additive radial glow and glitter, pup tail wag, hover jets), shown in the sprite gallery.
+- Tooltips: itemtip.ts describes every item, tool and gear piece. UI cells register for hover; a panel drawn over a cell hides its tip. Items on the ground are found with dropAt. This fixed a crash describing the Hollow AI beacon (no surface biome).
+- World: new worlds are 2800 x 480 (worldsize.ts). Save v28 adds worldSize; v27 saves with a world in progress keep 1400 x 420 (edits are stored by tile index). Biome bands are 1.5x wider in big worlds. Worldgen is 1.7x faster through noiseGrid (precomputed lattices, bit-identical worlds, checked by checksum): 2800 x 480 takes about 265 ms.
+- ship.sh fails fast when origin/dev or origin/main has commits HEAD lacks. The perf probes (boss, lava, storm) alternate their two scenes three times and compare medians.
+
+**Numbers:** 846+ unit tests (new: liquids x3, itemtip 3, noisegrid 1, worldsize 5, liquidfx x5, persist 1), all e2e green; bundle about 443 kB (155 kB gzip).
+
+**Next:** the follow-ups at the end of BACKLOG P1.11. Legacy saves only get the big world when they start a new one.
+
+**Known issues:** in headless the lava scene renders about 11 ms vs 7.5 ms for a plain scene; natural cave pools now spill over ledges and settle the first time the player comes near (expected with real levels).

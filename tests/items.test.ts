@@ -278,6 +278,8 @@ describe('save v8', () => {
     const s = parseSave(JSON.stringify(v7));
     expect(s.v).toBe(SAVE_VERSION);
     // Only the generated sky-island chests (pre-filled at worldgen) are known; nothing else was opened.
-    expect(new Game(s).world.chests.size).toBe(new Game(defaultSave()).world.chests.size);
+    // (The v7 world keeps the legacy size, so compare with a fresh world of that size.)
+    const ref = { ...defaultSave(), worldSize: { w: 1400, h: 420 } };
+    expect(new Game(s).world.chests.size).toBe(new Game(ref).world.chests.size);
   });
 });

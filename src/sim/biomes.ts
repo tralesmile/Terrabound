@@ -36,8 +36,13 @@ export const HOME_HALF = 150;
 
 /**
  * Biome per column: Rust Wastes around the pad, then seeded bands of the other four biomes outward on
- * both sides (each 200-280 columns). Every biome appears at least once in a 1400-wide world.
+ * both sides (each 200-280 columns, 1.5x that in big worlds). Every biome appears at least once.
  */
+/** Biome band width scale for a world `w` tiles wide: 1 up to 1400, 1.5 from 2400. */
+export function bandScale(w: number): number {
+  return w <= 1400 ? 1 : Math.min(1.5, 1 + ((w - 1400) / 1000) * 0.5);
+}
+
 export function biomeLayout(seed: number, w: number): Uint8Array {
   const out = new Uint8Array(w);
   const cx = Math.floor(w / 2);
@@ -53,7 +58,8 @@ export function biomeLayout(seed: number, w: number): Uint8Array {
     let x = cx + dir * (HOME_HALF + 1);
     let k = 0;
     while (x >= 0 && x < w) {
-      const width = 200 + Math.floor(hash2(k, dir + 5, seed) * 80);
+      // Bigger worlds get grander biomes (a 1400-wide legacy world keeps its exact layout).
+      const width = Math.round((200 + Math.floor(hash2(k, dir + 5, seed) * 80)) * bandScale(w));
       const id = order[k % order.length];
       for (let i = 0; i < width && x >= 0 && x < w; i++, x += dir) out[x] = id;
       k++;

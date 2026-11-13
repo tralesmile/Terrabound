@@ -1,4 +1,5 @@
 import { sanitizePaint } from './paints';
+import { LEGACY_WORLD, WORLD_H, WORLD_W } from './worldsize';
 import { cleanPrefs, DEFAULT_PREFS, type Prefs } from './settings';
 import { cleanKeys, DEFAULT_KEYS, type KeyMap } from './keys';
 import { ITEM_IDS, PLACEABLE, type Inventory, type ItemId } from './tiles';
@@ -16,7 +17,7 @@ import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 27;
+export const SAVE_VERSION = 28;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -72,6 +73,11 @@ export interface SaveData {
   paintRide: string | null;
   /** v27: the player's build-bar order (placeable ids, arranged in the inventory); empty = default order. */
   hotbar: ItemId[];
+  /**
+   * v28: size of the current world in tiles. Worlds regenerate from their seed and replay edits by tile
+   * index, so a world keeps the size it was made with: older saves stay 1400 x 420, new worlds are larger.
+   */
+  worldSize: { w: number; h: number };
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -104,6 +110,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     paintHelm: null,
     paintRide: null,
     hotbar: [],
+    worldSize: { w: WORLD_W, h: WORLD_H },
   };
 }
 
@@ -203,7 +210,17 @@ export function parseSave(raw: string | null | undefined): SaveData {
     paintRide: sanitizePaint(r.paintRide),
     // v26 -> v27: no arranged build bar (default order); unknown or duplicate ids are dropped.
     hotbar: sanitizeHotbar(r.hotbar),
+    // v27 -> v28: an existing world keeps the size it was generated at.
+    worldSize: sanitizeWorldSize(r.worldSize, num(r.v, 0, 9999, 0) < 28 && !!r.world && typeof r.world === 'object'),
   };
+}
+
+function sanitizeWorldSize(v: unknown, legacy: boolean): { w: number; h: number } {
+  if (legacy) return { ...LEGACY_WORLD };
+  const o = v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
+  const w = Math.floor(num(o.w, 200, 8000, WORLD_W));
+  const h = Math.floor(num(o.h, 200, 2000, WORLD_H));
+  return { w, h };
 }
 
 function sanitizeHotbar(v: unknown): ItemId[] {

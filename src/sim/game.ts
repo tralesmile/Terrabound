@@ -61,7 +61,7 @@ import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
 import { BASE_HALF, BASE_ROWS, captureBase, captureWalls, stampBase, stampWalls } from './base';
-import { PAD_HALF, SPAWN_LIGHT_MAX, W, World, generateWorld } from './world';
+import { PAD_HALF, SPAWN_LIGHT_MAX, W, WORLD_H, WORLD_W, World, generateWorld } from './world';
 
 export const GRAVITY = 42;
 /** Auto-step: share of walking speed kept after climbing a ledge, and how fast the drawn body catches up (tiles/s). */
@@ -430,7 +430,7 @@ export class Game {
     this.save.stats.banked += bankedTotal;
     this.save.carried = {};
     // The current world persists until death: regenerate it from its seed, then replay the player's edits.
-    this.world = generateWorld(this.diveSeed());
+    this.world = generateWorld(this.diveSeed(), this.save.worldSize.w, this.save.worldSize.h);
     this.fog = new FogMap(this.world);
     this.fog.revealSky(this.world);
     applyDiff(this.world, this.fog, this.save.world);
@@ -964,7 +964,9 @@ export class Game {
     this.save.runs += 1;
     this.save.worldSeed = worldSeed;
     this.dive = newDive();
-    this.world = generateWorld(this.diveSeed());
+    // A new world gets the current (larger) size, whatever size the last one was.
+    this.save.worldSize = { w: WORLD_W, h: WORLD_H };
+    this.world = generateWorld(this.diveSeed(), WORLD_W, WORLD_H);
     this.save.world = null;
     // A new world: the deployed vehicle waits beside the new pad.
     const vid = this.save.gear.equip.vehicle;
