@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 47
+
+- Done this run: deep-layer floor glow (rims take the layer's colour; lit floors get a soft fading sheen so the walkable ledge reads; 27d-floor-glow), arrangeable build bar (< / > in the inventory with a bar preview strip, saved; 18b-hotbar-arrange).
+- Weakest controls: keys 6-0 and - still pick fixed placeables (rust, metal, torch, ladder, scaffold, wall) instead of the arranged bar slots; map them to slots 1-6 of the visible bar (with a key hint on each slot).
+- Weakest boss art: the Crystal Golem and Frost Titan are still plain rects with eyes (promoted to BACKLOG P1.10).
+- Weakest touch UI: item actions need the inventory; a long-press on a hotbar slot opening HOLD / move / DROP would save trips (last P1.6 follow-up).
+- Weakest graphics: in the Circuit layer the suit reads flat red-orange under the lamp (27-deep-layer); a cool layer-tinted ambient on the player sprite would seat them in the scene.
+
 ## 2026-11-13 run 46
 
 - Done this run: boss slam impact (flat pale shockwave ring as wide as SLAM_RADIUS so you see where it hurt, dust walls both ways, chunks thrown up from each fist; 26c-boss-impact), surface dirt cross-section (darker organic topsoil band + fine wandering root threads in the first 6 rows of warm soil; 43-strata), old long toasts fold to a one-line ghost after 2.5 s (frees the top-left of the world).
@@ -23,11 +31,3 @@
 - Weakest boss art: the Junk Colossus is a brick block with eyes (26-boss); arms that swing on its slam telegraph and loose scrap plates would sell the weight.
 - Weakest feel: lit deep caves are still one flat tone near the player; a soft rim light on cave floors in the deep layers would show the walkable edge.
 - Weakest UI: the toast column (goal + 2 toasts) still covers the top-left quarter when a gate opens (27); fade toasts older than 4 s to a one-line ghost.
-
-## 2026-11-13 run 43
-
-- Done this run: icon HUD (square glyph buttons two wide with the cog, key hints on desktop, 44 px on touch; carried 1); longer lore logs (2-3 more lines each, carried 8); feet follow the drawn slope diagonals (render-only sink, no more half-tile float).
-- Weakest graphics: in the Circuit layer the open cave (rust back wall) reads brighter than the solid blocks (27-deep-layer), because light stops at solids; a per-layer back wall (dark green circuit mesh in Circuit, basalt in Plasma) and a faint top-face highlight on lit floors would fix the inversion.
-- Weakest feel: enemies still float over slope caps (only the player sinks); reuse slopeSink for walkers in drawEnemy.
-- Weakest UI: desktop has no tooltip for the new glyph buttons; a hover label (hudButtonsShown already has the words) under the button.
-- Weakest progression: lore logs are found at random terminals; place them in story order by depth so the arc reads in sequence.

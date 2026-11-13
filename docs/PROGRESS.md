@@ -667,3 +667,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 
 **Known issues:** worldgen changed (frost ponds freeze), so existing saves' frost ponds get ice; pond ice drops nothing when mined (water below is then open); jump pads relaunch on every landing on them (bouncy by design; hold down to stand); a launch under a low ceiling bonks the head; the white warn flash still hides the furnace on alternate frames during a wind-up; tall cones put bomb arcs above the screen from the foot; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67), e2e now also uses 69/70.
 
+
+## 2026-11-13 Scheduled run 47
+
+**Done:** baseline green (776 tests). Creative review: deep Circuit caves still read as one flat tone with a barely visible floor edge (27-deep-layer, carried 2), and the build bar order was fixed (carried 3). Deep-layer floor glow (src/render/rimlight.ts `LAYER_RIM`/`rimColor`/`floorGlowBands`, renderer `drawRims`): rims take each layer's colour (circuit green, plasma pink, core violet), lit top faces in deep layers get three fading rows below the edge (27d-floor-glow). Arrangeable build bar (tiles.ts `hotbarOrder`/`moveInHotbar`, game `hotbar`/`moveHotbar`, save v27 `hotbar`): select a placeable in the inventory, press < or > to swap it with its bar neighbour, a preview strip shows the bar; cycling the held block follows the order; new placeables append (18b-hotbar-arrange, 51i-mobile-bar-arrange).
+
+**Numbers:** 791 unit tests (new: floorglow 4, hotbar 9; paints test's pinned SAVE_VERSION moved 26 -> 27 on purpose), 220 e2e checks (new: floor glow count, inventory < reorders + saved, mobile arrange buttons fit and >= 44 px), bundle 416.6 kB (145.8 kB gzip).
+
+**Next:** keys 6-0 pick arranged bar slots; touch long-press on hotbar slots; Crystal Golem / Frost Titan art pass; run-summary card (P4); P1.9 follow-ups (plane with cargo, charge station).
+
+**Known issues:** digits 6-0 and - still select fixed placeables (rust, metal, torch, ladder, scaffold, wall), not the arranged slots; the bar preview strip shows at most what fits the panel width, centred on the selected item; only the Junk Colossus has slam-impact juice; tall cones put bomb arcs above the screen from the foot; full-screen panels fill only the safe frame; drone mining counts toward "mined"; e2e farm uses raw tile ids (57-67, 69/70).

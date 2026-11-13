@@ -72,7 +72,8 @@ World size and variety:
 - [x] Fishing (src/sim/fishing.ts) at surface ponds; fish heal when eaten
 - [x] Floating sky islands with a rich chest; surface ponds (codex now 14 entries)
 - [x] Ice fishing in the Frozen Spires (frozen ponds, icefin) and jump pads (a way up to sky islands) (run 45); crops and farming done earlier (farming.ts)
-- [ ] Follow-ups: gear/armor as real equippable items (P3 equipment slots), an inventory hotbar the player can arrange, touch long-press for item actions
+- [x] Arrangeable build bar: < / > in the inventory with a bar preview strip, order saved (save v27) (run 47)
+- [ ] Follow-ups: keys 6-0 and - pick arranged bar slots 1-6 instead of fixed items, touch long-press on a hotbar slot for item actions, gear/armor as real equippable items (P3 equipment slots)
 
 ## P1.10 Owner request 2026-11-12: better driving and swimming graphics, lava (done 2026-11-12)
 
@@ -90,7 +91,8 @@ World size and variety:
 - [x] Per-layer cave back walls (circuit mesh, plasma basalt, core obsidian), enemies follow slope diagonals, desktop hover labels for HUD glyphs, lore logs in story order by depth, red hurt-flash tint (run 44)
 - [x] Junk Colossus art pass: junk fists, arms overhead on the slam wind-up, swinging hip plate, chest furnace glow (run 45)
 - [x] Surface dirt cross-section (organic topsoil band + root threads in shallow warm soil), boss slam impact (flat shockwave ring as wide as the reach, dust walls, fist debris), old toasts fold to a one-line ghost after 2.5 s (run 46)
-- [ ] Follow-ups (scheduled runs may take these): soft rim light on deep-layer cave floors (walkable edge)
+- [x] Deep-layer floor glow: rims take the layer's colour, lit floors get a soft fading sheen (run 47)
+- [ ] Follow-ups (scheduled runs may take these): Crystal Golem and Frost Titan art pass + slam/attack impact juice (still plain rects with eyes), layer-tinted ambient on the player sprite in deep layers
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 

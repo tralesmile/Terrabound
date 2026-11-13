@@ -3394,6 +3394,22 @@ try {
     return { n: hdr.length, apart, left: Math.min(...hdr.map((r) => r.x)) };
   });
   check('codex fits a phone and the inventory header buttons stay apart', mCodex && mcFit.inside && mcFit.shown >= 3 && mHead.n === 3 && mHead.apart && mHead.left >= 0, JSON.stringify({ mcFit, mHead }));
+  // A full pack with a placeable selected: the build-bar < / > buttons and the preview strip still fit a phone.
+  await page.evaluate(() => {
+    const { game, ui } = window.__terrabound;
+    Object.assign(game.carried, { rust: 9, torch: 5, ladder: 4, fish: 2, crystal: 3, seed: 2, scaffold: 6, platform: 3 });
+    ui.invSel = 'torch';
+  });
+  await page.waitForTimeout(200);
+  const mBar = await page.evaluate(() => {
+    const { ui } = window.__terrabound;
+    const c = document.getElementById('game');
+    const W = c.clientWidth, H = c.clientHeight;
+    const rs = ui.rects.filter((r) => r.a.k === 'barmove');
+    return { n: rs.length, inside: rs.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= W + 1 && r.y + r.h <= H + 1), minW: Math.min(...rs.map((r) => r.w)) };
+  });
+  await page.screenshot({ path: path.join(out, '51i-mobile-bar-arrange.png') });
+  check('mobile: the build-bar arrange buttons fit the phone and are touch-sized', mBar.n >= 1 && mBar.inside && mBar.minW >= 44, JSON.stringify(mBar));
   await page.evaluate(() => { const { ui } = window.__terrabound; ui.invOpen = false; ui.invPage = 'items'; });
   // Drone rule panel fits a phone: build two bays, open it, add three rules, every button on screen.
   await page.evaluate(() => {
