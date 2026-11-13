@@ -94,7 +94,8 @@ World size and variety:
 - [x] Surface dirt cross-section (organic topsoil band + root threads in shallow warm soil), boss slam impact (flat shockwave ring as wide as the reach, dust walls, fist debris), old toasts fold to a one-line ghost after 2.5 s (run 46)
 - [x] Deep-layer floor glow: rims take the layer's colour, lit floors get a soft fading sheen (run 47)
 - [x] Layer-tinted ambient on the player sprite in deep layers (circuit green, plasma pink, core violet) (run 48)
-- [ ] Follow-ups (scheduled runs may take these): Crystal Golem and Frost Titan art pass + slam/attack impact juice (still plain rects with eyes); the same layer ambient on enemies, pets and NPCs
+- [x] Crystal Golem and Frost Titan art pass + glittering slam shards; layer ambient reaches enemies, pets and NPCs (run 49)
+- [ ] Follow-ups (scheduled runs may take these): impact/telegraph juice for the ranged bosses (Vine Queen volley/summon, Ash Wyrm charge) and the Hollow AI arena
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 

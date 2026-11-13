@@ -1,5 +1,14 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 49
+
+- Done this run: Crystal Golem and Frost Titan art pass (wedge torsos, gem/ice fists on both arms, leaning crystal clusters + crown on the Golem, swept horns + icicle beard + frost breath on the Titan, a glowing geode/frost-rune heart; both throw glittering shards on a slam; 26d/26e). Layer ambient now reaches enemies, pets and base NPCs, not just the player (27f).
+- Weakest boss feel: only melee slammers (Colossus, Golem, Titan) have impact juice; the Vine Queen's volley/summon and the Ash Wyrm's charge land with just a bolt. A telegraphed charge dust-trail + screen-edge wind, and vine-burst roots on a summon, would sell the ranged bosses (compare Terraria's telegraphed boss dashes).
+- Weakest progression: still no run-summary / share card (P4) for a good dive — the biggest retention lever left on the table. Core Keeper/Dome Keeper end a run with a stat payoff; we drop the player back with nothing to show. Promote to the next build.
+- Weakest feel: at the pad, carried placeable blocks bank instantly, so you can't hold a building stack at base (only ores/loot should bank).
+- Weakest UI: the final boss Hollow AI is the one boss with no art pass beyond the core disc; its arena deserves the same shard/impact treatment.
+- Weakest performance: boss frame probe ~8.4 ms vs 6.3 plain; the new per-part swung()/glint draws add a little. Watch the boss probe; cache the glint star if it climbs.
+
 ## 2026-11-13 run 48
 
 - Done this run: suit picks up the deep layers' light colour (27e-layer-ambient), keys 6-0 and - pick the arranged bar slots with key hints, touch long-press on a bar slot opens its item actions with a filling ring (51j/51k).
@@ -23,11 +32,3 @@
 - Weakest boss feel: only the Junk Colossus has an art pass + slam juice; the Crystal Golem and Frost Titan are still plain rects with eyes (promote a per-boss art pass to BACKLOG).
 - Weakest controls: hotbar order is still fixed (PLACEABLE order); drag-to-arrange (P1.6 follow-up) remains the top controls gap.
 - Weakest progression: no run-summary/share card yet (P4), so a good dive has no shareable payoff — a retention lever left on the table.
-
-## 2026-11-13 run 45
-
-- Done this run: Junk Colossus art pass (junk fists, arms swing overhead on the slam wind-up, swinging hip plate, breathing chest furnace; 26b-boss-slam), ice fishing (Frozen Spires ponds freeze, fish through a hole for icefin), jump pads (a way up to sky islands, boing plate).
-- Weakest graphics: the surface dirt is still a flat orange noise field (20-sky-island, 26-boss); a few buried pebbles, roots and darker bands in the first 6 tiles (carried 1).
-- Weakest boss feel: the slam lands with only a shake; a dust ring and debris chunks flying from the fists on impact would sell the hit (Dome Keeper / Core Keeper boss slams).
-- Weakest UI: the toast column still covers the top-left quarter when a gate opens (27); fade toasts older than 4 s to a one-line ghost (carried 1).
-- Weakest controls: the hotbar order is fixed (PLACEABLE order); let the player drag slots (backlog P1.6 follow-up).
