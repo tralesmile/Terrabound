@@ -76,6 +76,14 @@ World size and variety:
 - [x] Keys 6-0 and - pick arranged bar slots 1-6 (key hints on the slots); touch long-press on a bar slot opens its item actions (run 48)
 - [ ] Follow-ups: gear/armor as real equippable items (P3 equipment slots)
 
+## P1.11 Owner feedback 2026-11-13 (CLAIMED by the interactive session; scheduled runs skip this section and avoid liquids.ts, pets, tooltips and WORLD_W/H)
+
+- [ ] Fractional liquid levels (water, acid, lava): pools level out, smooth surfaces
+- [ ] Water and lava art pass, lavafall look
+- [ ] Pet redesign (owner: "pet looks bad")
+- [ ] Hover tooltips for items everywhere
+- [ ] Bigger world (owner: "the world seems small again")
+
 ## P1.10 Owner request 2026-11-12: better driving and swimming graphics, lava (done 2026-11-12)
 
 - [x] Swim pose: head-first tilt toward the swim direction, flutter kick, stroking arm, tread water, surface ripples
