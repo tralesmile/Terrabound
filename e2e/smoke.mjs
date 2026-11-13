@@ -1680,6 +1680,11 @@ try {
   });
   await page.waitForTimeout(500);
   await page.screenshot({ path: path.join(out, '27-deep-layer.png') });
+  {
+    const glow = await page.evaluate(() => window.__terrabound.renderer.lastFloorGlowCount);
+    check('deep-layer lit cave floors get a soft tinted glow on the walkable edge', glow > 6, JSON.stringify({ glow }));
+    await page.screenshot({ path: path.join(out, '27d-floor-glow.png'), clip: { x: 440, y: 260, width: 400, height: 300 } });
+  }
   check('deep layers show their name in the HUD', await page.evaluate(() => window.__terrabound.game.layer === 1));
   const rimCave = await page.evaluate(() => window.__terrabound.renderer.lastRimCount);
   check('cave rock facing the lamp gets rim light in a deep cave', rimCave > 20, JSON.stringify({ rimCave }));

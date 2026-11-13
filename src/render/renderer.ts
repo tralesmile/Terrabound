@@ -1,5 +1,5 @@
 import { aoRects } from './ao';
-import { computeRims, type Rim } from './rimlight';
+import { computeRims, floorGlowBands, rimColor, type Rim } from './rimlight';
 import { buriedDecal, decalRects, hasStrata, rootThreads, strataShade, topsoilShade } from './strata';
 import type { Game, Hook, Shot } from '../sim/game';
 import { petSwimPose, petWater, type PetWater } from './petfx';
@@ -2600,22 +2600,37 @@ export class Renderer {
   private rims: Rim[] = [];
   /** Rims drawn last frame (e2e reads it to check caves get a rim and open sky does not). */
   lastRimCount = 0;
+  /** Deep-layer lit floor tiles that got the soft glow last frame (e2e check). */
+  lastFloorGlowCount = 0;
   /** Root-thread tiles drawn into chunks since the last reset (e2e check). */
   lastRootCount = 0;
 
   /** Thin warm highlights on lit cave faces, 1 art px thick. */
-  private drawRims(ctx: CanvasRenderingContext2D, shakeX: number, shakeY: number): void {
+  private drawRims(ctx: CanvasRenderingContext2D, shakeX: number, shakeY: number, padY: number): void {
     const u = this.scale;
     const ts = TS * u;
     let n = 0;
+    let glow = 0;
     for (const r of this.rims) {
       const x = this.sx(r.x, shakeX);
       const y = this.sy(r.y, shakeY);
       if (x < -ts || y < -ts || x > this.w || y > this.h) continue;
-      ctx.fillStyle = `rgba(255,228,184,${r.alpha.toFixed(3)})`;
+      // Deep layers tint the rim with their own glow; lit floors there get a soft fading sheen below the edge.
+      const layer = layerAt(r.y - padY);
+      const [cr, cg, cb] = rimColor(layer);
+      ctx.fillStyle = `rgba(${cr},${cg},${cb},${r.alpha.toFixed(3)})`;
       // Inset 1 art px only at a real corner, so a long wall reads as one continuous edge.
       const a = r.joinA ? 0 : u;
       const len = ts - a - (r.joinB ? 0 : u);
+      const bands = floorGlowBands(r.alpha, r.side, layer);
+      if (bands.length > 0) {
+        glow++;
+        bands.forEach((ba, k) => {
+          ctx.fillStyle = `rgba(${cr},${cg},${cb},${ba.toFixed(3)})`;
+          ctx.fillRect(x + a, y + u * (k + 1), len, u);
+        });
+        ctx.fillStyle = `rgba(${cr},${cg},${cb},${r.alpha.toFixed(3)})`;
+      }
       if (r.side === 0) ctx.fillRect(x + a, y, len, u);
       else if (r.side === 2) ctx.fillRect(x + a, y + ts - u, len, u);
       else if (r.side === 1) ctx.fillRect(x + ts - u, y + a, u, len);
@@ -2623,6 +2638,7 @@ export class Renderer {
       n++;
     }
     this.lastRimCount = n;
+    this.lastFloorGlowCount = glow;
   }
 
   /** Current light level at a tile (debug/e2e). */
@@ -2685,7 +2701,7 @@ export class Renderer {
       ctx.drawImage(this.lightCanvas, 0, 0, lw, lh, this.sx(x0, 0), this.sy(y0, 0), lw * ts, lh * ts);
       ctx.imageSmoothingEnabled = false;
     }
-    this.drawRims(ctx, shakeX, shakeY);
+    this.drawRims(ctx, shakeX, shakeY, world.padY);
     const low = game.battery / game.derived.maxBattery;
     if (low < 0.2 && !game.isAtBase()) {
       const pulse = 0.12 + 0.1 * Math.sin(time * 6);

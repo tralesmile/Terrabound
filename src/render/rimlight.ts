@@ -89,3 +89,29 @@ export function computeRims(
   }
   return out;
 }
+
+/** Rim colour per depth layer: warm lamp light in the Scrap layer, then each deep layer's own glow (circuit green, plasma pink, core violet). */
+export const LAYER_RIM: readonly (readonly [number, number, number])[] = [
+  [255, 228, 184],
+  [170, 255, 200],
+  [255, 160, 214],
+  [208, 170, 255],
+];
+
+export function rimColor(layer: number): readonly [number, number, number] {
+  return LAYER_RIM[Math.max(0, Math.min(LAYER_RIM.length - 1, Math.floor(layer)))];
+}
+
+/**
+ * Soft floor glow for a lit top face in a deep layer: alphas for the art-pixel rows just below the edge,
+ * fading into the block, so the walkable ledge reads in the dark layers. Scrap layer (0) and non-top faces get none.
+ */
+export function floorGlowBands(alpha: number, side: Side, layer: number): number[] {
+  if (layer <= 0 || side !== 0 || alpha < RIM_MIN) return [];
+  const out: number[] = [];
+  for (const k of [0.6, 0.34, 0.16]) {
+    const a = alpha * k;
+    if (a >= 0.012) out.push(a);
+  }
+  return out;
+}
