@@ -697,3 +697,14 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** impact/telegraph juice for the ranged bosses (Vine Queen volley/summon, Ash Wyrm charge) and the Hollow AI arena; run-summary / share card (P4, biggest retention lever); keep carried placeable blocks from auto-banking at the pad.
 
 **Known issues:** the boss frame probe adds the per-part swung()/glint draws (watch ~8-9 ms vs 6 plain; cache the glint if it climbs); only melee slammers have slam shards; the Hollow AI still has no art pass beyond its core disc; tall cones put bomb arcs above the screen from the foot; full-screen panels fill only the safe frame; drone mining counts toward "mined"; e2e farm uses raw tile ids.
+
+## 2026-11-13 Scheduled run 50
+
+**Done:** baseline green (802 tests). Creative review: the ranged boss attacks (charge, volley, summon) had only the white flash and a "!" as a telegraph, and a dive ended with a bare red toast (no payoff). Ranged-boss telegraphs (src/render/bosstele.ts, render only): a charge wind-up paints a red lane with chevrons scrolling toward where the dash ends (clamped to the arena) and a dashed end post; the dash leaves speed streaks plus dust (walkers) or embers (flyers) behind (Fx.bossCharge); a volley wind-up swells an accent orb at the muzzle (drawn over the art) with motes drawn in; a summon opens glowing cracks with swaying sprouts at each minion spot (26f/26g/26h/26i). Dive report (src/sim/divereport.ts): the game folds events into a per-world tally; the death event carries it with items lost and a new-record flag; the UI shows a SIGNAL LOST card with a dive title by layer, the non-zero rows, NEW DIVE and SHARE (04b-dive-report).
+
+**Numbers:** 813 unit tests (new: bosstele 6, divereport 5), 233 e2e checks all green (new: charge lane reds, dash streaks + particles, muzzle orb whites, summon sprouts, dive card + NEW DIVE closes). Bundle 430 kB (149 kB gzip). Boss frame probe 7.3 ms vs 5.5 plain.
+
+**Next:** Hollow AI art pass + arena; bolt trails; dive stats on the share card and a report on beam-home; P1.9 follow-ups (plane with cargo, charge station); equipment slots (P3).
+
+**Known issues:** dive tally lives in memory, so a reload mid-dive restarts it (world persists); the dive card shows only on death; SHARE from the card shares the fresh pad view with lifetime stats; summon sprouts draw under the boss body; the game keeps running behind the card (safe at the pad); tall cones put bomb arcs above the screen from the foot; drone mining counts toward "mined"; e2e farm uses raw tile ids.
+

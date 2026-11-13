@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 50
+
+- Done this run: ranged-boss telegraphs (charge lane + chevrons + end post, dash streaks and dust/embers, volley muzzle orb, summon cracks with sprouts; 26f-26i) and a SIGNAL LOST dive report card (04b).
+- Weakest progression: the report only appears on death; a successful beam-home with a full pack deserves a lighter "dive banked" card (Dome Keeper's end-of-cycle tally), and the SHARE card should carry the dive's numbers, not lifetime ones.
+- Weakest boss art: the Hollow AI is still a disc with orbiting shards; give it a cracked shell that sheds plates per phase and a pulsing arena floor (Terraria Moon Lord style escalation).
+- Weakest combat clarity: boss volley bolts are plain dots; short fading trails in the accent colour would read their path against busy backgrounds (Core Keeper projectiles).
+- Weakest controls: digit keys 6-0 still not remappable; fold them into the CONTROLS page.
+
 ## 2026-11-13 run 49
 
 - Done this run: Crystal Golem and Frost Titan art pass (wedge torsos, gem/ice fists on both arms, leaning crystal clusters + crown on the Golem, swept horns + icicle beard + frost breath on the Titan, a glowing geode/frost-rune heart; both throw glittering shards on a slam; 26d/26e). Layer ambient now reaches enemies, pets and base NPCs, not just the player (27f).

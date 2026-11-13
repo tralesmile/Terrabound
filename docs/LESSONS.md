@@ -208,3 +208,8 @@
 
 - **A green gate can still fail to push (GitHub 503 / disconnect).** Run 49: `npm run ship` passed the whole gate (802 tests, all e2e) but `git push` died with "unexpected disconnect" and a 503. The work was committed locally and safe; the fix is to retry the push, not re-run the gate. Guard: on a ship failure, first check whether the failure was the gate or the push (`git log origin/dev` vs local HEAD); if the commit is sound, just re-push dev and fast-forward main when GitHub recovers, don't rebuild.
 - **Retro (run 49):** two slices, two gates green; second ship blocked only by a transient GitHub 503. Rendering the bosses into a standalone probe (reskinning the held boss id) before touching the rig let me iterate art in seconds without the full e2e.
+
+- **Telegraph art drawn before the boss is hidden by the boss.** The volley muzzle orb sits at chest height; drawn under the art it was invisible and the e2e found 0 white pixels. Guard: telegraphs split into under-art (lanes, streaks, ground cracks) and over-art (muzzle) passes, and each has a pixel e2e.
+- **Pixel checks over a boss must diff against an idle sample.** The summon sprout region overlaps the green Vine Queen's legs, so an absolute green count would pass with no sprouts. Guard: sample idle and wind-up at the same spot and require a margin.
+- **Retro (run 50):** three slices, two ships. Applying slice 3 on top of slice 2 and running one e2e for both (separate commits) saved a full gate (~8 min).
+

@@ -95,7 +95,8 @@ World size and variety:
 - [x] Deep-layer floor glow: rims take the layer's colour, lit floors get a soft fading sheen (run 47)
 - [x] Layer-tinted ambient on the player sprite in deep layers (circuit green, plasma pink, core violet) (run 48)
 - [x] Crystal Golem and Frost Titan art pass + glittering slam shards; layer ambient reaches enemies, pets and NPCs (run 49)
-- [ ] Follow-ups (scheduled runs may take these): impact/telegraph juice for the ranged bosses (Vine Queen volley/summon, Ash Wyrm charge) and the Hollow AI arena
+- [x] Ranged-boss telegraphs: charge lane with chevrons + end post, dash streaks and dust/embers, volley muzzle orb, summon cracks with sprouts (run 50)
+- [ ] Follow-ups (scheduled runs may take these): Hollow AI art pass and arena (shard ring, impact juice); bolt trails on volley bolts
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 
@@ -216,7 +217,8 @@ Money (ethical, no paywalls)
 
 - [x] Daily Dive v1: UTC-day world code (src/sim/daily.ts), workshop DAILY button, tests for rollover/DST. Todo: local best per day, daily leaderboard-free share card
 - [x] Seed sharing: 8-char world code with checksum (src/sim/seedcode.ts), COPY and PLAY A CODE in the workshop, save v7 `worldSeed`
-- [ ] Run summary screen and share card image (canvas to PNG, Web Share API with fallback download)
+- [x] Run summary: SIGNAL LOST dive report card (time, depth, tallies, items lost, record flag, dive title) with NEW DIVE / SHARE (run 50; share card itself existed)
+- [ ] Follow-ups: dive stats on the share card when shared from the report; a lighter report on beam-home/bank (not only death); persist the tally in the save
 - [ ] Achievements (30) with cosmetic rewards; stats screen
 - [ ] Weekly mutators (dark, low gravity, hot, double ore)
 - [ ] Daily contract and non-punishing streak
