@@ -48,3 +48,16 @@ describe('Hollow AI safe pads (render)', () => {
     expect(padFlare(120, { ...z, t: -0.3 }, 0)).toBeCloseTo(rest, 5);
   });
 });
+
+describe('zap fizzle at insulator pads', () => {
+  it('fizzles at the pad edge facing the wave start, only while the crest is there', async () => {
+    const { padFizz } = await import('../src/render/arenafx');
+    const pads: [number, number][] = [[84, 87], [110, 113]];
+    const at = (r: number) => ({ t: r / 11, x0: 100, y0: 20, hit: false });
+    expect(padFizz(pads, at(10))).toEqual([110]);
+    expect(padFizz(pads, at(12.8))).toEqual([87]);
+    expect(padFizz(pads, at(5))).toEqual([]);
+    expect(padFizz(pads, at(15))).toEqual([]);
+    expect(padFizz(pads, { t: -0.3, x0: 100, y0: 20, hit: false })).toEqual([]);
+  });
+});

@@ -188,6 +188,21 @@ export function zapArc(seed: number, h: number, n = 5): { dx: number; dy: number
   return out;
 }
 
+/**
+ * Pad edges where the crest is dying right now: the edge of each pad that faces the wave start,
+ * while the crest is within 1.2 tiles of it. The wave "fizzles" there in teal sparks. Pure.
+ */
+export function padFizz(pads: [number, number][], z: Zap): number[] {
+  if (z.t < 0) return [];
+  const r = zapRadius(z);
+  const out: number[] = [];
+  for (const [a, e] of pads) {
+    const edge = a + 0.5 > z.x0 ? a : e;
+    if (Math.abs(Math.abs(edge - z.x0) - r) < 1.2) out.push(edge);
+  }
+  return out;
+}
+
 /** Draw the floor zap (telegraph pool or rolling crest with arcs) over the arena floor, skipping safe pads. */
 export function drawArenaZap(ctx: CanvasRenderingContext2D, z: Zap, floor: FloorCell[], v: ArenaView, time: number, pads: [number, number][] = []): number {
   const lw = Math.max(2, Math.round(v.u * 2));
@@ -195,7 +210,7 @@ export function drawArenaZap(ctx: CanvasRenderingContext2D, z: Zap, floor: Floor
   let lit = 0;
   for (const c of floor) {
     if (Math.abs(c.y - z.y0) > 4) continue;
-    // Insulator pads never conduct: the crest skips them.
+    // Insulator pads never conduct: the crest skips them (and fizzles at the edge, below).
     if (onSafePad(pads, c.x + 0.5)) continue;
     const k = zapGlow(c.x + 0.5 - z.x0, z);
     if (k <= 0.02) continue;
@@ -224,6 +239,30 @@ export function drawArenaZap(ctx: CanvasRenderingContext2D, z: Zap, floor: Floor
         ctx.stroke();
       }
     }
+  }
+  // Fizzle: short teal/white arcs bending back off the pad edge the crest just hit.
+  for (const edge of padFizz(pads, z)) {
+    const cell = floor.find((c) => c.x === Math.floor(edge) || c.x === Math.floor(edge) - 1);
+    if (!cell) continue;
+    const px = v.sx(edge);
+    const py = v.sy(cell.y) - lw;
+    const back = edge > z.x0 ? -1 : 1;
+    for (let k = 0; k < 3; k++) {
+      const pts = zapArc(tick * 17 + k * 5 + Math.floor(edge), 0.9 + 0.3 * k, 4);
+      for (const [col, wdt] of [[PAD_RIM, lw * 1.4], ['#ffffff', Math.max(1, lw * 0.6)]] as const) {
+        ctx.strokeStyle = col;
+        ctx.lineWidth = wdt;
+        ctx.beginPath();
+        pts.forEach((p, i) => {
+          const x = px + (p.dx + back * 0.25 * i) * v.ts * 0.6;
+          const y = py + p.dy * v.ts;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+    }
+    lit++;
   }
   return lit;
 }

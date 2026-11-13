@@ -110,7 +110,8 @@ World size and variety:
 - [x] Hollow AI arena floor circuit (pink pulse rings rolling outward, red and faster in phase 2); boss hit sparks in each boss's colours from the hit face toward the attacker, damage number at the hit point (run 52)
 - [x] Hollow AI phase-2 floor zaps (charging pool telegraph, white-hot crest rolling out both ways, jump to dodge); per-boss hit sounds (run 53)
 - [x] Landing pad deck art (steel plates, hazard ends, landing ring, chasing runway lights); boss bar drops under the HUD on small phones (run 54)
-- [ ] Follow-ups (scheduled runs may take these): a non-conducting safe platform node in the Hollow AI arena
+- [x] Hollow AI arena insulator pads (two teal pads that never conduct zaps; the crest fizzles at their edge); block tooltips quiet in boss fights and raids (run 55)
+- [ ] Follow-ups (scheduled runs may take these): a short "tink" sound where a crest dies at a pad; cache the arena floor scan per boss
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 

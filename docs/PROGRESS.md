@@ -766,3 +766,13 @@ Owner: "Water looks bad. Pet looks bad. On hover the items should show what they
 **Next:** "start a bigger world" prompt for legacy saves; profile the lava scene (~11 ms vs 7.5); Hollow AI safe platform node; a lighter dive report on beam-home (P4 follow-up); P1.9 follow-ups (plane with cargo, charge station).
 
 **Known issues:** the block tooltip uses the map fog (CELL-sized), so a dark tile next to a seen one can still be named; the tank e2e for the splash is a transient flow (it checks that a splash draws, not its look); dive tally lives in memory; the dive card shows only on death; tall cones put bomb arcs above the screen from the foot; drone mining counts toward "mined"; e2e farm uses raw tile ids.
+
+## 2026-11-13 Scheduled run 55
+
+**Done:** baseline green (866 tests, 245 e2e). Creative review: the phase-2 floor zaps left jumping as the only answer, and a "Rust" block tooltip sat on screen mid-fight (28f). Insulator pads (src/sim/arenazap.ts `safePads`/`onSafePad`, `SAFE_PAD_OFFSETS` +-11 from the arena centre, 3 tiles wide): `zapHits` never hurts or spends a wave on a player standing on one; render draws a slate ribbed plate with a teal rim and end posts that flare as a crest arrives, the crest skips pad cells and fizzles in teal/white arcs at the near edge (`padFlare`, `padFizz`; 28h-safe-pad). Block tooltips stay quiet during boss fights and raids. I also built a phone boss-bar layout, but run 54 (overlapping) shipped its own first; I dropped mine and kept theirs.
+
+**Numbers:** 870 unit tests (new: arenazap 2, arenafx 2), e2e new checks: pads teal + no hurt, fizzle arcs, desktop boss bar top + quiet tips. Bundle about 454 kB (159 kB gzip).
+
+**Next:** a "dive banked" card on beam-home (P4 follow-up); a "start a bigger world" prompt for legacy saves; P1.9 follow-ups (plane with cargo, charge station); cache the arena floor scan.
+
+**Known issues:** pads are flat floor plates (render only), not raised blocks; the arena floor is still rescanned every frame; dive tally lives in memory; the dive card shows only on death.

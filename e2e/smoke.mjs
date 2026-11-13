@@ -1970,7 +1970,7 @@ try {
       const mid = c + 11 + 0.5;
       const cell = renderer.arenaCells.find((q) => q.x === Math.floor(mid));
       if (!cell) return { err: 'no pad cell', cells: renderer.arenaCells.length };
-      window.__padHome = { x: game.body.x, y: game.body.y };
+      window.__padHome = { x: game.body.x, y: game.body.y, cx: renderer.camX, cy: renderer.camY, bx: b.x, by: b.y };
       window.__padStand = setInterval(() => { const p = game.body; p.x = mid; p.y = cell.y; p.vx = 0; p.vy = 0; }, 4);
       await new Promise((r) => setTimeout(r, 500));
       game.iframes = 0;
@@ -1991,12 +1991,35 @@ try {
           if (d[i] > 220 && d[i + 1] < 90 && d[i + 2] < 110) red++;
         }
       }
-      return { teal, red, pads: renderer.padCells, hurt: hp0 - game.hp, onGround: game.body.onGround, spent: game.boss ? game.boss.zap.hit : null };
+      const hurt = hp0 - game.hp;
+      const spent = game.boss ? game.boss.zap.hit : null;
+      // Fizzle: hold the crest at the pad's near edge; teal/white arcs rise there.
+      const edge = (mid - 0.5 - 1) + (b.x > mid ? 3 : 0);
+      const arcs = () => {
+        const a = renderer.worldToScreen(edge - 0.8, cell.y - 1.4);
+        const z = renderer.worldToScreen(edge + 0.8, cell.y - 0.4);
+        const d = ctx.getImageData(Math.round(a.x), Math.round(a.y), Math.max(1, Math.round(z.x - a.x)), Math.max(1, Math.round(z.y - a.y))).data;
+        let n = 0;
+        for (let i = 0; i < d.length; i += 4) if ((d[i] < 140 && d[i + 1] > 200 && d[i + 2] > 170) || (d[i] > 240 && d[i + 1] > 240 && d[i + 2] > 240)) n++;
+        return n;
+      };
+      const calm = arcs();
+      const te = Math.abs(edge - b.x) / 11;
+      clearInterval(window.__zapHold);
+      window.__zapHold = setInterval(() => { const q = game.boss; if (!q) return; q.zapCd = 99; q.zap = { t: te, x0: b.x, y0: cell.y, hit: true }; }, 4);
+      await new Promise((r) => setTimeout(r, 200));
+      const fizz = arcs();
+      return { teal, red, pads: renderer.padCells, hurt, onGround: game.body.onGround, spent, calm, fizz };
     });
-    await page.screenshot({ path: path.join(out, '28g-safe-pad.png') });
-    await page.evaluate(() => { clearInterval(window.__zapHold); clearInterval(window.__padStand); const { game } = window.__terrabound; const b = game.boss; if (b) { b.zap = null; b.zapCd = 99; } if (window.__padHome) { game.body.x = window.__padHome.x; game.body.y = window.__padHome.y; game.body.vx = game.body.vy = 0; } });
-    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(out, '28h-safe-pad.png') });
+    await page.evaluate(() => { clearInterval(window.__zapHold); clearInterval(window.__padStand); const { game } = window.__terrabound; const b = game.boss; if (b) { b.zap = null; b.zapCd = 99; } const h = window.__padHome; if (h) { game.body.x = h.x; game.body.y = h.y; game.body.vx = game.body.vy = 0; const r = window.__terrabound.renderer; r.camX = h.cx; r.camY = h.cy; if (b) { b.x = h.bx; b.y = h.by; b.vx = b.vy = 0; } } });
+    // Later pixel checks sample fixed world spots: wait until the camera is back where it was.
+    await page.waitForFunction(() => Math.abs(window.__terrabound.renderer.camX - window.__padHome.cx) < 0.3 && Math.abs(window.__terrabound.renderer.camY - window.__padHome.cy) < 0.5, null, { timeout: 3000 }).catch(() => {});
+    await page.waitForTimeout(150);
+    const deskBoss = await page.evaluate(() => { const { ui } = window.__terrabound; const l = ui.bossSlot; return l ? { bottom: l.below, y: l.y, tip: ui.worldTip ? ui.worldTip.title : null, hover: !!ui.hover } : null; });
+    check('on desktop the boss bar stays centred at the top, and block tooltips stay quiet in the fight', deskBoss && deskBoss.bottom === false && deskBoss.y < 120 && deskBoss.tip === null, JSON.stringify(deskBoss));
     check('Hollow AI arena insulator pads glow teal and a zap crest crossing one leaves the player unhurt', padTest.pads >= 6 && padTest.teal > 40 && padTest.red < padTest.teal / 4 && padTest.hurt === 0 && padTest.spent === false, JSON.stringify(padTest));
+    check('a zap crest fizzles in teal arcs at the edge of an insulator pad', padTest.fizz > padTest.calm + 25, JSON.stringify({ calm: padTest.calm, fizz: padTest.fizz }));
     check('the Hollow AI arena floor glows with a pink circuit that turns red in phase 2', arena1.cells > 20 && arena1.pink > 80 && arena2.red > 80 && arena2.red > arena2.pink, JSON.stringify({ arena1, arena2 }));
     await page.screenshot({ path: path.join(out, '28c-hollow-cracked.png') });
     check('the Hollow AI wears a plate shell that breaks off with debris as it is hurt', hollowFull.left === 8 && hollowHurt.left === 3 && hollowShed.breaks === hollowFull.breaks + 1 && hollowShed.debris >= 14, JSON.stringify({ full: hollowFull, shed: hollowShed, hurt: hollowHurt }));

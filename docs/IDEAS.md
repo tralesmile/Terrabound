@@ -1,5 +1,12 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 55
+
+- Done this run: two teal insulator pads in the Hollow AI arena never conduct the phase-2 floor zaps (the crest fizzles in teal arcs at their edge), so the finale has a positioning answer besides jumping (28h-safe-pad); block tooltips stay quiet in boss fights and raids (a "Rust" tip sat on screen mid-fight in 28f).
+- Weakest graphics: surface dirt under the grass is one flat brown speckle for 6+ tiles (02-digging); a few buried pebble clusters and a darker band every ~8 rows would read as strata (Terraria/Core Keeper layered soil).
+- Weakest performance: the arena floor is rescanned every frame (56+ columns x 20 rows); cache per boss and refresh on world edits.
+- Process: two overlapping runs both took the phone boss-bar item this hour; claim an item in BACKLOG (CLAIMED + time) in a first tiny docs commit before building anything bigger than an hour.
+
 ## 2026-11-13 run 54
 
 - Done this run: the landing pad is a real deck now (steel plates, hazard chevrons, landing ring, runway lights that chase toward the centre); blocks and machines name themselves under a resting mouse with dig time; streams splash into pools; the boss bar drops under the HUD on small phones (28g).
@@ -31,20 +38,3 @@
 - Weakest boss arena: the Hollow AI fights over a plain Core floor; a pulsing circuit ring on the floor that turns red in phase 2 would sell the finale.
 - Weakest progression: the dive report still only shows on death; a lighter "dive banked" card on beam-home (carried).
 - Weakest controls: digit keys 6-0 still not remappable (carried).
-
-## 2026-11-13 run 50
-
-- Done this run: ranged-boss telegraphs (charge lane + chevrons + end post, dash streaks and dust/embers, volley muzzle orb, summon cracks with sprouts; 26f-26i) and a SIGNAL LOST dive report card (04b).
-- Weakest progression: the report only appears on death; a successful beam-home with a full pack deserves a lighter "dive banked" card (Dome Keeper's end-of-cycle tally), and the SHARE card should carry the dive's numbers, not lifetime ones.
-- Weakest boss art: the Hollow AI is still a disc with orbiting shards; give it a cracked shell that sheds plates per phase and a pulsing arena floor (Terraria Moon Lord style escalation).
-- Weakest combat clarity: boss volley bolts are plain dots; short fading trails in the accent colour would read their path against busy backgrounds (Core Keeper projectiles).
-- Weakest controls: digit keys 6-0 still not remappable; fold them into the CONTROLS page.
-
-## 2026-11-13 run 49
-
-- Done this run: Crystal Golem and Frost Titan art pass (wedge torsos, gem/ice fists on both arms, leaning crystal clusters + crown on the Golem, swept horns + icicle beard + frost breath on the Titan, a glowing geode/frost-rune heart; both throw glittering shards on a slam; 26d/26e). Layer ambient now reaches enemies, pets and base NPCs, not just the player (27f).
-- Weakest boss feel: only melee slammers (Colossus, Golem, Titan) have impact juice; the Vine Queen's volley/summon and the Ash Wyrm's charge land with just a bolt. A telegraphed charge dust-trail + screen-edge wind, and vine-burst roots on a summon, would sell the ranged bosses (compare Terraria's telegraphed boss dashes).
-- Weakest progression: still no run-summary / share card (P4) for a good dive — the biggest retention lever left on the table. Core Keeper/Dome Keeper end a run with a stat payoff; we drop the player back with nothing to show. Promote to the next build.
-- Weakest feel: at the pad, carried placeable blocks bank instantly, so you can't hold a building stack at base (only ores/loot should bank).
-- Weakest UI: the final boss Hollow AI is the one boss with no art pass beyond the core disc; its arena deserves the same shard/impact treatment.
-- Weakest performance: boss frame probe ~8.4 ms vs 6.3 plain; the new per-part swung()/glint draws add a little. Watch the boss probe; cache the glint star if it climbs.

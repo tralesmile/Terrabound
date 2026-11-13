@@ -891,10 +891,11 @@ function boot(): void {
       const wp = ui.hover && ui.screen === 'play' ? renderer.screenToWorld(input.mouse.x * dpr, input.mouse.y * dpr) : null;
       const hd = wp ? dropAt(game.drops, wp.x, wp.y) : null;
       ui.worldTip = hd ? itemTip(hd.item, hd.n) : null;
-      // A block or machine names itself once the mouse rests on it (never while a button is held).
+      // A block or machine names itself once the mouse rests on it (never while a button is held,
+      // nor during a boss fight or a raid: the screen should show the fight, not "Rust").
       const ht = wp ? { x: Math.floor(wp.x), y: Math.floor(wp.y) } : null;
       const seen = ht && ht.x >= 0 && ht.y >= 0 && ht.x < game.world.w && ht.y < game.world.h && game.fog.isSeen(ht.x, ht.y) ? ht : null;
-      if (tileDwell.update(dt, seen, input.pressing) && !hd && seen) ui.worldTip = tileTip(game.world.get(seen.x, seen.y), game.derived.digPower);
+      if (tileDwell.update(dt, seen, input.pressing || !!game.boss || !!game.raid) && !hd && seen) ui.worldTip = tileTip(game.world.get(seen.x, seen.y), game.derived.digPower);
       ui.draw(ctx, game, canvas.clientWidth, canvas.clientHeight, clock);
       const st = input.stick();
       if (st) {
