@@ -19,7 +19,7 @@ import { ROBOT_LOOK, playerGear } from '../render/renderer';
 import { FOOD, bestHeal, healCount } from '../sim/fishing';
 import { GEAR, GEAR_IDS, GEAR_SLOTS, type GearId } from '../sim/gear';
 import { BOSSES, bossForBeacon } from '../sim/bosses';
-import { PHASE_NOTCH, newChip, stepChip, type ChipState } from './bossbar';
+import { PHASE_NOTCH, bossBarSlot, newChip, stepChip, type BossSlot, type ChipState } from './bossbar';
 import { LAYERS } from '../sim/layers';
 import { MAX_PART, PART_IDS, VEHICLES, VEHICLE_IDS, partCost, vehicleStats, type PartId, type VehicleId } from '../sim/garage';
 import { WEATHER } from '../sim/weather';
@@ -513,6 +513,7 @@ export class UI {
     }
     this.drawHud(ctx, game, w, h, u, time);
     if (!game.boss) this.bossChip = null;
+    this.bossRect = null;
     if (game.boss) this.drawBossBar(ctx, game, w, u, time);
     else if (game.raid) {
       const left = game.raid.ids.length + game.raid.plan.length - game.raid.next;
@@ -774,10 +775,11 @@ export class UI {
     const dt = Math.max(0, Math.min(0.1, time - this.bossChipT));
     this.bossChipT = time;
     this.bossChip = this.bossChip ? stepChip(this.bossChip, hp, dt) : newChip(hp);
-    const bw = Math.min(w - u * 14, u * 26);
-    const x = (w - bw) / 2;
-    const y = u * 4.2;
-    const bh = u * 1.2;
+    const slot = this.bossSlot ?? bossBarSlot({ w, u, gapL: 0, gapR: w, hudLow: u * 6, lowL: u, lowR: w - u });
+    const bw = slot.w;
+    const x = slot.x;
+    const y = slot.y;
+    const bh = slot.h;
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
     ctx.fillRect(x - 2, y - 2, bw + 4, bh + 4);
     ctx.fillStyle = '#5a1a1a';
@@ -798,8 +800,13 @@ export class UI {
     ctx.fillRect(nx - 1, y - 2, 2, bh + 4);
     ctx.fillStyle = enraged ? '#ff5a2a' : '#ffd8a8';
     ctx.fillRect(nx - Math.round(u * 0.25), y - Math.round(u * 0.45), Math.round(u * 0.5), Math.round(u * 0.3));
-    this.text(ctx, `${d.name}${enraged ? '  (enraged)' : ''}`, w / 2, y - u * 0.9, Math.round(u * 0.95), '#ffd8a8', 'center', bw);
+    this.text(ctx, `${d.name}${enraged ? '  (enraged)' : ''}`, x + bw / 2, y - u * 0.9, Math.round(u * 0.95), '#ffd8a8', 'center', bw);
+    this.bossRect = { x: x - 2, y: y - u * 1.45, w: bw + 4, h: bh + u * 1.45 + 2 };
   }
+  /** Boss bar placement worked out by the HUD this frame (it moves the toast column when it drops lower). */
+  private bossSlot: BossSlot | null = null;
+  /** Boss bar with its title on screen this frame (e2e), or null. */
+  bossRect: { x: number; y: number; w: number; h: number } | null = null;
 
   /** Long-press feedback: a ring fills clockwise around the held slot until its actions open. */
   private drawBarPress(ctx: CanvasRenderingContext2D): void {
@@ -1424,6 +1431,7 @@ export class UI {
     const x = anc.x;
     let y = u;
     this.bar(ctx, x, y, bw, bh, game.hp / d.maxHp, '#ff5a5a', `HP ${Math.ceil(game.hp)}`, u);
+    this.barsRect = { x, y, w: bw, h: hs };
     y += bh + u * 0.4;
     const low = game.battery / d.maxBattery < 0.2;
     this.bar(ctx, x, y, bw, bh, game.battery / d.maxBattery, low ? '#ff9a3c' : '#36e0e8', `BAT ${Math.ceil(game.battery)}`, u);
@@ -1442,7 +1450,11 @@ export class UI {
       this.text(ctx, this.touch ? 'HEAL' : 'H', hx + 4, u + hs * 0.3, Math.round(hs * 0.24), lowHp ? '#ff8a8a' : '#9ff6a0');
     }
     const carried = invTotal(game.carried);
-    this.text(ctx, `Depth ${Math.floor(game.depth)}m ${game.depth > 2 ? `(${LAYERS[game.layer].name})` : ''}  Pack ${carried}/${d.packCap}`, x, y, Math.round(u * 0.95), carried >= d.packCap ? '#ff9a3c' : '#ffffff', 'left', anc.rightLimit - x - u * 0.5);
+    const depthLine = `Depth ${Math.floor(game.depth)}m ${game.depth > 2 ? `(${LAYERS[game.layer].name})` : ''}  Pack ${carried}/${d.packCap}`;
+    const depthMax = anc.rightLimit - x - u * 0.5;
+    this.text(ctx, depthLine, x, y, Math.round(u * 0.95), carried >= d.packCap ? '#ff9a3c' : '#ffffff', 'left', depthMax);
+    // Right edge of the status block (bars, heal slot, depth line) for the boss bar placement.
+    const statusR = Math.max(x + bw + (heals > 0 ? u * 0.5 + hs : 0), x + Math.min(depthMax, ctx.measureText(depthLine).width));
 
     // The toast column starts below whatever HUD text is showing.
     let hudLow = y + u * 0.9;
@@ -1568,6 +1580,20 @@ export class UI {
     const tl = toastColumn(u, x, anc.rightLimit, hudLow);
     this.toastRects = [];
     let ty = tl.y;
+    this.bossSlot = null;
+    if (game.boss) {
+      const mirrored = this.hudMirrored;
+      const btnR = anc.bx + bwid;
+      this.bossSlot = bossBarSlot({
+        w, u,
+        gapL: mirrored ? btnR : statusR,
+        gapR: mirrored ? x : anc.bx,
+        hudLow: Math.max(hudLow, tl.y - u * 0.35),
+        lowL: mirrored ? btnR + u : x,
+        lowR: mirrored ? w - u : anc.bx - u,
+      });
+      if (this.bossSlot.below) ty = Math.max(ty, this.bossSlot.y + this.bossSlot.h + u * 0.6);
+    }
     const goal = game.goal;
     this.goalRect = null;
     if (goal && !game.boss && !this.mapOpen && !this.invOpen) ty += this.drawGoal(ctx, game, goal, tl.x, ty, tl.maxW, u, time) + u * 0.35;
@@ -1582,6 +1608,9 @@ export class UI {
       this.text(ctx, hint, w / 2, h - u * 0.7, Math.round(u * 0.75), '#c9d0e4', 'center', w - u * 2);
     }
   }
+
+  /** HP and battery bars this frame (e2e). */
+  barsRect: { x: number; y: number; w: number; h: number } | null = null;
 
   /** Guided-goal card on screen this frame (e2e), or null. */
   goalRect: { x: number; y: number; w: number; h: number; id: string; lines: number } | null = null;

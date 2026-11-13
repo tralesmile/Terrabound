@@ -53,3 +53,34 @@ describe('boss bar damage chip', () => {
     expect(CHIP_DRAIN).toBeGreaterThan(0);
   });
 });
+
+describe('boss bar placement', () => {
+  it('keeps the centred bar on a wide desktop', async () => {
+    const { bossBarSlot } = await import('../src/ui/bossbar');
+    const u = 20;
+    const s = bossBarSlot({ w: 1280, u, gapL: 320, gapR: 1150, hudLow: 120, lowL: 20, lowR: 1130 });
+    expect(s.below).toBe(false);
+    expect(s.x).toBeCloseTo((1280 - 26 * u) / 2);
+    expect(s.w).toBe(26 * u);
+  });
+
+  it('centres in the free gap when the middle would hit the status block', async () => {
+    const { bossBarSlot } = await import('../src/ui/bossbar');
+    const u = 20;
+    const s = bossBarSlot({ w: 1280, u, gapL: 500, gapR: 1150, hudLow: 120, lowL: 20, lowR: 1130 });
+    expect(s.below).toBe(false);
+    expect(s.x).toBeGreaterThanOrEqual(500 + u * 0.5);
+    expect(s.x + s.w).toBeLessThanOrEqual(1150 - u * 0.5 + 1e-9);
+  });
+
+  it('drops under the HUD on a narrow phone, between the given edges', async () => {
+    const { bossBarSlot } = await import('../src/ui/bossbar');
+    const u = 14;
+    const s = bossBarSlot({ w: 360, u, gapL: 190, gapR: 251, hudLow: 80, lowL: 14, lowR: 237 });
+    expect(s.below).toBe(true);
+    expect(s.x).toBe(14);
+    expect(s.w).toBe(223);
+    // Title room above the bar, under the HUD stack.
+    expect(s.y).toBeCloseTo(80 + u * 1.45);
+  });
+});

@@ -3966,6 +3966,52 @@ try {
     check('touch move stick follows the stick-side setting', res.leftDefault && !res.rightDefault && !res.leftLefty && res.rightLefty, JSON.stringify({ ...res, hint }));
   }
   {
+    // Small phone with the final boss up: the boss bar and title stay clear of the HP bars, buttons and toasts.
+    const spage = await mctx.newPage();
+    spage.on('pageerror', (e) => merrors.push('pageerror: ' + e.message));
+    await spage.setViewportSize({ width: 360, height: 640 });
+    await spage.goto(base);
+    await spage.waitForFunction(() => window.__terrabound, null, { timeout: 10000 });
+    await spage.touchscreen.tap(180, 400);
+    await spage.waitForTimeout(400);
+    await spage.evaluate(() => {
+      const g = window.__terrabound.game;
+      const w = g.world;
+      const x = w.padX + 120;
+      const y = w.padY + 300;
+      for (let xx = x - 30; xx <= x + 30; xx++) {
+        for (let yy = y - 10; yy < y; yy++) w.set(xx, yy, 0);
+        w.set(xx, y, 37);
+      }
+      g.body.x = x + 0.5;
+      g.body.y = y;
+      g.body.vx = g.body.vy = 0;
+      g.enemies = [];
+      g.carried = { beacon_ai: 1 };
+      g.useItem('beacon_ai');
+      const ui = window.__terrabound.ui;
+      ui.toast('Discovered: The Core', '#ffcf4a', 6);
+      ui.toast('Pack full: drop or bank 2 Crystal and 3 Iron scrap', '#ff9a3c', 6);
+    });
+    await spage.waitForTimeout(700);
+    const bossHud = await spage.evaluate(() => {
+      const { ui, game } = window.__terrabound;
+      const hit = (a, b) => !!a && !!b && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+      const b = ui.bossRect;
+      const btns = ui.rects.filter((r) => ['mute', 'map', 'recall', 'settings', 'heal'].includes(r.a.k));
+      return {
+        boss: !!game.boss, b, bars: ui.barsRect,
+        onBars: hit(b, ui.barsRect),
+        onBtn: btns.some((r) => hit(b, r)),
+        onToast: ui.toastRects.some((r) => hit(b, r)),
+        toasts: ui.toastRects.length,
+      };
+    });
+    await spage.screenshot({ path: path.join(out, '28g-mobile-boss-hud.png') });
+    check('small phone: the boss bar and title clear the HP bars, the buttons and the toasts', bossHud.boss && !!bossHud.b && !bossHud.onBars && !bossHud.onBtn && !bossHud.onToast && bossHud.toasts >= 1, JSON.stringify(bossHud));
+    await spage.close();
+  }
+  {
     // Safe area: a faked notch (47 px) and home bar (34 px) keep every button and the hotbar inside them.
     const npage = await mctx.newPage();
     npage.on('pageerror', (e) => merrors.push('pageerror: ' + e.message));

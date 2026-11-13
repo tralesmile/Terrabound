@@ -33,3 +33,33 @@ export function stepChip(s: ChipState, hp: number, dt: number): ChipState {
   if (chip <= h) hold = 0;
   return { chip, last: h, hold };
 }
+
+/** Where the boss bar goes this frame: x, bar top y, width, bar height; `below` when it sits under the HUD stack. */
+export interface BossSlot {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  below: boolean;
+}
+
+/**
+ * Boss bar placement. Wide screens keep the centred bar across the top; when the centre would run into
+ * the status block (bars, heal slot, depth line) or the button column, the bar centres in the free gap
+ * between them; on phones too narrow for that it drops under the HUD stack (`lowL`..`lowR`, title on
+ * top) and the toast column starts below it. Pure so tests can pin every case.
+ */
+export function bossBarSlot(o: { w: number; u: number; gapL: number; gapR: number; hudLow: number; lowL: number; lowR: number }): BossSlot {
+  const { w, u } = o;
+  const h = u * 1.2;
+  const top = u * 4.2;
+  const bw = Math.min(w - u * 14, u * 26);
+  const cx = (w - bw) / 2;
+  if (bw > 0 && cx >= o.gapL + u * 0.5 && cx + bw <= o.gapR - u * 0.5) return { x: cx, y: top, w: bw, h, below: false };
+  const gap = o.gapR - o.gapL - u;
+  if (gap >= u * 10) {
+    const gw = Math.min(u * 26, gap);
+    return { x: o.gapL + u * 0.5 + (gap - gw) / 2, y: top, w: gw, h, below: false };
+  }
+  return { x: o.lowL, y: o.hudLow + u * 1.45, w: Math.max(u * 6, o.lowR - o.lowL), h, below: true };
+}
