@@ -3,12 +3,16 @@ import { inStickZone } from '../sim/settings';
 import { boundTo, DEFAULT_KEYS, type BindId, type KeyMap } from '../sim/keys';
 import type { Renderer } from '../render/renderer';
 import type { UI, UiAction } from '../ui/ui';
+import { PLACEABLE, type ItemId } from '../sim/tiles';
+import { longPressProgress } from './longpress';
 
 interface PointerInfo {
   id: number;
   x: number;
   y: number;
-  kind: 'stick' | 'aim' | 'reel';
+  kind: 'stick' | 'aim' | 'reel' | 'press';
+  /** Long-press on a build-bar slot: item id, start time (ms), and whether it already fired. */
+  press?: { id: string; t0: number; fired: boolean };
   button: number;
   startX: number;
   startY: number;
@@ -146,6 +150,11 @@ export class Input {
     }
     if (a) {
       this.onAction(a);
+      // Touch: holding a build-bar slot opens that item's actions (tap still just selects it).
+      if (e.pointerType === 'touch' && a.k === 'sel' && this.ui.screen === 'play' && !this.ui.invOpen) {
+        const id = PLACEABLE[a.i];
+        if (id) this.pointers.set(e.pointerId, { id: e.pointerId, x, y, kind: 'press', button: e.button, startX: x, startY: y, press: { id, t0: performance.now(), fired: false } });
+      }
       return;
     }
     if (this.ui.shopOpen) return;
@@ -194,7 +203,19 @@ export class Input {
     let aimCss: { x: number; y: number } | null = this.mouse.has ? { x: this.mouse.x, y: this.mouse.y } : null;
 
     let reel = false;
+    let pressing: { id: string; k: number } | null = null;
     for (const p of this.pointers.values()) {
+      if (p.kind === 'press') {
+        const pr = p.press;
+        if (!pr || pr.fired) continue;
+        const k = longPressProgress(performance.now() - pr.t0, p.x - p.startX, p.y - p.startY);
+        if (k < 0) pr.fired = true;
+        else if (k >= 1) {
+          pr.fired = true;
+          this.onAction({ k: 'barhold', id: pr.id as ItemId });
+        } else pressing = { id: pr.id, k };
+        continue;
+      }
       if (p.kind === 'reel') reel = true;
       else if (p.kind === 'stick') {
         const dx = p.x - p.startX;
@@ -212,6 +233,7 @@ export class Input {
     }
     if (this.ui.screen !== 'play' || this.ui.shopOpen) {
       this.ui.reeling = false;
+      this.ui.barPress = null;
       return { moveX: 0, jump: false, dig: false, place: false, aim: null };
     }
     let aim: Controls['aim'] = null;
@@ -223,6 +245,7 @@ export class Input {
     const dash = k.has(km.dash) || (km.dash === 'ShiftLeft' && k.has('ShiftRight')) || this.dashTap;
     this.dashTap = false;
     this.ui.reeling = reel;
+    this.ui.barPress = pressing;
     return { moveX, jump, dig, place, aim, down, dash, reel };
   }
 }

@@ -444,6 +444,14 @@ function boot(): void {
       case 'sel':
         game.selectPlaceable(a.i);
         break;
+      case 'barhold':
+        if (ui.screen === 'play' && !ui.shopOpen) {
+          ui.invOpen = true;
+          ui.mapOpen = false;
+          ui.invPage = 'items';
+          ui.invSel = (game.carried[a.id] ?? 0) > 0 ? a.id : null;
+        }
+        break;
       case 'barslot':
         game.selectBarSlot(a.n);
         break;

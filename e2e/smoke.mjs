@@ -3462,7 +3462,47 @@ try {
   });
   await page.screenshot({ path: path.join(out, '51i-mobile-bar-arrange.png') });
   check('mobile: the item details and build-bar arrange buttons fit inside the inventory panel and are touch-sized', mBar.n >= 2 && mBar.inside && mBar.minW >= 44, JSON.stringify(mBar));
-  await page.evaluate(() => { const { ui } = window.__terrabound; ui.invOpen = false; ui.invPage = 'items'; });
+  await page.evaluate(() => { const { ui } = window.__terrabound; ui.invOpen = false; ui.invPage = 'items'; ui.invSel = null; });
+  await page.waitForTimeout(200);
+  // Touch long-press on a build-bar slot: a ring fills on the slot, then the inventory opens with that item's actions.
+  {
+    const press = await page.evaluate(async () => {
+      const { ui, game } = window.__terrabound;
+      const c = document.getElementById('game');
+      const r = c.getBoundingClientRect();
+      const slots = ui.rects.filter((q) => q.a.k === 'sel');
+      const b = slots[1] ?? slots[0];
+      if (!b) return null;
+      const ev = (type, id) => new PointerEvent(type, { pointerId: id, pointerType: 'touch', clientX: r.left + b.x + b.w / 2, clientY: r.top + b.y + b.h / 2, bubbles: true });
+      const wait = (ms) => new Promise((res) => setTimeout(res, ms));
+      // A quick tap selects only.
+      c.dispatchEvent(ev('pointerdown', 71));
+      await wait(90);
+      c.dispatchEvent(ev('pointerup', 71));
+      await wait(500);
+      const tapOpen = ui.invOpen;
+      const picked = game.selected;
+      ui.lastBarPressDrawn = 0;
+      c.dispatchEvent(ev('pointerdown', 72));
+      await wait(260);
+      const ring = ui.lastBarPressDrawn;
+      const midOpen = ui.invOpen;
+      return { tapOpen, picked, ring, midOpen, b: { x: b.x, y: b.y } };
+    });
+    await page.screenshot({ path: path.join(out, '51j-mobile-long-press.png'), clip: { x: 0, y: Math.max(0, (press?.b.y ?? 600) - 80), width: 390, height: 160 } });
+    const opened = await page.evaluate(async (press) => {
+      const { ui } = window.__terrabound;
+      await new Promise((res) => setTimeout(res, 400));
+      const st = { open: ui.invOpen, sel: ui.invSel };
+      const c = document.getElementById('game');
+      c.dispatchEvent(new PointerEvent('pointerup', { pointerId: 72, pointerType: 'touch', bubbles: true }));
+      return st;
+    }, press);
+    await page.waitForTimeout(150);
+    await page.screenshot({ path: path.join(out, '51k-mobile-long-press-open.png') });
+    check('touch: tap on a bar slot selects; holding it fills a ring then opens its item actions', !!press && !press.tapOpen && press.ring > 0 && press.ring < 1 && !press.midOpen && opened.open && opened.sel === press.picked, JSON.stringify({ press, opened }));
+    await page.evaluate(() => { const { ui } = window.__terrabound; ui.invOpen = false; ui.invSel = null; });
+  }
   // Drone rule panel fits a phone: build two bays, open it, add three rules, every button on screen.
   await page.evaluate(() => {
     const g = window.__terrabound.game;

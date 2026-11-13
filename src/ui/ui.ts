@@ -68,6 +68,8 @@ export type UiAction =
   | { k: 'sel'; i: number }
   /** Select visible build-bar slot n (keys 6-0 and -). */
   | { k: 'barslot'; n: number }
+  /** Touch long-press on a bar slot: open the inventory with that item's actions. */
+  | { k: 'barhold'; id: ItemId }
   /** Move a placeable one slot left/right on the build bar (inventory). */
   | { k: 'barmove'; id: ItemId; d: -1 | 1 }
   | { k: 'tool' }
@@ -395,6 +397,8 @@ export class UI {
   /** Device safe-area insets in CSS px (notch, home bar); the UI draws inside them. */
   /** Set by Input while a finger holds the REEL button (drawn pressed). */
   reeling = false;
+  /** Touch long-press in progress on a build-bar slot (item id, 0..1 fill), drawn as a ring on the slot. */
+  barPress: { id: string; k: number } | null = null;
   insets: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
   /** The safe frame used by the last draw (rects are stored in full-canvas CSS px). */
   frame = { x: 0, y: 0, w: 0, h: 0 };
@@ -674,6 +678,30 @@ export class UI {
     ctx.fillRect(x, y, bw * Math.max(0, bs.hp / d.hp), u * 1.2);
     this.text(ctx, `${d.name}${bs.hp <= d.hp / 2 ? '  (enraged)' : ''}`, w / 2, y - u * 0.9, Math.round(u * 0.95), '#ffd8a8', 'center', bw);
   }
+
+  /** Long-press feedback: a ring fills clockwise around the held slot until its actions open. */
+  private drawBarPress(ctx: CanvasRenderingContext2D): void {
+    const bp = this.barPress;
+    const at = bp ? this.slotPos.get(bp.id) : undefined;
+    if (!bp || !at || bp.k <= 0.08) return;
+    const cx = at.x + at.s / 2;
+    const cy = at.y + at.s / 2;
+    const r = at.s * 0.62;
+    ctx.save();
+    ctx.lineWidth = Math.max(3, at.s * 0.08);
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = '#ffcf4a';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * bp.k);
+    ctx.stroke();
+    ctx.restore();
+    this.lastBarPressDrawn = bp.k;
+  }
+  /** Last long-press fill drawn (e2e). */
+  lastBarPressDrawn = 0;
 
   /** One item cell: dark slot, pixel icon, count in the corner, highlight when selected. */
   private cell(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, id: ItemId | Tool | GearId, count: number | null, sel: boolean, a: UiAction | null, dim = false): void {
@@ -1407,6 +1435,7 @@ export class UI {
     this.cell(ctx, sx + gap, sy, slot, 'chest', null, false, { k: 'inv' });
     this.slotPos.set('inv', { x: sx + gap, y: sy, s: slot });
     this.text(ctx, this.touch ? 'BAG' : 'I', sx + gap + slot / 2, sy - u * 0.3, Math.round(u * 0.7), '#c9d0e4', 'center');
+    this.drawBarPress(ctx);
     this.drawFlyers(ctx, slot);
     // What is held, above the bar.
     const heldName = TOOL_SLOTS.find((t) => t.tool === game.tool)?.label ?? '';
