@@ -746,3 +746,13 @@ Owner: "Water looks bad. Pet looks bad. On hover the items should show what they
 **Next:** the follow-ups at the end of BACKLOG P1.11. Legacy saves only get the big world when they start a new one.
 
 **Known issues:** in headless the lava scene renders about 11 ms vs 7.5 ms for a plain scene; natural cave pools now spill over ledges and settle the first time the player comes near (expected with real levels).
+
+## 2026-11-13 Scheduled run 53
+
+**Done:** baseline green (840 tests, 241 e2e). Creative review: the Hollow AI arena circuit was decoration only (28e) and every boss hit was silent. Phase-2 floor zaps (src/sim/arenazap.ts, Boss `zap`/`zapCd`, def flag `floorZaps`): once enraged, the floor under the Hollow AI charges for 0.9 s, then a wave rolls out both ways at 11 tiles/s to 32 tiles; a grounded player on that floor (within 4 rows) under the crest takes 14 and hops, once per wave; 1.1 s rest between waves. Render (arenafx `zapGlow`/`zapArc`/`drawArenaZap`): a red/white pool swelling under the boss with flickering arcs, then a white-hot crest with zigzag arcs and a fading wake (28f-hollow-zap); events `zapwarn` (rising whine, red sparks) and `zaphit` (crack, shake, "Zapped! Jump the floor wave" toast). Per-boss hit sounds (src/platform/hitvoice.ts): clank, thump, crystal ping, ember hiss, ice crack, glitch; heavier hits lower and louder. Ticked stale P3 lines (Circuit layer, Junk Colossus) that were done long ago.
+
+**Numbers:** 849 unit tests (new: arenazap 7, hitvoice 2), 242 e2e checks all green (new: zap pool + crest whites), bundle 445.6 kB (156.0 kB gzip). One ship, green first time.
+
+**Next:** Core-layer HUD/boss-title overlap check on small phones; a lighter dive report on beam-home (P4 follow-up); P1.9 follow-ups (plane with cargo, charge station); P1.11 stays with the interactive session.
+
+**Known issues:** zaps ignore vehicles' ground state the same as the player's (a grounded buggy gets zapped; intended); the e2e holds the zap with hit=true so the damage path is covered only by unit tests; dive tally lives in memory; the dive card shows only on death; tall cones put bomb arcs above the screen from the foot; drone mining counts toward "mined"; e2e farm uses raw tile ids.

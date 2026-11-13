@@ -228,3 +228,8 @@
 - **Single-sample frame-time probes flip:** the same scene measured 7 to 14 ms between runs. Alternate the compared scenes three times and compare medians.
 - **Retro:** worldgen was 60% noise hashing; precomputing lattices gave 1.7x with identical output (checksum before and after). Profile before deciding a feature is too expensive.
 - **Read the whole failure list before fixing:** the first big-world unit run listed 5 failures and I fixed 4. The fifth (farming: a pond beside the fixture spot) only showed up again in the 10-minute ship gate. Re-run the full suite after fixing, not just the touched files.
+
+
+- **A file dropped into `src/` during the baseline gate can fail that gate's later `tsc` (build runs tsc again).** I wrote a new sim module that referenced fields not added yet while `npm run check` was still in vitest; caught and moved it to the scratchpad before the build step. Guard: during any gate, new files go to the scratchpad only (the older lesson covered edits; it holds for new files too).
+- **A new periodic hazard must be pinned off in existing e2e scenes.** The zap would fire on its own during the phase-2 arena pixel checks and could hop the player mid-sample. Guard: the e2e sets `zapCd = 99` when it reskins to the Hollow AI and holds `zap` explicitly (marked `hit`) for its own check.
+- **Retro (run 53):** two slices, one gate, green first time. Running the slice-1 e2e alone while drafting slice 2 (pure table + test) in the scratchpad, then applying it with a ~2 s unit test, let both ship in one gate.

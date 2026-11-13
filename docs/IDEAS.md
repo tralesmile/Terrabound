@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 53
+
+- Done this run: the Hollow AI's phase 2 now electrifies its floor circuit: a charging pool flickers under the boss (0.9 s), then a white-hot crest with zigzag arcs rolls out both ways; standing on the floor as it passes hurts, a jump dodges it (28f). Every boss answers hits in its own material sound (clank, thump, crystal ping, ember hiss, ice crack, glitch).
+- Weakest finale play (next): zaps share the floor with volleys; a "safe island" (a raised platform node that never conducts) would add positioning, Terraria Moon Lord style.
+- Weakest graphics: the new liquid strip on the surface pond reads as glitter noise at 1x (02-digging); owner's interactive session owns liquids, so note only.
+- Weakest progression: the dive report still only shows on death; a lighter "dive banked" card on beam-home (carried, P4 follow-up).
+- Weakest UI: Core-layer toasts and the boss title can crowd the top band on small phones (carried; a 360x640 boss screenshot check is cheap).
+
 ## 2026-11-13 run 52
 
 - Done this run: boss hits now spray sparks in the boss's own colours from the face that was hit, back toward the attacker, with the damage number at the hit point (26k); the Hollow AI fights over a glowing floor circuit whose pulse rings roll outward, red and faster once enraged (28e).
@@ -40,11 +48,3 @@
 - Weakest graphics: enemies, pets and NPCs in deep layers still use surface colours next to the now-tinted player; reuse ambientRemap on their sprites.
 - Weakest feel: at the pad, carried rust/metal blocks bank instantly, so a player can't hold a stack of building blocks at base; consider keeping placeables selected in the bar carried (bank only ores/loot).
 - Weakest progression: still no run-summary/share card (P4) for a good dive.
-
-## 2026-11-13 run 47
-
-- Done this run: deep-layer floor glow (rims take the layer's colour; lit floors get a soft fading sheen so the walkable ledge reads; 27d-floor-glow), arrangeable build bar (< / > in the inventory with a bar preview strip, saved; 18b-hotbar-arrange).
-- Weakest controls: keys 6-0 and - still pick fixed placeables (rust, metal, torch, ladder, scaffold, wall) instead of the arranged bar slots; map them to slots 1-6 of the visible bar (with a key hint on each slot).
-- Weakest boss art: the Crystal Golem and Frost Titan are still plain rects with eyes (promoted to BACKLOG P1.10).
-- Weakest touch UI: item actions need the inventory; a long-press on a hotbar slot opening HOLD / move / DROP would save trips (last P1.6 follow-up).
-- Weakest graphics: in the Circuit layer the suit reads flat red-orange under the lamp (27-deep-layer); a cool layer-tinted ambient on the player sprite would seat them in the scene.

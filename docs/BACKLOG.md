@@ -107,7 +107,8 @@ World size and variety:
 - [x] Ranged-boss telegraphs: charge lane with chevrons + end post, dash streaks and dust/embers, volley muzzle orb, summon cracks with sprouts (run 50)
 - [x] Boss bolts leave a fading accent trail; Hollow AI art pass: battered plate shell that sheds plates with debris, glowing seams and core cracks as it is hurt; boss bar damage chip + phase notch (run 51)
 - [x] Hollow AI arena floor circuit (pink pulse rings rolling outward, red and faster in phase 2); boss hit sparks in each boss's colours from the hit face toward the attacker, damage number at the hit point (run 52)
-- [ ] Follow-ups (scheduled runs may take these): Core-layer HUD/boss-title overlap check on small phones; arena hazard telegraphs on the circuit (phase 2 floor zaps)
+- [x] Hollow AI phase-2 floor zaps (charging pool telegraph, white-hot crest rolling out both ways, jump to dodge); per-boss hit sounds (run 53)
+- [ ] Follow-ups (scheduled runs may take these): Core-layer HUD/boss-title overlap check on small phones; a non-conducting safe platform node in the Hollow AI arena
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 
@@ -219,8 +220,8 @@ Money (ethical, no paywalls)
 
 - [ ] Equipment slots (helmet, core, boots, module, 3 accessories) with stats and UI
 - [ ] Rarity and weapon modifiers; mod chips; set bonuses
-- [ ] Layer 2 Circuit: tiles, ores, enemies, hazards (electric floors), dark zones
-- [ ] Boss 1 Junk Colossus with telegraphed attacks and arena
+- [x] Layer 2 Circuit: tiles, ores, enemies, hazards, dark zones (done in P1.8; layers.ts)
+- [x] Boss 1 Junk Colossus with telegraphed attacks and arena (done in P1.8 + P1.10)
 - [ ] Boss 2 Logic Warden; unlock flow between layers
 - [ ] Tech tree for blueprints
 
