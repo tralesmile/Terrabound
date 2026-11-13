@@ -1468,6 +1468,50 @@ try {
     const g = window.__terrabound.game;
     return g.equipped('pet') === 'spark_pup' && Math.hypot(g.pet.x - g.body.x, g.pet.y - g.body.y) < 5;
   }));
+  // Pet swimming: in a sealed sky tank the pup trails the player under water and paddles.
+  const petTank = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const x = w.padX + 60;
+    const t0 = Math.max(12, w.surface[x] - 30);
+    for (let yy = t0 - 5; yy <= t0 + 6; yy++) for (let xx = x - 6; xx <= x + 6; xx++) {
+      const wall = xx === x - 6 || xx === x + 6 || yy === t0 + 6 || yy === t0 - 5;
+      w.set(xx, yy, wall ? 5 : yy >= t0 ? 25 : 0);
+    }
+    g.enemies = [];
+    g.body.x = x + 0.5;
+    g.body.y = t0 + 5.9;
+    g.body.vx = g.body.vy = 0;
+    g.pet.x = x - 1;
+    g.pet.y = t0 + 3.5;
+    return { x, t0 };
+  });
+  let petSwim = 'dry';
+  for (let i = 0; i < 15 && petSwim !== 'under'; i++) {
+    await page.waitForTimeout(80);
+    petSwim = await page.evaluate(({ x, t0 }) => {
+      const g = window.__terrabound.game;
+      g.body.x = x + 0.5;
+      g.body.y = t0 + 5.9;
+      g.body.vy = 0;
+      return window.__terrabound.renderer.petSwim;
+    }, petTank);
+  }
+  await page.waitForFunction(() => {
+    const { renderer, game } = window.__terrabound;
+    return Math.abs(renderer.camX - game.body.x) < 0.3 && Math.abs(renderer.camY - game.body.y) < 3;
+  }, null, { timeout: 3000 }).catch(() => {});
+  await page.screenshot({ path: path.join(out, '31b-pet-swim.png') });
+  check('a pet that follows the player under water swims', petSwim === 'under', petSwim);
+  await page.evaluate(({ x, t0 }) => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    for (let yy = t0 - 5; yy <= t0 + 6; yy++) for (let xx = x - 6; xx <= x + 6; xx++) w.set(xx, yy, 0);
+    g.body.x = w.padX + 0.5;
+    g.body.y = w.padY;
+    g.body.vx = g.body.vy = 0;
+  }, petTank);
+  await page.waitForTimeout(200);
 
   // Field drones: E at a drone bay picks its role; miner and guard drones follow the player out.
   await page.evaluate(() => {

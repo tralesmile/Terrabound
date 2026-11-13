@@ -2,6 +2,7 @@ import { aoRects } from './ao';
 import { computeRims, type Rim } from './rimlight';
 import { buriedDecal, decalRects, hasStrata, strataShade } from './strata';
 import type { Game, Hook, Shot } from '../sim/game';
+import { petSwimPose, petWater, type PetWater } from './petfx';
 import { lavafallSpan } from '../sim/structures';
 import { FALL_W, LAVA_BLOCK, SHIMMER_ROW, SHIMMER_ROWS, fallShade, lavaDepthShade, lavaShade, shimmerRuns, shimmerShift } from './lavafx';
 import { acidBubble, causticBand, depthShade, surfaceGlint, waveOffsets } from './liquidfx';
@@ -420,13 +421,39 @@ export class Renderer {
     }
     // Pet companion.
     const petId = game.equipped('pet');
+    this.petSwim = 'dry';
     if (petId) {
-      const pxp = this.sx(game.pet.x, shakeX);
-      const pyp = this.sy(game.pet.y, shakeY);
       const u = scale;
+      // Swimming: a pet that trails the player into a pool paddles (petfx.ts) instead of hovering.
+      const pcx = Math.floor(game.pet.x);
+      const water = petWater(isLiquid(world.get(pcx, Math.floor(game.pet.y))), isLiquid(world.get(pcx, Math.floor(game.pet.y - 0.45))));
+      const pose = petSwimPose(time, water, game.facing < 0 ? -1 : 1);
+      this.petSwim = water;
+      const pxp = this.sx(game.pet.x, shakeX);
+      const pyp = this.sy(game.pet.y, shakeY) + pose.bob * u;
       const pd = GEAR[petId];
+      if (pose.bubble) {
+        const b = pose.bubble;
+        ctx.strokeStyle = `rgba(220,245,255,${(0.85 * b.alpha).toFixed(3)})`;
+        ctx.lineWidth = Math.max(1, u * 0.6);
+        ctx.strokeRect(pxp + b.dx * u - u, pyp + b.dy * u - u, u * 2, u * 2);
+      }
+      if (pose.wake) {
+        // Wake on the surface line: two short bright dashes trailing behind.
+        const sy = this.sy(Math.floor(game.pet.y), shakeY);
+        ctx.fillStyle = 'rgba(230,248,255,0.75)';
+        const off = pose.paddle ? u : 0;
+        ctx.fillRect(pxp - game.facing * u * (6 + off) - u * 2, sy, u * 3, u);
+        ctx.fillRect(pxp - game.facing * u * (10 + off) - u, sy + u, u * 2, u);
+      }
+      ctx.save();
+      if (pose.tilt !== 0) {
+        ctx.translate(pxp, pyp);
+        ctx.rotate(pose.tilt);
+        ctx.translate(-pxp, -pyp);
+      }
       if (petId === 'glow_moth') {
-        const flap = Math.sin(time * 18) > 0 ? 3 : 1;
+        const flap = water === 'dry' ? (Math.sin(time * 18) > 0 ? 3 : 1) : pose.paddle ? 2 : 1;
         ctx.fillStyle = 'rgba(200,255,216,0.25)';
         ctx.beginPath();
         ctx.arc(pxp, pyp, u * 9, 0, Math.PI * 2);
@@ -445,16 +472,31 @@ export class Renderer {
         ctx.fillRect(pxp + game.facing * u * 1 - u, pyp - u, u * 2, u * 1.5);
         if (petId === 'scout_bot') {
           ctx.fillStyle = '#c9d0e4';
-          const r = Math.floor(time * 20) % 2 ? 5 : 3;
-          ctx.fillRect(pxp - u * r, pyp - u * 4.5, u * r * 2, u);
+          if (water === 'dry') {
+            const r = Math.floor(time * 20) % 2 ? 5 : 3;
+            ctx.fillRect(pxp - u * r, pyp - u * 4.5, u * r * 2, u);
+          } else {
+            // Rotor folded flat; a little prop spins at the back.
+            ctx.fillRect(pxp - u * 2, pyp - u * 4, u * 4, u);
+            const bx = pxp - game.facing * u * 5;
+            ctx.fillRect(bx - u * 0.5, pyp - u * (pose.paddle ? 2.5 : 1), u, u * (pose.paddle ? 5 : 2));
+          }
         } else {
           // Spark pup: ears and a tail.
           ctx.fillStyle = pd.color;
           ctx.fillRect(pxp - u * 3, pyp - u * 4, u * 2, u * 2);
           ctx.fillRect(pxp + u, pyp - u * 4, u * 2, u * 2);
           ctx.fillRect(pxp - game.facing * u * 4.5, pyp - u * 2 + (Math.floor(time * 6) % 2) * u, u * 1.5, u);
+          if (water !== 'dry') {
+            // Doggy paddle: front and back paws stroke in turn under the body.
+            ctx.fillStyle = pd.accent;
+            const k = pose.paddle;
+            ctx.fillRect(pxp + game.facing * u * (2 + k) - u, pyp + u * 3, u * 2, u);
+            ctx.fillRect(pxp - game.facing * u * (3 - k) - u, pyp + u * (3 + k), u * 2, u);
+          }
         }
       }
+      ctx.restore();
     }
     this.drawFieldDrones(ctx, game, shakeX, shakeY, time);
     this.drawNpcs(ctx, game, shakeX, shakeY, time);
@@ -1624,6 +1666,8 @@ export class Renderer {
     this.shimmerCells.length = 0;
   }
 
+  /** Where the pet is this frame: dry, at the surface or under (e2e). */
+  petSwim: PetWater = 'dry';
   /** Lavafall sheets drawn last frame (e2e) and the air cells they pour through (light sources). */
   lavafallsShown = 0;
   private fallCells = new Set<number>();

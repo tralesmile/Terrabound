@@ -1,5 +1,14 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 37
+
+- Done this run: lavafalls (basalt crag, spring, poured sheet, catch pool, burn, codex; carried 1 run); pets swim (paddle, lean, bubbles, wake).
+- Weakest graphics: the Ash Dunes surface is one flat grey-with-orange-dots texture; ash drifts, cracked crust tiles and cinder cones would break it up (Terraria Underworld variety).
+- Weakest feel: lava contact is just HP loss; a knock-up hop, sizzle sound and charred suit tint for a second would make it read (Noita burning).
+- Weakest story (carried 2): logs are one line each; 3-4 lines per log.
+- Weakest UI (carried 2): full-screen panels leave the notch strip showing the world.
+- Weakest perf risk (carried): add a frame-time probe to e2e over lava (pool shimmer + lavafall + embers) before phones ship.
+
 ## 2026-11-13 run 36
 
 - Done this run: molten lava crust + heat shimmer (weakest graphics: lava was striped orange water); award gifts (carried 4 runs); wheels turn with ground speed.
@@ -17,12 +26,3 @@
 - Weakest story: logs are one line each; expand each to 3-4 lines so the reader page earns its space (Noita/Starbound lore tablets).
 - Weakest UI (carried): full-screen panels leave the notch strip showing the world; dark fill behind the safe frame on phones.
 - Weakest controls (carried): hold right click to sow a row; hotbar digits not remappable.
-
-## 2026-11-12 run 33
-
-- Done this run: water splash crown + helmet air bubbles (carried 2 runs); safe-area insets; HOLD REEL touch button.
-- Weakest graphics (carried): open caves are one flat tone between rims; a faint inner ambient-occlusion band on faces next to air, baked into the chunk cache.
-- Weakest progression (carried): bronze/silver awards pay only a star; small one-time stash gifts per award (nothing expires).
-- Weakest feel: the grappling rope is a straight 1 px line; a slight sag while slack and a twang on attach would sell the swing (Terraria hooks).
-- Weakest UI: full-screen panels leave the notch strip showing the world; a dark fill behind the safe frame on phones.
-- Weakest controls: hold right click to sow a row (carried); hotbar digits not remappable.
