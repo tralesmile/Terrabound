@@ -22,6 +22,8 @@ function flat(g: Game, dx: number, width = 12): { x: number; y: number } {
     for (let yy = y - 14; yy < y; yy++) w.set(x, yy, T.AIR);
     w.set(x, y, T.RUST);
   }
+  // No pond in watering range (worldgen can put one beside the spot; the big world did): unwatered unless a test adds water.
+  for (let x = x0 - width - 8; x <= x0 + width + 8; x++) for (let yy = y - 14; yy <= y + 3; yy++) if (w.get(x, yy) === T.WATER) w.set(x, yy, T.RUST);
   g.body.x = x0 + 0.5;
   g.body.y = y;
   g.body.vx = g.body.vy = 0;

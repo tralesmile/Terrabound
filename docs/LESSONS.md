@@ -227,3 +227,4 @@
 - **Bigger worlds move e2e fixtures:** fixed waits after long teleports missed (wait for the camera instead), and the e2e's own tank landed on a cinder cone (pick structures away from earlier edits).
 - **Single-sample frame-time probes flip:** the same scene measured 7 to 14 ms between runs. Alternate the compared scenes three times and compare medians.
 - **Retro:** worldgen was 60% noise hashing; precomputing lattices gave 1.7x with identical output (checksum before and after). Profile before deciding a feature is too expensive.
+- **Read the whole failure list before fixing:** the first big-world unit run listed 5 failures and I fixed 4. The fifth (farming: a pond beside the fixture spot) only showed up again in the 10-minute ship gate. Re-run the full suite after fixing, not just the touched files.
