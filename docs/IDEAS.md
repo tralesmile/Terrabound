@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 44
+
+- Done this run: per-layer cave back walls (dark circuit mesh, plasma basalt, core obsidian; carried 1), enemies follow slope diagonals, desktop hover labels for HUD glyphs, lore logs in story order by depth, red hurt-flash tint (was a flat white silhouette every other frame, 27c).
+- Weakest graphics: the surface dirt is a wide flat orange noise field (11f, 26-boss); a few buried pebbles, roots and darker bands in the first 6 tiles would give the cross-section depth (Terraria, Core Keeper).
+- Weakest boss art: the Junk Colossus is a brick block with eyes (26-boss); arms that swing on its slam telegraph and loose scrap plates would sell the weight.
+- Weakest feel: lit deep caves are still one flat tone near the player; a soft rim light on cave floors in the deep layers would show the walkable edge.
+- Weakest UI: the toast column (goal + 2 toasts) still covers the top-left quarter when a gate opens (27); fade toasts older than 4 s to a one-line ghost.
+
 ## 2026-11-13 run 43
 
 - Done this run: icon HUD (square glyph buttons two wide with the cog, key hints on desktop, 44 px on touch; carried 1); longer lore logs (2-3 more lines each, carried 8); feet follow the drawn slope diagonals (render-only sink, no more half-tile float).
@@ -15,11 +23,3 @@
 - Weakest graphics: underground is very dark blue-grey; the back wall and rock read the same tone, so cave shapes are hard to see (11e). A slightly warmer, darker back wall or a thin lit rim on cave floors would separate them.
 - Weakest feel: slopes are render-only (player floats up to half a tile on the cap); physical diagonal walking.
 - Weakest story (carried 7): logs are one line each; 3-4 lines per log.
-
-## 2026-11-13 run 41
-
-- Done this run: half-tile slope caps on staircase corners (carried 2 runs; 11c-slopes); auto-step over one-tile ledges (every surface bump used to need a jump, Starbound/Terraria walk up them); codex field-guide notes.
-- Weakest feel: walkers (enemies, pets) still stop at one-tile steps; give them the same stepUp so chases flow over hills.
-- Weakest UI (carried 1): the goal card is a wide dark panel; one line + bar would free a third of the top-left.
-- Weakest graphics: cave ceilings stay stair-stepped; mirror the caps for bottom corners (S+E / S+W).
-- Weakest story (carried 6): logs are one line each; 3-4 lines per log.

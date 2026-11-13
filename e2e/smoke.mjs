@@ -180,6 +180,27 @@ try {
   await page.mouse.move(640, 420);
   await page.waitForTimeout(150);
   const hoverOff = await page.evaluate(() => window.__terrabound.ui.hoverShown);
+  // Hurt flash: the suit tints red (readable shape), never a flat white silhouette.
+  const hurtPx = await page.evaluate(async () => {
+    const { game, renderer } = window.__terrabound;
+    renderer.reduceFlash = true;
+    game.iframes = 2;
+    await new Promise((r) => setTimeout(r, 120));
+    const c = document.querySelector('canvas');
+    const p = renderer.worldToScreen(game.body.x, game.body.y);
+    const s = renderer.scale;
+    const d = c.getContext('2d').getImageData(Math.round(p.x - 10 * s), Math.round(p.y - 26 * s), Math.round(20 * s), Math.round(26 * s)).data;
+    let white = 0;
+    let red = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i] > 245 && d[i + 1] > 245 && d[i + 2] > 245) white++;
+      else if (d[i] > 150 && d[i] > d[i + 1] * 1.5 && d[i] > d[i + 2] * 1.5) red++;
+    }
+    return { white, red };
+  });
+  await page.screenshot({ path: path.join(out, '05c-hurt-tint.png') });
+  await page.evaluate(() => { const t = window.__terrabound; t.renderer.reduceFlash = false; t.game.iframes = 0; });
+  check('the hurt flash tints the suit red instead of a white silhouette', hurtPx.red > 40 && hurtPx.white < 20, JSON.stringify(hurtPx));
   check('hovering a HUD glyph on desktop shows its name and key, moving off hides it', hoverMap.startsWith('Map (') && hoverOff === '', JSON.stringify({ hoverMap, hoverOff }));
 
   // Walk right with real key input.

@@ -23,6 +23,27 @@ export function charColor(hex: string, k: number): string {
   return '#' + out.map((v) => v.toString(16).padStart(2, '0')).join('');
 }
 
+/** Hurt flash colour the suit is tinted toward (a warm red, not a white silhouette). */
+export const HURT_RED = [255, 64, 56] as const;
+
+/** Mixes a #rrggbb colour 60% toward the hurt red, so the suit's shape and shading still read during the flash. */
+export function hurtColor(hex: string): string {
+  if (hex[0] !== '#' || hex.length !== 7) return hex;
+  const out = [1, 3, 5].map((i, j) => {
+    const v = parseInt(hex.slice(i, i + 2), 16);
+    return Math.round(v + (HURT_RED[j] - v) * 0.6);
+  });
+  return '#' + out.map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+
+/** Red-tinted copy of a palette remap over every colour key the sprite can use (hurt flash). */
+export function hurtRemap(pal: Record<string, string>, remap: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const ch of Object.keys(pal)) out[ch] = hurtColor(remap[ch] ?? pal[ch]);
+  for (const ch of Object.keys(remap)) out[ch] = hurtColor(remap[ch]);
+  return out;
+}
+
 /** Integer hash for stable per-pixel ember flicker. */
 function hash(a: number, b: number, c: number): number {
   let h = (a * 374761393 + b * 668265263 + c * 2147483647) | 0;
