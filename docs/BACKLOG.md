@@ -84,7 +84,8 @@ World size and variety:
 - [x] Ruin weathering (cracked bricks, soot, vines/icicles, stained old plates), cinder cones with smoking craters (codex: Cinder cone), frame-time probes for a boss fight and a dust storm (run 39)
 - [x] Cone eruptions (rumble telegraph, lava bombs that burn and knock back, never break blocks); discovery + codex gift + award fold into one toast pill (run 40)
 - [x] Half-tile slope caps on one-tile staircase corners (render), auto-step over one-tile ledges (sim, eased), codex field-guide notes for every place incl. cone eruptions (run 41)
-- [ ] Follow-ups (scheduled runs may take these): slope caps on cave ceilings (bottom corners); enemies and pets auto-step too; slimmer goal card (one line + bar)
+- [x] Walkers auto-step one-tile ledges and walk down one-tile drops (pets fly, nothing to do); slim one-row goal card; cave-ceiling slope caps; natural Scrap-layer metal slopes (player-placed blocks stay square) (run 42)
+- [ ] Follow-ups (scheduled runs may take these): physical slopes (walk the diagonal, no half-tile float); icon HUD buttons (sound/map/home/shop as square glyph buttons like the cog); longer lore logs (3-4 lines each)
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 

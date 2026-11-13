@@ -616,3 +616,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** enemies and pets auto-step; slope caps on cave ceilings; slimmer goal card; longer lore logs; P1.9 follow-ups (plane with cargo, charge station).
 
 **Known issues:** slopes are render-only, so a player standing on the outer half of a cap floats up to half a tile above the drawn diagonal (the auto-step makes walking over them smooth); the drill tank now climbs one-tile steps instead of drilling them (dig by aiming still works); tall cones put bomb arcs above the screen from the foot; the log reader leaves empty space on desktop; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).
+
+## 2026-11-13 Scheduled run 42
+
+**Done:** baseline green (713 tests). Walker auto-step (src/sim/enemies.ts `enemyStepUp`, render ease via shared `stepEase` in physics.ts): crawlers, vine stalkers, mites and hulks climb one-tile ledges instead of turning back, walk down one-tile drops and turn only at real cliffs; raiders hop only taller walls (11d-crawler-step). Pets fly, so they needed nothing. Slim goal card (src/ui/hudlayout.ts `goalCardLayout`): a "2/7" badge, the step text and the count on one row with a hairline progress bar, 33 px tall vs ~55 (49-goal, 06-mobile-play). Cave-ceiling slope caps (autotile `SLOPE_CR`/`SLOPE_CL`, atlas 18 -> 20 shapes, shaded cut). The Scrap layer's rock is metal, which never sloped, so natural metal slopes now; player-placed blocks (any tile in `world.edits`) stay square (11e-cave-ceiling).
+
+**Numbers:** 725 unit tests (new: enemystep 5, slim goal card 3, ceiling slopes 4; raids test updated on purpose: patrollers step one tile, still turn at two), 201 e2e checks all green (new: slim goal row, crawler auto-steps the staircase, ceiling caps drawn), bundle 396 kB (138.4 kB gzip).
+
+**Next:** icon HUD buttons; underground contrast (back wall vs rock); physical slopes; longer lore logs; P1.9 follow-ups (plane with cargo, charge station); P1.6 follow-ups.
+
+**Known issues:** player-placed soil/rust no longer slopes (it used to; built = square is the rule now); slopes are render-only, so the player floats up to half a tile over a cap; patrolling walkers now wander over hills further than before (watch spawn density near the pad); tall cones put bomb arcs above the screen from the foot; the log reader leaves empty space on desktop; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).

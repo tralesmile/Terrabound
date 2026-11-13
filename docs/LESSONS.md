@@ -175,3 +175,7 @@
 - **A transparent cut at the surface shows the cell's own back wall** (natural walls fill everything at or below the surface), which read as a dark notch above the hill line. Guard: surface slope caps skip `drawBack`; the 11c-slopes crop is checked zoomed.
 - **`game.events` is not cleared by `step()`** (the app drains it). A sim test counting events must clear it each step or it counts the same event 60 times.
 - **Retro:** two slices, two ships (~7 min each), no red gate, no rebase. Starting edits only after the baseline finished and drafting the e2e while vitest ran in the background kept every gate clean.
+
+- **Check the actual tile id before blaming the art.** The ceiling caps were drawn (counter > 0) but the cave in the shot stayed square: the Scrap layer's rock is `T.METAL`, which the slope set excluded as "built". Guard: "built" is now decided by `world.edits` (player-placed), not by tile id, and a unit test pins natural metal sloping and edited cells staying square.
+- **A 2-minute tool timeout kills `npx vitest run` with `timeout 115`.** Guard: always run vitest and e2e with `nohup ... &` and poll the log; never wrap them in `timeout`.
+- **Retro:** three slices, two ships (~7 min each), no red gate, no rebase. Patching from a scratchpad script while `ship` built, and applying it only after the e2e step started (e2e reads `dist/`), kept the gate clean.
