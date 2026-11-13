@@ -563,6 +563,40 @@ try {
     check('a chasing crawler auto-steps up the one-tile ledge (eased)', crawl.y <= stair.top + 0.01 && crawl.lift > 0, JSON.stringify({ stair, crawl }));
     await page.evaluate(() => { window.__terrabound.game.enemies = []; });
   }
+  // Cave ceilings soften too: stand under a one-tile ceiling staircase and count the upside-down caps.
+  const ceil = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const S = (x, y) => w.isSolid(x, y);
+    for (let y = 30; y < w.h - 20; y++) {
+      for (let x = 20; x < w.w - 20; x++) {
+        if (y < w.surface[x] + 12) continue;
+        if (!(S(x, y) && S(x, y - 1) && S(x - 1, y) && S(x + 1, y - 1) && !S(x + 1, y) && !S(x, y + 1))) continue;
+        let fy = y + 1;
+        while (fy < y + 8 && !S(x + 1, fy)) fy++;
+        if (fy - y < 4 || fy >= y + 8 || S(x + 1, fy - 2) || S(x + 1, fy - 3)) continue;
+        const r = window.__terrabound.renderer;
+        r.slopesDrawn = 0;
+        r.ceilSlopesDrawn = 0;
+        r.chunks.clear();
+        g.enemies = [];
+        g.hp = g.derived.maxHp;
+        g.body.x = x + 1.5;
+        g.body.y = fy;
+        g.body.vx = g.body.vy = 0;
+        return { x, y, fy };
+      }
+    }
+    return null;
+  });
+  await page.waitForFunction(() => {
+    const { renderer: r, game: g } = window.__terrabound;
+    return Math.abs(r.camX - g.body.x) < 0.3 && Math.abs(r.camY - g.body.y) < 1.5;
+  }, null, { timeout: 4000 }).catch(() => {});
+  await page.waitForTimeout(250);
+  const ceilDrawn = await page.evaluate(() => window.__terrabound.renderer.ceilSlopesDrawn);
+  check('cave ceiling staircases soften into upside-down slope caps', !!ceil && ceilDrawn > 0, JSON.stringify({ ceil, ceilDrawn }));
+  await page.screenshot({ path: path.join(out, '11e-cave-ceiling.png') });
   await toastCheck(page, 'desktop', '46-toasts.png');
   // Underground points of interest: stand beside a data shrine and check that its terminal glows.
   const shrine = await page.evaluate(() => {

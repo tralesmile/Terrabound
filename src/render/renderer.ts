@@ -56,7 +56,7 @@ import { GEAR, type RangedKind } from '../sim/gear';
 import { BOSSES, phase as bossPhase } from '../sim/bosses';
 import { drawBossArt } from './bossart';
 import { ACT_INFO } from '../sim/drones';
-import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, leafMask, SLOPE_R, slopeShape, slopeTop } from './autotile';
+import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, isCeilingSlope, leafMask, SLOPE_CR, SLOPE_R, slopeBottom, slopeShape, slopeTop } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape } from './decor';
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
@@ -162,6 +162,8 @@ export class Renderer {
   ashDriftsDrawn = 0;
   /** Slope caps baked into chunks (e2e reads it). */
   slopesDrawn = 0;
+  /** Of those, cave-ceiling caps (cut underneath). */
+  ceilSlopesDrawn = 0;
   /** Ruin weathering: cracked bricks, soot streaks, vines and icicles hanging off undersides. */
   private ruinCracks = stripOf(RCRACK_VARIANTS, TS, ruinCrackPixels);
   private ruinSoot = stripOf(SOOT_VARIANTS, TS, sootPixels);
@@ -1169,17 +1171,20 @@ export class Renderer {
     const v = Math.floor(hash2(tx, ty, 7) * VARIANTS);
     const mask = isBlock(t) ? edgeMask(get, tx, ty) : MASKS - 1;
     // Step corners on a staircase become 45 degree half-tile caps (softer hills; render only).
-    const slope = mask !== 0 && mask !== MASKS - 1 ? slopeShape(get, tx, ty) : 0;
-    if (slope) this.slopesDrawn++;
+    const slope = mask !== 0 && mask !== MASKS - 1 ? slopeShape(get, tx, ty, (x, y) => world.edits.has(y * world.w + x)) : 0;
+    if (slope) {
+      this.slopesDrawn++;
+      if (isCeilingSlope(slope)) this.ceilSlopesDrawn++;
+    }
     // Rounded corners are transparent: show the cave wall behind them underground. A surface slope
     // shows the sky instead (its own back wall would read as a dark notch above the ground line).
-    if (mask !== 0 && !(slope && ty <= world.surface[tx])) this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+    if (mask !== 0 && !(slope && !isCeilingSlope(slope) && ty <= world.surface[tx])) this.drawBack(ctx, world, tx, ty, dx, dy, ts);
     ctx.drawImage(this.atlas, atlasCol(v, slope || mask) * TS, t * TS, TS, TS, dx, dy, ts, ts);
     if (hasStrata(t) && !world.edits.has(ty * world.w + tx)) this.drawStrata(ctx, tx, ty - world.surface[tx], ty, dx, dy, ts, mask, slope);
     if (this.oreMarks && hasGlyph(t)) drawGlyph(ctx, t, dx, dy, ts);
     if (t === T.RUIN) this.drawRuinWeather(ctx, world, tx, ty, dx, dy, ts);
     if (slope) {
-      if (ty <= world.surface[tx]) this.drawSlopeCap(ctx, world, t, v, slope, tx, dx, dy, scale);
+      if (!isCeilingSlope(slope) && ty <= world.surface[tx]) this.drawSlopeCap(ctx, world, t, v, slope, tx, dx, dy, scale);
       return;
     }
     if (t === T.ASH && !world.edits.has(ty * world.w + tx)) {
@@ -1252,9 +1257,12 @@ export class Renderer {
       // Slope caps: shade only the solid wedge under the diagonal, no seam (it would float in the cut).
       if (sh.dark <= 0) return;
       ctx.fillStyle = `rgba(10,6,14,${sh.dark.toFixed(3)})`;
+      const ceil = isCeilingSlope(slope);
       for (let i = 0; i < TS; i++) {
-        const top = slopeTop(slope, i, TS) + 1;
-        if (top < TS) ctx.fillRect(dx + i * u, dy + top * u, u, ts - top * u);
+        // Skip the outline pixel on the cut: the row under it on floors, the row above it on ceilings.
+        const top = ceil ? 0 : slopeTop(slope, i, TS) + 1;
+        const bottom = ceil ? slopeBottom(slope, i, TS) - 1 : TS - 1;
+        if (bottom >= top) ctx.fillRect(dx + i * u, dy + top * u, u, (bottom - top + 1) * u);
       }
       return;
     }
@@ -2561,8 +2569,9 @@ export { TILE_COLORS };
 
 /** A rim on the cut side (top or open side) of a slope cap would float in the air: skip it. */
 function rimOnCut(world: Game['world'], r: Rim): boolean {
-  if (r.side !== 0 && r.side !== 1 && r.side !== 3) return false;
-  const shape = slopeShape((x, y) => world.get(x, y), r.x, r.y);
+  const shape = slopeShape((x, y) => world.get(x, y), r.x, r.y, (x, y) => world.edits.has(y * world.w + x));
   if (!shape) return false;
-  return r.side === 0 || r.side === (shape === SLOPE_R ? 1 : 3);
+  const ceil = isCeilingSlope(shape);
+  if (r.side === (ceil ? 2 : 0)) return true;
+  return r.side === (shape === SLOPE_R || shape === SLOPE_CR ? 1 : 3);
 }

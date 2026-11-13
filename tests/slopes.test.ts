@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MASKS, SHAPES, SLOPE_L, SLOPE_R, slopePixel, slopeShape, slopeTop, slopes } from '../src/render/autotile';
+import { MASKS, SHAPES, SLOPE_CL, SLOPE_CR, SLOPE_L, SLOPE_R, isCeilingSlope, slopeBottom, slopePixel, slopeShape, slopeTop, slopes } from '../src/render/autotile';
 import { TS, VARIANTS, atlasCol, autotilePixels } from '../src/render/sprites';
 import { T } from '../src/sim/tiles';
 import { World } from '../src/sim/world';
@@ -32,9 +32,13 @@ describe('slope caps (render)', () => {
     expect(slopeShape(grid(['....', '##..', '##..', '###.']), 1, 1)).toBe(0);
     // Overhang: open underneath.
     expect(slopeShape(grid(['....', '##..', '#...', '##..']), 1, 1)).toBe(0);
-    // Built metal plates keep their square architecture.
-    expect(slopeShape(grid(['....', 'M...', 'MM..', 'MMM.']), 0, 1)).toBe(0);
-    expect(slopes(T.METAL)).toBe(false);
+    // Player-built blocks keep their square architecture; natural Scrap-layer metal slopes.
+    const plates = grid(['....', 'MM..', 'MMM.', 'MMMM']);
+    expect(slopeShape(plates, 1, 1, () => true)).toBe(0);
+    expect(slopeShape(plates, 1, 1)).toBe(SLOPE_R);
+    expect(slopeShape(grid(['....', '##..', '###.', '####']), 1, 1, (x, y) => x === 1 && y === 1)).toBe(0);
+    expect(slopes(T.METAL)).toBe(true);
+    expect(slopes(T.PAD)).toBe(false);
     expect(slopes(T.SOIL)).toBe(true);
   });
 
@@ -58,8 +62,8 @@ describe('slope caps (render)', () => {
     }
   });
 
-  it('atlas has two extra shapes per variant and slope cells are transparent above the diagonal', () => {
-    expect(SHAPES).toBe(MASKS + 2);
+  it('atlas has four extra shapes per variant (floor and ceiling caps) and slope cells are transparent above the diagonal', () => {
+    expect(SHAPES).toBe(MASKS + 4);
     const cols = new Set<number>();
     for (let m = 0; m < SHAPES; m++) for (let v = 0; v < VARIANTS; v++) cols.add(atlasCol(v, m));
     expect(cols.size).toBe(SHAPES * VARIANTS);
@@ -172,3 +176,56 @@ describe('auto-step (sim)', () => {
 function run(g: Game, s: number): void {
   for (let i = 0; i < Math.round(s / FIXED_DT); i++) g.step(FIXED_DT, NO_CONTROLS);
 }
+
+describe('cave ceiling slope caps (render)', () => {
+  it('a ceiling stepping up to the right or left gets an upside-down cap', () => {
+    // Rows top to bottom: the cave ceiling rises one tile per column going right.
+    const right = grid(['#####', '###..', '##...', '#....', '.....']);
+    expect(slopeShape(right, 2, 1)).toBe(SLOPE_CR);
+    expect(slopeShape(right, 1, 2)).toBe(SLOPE_CR);
+    const left = grid(['#####', '..###', '...##', '....#', '.....']);
+    expect(slopeShape(left, 2, 1)).toBe(SLOPE_CL);
+    expect(slopeShape(left, 3, 2)).toBe(SLOPE_CL);
+    expect(isCeilingSlope(SLOPE_CR) && isCeilingSlope(SLOPE_CL)).toBe(true);
+    expect(isCeilingSlope(SLOPE_R) || isCeilingSlope(SLOPE_L)).toBe(false);
+  });
+
+  it('flat ceilings, stalactites and sheer ceiling steps stay square', () => {
+    expect(slopeShape(grid(['###', '###', '...']), 1, 1)).toBe(0);
+    expect(slopeShape(grid(['###', '.#.', '...']), 1, 1)).toBe(0);
+    // Two-tile ceiling step: the open side does not continue one tile up.
+    expect(slopeShape(grid(['####', '##..', '##..', '....']), 1, 2)).toBe(0);
+    expect(slopeShape(grid(['MMMM', 'MM..', 'M...', '....']), 0, 2)).toBe(0);
+  });
+
+  it('the ceiling cut is the floor cut flipped vertically, with a shaded row along it', () => {
+    let cut = 0;
+    for (let y = 0; y < TS; y++) {
+      for (let x = 0; x < TS; x++) {
+        const c = slopePixel(SLOPE_CR, x, y, TS);
+        const f = slopePixel(SLOPE_R, x, TS - 1 - y, TS);
+        expect(c === 'x').toBe(f === 'x');
+        expect(c === 'o').toBe(f === 'o');
+        expect(slopePixel(SLOPE_CL, TS - 1 - x, y, TS)).toBe(c);
+        if (c === 'x') cut++;
+        if (f === 'l') expect(c).toBe('d');
+      }
+    }
+    expect(cut).toBe((TS * (TS - 1)) / 2);
+    for (let x = 0; x < TS; x++) {
+      expect(slopeTop(SLOPE_CR, x, TS)).toBe(0);
+      expect(slopeBottom(SLOPE_CR, x, TS)).toBe(TS - 1 - x);
+      expect(slopeBottom(SLOPE_CL, x, TS)).toBe(x);
+      expect(slopeBottom(SLOPE_R, x, TS)).toBe(TS - 1);
+    }
+  });
+
+  it('atlas ceiling cells are transparent below the diagonal and solid at the top-left', () => {
+    for (let v = 0; v < VARIANTS; v++) {
+      const px = autotilePixels(T.RUST, v, SLOPE_CR);
+      expect(px[(TS - 1) * TS + (TS - 1)]).toBeNull();
+      expect(px[0]).not.toBeNull();
+      expect(px.filter((c) => c !== null).length).toBe((TS * (TS + 1)) / 2);
+    }
+  });
+});
