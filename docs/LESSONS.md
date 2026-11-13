@@ -155,3 +155,8 @@
 - **Pixel-sampling e2e must avoid the HUD panels** (goal/toast column top-left, buttons top-right): the first lavafall sample read the goal panel and failed. Guard: stand the player so the sampled thing sits just left of centre, and sample its lower part.
 - **A teleport far from the camera needs a camX and camY wait** before a screenshot (the pet-swim shot was empty sky). The camera eases; wait for both axes.
 - **Retro:** two slices, three ships (~5-6 min each), one red gate (walls). Drafting the next slice's patch in the scratchpad while `ship` ran kept the working tree safe and saved time; keep doing it.
+
+- **`renderer.draw()` time alone lies:** canvas calls are recorded and rastered later, so a plain frame "took" 0.2 ms. Guard: the e2e frame-time probe forces the raster with a 1 px `getImageData` after each draw and compares a scene against a plain scene in the same browser (ratio, not absolute ms).
+- **Drawing a canvas onto itself forces a flush and full copy per call.** The heat shimmer did it once per row (8 calls) and cost 12 ms a frame. Guard: snapshot once into a scratch canvas per frame; the probe fails if lava costs > 1.5x plain + 2 ms.
+- **The e2e camera eases after a teleport;** a before/after pixel comparison must wait ~1 s and assert both samples framed the same spot (box check in the charred-suit test).
+- **Retro:** three slices, three ships (~6-7 min each), no red gate, no rebase. Profiling with a scratch script (prof.mjs: variants with methods stubbed out) pinned the cost in two runs; keep that pattern for perf work.

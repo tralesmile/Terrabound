@@ -80,7 +80,8 @@ World size and variety:
 - [x] Lava: two basalt-lined surface lava pools per Ash Dunes band (codex: Lava pool), lava basins in the caves under the Ash Dunes
 - [x] Heat shimmer and flowing crust on lava (run 36, src/render/lavafx.ts); wheel and tread frames follow the distance rolled (run 36)
 - [x] Lavafalls: a basalt crag per Ash band pours a burning sheet into a catch pool (codex: Lavafall); pets paddle, lean and bubble when they follow the player into water (run 37)
-- [ ] Follow-ups (scheduled runs may take these): lava contact juice (knock-up hop, sizzle, charred tint), Ash Dunes surface variety (ash drifts, cinder cones), e2e frame-time probe over lava
+- [x] Lava contact juice (hop, sizzle, charred suit with embers and smoke), Ash Dunes surface variety (drift caps, clustered glowing crust cracks), e2e frame-time probe over lava (found and fixed an 18 ms shimmer) (run 38)
+- [ ] Follow-ups (scheduled runs may take these): cinder cones on the Ash surface (worldgen), reuse the frame-time probe for a boss fight and heavy weather, ruin weathering (broken edges, soot, vines)
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 

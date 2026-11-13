@@ -576,3 +576,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** lava contact juice; Ash Dunes surface variety; first unchecked P1.6/P1.9 follow-ups (plane with cargo, charge station); longer lore logs.
 
 **Known issues:** worldgen changed (lavafall crags), so existing saves' Ash Dunes regenerate with a crag midway (same as when lava pools were added); the player sprite flashed white in the 31b screenshot (hurt flash from the teleport, cosmetic test artefact); the log reader leaves empty space on desktop; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).
+
+## 2026-11-13 Scheduled run 38
+
+**Done:** baseline green (664 tests). Lava contact juice (src/sim/game.ts `lavaBurn`, src/render/scorchfx.ts): every magma burn tick kicks the body up (LAVA_HOP 9), pools and lavafalls emit `sizzle` (embers, black smoke, a synth hiss), and the suit chars for SCORCH_T 1.2 s (soot-mixed palette, flickering embers, smoke curling off; 22h-scorched). Acid unchanged. Ash Dunes surface variety (src/render/ashfx.ts, render only): pale drift caps on exposed ash tops with a 4-tile seamless swell, calm ash specks are now pale cinders, and the heat lives in clustered glowing crust fissures that fade with depth (11-biome-ash). Frame-time probe: e2e times plain vs lava frames with a forced 1 px readback; it found the heat shimmer (per-row canvas self-copy) at 18 ms vs 6 ms plain; the shimmer now takes one scratch snapshot per frame (~7 ms, same as plain).
+
+**Numbers:** 677 unit tests (new: lavajuice 8, ashsurface 5), 188 e2e checks all green (new: charred suit darker with embers, ash drifts and cracks drawn, frame time over lava vs plain), bundle 380 kB (132.7 kB gzip). Probe (headless software raster): plain 5.8 ms median, lava 7.7 ms.
+
+**Next:** cinder cones (worldgen), the same probe for a boss fight and a storm, ruin weathering; P1.9 follow-ups (plane with cargo, charge station); longer lore logs.
+
+**Known issues:** the hop can bounce a player who stands still in deep lava up and down until they swim out (intended flinch, watch for complaints); crack overlays are baked in the chunk cache, so they do not pulse; the log reader leaves empty space on desktop; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).

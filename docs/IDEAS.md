@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 38
+
+- Done this run: lava contact juice (hop, sizzle, charred suit; carried 1 run); Ash Dunes drift caps and clustered crust cracks instead of even orange dots (carried 1 run); frame-time probe found the heat shimmer at 18 ms a frame and fixed it.
+- Weakest graphics: ruins (11-biome-ash) are a flat grid of identical blue-grey blocks; weathered edges, soot streaks, broken corners and vines would make them read as old (Terraria dungeons, Core Keeper ruins).
+- Weakest UI: three stacked top-left panels (goal, codex reward, discovered) cover a big slice of the world on arrival; merge reward + discovered into one pill (Dome Keeper keeps the view clear).
+- Weakest perf (next): run the same plain-vs-scene probe in a boss fight and in a storm; anything over 1.5x plain gets fixed before phones.
+- Weakest story (carried 3): logs are one line each; 3-4 lines per log.
+
 ## 2026-11-13 run 37
 
 - Done this run: lavafalls (basalt crag, spring, poured sheet, catch pool, burn, codex; carried 1 run); pets swim (paddle, lean, bubbles, wake).
@@ -17,12 +25,3 @@
 - Weakest UI (carried): full-screen panels leave the notch strip showing the world; dark fill behind the safe frame.
 - Weakest controls (carried): hold right click to sow a row; hotbar digits not remappable.
 - Weakest perf risk: the shimmer self-copy and per-block lava fills are fine on desktop; add a frame-time probe to e2e over a big lava pool before phones ship.
-
-## 2026-11-12 run 34
-
-- Done this run: grappling rope sag + attach twang + claw (carried 1 run); pilot seated inside ground vehicles; codex log reader + CREW tab.
-- Weakest graphics (carried 3): open caves are one flat tone between rims; faint inner ambient-occlusion band baked into the chunk cache (Core Keeper).
-- Weakest progression (carried 3): bronze/silver awards pay only a star; small one-time stash gifts per award (nothing expires).
-- Weakest story: logs are one line each; expand each to 3-4 lines so the reader page earns its space (Noita/Starbound lore tablets).
-- Weakest UI (carried): full-screen panels leave the notch strip showing the world; dark fill behind the safe frame on phones.
-- Weakest controls (carried): hold right click to sow a row; hotbar digits not remappable.
