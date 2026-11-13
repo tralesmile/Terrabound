@@ -1,5 +1,5 @@
 import { activePaint, nextPaint, type PaintDef, type PaintSlot } from './paints';
-import { CREW_KINDS, codexRows, noteCodexEvent, type CodexRow } from './codex';
+import { CREW_KINDS, codexRows, loreKey, noteCodexEvent, type CodexRow } from './codex';
 import { currentGoal, FTUE_STEPS, goalIndex } from './ftue';
 import { awardGift, checkAwards, countEvent, newAwards, noteMax, sanitizeAwards, type Awards, type Tier } from './achievements';
 import { stepPref, type PrefKey, type Prefs } from './settings';
@@ -1620,7 +1620,11 @@ export class Game {
               invAdd(this.carried, def.drop, 1);
               this.emit({ t: 'pickup', item: def.drop, x: tx, y: ty });
             }
-            if (tile === T.TERMINAL) this.emit({ t: 'lore', text: loreAt(this.world.seed, tx, ty) });
+            if (tile === T.TERMINAL) {
+              // The story reads top to bottom: shallow terminals hold early logs, and a read log gives way to the next unread.
+              const aw = this.save.awards;
+              this.emit({ t: 'lore', text: loreAt(this.world.seed, tx, ty, { padY: this.world.padY, h: this.world.h }, (i) => (aw.n[loreKey(i)] ?? 0) > 0) });
+            }
             if (isCropTile(tile)) this.harvest(tile, tx, ty, d.packCap);
             if (tile === T.PLANT) {
               const wild = grassSeed(this.world.biome[tx] ?? 0, tx, ty, this.world.seed);

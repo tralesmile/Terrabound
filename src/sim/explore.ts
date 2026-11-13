@@ -214,8 +214,29 @@ export const LORE_MORE: string[][] = [
   ],
 ];
 
-/** Lore line for a terminal at (x, y): stable per world position. */
-export function loreAt(seed: number, x: number, y: number): string {
-  const i = Math.abs((x * 73856093) ^ (y * 19349663) ^ seed) % LORE.length;
-  return LORE[i];
+/**
+ * Which log a terminal at (x, y) holds. With the depth frame (pad row, world height) the story runs
+ * top to bottom: shallow terminals hold the early logs, the deepest the last ones (one step of
+ * jitter per position). With `read`, an already-read log gives way to the nearest unread one
+ * (earlier first on a tie), so every new terminal moves the story on until all are read.
+ * Without a frame it falls back to a stable per-position pick.
+ */
+export function loreIndexAt(seed: number, x: number, y: number, frame?: { padY: number; h: number }, read?: (i: number) => boolean): number {
+  const n = LORE.length;
+  const hsh = Math.abs((x * 73856093) ^ (y * 19349663) ^ seed);
+  if (!frame) return hsh % n;
+  const span = Math.max(1, frame.h - frame.padY - 30);
+  const t = Math.min(1, Math.max(0, (y - frame.padY - 40) / span));
+  const base = Math.min(n - 1, Math.max(0, Math.floor(t * n) + ((hsh % 3) - 1)));
+  if (!read || !read(base)) return base;
+  for (let d = 1; d < n; d++) {
+    if (base - d >= 0 && !read(base - d)) return base - d;
+    if (base + d < n && !read(base + d)) return base + d;
+  }
+  return base;
+}
+
+/** Lore line for a terminal at (x, y) (see loreIndexAt). */
+export function loreAt(seed: number, x: number, y: number, frame?: { padY: number; h: number }, read?: (i: number) => boolean): string {
+  return LORE[loreIndexAt(seed, x, y, frame, read)];
 }
