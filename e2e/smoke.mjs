@@ -171,6 +171,16 @@ try {
     return { n: rs.length, square: rs.every((r) => Math.abs(r.w - r.h) < 0.5), right: Math.max(...rs.map((r) => r.x + r.w)), width: Math.max(...rs.map((r) => r.x + r.w)) - Math.min(...rs.map((r) => r.x)) };
   });
   check('desktop HUD: cog, sound and map are square glyph buttons at the right edge', dIcons.n === 3 && dIcons.square && dIcons.right > 1200 && dIcons.width < 160, JSON.stringify(dIcons));
+  // Glyphs carry no words: hovering one on desktop names it (with its key).
+  const mapR = await page.evaluate(() => { const r = window.__terrabound.ui.rects.find((q) => q.a.k === 'map'); return r && { x: r.x, y: r.y, w: r.w, h: r.h }; });
+  await page.mouse.move(mapR.x + mapR.w / 2, mapR.y + mapR.h / 2);
+  await page.waitForTimeout(150);
+  const hoverMap = await page.evaluate(() => window.__terrabound.ui.hoverShown);
+  await page.screenshot({ path: path.join(out, '06e-hud-hover.png'), clip: { x: 900, y: 0, width: 380, height: 160 } });
+  await page.mouse.move(640, 420);
+  await page.waitForTimeout(150);
+  const hoverOff = await page.evaluate(() => window.__terrabound.ui.hoverShown);
+  check('hovering a HUD glyph on desktop shows its name and key, moving off hides it', hoverMap.startsWith('Map (') && hoverOff === '', JSON.stringify({ hoverMap, hoverOff }));
 
   // Walk right with real key input.
   const x0 = await page.evaluate(() => window.__terrabound.game.body.x);

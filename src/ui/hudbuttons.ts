@@ -60,6 +60,29 @@ export function hudButtons(s: HudButtonState): HudButton[] {
   return out;
 }
 
+export interface LabelRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  label: string;
+}
+
+/**
+ * Desktop hover label for the glyph buttons: the label of the button under the mouse and where to
+ * draw it (right-aligned just left of the button, vertically centred on it, kept on screen).
+ * Null on touch, without a mouse, or when the mouse is over no button.
+ */
+export function hoverLabel(rects: LabelRect[], mouse: { x: number; y: number } | null, touch: boolean, labelW: number, margin = 4): { label: string; right: number; cy: number } | null {
+  if (touch || !mouse) return null;
+  for (const r of rects) {
+    if (mouse.x < r.x || mouse.x > r.x + r.w || mouse.y < r.y || mouse.y > r.y + r.h) continue;
+    const right = Math.max(margin + labelW, r.x - 6);
+    return { label: r.label, right, cy: r.y + r.h / 2 };
+  }
+  return null;
+}
+
 /** Offset of HUD grid slot i (slot 0 is the cog): two wide, row by row, so the column is half as tall as a list. */
 export function hudGridPos(i: number, size: number, gap: number): { dx: number; dy: number } {
   return { dx: (i % 2) * (size + gap), dy: Math.floor(i / 2) * (size + gap) };

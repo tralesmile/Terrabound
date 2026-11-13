@@ -9,7 +9,7 @@ import type { Game, Tool } from '../sim/game';
 import { MAP_ZOOMS, MapView } from './map';
 import { FLY_TIME, Flyers, flyerPos, pulseAmount } from './flyers';
 import { safeFrame, type Insets } from './safearea';
-import { hudButtons, hudGridPos, type HudButton } from './hudbuttons';
+import { hudButtons, hudGridPos, type HudButton, hoverLabel, type LabelRect } from './hudbuttons';
 import { drawHudGlyph } from './hudglyphs';
 import { ICON, drawIcon } from '../render/icons';
 import { TRADER_W, drawPlayer, drawRows, robotRows, type RobotKind } from '../render/sprites';
@@ -328,6 +328,10 @@ export class UI {
 
   /** Labels of the glyph buttons drawn last frame (tests, accessibility). */
   hudButtonsShown: string[] = [];
+  /** Mouse position in CSS px (desktop only, set by main each frame) for HUD hover labels. */
+  hover: { x: number; y: number } | null = null;
+  /** Label of the HUD button the mouse is over ('' when none); for tests. */
+  hoverShown = '';
 
   /** Square HUD button with a code-drawn glyph, an optional charge fill, "!" badge and key hint. */
   private glyphButton(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, b: HudButton, game: Game, time: number): void {
@@ -1312,11 +1316,28 @@ export class UI {
       dash: !!game.gear.dash,
     });
     this.gearButton(ctx, anc.bx, u, bhgt, bhgt);
+    const labelRects: LabelRect[] = [{ x: anc.bx, y: u, w: bhgt, h: bhgt, label: 'Settings' }];
     btns.forEach((b, i) => {
       const p = hudGridPos(i + 1, bhgt, bgap);
       this.glyphButton(ctx, anc.bx + p.dx, u + p.dy, bhgt, b, game, time);
+      labelRects.push({ x: anc.bx + p.dx, y: u + p.dy, w: bhgt, h: bhgt, label: b.bind && !this.touch ? `${b.label} (${keyLabel(game.keys[b.bind])})` : b.label });
     });
     this.hudButtonsShown = btns.map((b) => b.label);
+    // Desktop hover label: glyphs carry no words, so name the button under the mouse.
+    const fsz = Math.round(u * 0.85);
+    ctx.font = `bold ${fsz}px ${FONT}`;
+    const hovered = labelRects.find((r) => this.hover && this.hover.x >= r.x && this.hover.x <= r.x + r.w && this.hover.y >= r.y && this.hover.y <= r.y + r.h);
+    const tip = hoverLabel(labelRects, this.hover, this.touch, hovered ? ctx.measureText(hovered.label).width + u : 0);
+    this.hoverShown = tip ? tip.label : '';
+    if (tip) {
+      const tw = ctx.measureText(tip.label).width + u;
+      const th = fsz + u * 0.7;
+      ctx.fillStyle = 'rgba(10,14,22,0.88)';
+      ctx.fillRect(tip.right - tw, tip.cy - th / 2, tw, th);
+      ctx.fillStyle = '#1f6f78';
+      ctx.fillRect(tip.right - 2, tip.cy - th / 2, 2, th);
+      this.text(ctx, tip.label, tip.right - u * 0.5, tip.cy + fsz * 0.35, fsz, '#e6f4ff', 'right');
+    }
 
     // Hotbar: tools first, then placeable blocks.
     const gap = u * 0.4;

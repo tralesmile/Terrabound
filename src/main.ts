@@ -842,6 +842,7 @@ function boot(): void {
       renderer.draw(game, fx, input.mouse.has && ui.screen === 'play' && !ui.touch ? renderer.screenToTile(input.mouse.x * dpr, input.mouse.y * dpr) : null, clock);
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ui.hover = input.mouse.has && !ui.touch ? { x: input.mouse.x, y: input.mouse.y } : null;
       ui.draw(ctx, game, canvas.clientWidth, canvas.clientHeight, clock);
       const st = input.stick();
       if (st) {
