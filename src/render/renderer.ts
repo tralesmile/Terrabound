@@ -64,6 +64,7 @@ import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, b
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 import { drawGlyph, hasGlyph } from './glyphs';
 import { ropePoints, ropeSag, twangAmp } from './ropefx';
+import { scorchK } from './scorchfx';
 
 /** Chunk size in tiles for the render cache. */
 /** Per-robot colours: sprite remap, name tag, blanket. */
@@ -159,6 +160,8 @@ export class Renderer {
   scale = 3;
   camX = 0;
   camY = 0;
+  /** Last frame's player char strength 0..1 after lava contact (read by e2e). */
+  scorchShown = 0;
   /** Last frame's hurt vignette alpha (read by e2e). */
   lastHurtAlpha = 0;
   /** Mood hearts drawn last frame (read by e2e). */
@@ -676,6 +679,7 @@ export class Renderer {
       tier: game.upgrades.armor ?? 0,
       gear: playerGear(game),
       held: game.tool,
+      scorch: (this.scorchShown = scorchK(game.scorch)),
       squash: fx.hurtLeft > 0 ? hurtSquash(fx.hurtLeft) : squashScale(fx.squashLeft, fx.squashPower),
     });
     if (swimming) ctx.restore();

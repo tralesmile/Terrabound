@@ -12,6 +12,7 @@ import { readInsets } from './platform/safearea';
 import { Sfx } from './platform/audio';
 import { loadRaw, saveRaw } from './platform/storage';
 import { Fx, splashColor, splashPower } from './render/fx';
+import { scorchK } from './render/scorchfx';
 import { isLiquid } from './sim/liquids';
 import { BODY_H } from './sim/physics';
 import { Renderer } from './render/renderer';
@@ -502,6 +503,9 @@ function boot(): void {
         fx.hurt(game.body.x, game.body.y - 2.2, e.amount, game.derived.maxHp);
         fx.burst(game.body.x, game.body.y - 1, '#ff5a5a', 8, 5);
         break;
+      case 'sizzle':
+        fx.sizzle(e.x, e.y);
+        break;
       case 'steam':
         fx.burst(e.x + 0.5, e.y + 0.5, '#ff8a3c', 4, 2);
         fx.smoke(e.x + 0.5, e.y + 0.5, '#d8dde8', 6);
@@ -805,6 +809,7 @@ function boot(): void {
       for (const e of game.drainEvents()) handle(e);
       if (ui.screen === 'play' && !ui.mapOpen) {
         const b = game.body;
+        fx.scorchSmoke(dt, scorchK(game.scorch), b.x, b.y - BODY_H + 0.3);
         fx.footsteps(dt, b.onGround && Math.abs(b.vx) > 2 && !game.riding && !game.inLiquid, b.x, b.y, game.facing, groundColor());
         fx.vehicleTrail(dt, game.riding ? game.vehicle : null, b.x, b.y, game.facing, b.vx, b.vy, b.onGround, groundColor());
         liquidFx(dt);

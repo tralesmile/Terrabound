@@ -1038,6 +1038,37 @@ try {
       return { hp0, hp1 };
     }, fall);
     check('standing in the lavafall burns', burn.hp1 < burn.hp0, JSON.stringify(burn));
+    // Lava contact juice: the burn chars the suit (darker sprite with embers) and smoke curls off it.
+    const sample = async (scorch) => page.evaluate(async (sc) => {
+      const { game, renderer } = window.__terrabound;
+      game.iframes = 0;
+      game.enemies = [];
+      game.scorch = sc;
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      game.scorch = sc;
+      game.iframes = 0;
+      await new Promise((r) => requestAnimationFrame(r));
+      const c = document.getElementById('game');
+      const p = renderer.worldToScreen(game.body.x, game.body.y);
+      const s = renderer.scale;
+      const x = Math.round(p.x - 4 * s);
+      const y = Math.round(p.y - 18 * s);
+      const d = c.getContext('2d').getImageData(x, y, Math.round(8 * s), Math.round(16 * s)).data;
+      let lum = 0;
+      let ember = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        lum += d[i] + d[i + 1] + d[i + 2];
+        if (d[i] > 240 && d[i + 1] > 90 && d[i + 1] < 190 && d[i + 2] < 90) ember++;
+      }
+      return { lum: Math.round(lum / (d.length / 4)), ember, shown: renderer.scorchShown, box: [Math.round(p.x), Math.round(p.y)] };
+    }, scorch);
+    // Let the camera settle after the burn's teleport so both samples frame the same spot.
+    await page.evaluate(() => { const g = window.__terrabound.game; g.body.vx = 0; });
+    await page.waitForTimeout(900);
+    const charred = await sample(1.2);
+    await page.screenshot({ path: path.join(out, '22h-scorched.png'), clip: { x: Math.max(0, charred.box[0] - 120), y: Math.max(0, charred.box[1] - 140), width: 240, height: 180 } });
+    const clean = await sample(0);
+    check('a lava burn chars the suit: darker sprite with glowing embers', charred.shown === 1 && clean.shown === 0 && Math.abs(charred.box[0] - clean.box[0]) < 12 && charred.lum < clean.lum * 0.9 && charred.ember > 0, JSON.stringify({ charred, clean }));
   }
   // Grappling hook: tool 5, click a ceiling, swing.
   const hookAt = await page.evaluate(() => {

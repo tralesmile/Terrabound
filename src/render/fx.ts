@@ -263,6 +263,27 @@ export class Fx {
     this.dust(x, y, ground, 3 + Math.round(p * 7), 1.5 + p * 4);
   }
 
+  private scorchAcc = 0;
+  /** Charred suit: thin dark smoke curls up off the player while `k` (0..1) lasts. */
+  scorchSmoke(dt: number, k: number, x: number, y: number): void {
+    if (k <= 0) {
+      this.scorchAcc = 0;
+      return;
+    }
+    this.scorchAcc += dt * 14 * k;
+    while (this.scorchAcc >= 1) {
+      this.scorchAcc -= 1;
+      this.smoke(x, y, Math.random() < 0.3 ? '#6b5a50' : '#3a302c', 1);
+    }
+  }
+
+  /** Lava sizzle: a hiss of embers and a puff of black smoke where the body touched the heat. */
+  sizzle(x: number, y: number): void {
+    this.burst(x, y, '#ffb347', 5, 4);
+    this.burst(x, y, '#ff6a2a', 4, 3);
+    this.smoke(x, y - 0.3, '#2e2622', 4);
+  }
+
   /** Rising pale puffs (steam, smoke) that float up and fade. */
   smoke(x: number, y: number, color: string, n: number): void {
     for (let i = 0; i < n && this.particles.length < MAX_PARTICLES; i++) {

@@ -65,6 +65,10 @@ export const FALL_SAFE = 19;
 export const SWIM_UP = 7;
 export const SINK = 3;
 export const LEAP_V = 14;
+/** Upward kick each lava burn tick: the body flinches out of the heat (Noita-style), so contact reads. */
+export const LAVA_HOP = 9;
+/** Seconds the suit stays charred after a lava burn. */
+export const SCORCH_T = 1.2;
 /** Acid damage per second; the value lives on the tile (TILES[T.ACID_POOL].dps). */
 export const ACID_DPS = 24;
 export const CLIMB_UP = 5;
@@ -160,6 +164,7 @@ export type GameEvent =
   | { t: 'dawn' }
   | { t: 'fell'; x: number; y: number; tiles: number }
   | { t: 'hurt'; amount: number }
+  | { t: 'sizzle'; x: number; y: number }
   | { t: 'bank'; total: number }
   | { t: 'death'; lost: number; medic: boolean }
   | { t: 'jump' }
@@ -324,6 +329,8 @@ export class Game {
   private acidTick = 0;
   /** Seconds until a lavafall burns again while the player stands in it. */
   private fallBurn = 0;
+  /** Seconds of charred suit left after a lava burn (render tints the player, read by e2e). */
+  scorch = 0;
   /** Base power grid snapshot (solar vs smelters), refreshed twice a second. */
   power: PowerState = newPower();
   private smeltProgress = 0;
@@ -1181,6 +1188,15 @@ export class Game {
     this.emit({ t: 'hurt', amount });
   }
 
+  /** Lava contact: damage, a charred suit for a moment, a sizzle and (in a pool) a hop toward the surface. */
+  private lavaBurn(amount: number, hop: boolean): void {
+    this.hurt(amount);
+    this.scorch = SCORCH_T;
+    const b = this.body;
+    if (hop) b.vy = Math.min(b.vy, -LAVA_HOP);
+    this.emit({ t: 'sizzle', x: b.x, y: b.y - BODY_H / 2 });
+  }
+
   private reachable(tx: number, ty: number): boolean {
     const cx = this.body.x;
     const cy = this.body.y - BODY_H / 2;
@@ -1379,8 +1395,9 @@ export class Game {
     if (this.fallBurn <= 0 && inLavafall(this.world, b.x, b.y, HALF_W, BODY_H)) {
       this.fallBurn = 0.25;
       // Half the pool's heat: a sheet brushed in passing should sting, not kill outright.
-      this.hurt(((TILES[T.MAGMA].dps ?? 0) * 0.5) / 4);
+      this.lavaBurn(((TILES[T.MAGMA].dps ?? 0) * 0.5) / 4, false);
     }
+    this.scorch = Math.max(0, this.scorch - dt);
     // Breaking the surface while stroking up: leap out, so pools can be left onto a ledge.
     if (wasLiquid && !this.inLiquid && c.jump && b.vy < 0) b.vy = -LEAP_V;
     this.jetting = false;
@@ -1403,7 +1420,8 @@ export class Game {
         this.acidTick -= dt;
         if (this.acidTick <= 0) {
           this.acidTick = 0.25;
-          this.hurt(dps / 4);
+          if (this.inLiquid === T.MAGMA) this.lavaBurn(dps / 4, true);
+          else this.hurt(dps / 4);
         }
       }
     } else if (!this.hook && onLadder(this.world, b)) {

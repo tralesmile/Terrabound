@@ -184,6 +184,14 @@ export class Sfx {
       case 'land':
         if (e.speed > 6) this.noise(0.08, 0.15);
         break;
+      case 'sizzle':
+        // Fat-in-a-pan hiss: two noise bursts and a low crackle under them.
+        if (this.ok('sizzle', 200)) {
+          this.noise(0.35, 0.22);
+          this.noise(0.18, 0.12, 0.12);
+          this.tone(90, 0.25, 'sawtooth', 0.05, 50);
+        }
+        break;
       case 'hurt':
         if (this.ok('hurt', 120)) this.tone(160, 0.2, 'sawtooth', 0.18, 60);
         break;

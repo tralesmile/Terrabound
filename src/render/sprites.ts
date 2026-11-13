@@ -2,6 +2,7 @@ import { hash2 } from '../sim/rng';
 import { T, TILES } from '../sim/tiles';
 import type { EnemyKind } from '../sim/enemies';
 import { drawIcon } from './icons';
+import { charRemap, emberAt } from './scorchfx';
 import { drawBossArt } from './bossart';
 import type { BossId } from '../sim/bosses';
 import { EDGE_E, EDGE_N, EDGE_S, EDGE_W, MASKS, edgeMask, edgePixel, growsMoss } from './autotile';
@@ -920,6 +921,22 @@ export function drawRows(
   }
 }
 
+/** Glowing ember speckles over the sprite's filled pixels (charred suit). */
+function drawEmbers(ctx: CanvasRenderingContext2D, rows: string[], x: number, y: number, s: number, flip: boolean, tick: number, k: number): void {
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r];
+    for (let c = 0; c < row.length; c++) {
+      // Only on filled suit pixels, never the dark outline.
+      if (!PAL[row[c]] || row[c] === 'o') continue;
+      const e = emberAt(r, c, tick, k);
+      if (!e) continue;
+      const cx = flip ? PLAYER_W - 1 - c : c;
+      ctx.fillStyle = e;
+      ctx.fillRect(Math.round(x + cx * s), Math.round(y + r * s), Math.ceil(s), Math.ceil(s));
+    }
+  }
+}
+
 export interface PlayerPose {
   facing: number;
   walking: boolean;
@@ -946,6 +963,8 @@ export interface PlayerPose {
   swim?: { moving: boolean };
   /** Seated on a vehicle (hoverbike, Sky Jet). */
   seated?: boolean;
+  /** Charred by lava, 0..1: colours darken toward soot and embers flicker on the suit. */
+  scorch?: number;
 }
 
 export interface PlayerGear {
@@ -1016,7 +1035,9 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, 
   if (wr?.feet) [remap.l, remap.L] = wr.feet;
   if (pose.paint) [remap.s, remap.S] = pose.paint;
   if (pose.helm) [remap.h, remap.H] = pose.helm;
-  drawRows(ctx, rows, ox, oy, s, flip, PLAYER_W, pose.hurt ? '#ffffff' : undefined, remap);
+  const k = pose.hurt ? 0 : pose.scorch ?? 0;
+  drawRows(ctx, rows, ox, oy, s, flip, PLAYER_W, pose.hurt ? '#ffffff' : undefined, k > 0 ? charRemap(PAL, remap, k) : remap);
+  if (k > 0) drawEmbers(ctx, rows, ox, oy, s, flip, Math.floor(pose.t * 10), k);
   if (pose.swim && !pose.hurt) drawStrokeArm(ctx, ox, oy, s, flip, pose.t, pose.swim.moving, remap.s ?? SUIT_TIERS[0][0]);
   // Held tool at the front hand (art col ~11, row ~10), drawn at 3/4 scale.
   if (pose.held && !pose.hurt && !pose.climbing && !pose.swim) {
