@@ -63,6 +63,8 @@ export const ATTACK_TIME: Record<AttackKind, { warn: number; act: number }> = {
 export const SLAM_RADIUS = 6;
 export const SLAM_DMG = 22;
 export const BOLT_DMG = 12;
+/** Seconds a boss bolt lives. */
+export const BOLT_LIFE = 3;
 export const ARENA_HALF = 28;
 
 export interface Boss {
@@ -164,7 +166,7 @@ export function stepBoss(b: Boss, world: World, dt: number, px: number, py: numb
           const dx = px - ox;
           const dy = py - 0.9 - oy;
           const len = Math.hypot(dx, dy) || 1;
-          out.bolts.push({ x: ox, y: oy, vx: (dx / len) * 11, vy: (dy / len) * 11, life: 3 });
+          out.bolts.push({ x: ox, y: oy, vx: (dx / len) * 11, vy: (dy / len) * 11, life: BOLT_LIFE });
         }
       }
     }

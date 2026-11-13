@@ -55,7 +55,7 @@ const HULL_FLOOR: Record<'buggy' | 'drill_tank', number> = { buggy: 7, drill_tan
 import { GEAR, type RangedKind } from '../sim/gear';
 import { ATTACK_TIME, BOSSES, phase as bossPhase } from '../sim/bosses';
 import { drawBossArt, slamRaise } from './bossart';
-import { drawBossMuzzle, drawBossTelegraph, drawSummonTelegraph } from './bosstele';
+import { boltTrail, drawBossMuzzle, drawBossTelegraph, drawSummonTelegraph } from './bosstele';
 import { ACT_INFO } from '../sim/drones';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, isCeilingSlope, leafMask, nextSink, slopeSink, SLOPE_CR, SLOPE_R, slopeBottom, slopeShape, slopeTop } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape } from './decor';
@@ -529,6 +529,21 @@ export class Renderer {
     }
     // Boss: big procedural body, attack telegraph and its bolts.
     if (game.boss) this.drawBoss(ctx, game, shakeX, shakeY, time);
+    // Boss bolts: a fading accent trail along their path (reads against busy backgrounds), then the bolt.
+    if (game.bossBolts.length > 0) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = BOSSES[game.boss?.id ?? 'colossus'].accent;
+      for (const bb of game.bossBolts) {
+        for (const p of boltTrail(bb)) {
+          ctx.globalAlpha = p.a;
+          ctx.beginPath();
+          ctx.arc(this.sx(p.x, shakeX), this.sy(p.y, shakeY), scale * p.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
     for (const bb of game.bossBolts) {
       ctx.fillStyle = BOSSES[game.boss?.id ?? 'colossus'].eye;
       ctx.beginPath();

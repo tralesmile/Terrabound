@@ -6,7 +6,7 @@
  *   fading as the bolts leave.
  * The helpers are pure so the timing and geometry are unit-tested.
  */
-import { ATTACK_TIME, BOSSES, phase, type AttackKind, type Boss } from '../sim/bosses';
+import { ATTACK_TIME, BOLT_LIFE, BOSSES, phase, type AttackKind, type Boss } from '../sim/bosses';
 
 /** How far the dash speed carries the boss over a charge (tiles). */
 export function chargeDistance(b: Boss): number {
@@ -185,4 +185,30 @@ export function drawSummonTelegraph(ctx: CanvasRenderingContext2D, b: Boss, v: T
       ctx.fillRect(Math.round(sx + sway), Math.round(gy - hgt), Math.ceil(v.u * 2), Math.ceil(v.u * 2));
     }
   }
+}
+
+export { BOLT_LIFE };
+/** Trail dots behind a boss bolt and their spacing (tiles). */
+export const TRAIL_N = 7;
+export const TRAIL_STEP = 0.18;
+
+/**
+ * A fading trail behind a boss bolt: dots back along its path (opposite its velocity), shrinking and
+ * fading toward the tail. The trail grows in over the first ~0.1 s so it never reaches behind the muzzle. Pure.
+ */
+export function boltTrail(bb: { x: number; y: number; vx: number; vy: number; life: number }): { x: number; y: number; r: number; a: number }[] {
+  const sp = Math.hypot(bb.vx, bb.vy);
+  if (sp < 1e-6) return [];
+  const age = Math.max(0, BOLT_LIFE - bb.life);
+  const reach = Math.min(TRAIL_N * TRAIL_STEP, age * Math.max(sp, 11));
+  const ux = -bb.vx / sp;
+  const uy = -bb.vy / sp;
+  const out: { x: number; y: number; r: number; a: number }[] = [];
+  for (let i = 1; i <= TRAIL_N; i++) {
+    const s = i * TRAIL_STEP;
+    if (s > reach) break;
+    const k = 1 - i / (TRAIL_N + 1);
+    out.push({ x: bb.x + ux * s, y: bb.y + uy * s, r: 0.8 + 1.9 * k, a: 0.15 + 0.6 * k });
+  }
+  return out;
 }

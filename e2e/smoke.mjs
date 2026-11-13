@@ -1825,6 +1825,29 @@ try {
     const summonPx = await summonGreen();
     await page.screenshot({ path: path.join(out, '26i-boss-summon.png') });
     check('a summon wind-up opens glowing cracks with sprouts where minions will appear', summonPx > summonIdle + 60, JSON.stringify({ summonIdle, summonPx }));
+    // Bolt trails: a boss bolt (held nearly still) draws a fading accent trail back along its path.
+    await holdAt(null, 0);
+    const trailGrab = () => page.evaluate(() => {
+      const { game, renderer } = window.__terrabound;
+      const b = game.boss;
+      const a = renderer.worldToScreen(b.x - 1.6, b.y - 5.6);
+      const c = renderer.worldToScreen(b.x - 0.1, b.y - 4.4);
+      return Array.from(document.querySelector('canvas').getContext('2d').getImageData(Math.round(a.x), Math.round(a.y), Math.round(c.x - a.x), Math.round(c.y - a.y)).data);
+    });
+    const holdBolt = (on) => page.evaluate((on) => {
+      const g = window.__terrabound.game;
+      clearInterval(window.__boltHold);
+      g.bossBolts = [];
+      if (on) window.__boltHold = setInterval(() => { const b = g.boss; if (b) g.bossBolts = [{ x: b.x, y: b.y - 5, vx: 0.0001, vy: 0, life: 2 }]; }, 4);
+    }, on);
+    await page.waitForTimeout(150);
+    const trailOff = await trailGrab();
+    await holdBolt(true);
+    await page.waitForTimeout(200);
+    const trailOn = await trailGrab();
+    await page.screenshot({ path: path.join(out, '26j-bolt-trail.png') });
+    await holdBolt(false);
+    check('boss bolts draw a fading trail back along their path', pxDiff(trailOff, trailOn) > 40, JSON.stringify({ diff: pxDiff(trailOff, trailOn) }));
     await page.evaluate(() => { clearInterval(window.__bossHold); window.__terrabound.game.boss.id = 'colossus'; });
   }
   await page.evaluate(() => {
