@@ -2017,6 +2017,8 @@ try {
   check('a boss hit sprays accent-coloured sparks back toward the attacker', sparks.ok && sparks.accent >= 3 && sparks.toward === sparks.accent && sparks.ring, JSON.stringify(sparks));
   await page.evaluate(() => {
     const g = window.__terrabound.game;
+    // The spark hit above leaves 0.12 s of boss iframes; under load less wall time than that may pass.
+    if (g.boss) g.boss.iframes = 0;
     g.damageBoss(9999);
   });
   await page.waitForTimeout(300);
