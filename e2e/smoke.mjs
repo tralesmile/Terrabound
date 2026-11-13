@@ -841,6 +841,7 @@ try {
   await page.keyboard.up('KeyV');
   await page.waitForTimeout(100);
   const bx0 = await page.evaluate(() => window.__terrabound.game.body.x);
+  const wd0 = await page.evaluate(() => window.__terrabound.renderer.wheelDist);
   await page.keyboard.down('KeyD');
   await page.waitForTimeout(450);
   const dusty = await page.evaluate(() => ({ dust: window.__terrabound.fx.particles.filter((p) => !p.hollow).length, pose: window.__terrabound.renderer.vehPose }));
@@ -850,6 +851,14 @@ try {
   const drive = await page.evaluate(() => ({ riding: window.__terrabound.game.riding, veh: window.__terrabound.game.vehicle, x: window.__terrabound.game.body.x }));
   await page.screenshot({ path: path.join(out, '22c-buggy.png') });
   check('walk up + V rides the buggy and it drives fast', drive.riding && drive.veh === 'buggy' && drive.x > bx0 + 4, JSON.stringify({ bx0, ...drive }));
+  // Wheels turn with the ground: rolled distance tracks the distance driven, and stops when parked still.
+  const spin = await page.evaluate(() => ({ wd: window.__terrabound.renderer.wheelDist }));
+  await page.waitForTimeout(900);
+  const still1 = await page.evaluate(() => ({ wd: window.__terrabound.renderer.wheelDist, vx: window.__terrabound.game.body.vx }));
+  await page.waitForTimeout(300);
+  const still2 = await page.evaluate(() => window.__terrabound.renderer.wheelDist);
+  const ratio = (spin.wd - wd0) / Math.max(0.01, drive.x - bx0);
+  check('buggy wheels spin with the distance driven and stop when it stops', ratio > 0.6 && ratio < 1.4 && (Math.abs(still1.vx) > 0.05 || Math.abs(still2 - still1.wd) < 0.01), JSON.stringify({ ratio, still1, still2 }));
   await page.keyboard.press('KeyV');
   await page.waitForTimeout(100);
   check('V gets out and parks the buggy where you stopped', await page.evaluate(() => !window.__terrabound.game.riding && window.__terrabound.game.parkedVehicle()?.id === 'buggy'));

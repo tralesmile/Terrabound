@@ -58,7 +58,7 @@ import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
-import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows } from './sprites';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, VEHICLES, vehicleRows, wheelSpinTime } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 import { drawGlyph, hasGlyph } from './glyphs';
 import { ropePoints, ropeSag, twangAmp } from './ropefx';
@@ -504,7 +504,9 @@ export class Renderer {
       }
       const bob = veh === 'sky_jet' ? Math.round(Math.sin(time * 5)) * 0.5 : 0;
       const ground = veh === 'buggy' || veh === 'drill_tank';
-      const moving = Math.abs(b.vx) > 0.5 ? time : 0;
+      // Wheels and treads turn with the distance rolled, so they match the ground speed.
+      if (ground) this.wheelDist += Math.abs(b.vx) * dtFrame;
+      const moving = wheelSpinTime(this.wheelDist);
       // Ground vehicles are drawn larger so the pilot sits inside, not on top of a toy.
       const vs = ground ? scale * VEHICLE_ART_SCALE : scale;
       const drawVeh = (): void => drawRows(ctx, vehicleRows(veh, ground ? moving : time, game.jetting), px - (vd.w / 2) * vs, py - (vd.top - bob) * vs, vs, game.facing < 0, vd.w, undefined, rideRemap(veh));
@@ -1584,6 +1586,8 @@ export class Renderer {
 
   /** Liquid cells drawn last frame (e2e). */
   liquidShown = 0;
+  /** Tiles the ridden ground vehicle has rolled (drives the wheel frames; e2e). */
+  wheelDist = 0;
   /** Lava cells drawn last frame and shimmer rows copied (e2e). */
   lavaShown = 0;
   shimmerRows = 0;

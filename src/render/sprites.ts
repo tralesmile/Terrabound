@@ -748,6 +748,18 @@ const JET_FLAME = [
   ['Yy', 'YyyY'],
 ];
 
+/** Art px a ground vehicle rolls between wheel / tread frames. */
+export const WHEEL_STEP_PX = 3;
+
+/**
+ * The `t` to pass vehicleRows for a buggy or drill tank that has rolled `dist` tiles: the wheel
+ * and tread frames advance with distance, not with the clock, so they turn as fast as the ground
+ * goes by and stop when the vehicle stops. Pure.
+ */
+export function wheelSpinTime(dist: number): number {
+  return (Math.max(0, dist) * 16) / WHEEL_STEP_PX / 20;
+}
+
 /** Dune buggy: roll cage, red body, two big wheels (spokes turn with time). */
 const BUGGY = [
   '       oooooooooo',
