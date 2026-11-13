@@ -456,10 +456,39 @@ try {
   await page.keyboard.press('Digit1');
   check('1 selects the drill', (await page.evaluate(() => window.__terrabound.game.tool)) === 'drill');
 
-  // Back walls: '-' selects the wall, a right click builds it in the wall layer behind the player.
-  await page.evaluate(() => { window.__terrabound.game.carried.wall = 4; });
+  // Keys 6-0 and - pick the visible build-bar slots in the arranged order.
+  // Fill the bar to at least six owned placeables (removed again after the wall check).
+  const fillers = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const added = [];
+    for (const id of ['rust', 'metal', 'torch', 'ladder', 'scaffold']) if (!(g.carried[id] > 0)) { g.carried[id] = 1; added.push(id); }
+    return added;
+  });
+  for (const [n, key] of ['Digit6', 'Digit7'].entries()) {
+    await page.keyboard.press(key);
+    const st = await page.evaluate((n) => {
+      const g = window.__terrabound.game;
+      const shown = g.hotbar.filter((id) => id === g.selected || (g.carried[id] ?? 0) > 0);
+      return { sel: g.selected, want: shown[n] };
+    }, n);
+    check(`key ${n === 0 ? '6' : '7'} picks build-bar slot ${n + 1}`, !!st.want && st.sel === st.want, JSON.stringify({ ...st, n }));
+  }
+
+  // Back walls: '-' (bar slot 6) selects the wall once it sits there, a right click builds it behind the player.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.carried.wall = 4;
+    g.selected = 'wall';
+    for (let i = 0; i < 40; i++) g.moveHotbar('wall', -1);
+    for (let i = 0; i < 5; i++) g.moveHotbar('wall', 1);
+    g.selected = 'rust';
+  });
   await page.keyboard.press('Minus');
-  const wallSel = await page.evaluate(() => window.__terrabound.game.selected);
+  const wallSel = await page.evaluate((fillers) => {
+    const g = window.__terrabound.game;
+    for (const id of fillers) delete g.carried[id];
+    return g.selected;
+  }, fillers);
   const wpos = await page.evaluate(() => {
     const { game: g, renderer: r } = window.__terrabound;
     const tx = Math.floor(g.body.x) + 1;

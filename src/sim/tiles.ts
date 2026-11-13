@@ -402,6 +402,15 @@ export function visiblePlaceables(inv: Inventory, selected: ItemId, order: reado
   return hotbarOrder(order).filter((id) => id === selected || (inv[id] ?? 0) > 0);
 }
 
+/** Keys 6 7 8 9 0 - pick visible build-bar slots 0-5 (desktop). */
+export const BAR_SLOT_KEYS = ['6', '7', '8', '9', '0', '-'] as const;
+
+/** The item in visible build-bar slot `n` (0-based), or undefined when the bar is shorter. */
+export function barSlotItem(inv: Inventory, selected: ItemId, order: readonly string[], n: number): ItemId | undefined {
+  if (!Number.isInteger(n) || n < 0) return undefined;
+  return visiblePlaceables(inv, selected, order)[n];
+}
+
 /**
  * Move `id` one slot left (dir -1) or right (+1) on the visible build bar: it swaps places with the
  * next shown item that way. Returns the new full order (unchanged when it is already at that end or not shown).

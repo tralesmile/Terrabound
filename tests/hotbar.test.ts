@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { PLACEABLE, hotbarOrder, moveInHotbar, visiblePlaceables } from '../src/sim/tiles';
+import { BAR_SLOT_KEYS, PLACEABLE, barSlotItem, hotbarOrder, moveInHotbar, visiblePlaceables } from '../src/sim/tiles';
+import { Game } from '../src/sim/game';
 import { SAVE_VERSION, defaultSave, parseSave, serializeSave } from '../src/sim/save';
 
 describe('arrangeable build bar', () => {
@@ -81,6 +82,35 @@ describe('game build bar', () => {
     const g = new Game(s);
     g.selected = 'ladder';
     g.cycleSelected();
+    expect(g.selected).toBe('torch');
+  });
+});
+
+describe('keys 6-0 and - pick arranged bar slots', () => {
+  it('slot n is the n-th visible item in the arranged order', () => {
+    const inv = { rust: 3, torch: 2, ladder: 1, wall: 5 };
+    expect(BAR_SLOT_KEYS).toEqual(['6', '7', '8', '9', '0', '-']);
+    expect(barSlotItem(inv, 'rust', [], 0)).toBe('rust');
+    expect(barSlotItem(inv, 'rust', [], 3)).toBe('wall');
+    expect(barSlotItem(inv, 'rust', ['wall', 'ladder'], 0)).toBe('wall');
+    expect(barSlotItem(inv, 'rust', ['wall', 'ladder'], 1)).toBe('ladder');
+    expect(barSlotItem(inv, 'rust', [], 4)).toBeUndefined();
+    expect(barSlotItem(inv, 'rust', [], -1)).toBeUndefined();
+    expect(barSlotItem(inv, 'rust', [], 1.5)).toBeUndefined();
+  });
+
+  it('game.selectBarSlot follows the arranged bar and ignores empty slots', () => {
+    const g = new Game(defaultSave());
+    for (const k of Object.keys(g.carried)) delete (g.carried as Record<string, number>)[k];
+    g.carried.torch = 2;
+    g.carried.ladder = 4;
+    g.selected = 'torch';
+    expect(g.moveHotbar('ladder', -1)).toBe(true);
+    expect(g.selectBarSlot(0)).toBe(true);
+    expect(g.selected).toBe('ladder');
+    expect(g.selectBarSlot(1)).toBe(true);
+    expect(g.selected).toBe('torch');
+    expect(g.selectBarSlot(5)).toBe(false);
     expect(g.selected).toBe('torch');
   });
 });

@@ -18,6 +18,7 @@ import {
   T,
   TILES,
   canAfford,
+  barSlotItem,
   hotbarOrder,
   invAdd,
   invCount,
@@ -1041,6 +1042,14 @@ export class Game {
   selectPlaceable(index: number): void {
     const id = PLACEABLE[((index % PLACEABLE.length) + PLACEABLE.length) % PLACEABLE.length];
     this.selected = id;
+  }
+
+  /** Select visible build-bar slot `n` (keys 6-0 and -). Returns false when that slot is empty. */
+  selectBarSlot(n: number): boolean {
+    const id = barSlotItem(this.carried, this.selected, this.save.hotbar, n);
+    if (!id) return false;
+    this.selected = id;
+    return true;
   }
 
   setTool(t: Tool): void {

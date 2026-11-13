@@ -22,7 +22,7 @@ import { LAYERS } from '../sim/layers';
 import { MAX_PART, PART_IDS, VEHICLES, VEHICLE_IDS, partCost, vehicleStats, type PartId, type VehicleId } from '../sim/garage';
 import { WEATHER } from '../sim/weather';
 import { CODEX, LORE, RECALL_TIME } from '../sim/explore';
-import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, invCount, invTotal, type Inventory, type ItemId } from '../sim/tiles';
+import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, BAR_SLOT_KEYS, invCount, invTotal, type Inventory, type ItemId } from '../sim/tiles';
 import { UPGRADES } from '../sim/upgrades';
 import { RECIPES } from '../sim/recipes';
 import { ACT_INFO, COND_INFO, RULE_MAX, ROLE_INFO } from '../sim/drones';
@@ -66,6 +66,8 @@ export type UiAction =
   | { k: 'daily' }
   | { k: 'dive' }
   | { k: 'sel'; i: number }
+  /** Select visible build-bar slot n (keys 6-0 and -). */
+  | { k: 'barslot'; n: number }
   /** Move a placeable one slot left/right on the build bar (inventory). */
   | { k: 'barmove'; id: ItemId; d: -1 | 1 }
   | { k: 'tool' }
@@ -1387,7 +1389,7 @@ export class UI {
       sx += slot + gap + (i === TOOL_SLOTS.length - 1 ? gap * 2 : 0);
     });
     this.slotPos.clear();
-    shown.forEach((id) => {
+    shown.forEach((id, slotN) => {
       const i = PLACEABLE.indexOf(id);
       const n = invCount(game.carried, id);
       this.slotPos.set(id, { x: sx, y: sy, s: slot });
@@ -1397,6 +1399,8 @@ export class UI {
         ctx.lineWidth = 3;
         ctx.strokeRect(sx + 1, sy + 1, slot - 2, slot - 2);
       }
+      // Desktop: keys 6-0 and - pick the first six bar slots, labelled like the tool slots.
+      if (!this.touch && slotN < BAR_SLOT_KEYS.length) this.text(ctx, BAR_SLOT_KEYS[slotN], sx + 4, sy + slot * 0.28, Math.round(slot * 0.22), '#8a90a2');
       sx += slot + gap;
     });
     // Bag button (inventory) at the end of the bar.
@@ -1422,7 +1426,7 @@ export class UI {
     const auto = game.stats.playTime >= 40 ? game.hintAutomation(this.touch) : null;
     if (auto) this.text(ctx, auto, w / 2, h - u * 0.7, Math.round(u * 0.75), '#7dffb0', 'center', w - u * 2);
     if (game.stats.playTime < 40) {
-      const hint = this.touch ? (this.stickSide === 1 ? 'Right thumb: move, drag up to jump. Left side: dig.' : 'Left thumb: move, drag up to jump. Right side: dig.') : `${keyLabel(game.keys.left)}/${keyLabel(game.keys.right)} move, ${keyLabel(game.keys.jump)} jump. Click: dig / open chests. Right click: build. 1-5 or wheel: tools. ${keyLabel(game.keys.inventory)}: inventory. ${keyLabel(game.keys.interact)}: open chest.`;
+      const hint = this.touch ? (this.stickSide === 1 ? 'Right thumb: move, drag up to jump. Left side: dig.' : 'Left thumb: move, drag up to jump. Right side: dig.') : `${keyLabel(game.keys.left)}/${keyLabel(game.keys.right)} move, ${keyLabel(game.keys.jump)} jump. Click: dig / open chests. Right click: build. 1-5 or wheel: tools, 6-0: blocks. ${keyLabel(game.keys.inventory)}: inventory. ${keyLabel(game.keys.interact)}: open chest.`;
       this.text(ctx, hint, w / 2, h - u * 0.7, Math.round(u * 0.75), '#c9d0e4', 'center', w - u * 2);
     }
   }
