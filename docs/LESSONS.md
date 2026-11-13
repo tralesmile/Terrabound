@@ -150,3 +150,8 @@
 - **A run can stop between its code and its docs** (run 35 shipped 09debea with no PROGRESS entry). Guard: on start, `git log` since the last "Docs for run" commit and document any undocumented commits first.
 - **Same-canvas drawImage works for cheap distortion** (heat shimmer): copy thin rows of the canvas onto itself with whole-art-px offsets; merge cells into runs so it is one call per row per run.
 - **Retro:** three slices, three ships (~4-5 min each) plus one red gate (the gift changed a pinned stash count). Running the full `npx vitest run` before `ship` would have caught it 4 minutes earlier.
+
+- **Anything that raises the ground must give the new cells a back wall.** The lavafall crag raised `surface[x]` and tests/walls.test.ts (everything at or below the surface has a natural wall) went red in `ship`. Guard: the crag sets `W.CAVE_ROCK` per cell; any structure that changes `world.surface` must also set walls. Ran only the touched test files first; the full suite caught it (cost one 4-minute gate).
+- **Pixel-sampling e2e must avoid the HUD panels** (goal/toast column top-left, buttons top-right): the first lavafall sample read the goal panel and failed. Guard: stand the player so the sampled thing sits just left of centre, and sample its lower part.
+- **A teleport far from the camera needs a camX and camY wait** before a screenshot (the pet-swim shot was empty sky). The camera eases; wait for both axes.
+- **Retro:** two slices, three ships (~5-6 min each), one red gate (walls). Drafting the next slice's patch in the scratchpad while `ship` ran kept the working tree safe and saved time; keep doing it.

@@ -566,3 +566,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** lavafalls down Ash cliffs; swim animation for robot pets; P1.9 follow-ups (plane with cargo, charge station); longer lore logs.
 
 **Known issues:** shimmer copies the canvas onto itself (cheap here, untested on a real phone GPU); old awards earned before gifts paid nothing (by design, no save change); the log reader leaves empty space on desktop; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).
+
+## 2026-11-13 Scheduled run 37
+
+**Done:** baseline green (652 tests). Creative review: Ash Dunes lava sat flat with no drama (carried 1 run; 11-biome-ash, 22d). Lavafalls (src/sim/structures.ts `lavafalls`, render `drawLavafalls`, `fallShade` in lavafx.ts): one basalt crag per Ash band with a sealed 2-cell lava spring on top; the overflow pours down the sheer face as a drawn sheet of downward-scrolling streaks into a 3-wide basalt-lined catch pool, lights the face and ground, spatters and throws embers; the sheet is a light source, stops at any block put in its way (`lavafallSpan`, shared with the burn) and burns at half the pool's heat; codex place "Lavafall" (16 places) with an orange map pin (22f-lavafall, 22g-lavafall-close). Pets swim (src/render/petfx.ts): bob, head-first lean, paddle frames, air bubbles under, wake at the surface; pup paddles, scout bot folds its rotor and spins a rear prop, moth beats slowly (31b-pet-swim).
+
+**Numbers:** 664 unit tests (new: lavafall 7, petfx 5; codex count 15 -> 16), e2e adds lavafall present / streaked sheet / burns and pet-swims checks (all green), bundle 376 kB (130.9 kB gzip).
+
+**Next:** lava contact juice; Ash Dunes surface variety; first unchecked P1.6/P1.9 follow-ups (plane with cargo, charge station); longer lore logs.
+
+**Known issues:** worldgen changed (lavafall crags), so existing saves' Ash Dunes regenerate with a crag midway (same as when lava pools were added); the player sprite flashed white in the 31b screenshot (hurt flash from the teleport, cosmetic test artefact); the log reader leaves empty space on desktop; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).

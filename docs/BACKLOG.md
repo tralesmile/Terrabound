@@ -79,7 +79,8 @@ World size and variety:
 - [x] Vehicles: seated pilot on hoverbike and Sky Jet, slope tilt and climb pitch, landing suspension squash, wheel dust, exhaust, drill sparks, hover motes, jet contrail
 - [x] Lava: two basalt-lined surface lava pools per Ash Dunes band (codex: Lava pool), lava basins in the caves under the Ash Dunes
 - [x] Heat shimmer and flowing crust on lava (run 36, src/render/lavafx.ts); wheel and tread frames follow the distance rolled (run 36)
-- [ ] Follow-ups (scheduled runs may take these): lavafalls down Ash cliffs, swim animation for the robot pets
+- [x] Lavafalls: a basalt crag per Ash band pours a burning sheet into a catch pool (codex: Lavafall); pets paddle, lean and bubble when they follow the player into water (run 37)
+- [ ] Follow-ups (scheduled runs may take these): lava contact juice (knock-up hop, sizzle, charred tint), Ash Dunes surface variety (ash drifts, cinder cones), e2e frame-time probe over lava
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 
