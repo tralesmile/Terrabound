@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 46
+
+- Done this run: boss slam impact (flat pale shockwave ring as wide as SLAM_RADIUS so you see where it hurt, dust walls both ways, chunks thrown up from each fist; 26c-boss-impact), surface dirt cross-section (darker organic topsoil band + fine wandering root threads in the first 6 rows of warm soil; 43-strata), old long toasts fold to a one-line ghost after 2.5 s (frees the top-left of the world).
+- Weakest graphics: deep-layer lit caves are still one flat tone near the lamp; a soft rim light on the walkable floor edge (reuse rimlight) would read the ledge (last P1.10 follow-up).
+- Weakest boss feel: only the Junk Colossus has an art pass + slam juice; the Crystal Golem and Frost Titan are still plain rects with eyes (promote a per-boss art pass to BACKLOG).
+- Weakest controls: hotbar order is still fixed (PLACEABLE order); drag-to-arrange (P1.6 follow-up) remains the top controls gap.
+- Weakest progression: no run-summary/share card yet (P4), so a good dive has no shareable payoff — a retention lever left on the table.
+
 ## 2026-11-13 run 45
 
 - Done this run: Junk Colossus art pass (junk fists, arms swing overhead on the slam wind-up, swinging hip plate, breathing chest furnace; 26b-boss-slam), ice fishing (Frozen Spires ponds freeze, fish through a hole for icefin), jump pads (a way up to sky islands, boing plate).

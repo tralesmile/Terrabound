@@ -89,7 +89,8 @@ World size and variety:
 - [x] Icon HUD (square glyph buttons, two wide, key hints, 44 px touch), longer lore logs (2-3 more lines each in the reader), the player's feet follow slope-cap diagonals (render-only sink) (run 43)
 - [x] Per-layer cave back walls (circuit mesh, plasma basalt, core obsidian), enemies follow slope diagonals, desktop hover labels for HUD glyphs, lore logs in story order by depth, red hurt-flash tint (run 44)
 - [x] Junk Colossus art pass: junk fists, arms overhead on the slam wind-up, swinging hip plate, chest furnace glow (run 45)
-- [ ] Follow-ups (scheduled runs may take these): surface dirt cross-section detail (pebbles, roots, darker bands in the first tiles); boss slam impact (dust ring, debris from the fists); old toasts fade to a one-line ghost after 4 s; soft rim light on deep-layer cave floors
+- [x] Surface dirt cross-section (organic topsoil band + root threads in shallow warm soil), boss slam impact (flat shockwave ring as wide as the reach, dust walls, fist debris), old toasts fold to a one-line ghost after 2.5 s (run 46)
+- [ ] Follow-ups (scheduled runs may take these): soft rim light on deep-layer cave floors (walkable edge)
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 
