@@ -457,11 +457,11 @@ try {
   check('1 selects the drill', (await page.evaluate(() => window.__terrabound.game.tool)) === 'drill');
 
   // Keys 6-0 and - pick the visible build-bar slots in the arranged order.
-  // Fill the bar to at least six owned placeables (removed again after the wall check).
+  // Fill the bar to at least six owned placeables (kits, so the pad does not bank them; removed after the wall check).
   const fillers = await page.evaluate(() => {
     const g = window.__terrabound.game;
     const added = [];
-    for (const id of ['rust', 'metal', 'torch', 'ladder', 'scaffold']) if (!(g.carried[id] > 0)) { g.carried[id] = 1; added.push(id); }
+    for (const id of ['torch', 'ladder', 'scaffold', 'platform', 'door']) if (!(g.carried[id] > 0)) { g.carried[id] = 1; added.push(id); }
     return added;
   });
   for (const [n, key] of ['Digit6', 'Digit7'].entries()) {
@@ -481,7 +481,7 @@ try {
     g.selected = 'wall';
     for (let i = 0; i < 40; i++) g.moveHotbar('wall', -1);
     for (let i = 0; i < 5; i++) g.moveHotbar('wall', 1);
-    g.selected = 'rust';
+    g.selected = 'torch';
   });
   await page.keyboard.press('Minus');
   const wallSel = await page.evaluate((fillers) => {
