@@ -18,10 +18,12 @@ import {
   T,
   TILES,
   canAfford,
+  hotbarOrder,
   invAdd,
   invCount,
   invTotal,
   isMinable,
+  moveInHotbar,
   pay,
 } from './tiles';
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
@@ -1051,7 +1053,22 @@ export class Game {
   }
 
   cycleSelected(): void {
-    this.selectPlaceable(PLACEABLE.indexOf(this.selected) + 1);
+    const order = hotbarOrder(this.save.hotbar);
+    this.selected = order[(order.indexOf(this.selected) + 1) % order.length];
+  }
+
+  /** The player's arranged build-bar order (full list of placeables). */
+  get hotbar(): ItemId[] {
+    return hotbarOrder(this.save.hotbar);
+  }
+
+  /** Move a placeable one slot left or right on the visible build bar (saved). Returns true when it moved. */
+  moveHotbar(id: ItemId, dir: -1 | 1): boolean {
+    const before = hotbarOrder(this.save.hotbar).join();
+    const next = moveInHotbar(this.save.hotbar, this.carried, this.selected, id, dir);
+    if (next.join() === before) return false;
+    this.save.hotbar = next;
+    return true;
   }
 
   private die(): void {

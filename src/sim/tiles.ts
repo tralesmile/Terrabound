@@ -386,9 +386,37 @@ export const ITEMS: Record<ItemId, ItemDef> = {
 
 export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair', 'window', 'lift', 'corn_seed', 'root_seed', 'berry_seed', 'sprinkler', 'pot', 'garage_kit', 'jump_pad'];
 
-/** Placeables worth showing in the hotbar: owned ones plus the selected one, in PLACEABLE order. */
-export function visiblePlaceables(inv: Inventory, selected: ItemId): ItemId[] {
-  return PLACEABLE.filter((id) => id === selected || (inv[id] ?? 0) > 0);
+/**
+ * Full build-bar order: the player's arranged order first (unknown and duplicate ids dropped),
+ * then every other placeable in PLACEABLE order, so new placeables always have a place.
+ */
+export function hotbarOrder(order: readonly string[] = []): ItemId[] {
+  const out: ItemId[] = [];
+  for (const id of order) if ((PLACEABLE as string[]).includes(id) && !out.includes(id as ItemId)) out.push(id as ItemId);
+  for (const id of PLACEABLE) if (!out.includes(id)) out.push(id);
+  return out;
+}
+
+/** Placeables worth showing in the hotbar: owned ones plus the selected one, in the player's arranged order. */
+export function visiblePlaceables(inv: Inventory, selected: ItemId, order: readonly string[] = []): ItemId[] {
+  return hotbarOrder(order).filter((id) => id === selected || (inv[id] ?? 0) > 0);
+}
+
+/**
+ * Move `id` one slot left (dir -1) or right (+1) on the visible build bar: it swaps places with the
+ * next shown item that way. Returns the new full order (unchanged when it is already at that end or not shown).
+ */
+export function moveInHotbar(order: readonly string[], inv: Inventory, selected: ItemId, id: ItemId, dir: -1 | 1): ItemId[] {
+  const full = hotbarOrder(order);
+  const shown = visiblePlaceables(inv, selected, full);
+  const i = shown.indexOf(id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= shown.length) return full;
+  const a = full.indexOf(id);
+  const b = full.indexOf(shown[j]);
+  full[a] = shown[j];
+  full[b] = id;
+  return full;
 }
 
 export function isMinable(tile: number): boolean {

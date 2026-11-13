@@ -66,6 +66,8 @@ export type UiAction =
   | { k: 'daily' }
   | { k: 'dive' }
   | { k: 'sel'; i: number }
+  /** Move a placeable one slot left/right on the build bar (inventory). */
+  | { k: 'barmove'; id: ItemId; d: -1 | 1 }
   | { k: 'tool' }
   | { k: 'settool'; t: Tool }
   | { k: 'map' }
@@ -1114,6 +1116,17 @@ export class UI {
         bx2 += bw2 + u * 0.5;
       }
       this.button(ctx, bx2, ry, bw2, u * 2.2, 'DROP', { k: 'drop', id: sel }, u * 0.85, { color: '#7a3a2a' });
+      // Arrange the build bar: move the selected placeable one slot left / right (shown on the bar below).
+      const shownBar = visiblePlaceables(game.carried, game.selected, game.hotbar);
+      const at = shownBar.indexOf(sel);
+      if (at >= 0) {
+        const by = ry + u * 3;
+        const mw = Math.max(u * 2.6, this.touch ? 44 : 0);
+        this.text(ctx, `Build bar slot ${at + 1}/${shownBar.length}`, rx, by + u * 1.1, Math.round(u * 0.72), '#9aa3b8', 'left', rw);
+        const lx = rx + Math.min(rw - mw * 2 - u * 0.5, u * 11);
+        this.button(ctx, lx, by, mw, u * 2.2, '<', { k: 'barmove', id: sel, d: -1 }, u * 0.85, { enabled: at > 0 });
+        this.button(ctx, lx + mw + u * 0.5, by, mw, u * 2.2, '>', { k: 'barmove', id: sel, d: 1 }, u * 0.85, { enabled: at < shownBar.length - 1 });
+      }
     }
   }
 
@@ -1341,7 +1354,7 @@ export class UI {
 
     // Hotbar: tools first, then placeable blocks.
     const gap = u * 0.4;
-    const shown = visiblePlaceables(game.carried, game.selected);
+    const shown = visiblePlaceables(game.carried, game.selected, game.hotbar);
     const count = TOOL_SLOTS.length + shown.length + 1;
     const slot = Math.min(u * 3.4, (w - u * 2 - (count + 1) * gap) / count);
     const total = count * slot + (count - 1) * gap + gap * 2;

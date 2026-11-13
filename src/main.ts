@@ -444,6 +444,9 @@ function boot(): void {
       case 'sel':
         game.selectPlaceable(a.i);
         break;
+      case 'barmove':
+        game.moveHotbar(a.id, a.d);
+        break;
     }
   };
   input.onAction = act;

@@ -58,12 +58,12 @@ describe('suit paints', () => {
   });
 
   it('a v25 save loads with default helmet and vehicle paints; each slot cycles and saves on its own', () => {
-    expect(SAVE_VERSION).toBe(26);
+    expect(SAVE_VERSION).toBe(27);
     const v25 = { ...defaultSave(), v: 25, paint: 'gilded', awards: { n: { upgrades: 25 }, done: ['up2', 'win'] } } as Record<string, unknown>;
     delete v25.paintHelm;
     delete v25.paintRide;
     const s = parseSave(JSON.stringify(v25));
-    expect(s.v).toBe(26);
+    expect(s.v).toBe(27);
     expect([s.paint, s.paintHelm, s.paintRide]).toEqual(['gilded', null, null]);
     const g = new Game(s);
     expect(g.paintIn('helm')).toBeNull();

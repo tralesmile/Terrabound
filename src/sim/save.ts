@@ -1,7 +1,7 @@
 import { sanitizePaint } from './paints';
 import { cleanPrefs, DEFAULT_PREFS, type Prefs } from './settings';
 import { cleanKeys, DEFAULT_KEYS, type KeyMap } from './keys';
-import { ITEM_IDS, type Inventory } from './tiles';
+import { ITEM_IDS, PLACEABLE, type Inventory, type ItemId } from './tiles';
 import { legacyWalls, sanitizeBase, sanitizeWalls, type BaseTiles } from './base';
 import { UPGRADES, type Levels } from './upgrades';
 import { CODEX_IDS } from './explore';
@@ -16,7 +16,7 @@ import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 26;
+export const SAVE_VERSION = 27;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -70,6 +70,8 @@ export interface SaveData {
   /** v26: chosen helmet and vehicle paint ids (same earned paints as the suit), null = default look. */
   paintHelm: string | null;
   paintRide: string | null;
+  /** v27: the player's build-bar order (placeable ids, arranged in the inventory); empty = default order. */
+  hotbar: ItemId[];
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -101,6 +103,7 @@ export function defaultSave(seedBase = 1337): SaveData {
     paint: null,
     paintHelm: null,
     paintRide: null,
+    hotbar: [],
   };
 }
 
@@ -198,7 +201,16 @@ export function parseSave(raw: string | null | undefined): SaveData {
     // v25 -> v26: helmet and vehicle keep their default look.
     paintHelm: sanitizePaint(r.paintHelm),
     paintRide: sanitizePaint(r.paintRide),
+    // v26 -> v27: no arranged build bar (default order); unknown or duplicate ids are dropped.
+    hotbar: sanitizeHotbar(r.hotbar),
   };
+}
+
+function sanitizeHotbar(v: unknown): ItemId[] {
+  if (!Array.isArray(v)) return [];
+  const out: ItemId[] = [];
+  for (const id of v.slice(0, 200)) if (typeof id === 'string' && (PLACEABLE as string[]).includes(id) && !out.includes(id as ItemId)) out.push(id as ItemId);
+  return out;
 }
 
 function sanitizeDrones(v: unknown): Record<string, DroneRole> {

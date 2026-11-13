@@ -882,6 +882,37 @@ try {
   if (eatBtn) await page.mouse.click(eatBtn.x + eatBtn.w / 2, eatBtn.y + eatBtn.h / 2);
   const ate = await page.evaluate(() => ({ hp: window.__terrabound.game.hp, fish: window.__terrabound.game.carried.fish }));
   check('selecting a fish in the inventory and pressing EAT heals', ate.hp > 40 && ate.fish === 1, JSON.stringify(ate));
+  // Build bar: select a placeable in the pack and move it left with the < button; the bar order is saved.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.carried.torch = 4;
+    g.carried.ladder = 3;
+  });
+  await page.waitForTimeout(100);
+  const ladderCell = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'invsel' && r.a.id === 'ladder'));
+  if (ladderCell) await page.mouse.click(ladderCell.x + ladderCell.w / 2, ladderCell.y + ladderCell.h / 2);
+  await page.waitForTimeout(120);
+  const barBefore = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const shown = [];
+    for (const id of g.hotbar) if (id === g.selected || (g.carried[id] ?? 0) > 0) shown.push(id);
+    return shown;
+  });
+  for (let k = 0; k < 4; k++) {
+    const left = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'barmove' && r.a.d === -1));
+    if (!left) break;
+    await page.mouse.click(left.x + left.w / 2, left.y + left.h / 2);
+    await page.waitForTimeout(80);
+  }
+  await page.screenshot({ path: path.join(out, '18b-hotbar-arrange.png') });
+  const barAfter = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const shown = [];
+    for (const id of g.hotbar) if (id === g.selected || (g.carried[id] ?? 0) > 0) shown.push(id);
+    const left = window.__terrabound.ui.rects.some((r) => r.a.k === 'barmove' && r.a.d === -1);
+    return { shown, saved: g.toSave().hotbar.slice(0, 2), left };
+  });
+  check('inventory < moves a placeable to the front of the build bar and the order is saved', barBefore.indexOf('ladder') > 0 && barAfter.shown[0] === 'ladder' && barAfter.saved[0] === 'ladder' && !barAfter.left, JSON.stringify({ barBefore, barAfter }));
   // Awards: the AWARDS button in the inventory pages through every award; play so far was counted.
   const awardsBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'awards'));
   if (awardsBtn) await holdClick(page, awardsBtn.x + awardsBtn.w / 2, awardsBtn.y + awardsBtn.h / 2);
