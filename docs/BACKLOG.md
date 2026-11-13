@@ -71,7 +71,8 @@ World size and variety:
 - [x] Seeds from felled trees; planting on soil grows trees (saplings persist)
 - [x] Fishing (src/sim/fishing.ts) at surface ponds; fish heal when eaten
 - [x] Floating sky islands with a rich chest; surface ponds (codex now 14 entries)
-- [ ] Follow-ups: gear/armor as real equippable items (P3 equipment slots), crops and farming, ice fishing in Frozen Spires, a way up to islands (jump pads / grapple), an inventory hotbar the player can arrange, touch long-press for item actions
+- [x] Ice fishing in the Frozen Spires (frozen ponds, icefin) and jump pads (a way up to sky islands) (run 45); crops and farming done earlier (farming.ts)
+- [ ] Follow-ups: gear/armor as real equippable items (P3 equipment slots), an inventory hotbar the player can arrange, touch long-press for item actions
 
 ## P1.10 Owner request 2026-11-12: better driving and swimming graphics, lava (done 2026-11-12)
 
@@ -87,7 +88,8 @@ World size and variety:
 - [x] Walkers auto-step one-tile ledges and walk down one-tile drops (pets fly, nothing to do); slim one-row goal card; cave-ceiling slope caps; natural Scrap-layer metal slopes (player-placed blocks stay square) (run 42)
 - [x] Icon HUD (square glyph buttons, two wide, key hints, 44 px touch), longer lore logs (2-3 more lines each in the reader), the player's feet follow slope-cap diagonals (render-only sink) (run 43)
 - [x] Per-layer cave back walls (circuit mesh, plasma basalt, core obsidian), enemies follow slope diagonals, desktop hover labels for HUD glyphs, lore logs in story order by depth, red hurt-flash tint (run 44)
-- [ ] Follow-ups (scheduled runs may take these): surface dirt cross-section detail (pebbles, roots, darker bands in the first tiles); Junk Colossus art pass (swinging arms on the slam telegraph, loose plates); old toasts fade to a one-line ghost after 4 s; soft rim light on deep-layer cave floors
+- [x] Junk Colossus art pass: junk fists, arms overhead on the slam wind-up, swinging hip plate, chest furnace glow (run 45)
+- [ ] Follow-ups (scheduled runs may take these): surface dirt cross-section detail (pebbles, roots, darker bands in the first tiles); boss slam impact (dust ring, debris from the fists); old toasts fade to a one-line ghost after 4 s; soft rim light on deep-layer cave floors
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 

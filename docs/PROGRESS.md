@@ -646,3 +646,14 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** surface dirt cross-section detail; Junk Colossus art pass; old toasts fade to a ghost line; deep-cave floor rim light; P1.9 follow-ups (plane with cargo, charge station).
 
 **Known issues:** the hurt tint shows the held tool (it used to vanish with the white flash); lore order depends on terminal depth, so a player who only digs shallow reads logs 1-3 first and the rest later (by design); enemies use the same sink rule as the player, so a hulk wider than a cap still sinks by its centre; tall cones put bomb arcs above the screen from the foot; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).
+
+## 2026-11-13 Scheduled run 45
+
+**Done:** baseline green (754 tests). Creative review: the Junk Colossus was a brick block with eyes whose slam telegraph was only a body lift (26-boss, carried 1). Colossus art pass (src/render/bossart.ts `slamRaise`/`armAngle`/`plateSwing`, rig parts `arm`/`dangle`): junk fists ride both arms, the arms swing overhead over the 0.7 s slam warning and stay up while airborne, a loose hip plate swings and jolts, a furnace grate in the chest breathes (brighter enraged or winding up; 26b-boss-slam). Backlog P1.6 follow-ups: ice fishing (Frozen Spires ponds freeze, new `T.ICE` 69, solid and see-through; the rod fishes the water under the ice through a drawn hole; ice catch table gives icefin, new food 35 hp + 20 battery; 19b-ice-fishing) and jump pads (`T.JUMP_PAD` 70, fabricator 2 metal + 2 copper wire for two; standing on one launches ~12 tiles without holding jump, down stands on it, the landing after a launch is cushioned; plate squashes and wobbles, boing; 20b-jump-pad).
+
+**Numbers:** 767 unit tests (new: bossart 2, icefishing 6, jumppad 5; biomes pond test now accepts ice over water), 213 e2e checks all green (new: Colossus arms overhead vs idle, furnace glow, frozen pond cast + hole + catch, pad launch 11.9 tiles beside a sky island), bundle ~412 kB (~144 kB gzip). Boss frame probe 8.4 ms vs plain 6.3.
+
+**Next:** boss slam impact (dust ring, debris); surface dirt cross-section; arrangeable hotbar; toasts fade to a ghost line; P1.9 follow-ups (plane with cargo, charge station).
+
+**Known issues:** worldgen changed (frost ponds freeze), so existing saves' frost ponds get ice; pond ice drops nothing when mined (water below is then open); jump pads relaunch on every landing on them (bouncy by design; hold down to stand); a launch under a low ceiling bonks the head; the white warn flash still hides the furnace on alternate frames during a wind-up; tall cones put bomb arcs above the screen from the foot; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67), e2e now also uses 69/70.
+

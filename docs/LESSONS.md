@@ -187,3 +187,9 @@
 - **A sim entity without `onGround` needs its own grounded test for render effects.** Enemies have no `onGround`; the slope sink uses "vy ~ 0 and feet on a whole row" instead. Guard: the e2e places a crawler on a real cap and asserts its drawn sink.
 - **Private fields block test setup; build the state through the constructor.** `game.save` is private, so the lore test builds a save with the awards it needs and reads through the public `awards` getter.
 - **Retro:** five slices, five ships (~6 min each), no red gate, no rebase. Drafting each slice as a scratchpad `apply.py` and applying it once the ship log reached e2e kept the pipeline full; a node e2e already running is unaffected by edits to smoke.mjs.
+
+- **Never run CPU work (tsc, vitest) while a ship's e2e is running.** The lava frame-time probe failed (12.8 ms vs 7.1 plain) only because a unit test ran beside it; the same build passed alone. Guard: apply the next slice's patch while e2e runs, but test it only after the ship log shows EXIT.
+- **`ship` refuses any modified tracked file**, including docs drafted mid-run. Guard: `git stash` docs drafts before `npm run ship`, pop after it exits.
+- **Text tables have length rules** (codex notes <= 70 chars, tests/codex.test.ts). Run the codex test after touching `POI_NOTES`.
+- **Retro:** three slices, two ships (~8 min each) plus one red gate from CPU contention. Landing two finished slices in one commit was fine but makes bisecting harder; commit each slice as soon as its unit tests pass.
+

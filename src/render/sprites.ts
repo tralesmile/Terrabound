@@ -55,7 +55,7 @@ const LOOK: Record<number, Look> = {
   [T.REINFORCED]: { base: '#3f4a5e', light: '#8a9ab8', dark: '#262d3c', speck: '#ffb03a', speckCount: 2, glint: '#e6eeff', detail: 'rivets', trim: { hi: '#b8c4dc', lo: '#1e2430', bolt: '#ffb03a' } },
   [T.SHIELD]: { base: '#1d4a66', light: '#5ad8ff', dark: '#10283a', speck: '#c8f6ff', speckCount: 4, glint: '#ffffff', detail: 'rivets' },
   [T.GATE]: { base: '#0b2a3a', light: '#36e0e8', dark: '#061620', speck: '#c8ffff', speckCount: 4, detail: 'pad' },
-  [T.ICE]: { base: '#8fc4e0', light: '#e6f6ff', dark: '#5a8cb0', speck: '#ffffff', speckCount: 3, glint: '#ffffff', detail: 'facets' },
+  [T.ICE]: { base: '#8fc4e0', light: '#e6f6ff', dark: '#5a8cb0', speck: '#ffffff', speckCount: 3, glint: '#ffffff', detail: 'cracks' },
   [T.WRECK]: { base: '#3a3f4a', light: '#6b7080', dark: '#22252c', speck: '#e8a33d', speckCount: 2, glint: '#36e0e8', detail: 'rivets' },
 };
 
