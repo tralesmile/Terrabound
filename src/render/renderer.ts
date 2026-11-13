@@ -2074,6 +2074,9 @@ export class Renderer {
   private fx: Fx | null = null;
   /** Hollow AI shell plates seen last frame (a drop throws debris). */
   shellLeft = SHELL_PLATES;
+  /** How many times a shell drop threw debris (e2e hook). */
+  shellBreaks = 0;
+  shellDebris = '';
   /** Lavafall sheets drawn last frame (e2e) and the air cells they pour through (light sources). */
   lavafallsShown = 0;
   private fallCells = new Set<number>();
@@ -2553,7 +2556,9 @@ export class Renderer {
     const plates = shellPlates(bs.hp / d.hp).filter(Boolean).length;
     if (BOSS_ART[bs.id].style === 'core' && this.fx && plates < this.shellLeft) {
       const cy = bs.y - d.h / 2;
-      this.fx.burst(bs.x, cy, shade(d.color, 0.32), 14, 7);
+      this.shellBreaks++;
+      this.shellDebris = shade(d.color, 0.32);
+      this.fx.burst(bs.x, cy, this.shellDebris, 14, 7);
       this.fx.burst(bs.x, cy, d.accent, 8, 5);
       this.fx.ring(bs.x, cy, d.h * 0.7, d.accent, 0.35);
       this.fx.addShake(0.3);

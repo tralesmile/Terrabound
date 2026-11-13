@@ -1777,7 +1777,7 @@ try {
         const dist = Math.hypot((q % (2 * r)) - r, Math.floor(q / (2 * r)) - r);
         if (dist > 0.88 * ts && dist < 1.5 * ts && d[i] > 200 && d[i + 1] < 170 && d[i + 2] > 200) pink++;
       }
-      return { pink, parts: fx.particles.length, left: renderer.shellLeft };
+      return { pink, debris: fx.particles.filter((q) => q.color === renderer.shellDebris).length, breaks: renderer.shellBreaks, left: renderer.shellLeft };
     });
     const hollowFull = await corePink();
     await page.screenshot({ path: path.join(out, '28b-hollow-shell.png') });
@@ -1798,7 +1798,7 @@ try {
     await page.waitForTimeout(400);
     const hollowHurt = await corePink();
     await page.screenshot({ path: path.join(out, '28c-hollow-cracked.png') });
-    check('the Hollow AI wears a plate shell that breaks off with debris as it is hurt', hollowFull.left === 8 && hollowHurt.left === 3 && hollowShed.parts - hollowFull.parts >= 14, JSON.stringify({ full: hollowFull, shed: hollowShed, hurt: hollowHurt }));
+    check('the Hollow AI wears a plate shell that breaks off with debris as it is hurt', hollowFull.left === 8 && hollowHurt.left === 3 && hollowShed.breaks === hollowFull.breaks + 1 && hollowShed.debris >= 14, JSON.stringify({ full: hollowFull, shed: hollowShed, hurt: hollowHurt }));
     check('a hurt Hollow AI glows through shed-plate seams and core cracks', hollowHurt.pink > hollowFull.pink + 60, JSON.stringify({ full: hollowFull.pink, hurt: hollowHurt.pink }));
     const barAfter = await barPale();
     check('a big hit leaves a pale damage chip on the boss bar that then drains away', barHit.chip > 0.9 && barHit.n > barBefore.n + 40 && barAfter.chip < barHit.chip, JSON.stringify({ barBefore, barHit, barAfter }));
