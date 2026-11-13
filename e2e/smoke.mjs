@@ -212,9 +212,11 @@ try {
     const g = ui.goalRect;
     const btns = ui.rects.filter((r) => ['settings', 'mute', 'map'].includes(r.a.k));
     const clear = !!g && btns.every((b) => g.x + g.w <= b.x || b.x + b.w <= g.x || g.y + g.h <= b.y || b.y + b.h <= g.y);
-    return { id: g?.id, clear, step: game.goal?.step.id, have: game.goal?.have };
+    const cog = ui.rects.find((r) => r.a.k === 'settings');
+    return { id: g?.id, clear, step: game.goal?.step.id, have: game.goal?.have, lines: g?.lines, h: g?.h, cogH: cog?.h };
   });
   check('fresh game shows the first guided goal card, clear of the HUD buttons', goal1.id === 'dig' && goal1.clear, JSON.stringify(goal1));
+  check('the goal card is one slim row (shorter than the cog button)', goal1.lines === 1 && goal1.h > 0 && goal1.h < goal1.cogH, JSON.stringify(goal1));
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     for (let i = 0; i < 8; i++) g.emit({ t: 'break', x: 0, y: 0, tile: 1 });
@@ -533,7 +535,33 @@ try {
     }
     await page.keyboard.up('KeyA');
     const after = await page.evaluate(() => ({ y: window.__terrabound.game.body.y, x: window.__terrabound.game.body.x }));
-    check('walking into a one-tile step climbs it without jumping (eased)', after.y <= stair.top && lifted > 0, JSON.stringify({ stair, after, lifted }));
+    // Walkers auto-step too: a crawler below the step chases the player up it instead of turning back.
+    await page.evaluate((st) => {
+      const g = window.__terrabound.game;
+      g.hp = g.derived.maxHp;
+      g.body.x = st.x - 0.5;
+      g.body.y = st.top;
+      g.body.vx = g.body.vy = 0;
+      g.enemies = [{ id: 9901, kind: 'crawler', x: st.x + 3.5, y: st.low, vx: 0, vy: 0, hp: 999, dir: -1, iframes: 0, age: 0, phase: 0 }];
+    }, stair);
+    let crawl = { y: stair.low, lift: 0, x: stair.x + 3.5 };
+    let crawlShot = false;
+    for (let i = 0; i < 40; i++) {
+      await page.waitForTimeout(50);
+      const c = await page.evaluate(() => {
+        const e = window.__terrabound.game.enemies.find((n) => n.id === 9901);
+        return e ? { y: e.y, lift: e.lift || 0, x: e.x } : null;
+      });
+      if (!c) break;
+      crawl = { y: Math.min(crawl.y, c.y), lift: Math.max(crawl.lift, c.lift), x: c.x };
+      if (!crawlShot && c.lift > 0.2) {
+        crawlShot = true;
+        await page.screenshot({ path: path.join(out, '11d-crawler-step.png') });
+      }
+      if (c.y <= stair.top + 0.01 && crawlShot) break;
+    }
+    check('a chasing crawler auto-steps up the one-tile ledge (eased)', crawl.y <= stair.top + 0.01 && crawl.lift > 0, JSON.stringify({ stair, crawl }));
+    await page.evaluate(() => { window.__terrabound.game.enemies = []; });
   }
   await toastCheck(page, 'desktop', '46-toasts.png');
   // Underground points of interest: stand beside a data shrine and check that its terminal glows.

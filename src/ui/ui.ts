@@ -30,7 +30,7 @@ import { MERCHANT_STOCK } from '../sim/merchant';
 import { MODS, MOD_IDS, type ModId } from '../sim/mods';
 import { RESEARCH, RESEARCH_IDS, type ResearchId } from '../sim/research';
 import type { Trade } from '../sim/npcs';
-import { hudAnchors } from './hudlayout';
+import { goalCardHeight, goalCardLayout, hudAnchors } from './hudlayout';
 import { extraLine, mergeTarget, toastColumn, toastParts, toastSlide, wrapText, type ToastKind } from './toastfx';
 
 /** Base UI unit in canvas px for a screen size, times the settings-screen UI scale. */
@@ -1359,47 +1359,54 @@ export class UI {
   }
 
   /** Guided-goal card on screen this frame (e2e), or null. */
-  goalRect: { x: number; y: number; w: number; h: number; id: string } | null = null;
+  goalRect: { x: number; y: number; w: number; h: number; id: string; lines: number } | null = null;
 
-  /** GOAL card: "GOAL 2/7" head, the step text (keys filled in), and a progress bar for counted steps. */
+  /** Slim GOAL card: a "2/7" step badge, the step text (keys filled in) and count on one row, a hairline progress bar. */
   private drawGoal(ctx: CanvasRenderingContext2D, game: Game, g: NonNullable<Game['goal']>, x: number, y: number, maxW: number, u: number, time: number): number {
-    const pad = u * 0.45;
-    const bodyFs = Math.round(u * 0.78);
-    const headFs = Math.round(u * 0.58);
+    const bodyFs = Math.round(u * 0.76);
+    const badgeFs = Math.round(u * 0.56);
     const raw = this.touch ? g.step.touch : g.step.text;
     const body = raw.replace('{shop}', keyLabel(game.keys.shop));
-    const textW = maxW - pad * 3;
-    ctx.font = `bold ${bodyFs}px ${FONT}`;
-    const lines = wrapText(body, textW, (s) => ctx.measureText(s).width);
-    let wide = 0;
-    for (const l of lines) wide = Math.max(wide, Math.min(textW, ctx.measureText(l).width));
-    const head = `GOAL ${g.index + 1}/${FTUE_STEPS.length}`;
+    const badge = `${g.index + 1}/${FTUE_STEPS.length}`;
     const counted = g.step.goal > 1;
-    const barH = counted ? u * 0.75 : 0;
-    const ph = headFs * 1.25 + lines.length * bodyFs * 1.2 + pad * 1.4 + barH;
-    const pw = Math.max(wide, u * 9) + pad * 3;
+    const count = `${g.have}/${g.step.goal}`;
+    ctx.font = `bold ${badgeFs}px ${FONT}`;
+    const badgeTextW = ctx.measureText(badge).width;
+    const countTextW = counted ? ctx.measureText(count).width : 0;
+    const L = goalCardLayout(maxW, u, bodyFs, badgeTextW, countTextW, counted);
+    ctx.font = `bold ${bodyFs}px ${FONT}`;
+    const lines = wrapText(body, L.textW, (s) => ctx.measureText(s).width);
+    let wide = 0;
+    for (const l of lines) wide = Math.max(wide, Math.min(L.textW, ctx.measureText(l).width));
+    const ph = goalCardHeight(L, lines.length);
+    const pw = L.textX + wide + L.countW + L.pad;
     const pulse = 0.5 + 0.5 * Math.sin(time * 3);
-    ctx.fillStyle = 'rgba(8,10,18,0.72)';
+    ctx.fillStyle = 'rgba(8,10,18,0.66)';
     ctx.fillRect(x, y, pw, ph);
     ctx.fillStyle = `rgba(54,224,232,${0.7 + 0.3 * pulse})`;
     ctx.fillRect(x, y, Math.max(2, u * 0.18), ph);
-    let ly = y + pad * 0.7;
-    const tx = x + pad * 1.6;
-    this.text(ctx, head, tx, ly + headFs * 0.6, headFs, '#36e0e8', 'left', textW);
-    if (counted) this.text(ctx, `${g.have}/${g.step.goal}`, x + pw - pad, ly + headFs * 0.6, headFs, '#8a90a2', 'right', u * 4);
-    ly += headFs * 1.25;
+    // Step badge: a small cyan chip, vertically centred on the first text line.
+    const rowMid = y + L.pad * 0.65 + L.lineH * 0.5;
+    const bh = badgeFs * 1.35;
+    const bx = x + u * 0.18 + L.pad;
+    ctx.fillStyle = 'rgba(54,224,232,0.2)';
+    ctx.fillRect(bx, rowMid - bh / 2, L.badgeW, bh);
+    this.text(ctx, badge, bx + L.badgeW / 2, rowMid, badgeFs, '#36e0e8', 'center', L.badgeW);
+    let ly = y + L.pad * 0.65;
     for (const l of lines) {
-      this.text(ctx, l, tx, ly + bodyFs * 0.6, bodyFs, '#eef1f8', 'left', textW);
-      ly += bodyFs * 1.2;
+      this.text(ctx, l, x + L.textX, ly + L.lineH * 0.5, bodyFs, '#eef1f8', 'left', L.textW);
+      ly += L.lineH;
     }
     if (counted) {
-      const bw = pw - pad * 2.6;
+      this.text(ctx, count, x + pw - L.pad, rowMid, badgeFs, '#8a90a2', 'right', L.countW);
+      const by = y + ph - L.barH;
+      const bx0 = x + Math.max(2, u * 0.18);
       ctx.fillStyle = '#2a3046';
-      ctx.fillRect(tx, ly + u * 0.15, bw, u * 0.32);
+      ctx.fillRect(bx0, by, pw - (bx0 - x), L.barH);
       ctx.fillStyle = '#36e0e8';
-      ctx.fillRect(tx, ly + u * 0.15, bw * (g.have / g.step.goal), u * 0.32);
+      ctx.fillRect(bx0, by, (pw - (bx0 - x)) * Math.min(1, g.have / g.step.goal), L.barH);
     }
-    this.goalRect = { x, y, w: pw, h: ph, id: g.step.id };
+    this.goalRect = { x, y, w: pw, h: ph, id: g.step.id, lines: lines.length };
     return ph;
   }
 
