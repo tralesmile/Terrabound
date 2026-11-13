@@ -72,3 +72,37 @@ export function toastSlide(age: number): number {
 export function toastColumn(u: number, x: number, buttonsX: number, top: number): { x: number; y: number; maxW: number } {
   return { x, y: top, maxW: Math.max(u * 8, Math.min(u * 22, buttonsX - u * 1.5 - x)) };
 }
+
+/** Arrival messages (a new place, its codex gift, an award) that fold into one pill instead of stacking. */
+const ARRIVAL = /^(discovered|codex reward|award):/i;
+
+/** Seconds a fresh arrival pill keeps taking follow-up lines. */
+export const MERGE_WINDOW = 1.2;
+/** Follow-up lines one pill can carry. */
+export const MERGE_MAX = 2;
+
+export function isArrival(text: string): boolean {
+  return ARRIVAL.test(text);
+}
+
+/**
+ * Index of the pill an incoming arrival message should join, or -1 to show it on its own.
+ * It joins the newest arrival pill that is still fresh and has room.
+ */
+export function mergeTarget(toasts: readonly { text: string; age: number; extras?: readonly unknown[] }[], text: string): number {
+  if (!isArrival(text)) return -1;
+  for (let i = toasts.length - 1; i >= 0; i--) {
+    const t = toasts[i];
+    if (!isArrival(t.text)) continue;
+    if (t.age > MERGE_WINDOW || (t.extras?.length ?? 0) >= MERGE_MAX) return -1;
+    return i;
+  }
+  return -1;
+}
+
+/** A follow-up line: "Codex reward: 2 Crystal" -> "+ 2 Crystal"; "Award: Blink! Gift in stash: 6 Torch" -> "Award: Blink! +6 Torch". */
+export function extraLine(text: string): string {
+  const reward = /^codex reward:\s*/i;
+  if (reward.test(text)) return `+ ${text.replace(reward, '')}`;
+  return text.replace(/!\s*Gift in stash:\s*/i, '! +');
+}

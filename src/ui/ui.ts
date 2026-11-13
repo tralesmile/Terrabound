@@ -31,7 +31,7 @@ import { MODS, MOD_IDS, type ModId } from '../sim/mods';
 import { RESEARCH, RESEARCH_IDS, type ResearchId } from '../sim/research';
 import type { Trade } from '../sim/npcs';
 import { hudAnchors } from './hudlayout';
-import { toastColumn, toastParts, toastSlide, wrapText, type ToastKind } from './toastfx';
+import { extraLine, mergeTarget, toastColumn, toastParts, toastSlide, wrapText, type ToastKind } from './toastfx';
 
 /** Base UI unit in canvas px for a screen size, times the settings-screen UI scale. */
 export function uiUnit(w: number, h: number, scale = 1): number {
@@ -135,6 +135,8 @@ interface Toast {
   group?: string;
   /** Seconds since it appeared (drives the slide-in). */
   age: number;
+  /** Follow-up lines folded into this pill (codex gift, award), drawn small under the body. */
+  extras?: { text: string; color: string }[];
 }
 
 /** Most toasts on screen at once; older ones drop first. */
@@ -251,6 +253,14 @@ export class UI {
     const same = this.toasts.find((t) => t.text === text);
     if (same) {
       same.life = Math.max(same.life, life);
+      return;
+    }
+    // A new place, its codex gift and the award it unlocks arrive together: fold them into one pill.
+    const host = mergeTarget(this.toasts, text);
+    if (host >= 0) {
+      const h = this.toasts[host];
+      (h.extras ??= []).push({ text: extraLine(text), color });
+      h.life = Math.max(h.life, life);
       return;
     }
     if (group) this.toasts = this.toasts.filter((t) => t.group !== group);
@@ -1409,7 +1419,15 @@ export class UI {
       ctx.font = `bold ${headFs}px ${FONT}`;
       wide = Math.max(wide, Math.min(textW, ctx.measureText(p.head).width));
     }
-    const textH = lines.length * bodyFs * 1.2 + (p.head ? headFs * 1.25 : 0);
+    const extraFs = Math.round(u * 0.64);
+    const extras = (t.extras ?? []).map((e) => {
+      ctx.font = `bold ${extraFs}px ${FONT}`;
+      const ls = wrapText(e.text, textW, (s) => ctx.measureText(s).width);
+      for (const l of ls) wide = Math.max(wide, Math.min(textW, ctx.measureText(l).width));
+      return { lines: ls, color: e.color };
+    });
+    const extraH = extras.reduce((a, e) => a + e.lines.length * extraFs * 1.2, 0) + (extras.length ? u * 0.2 : 0);
+    const textH = lines.length * bodyFs * 1.2 + (p.head ? headFs * 1.25 : 0) + extraH;
     const ph = Math.max(icon + pad * 2 - u * 0.3, textH + pad * 1.4);
     const pw = icon + pad * 3 + wide;
     const sx = x - toastSlide(t.age) * (pw + x);
@@ -1428,6 +1446,18 @@ export class UI {
     for (const l of lines) {
       this.text(ctx, l, tx, ly + bodyFs * 0.6, bodyFs, p.head ? '#eef1f8' : t.color, 'left', textW);
       ly += bodyFs * 1.2;
+    }
+    if (extras.length) {
+      ly += u * 0.1;
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.fillRect(tx, ly, Math.min(wide, u * 6), Math.max(1, u * 0.06));
+      ly += u * 0.1;
+    }
+    for (const e of extras) {
+      for (const l of e.lines) {
+        this.text(ctx, l, tx, ly + extraFs * 0.6, extraFs, e.color, 'left', textW);
+        ly += extraFs * 1.2;
+      }
     }
     ctx.globalAlpha = 1;
     this.toastRects.push({ x: sx, y, w: pw, h: ph });
