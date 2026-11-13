@@ -3,7 +3,7 @@ import { T, TILES } from '../sim/tiles';
 import type { EnemyKind } from '../sim/enemies';
 import { drawIcon } from './icons';
 import { charRemap, emberAt, hurtRemap } from './scorchfx';
-import { ambientRemap, type Ambient } from './ambient';
+import { ambientRemap, litRemap, type Ambient } from './ambient';
 import { drawBossArt } from './bossart';
 import type { BossId } from '../sim/bosses';
 import { EDGE_E, EDGE_N, EDGE_S, EDGE_W, MASKS, SHAPES, edgeMask, edgePixel, growsMoss, slopePixel } from './autotile';
@@ -1156,6 +1156,7 @@ export function drawEnemySprite(
   t: number,
   flash: boolean,
   raider = false,
+  ambient: Ambient | null = null,
 ): void {
   const base = ENEMY_LOOKS[kind];
   const look = raider ? { ...base, remap: { ...(base.remap ?? {}), ...raiderRemap(kind) } } : base;
@@ -1170,7 +1171,9 @@ export function drawEnemySprite(
       : Math.floor(t * 3) % 4 === 0
         ? { e: look.remap?.E ?? PAL.E }
         : undefined;
-  const remap = look.remap || blink ? { ...(look.remap ?? {}), ...(blink ?? {}) } : undefined;
+  const own = look.remap || blink ? { ...(look.remap ?? {}), ...(blink ?? {}) } : undefined;
+  // Deep layers light the body with the cave colour; the glowing eye keeps its own colour.
+  const remap = ambient ? litRemap(PAL, own ?? {}, ambient) : own;
   drawRows(ctx, rows, x - (ENEMY_W / 2) * sz, y - rows.length * sz, sz, dir < 0, ENEMY_W, flash ? '#ffffff' : undefined, remap);
 }
 

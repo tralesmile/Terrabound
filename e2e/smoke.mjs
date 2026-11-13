@@ -1794,6 +1794,28 @@ try {
     await page.screenshot({ path: path.join(out, '27e-layer-ambient.png'), clip: { x: 540, y: 300, width: 200, height: 180 } });
     check('in the Circuit layer the suit picks up the green cave light', lit.k > 0 && plain.k === 0 && lit.gr > plain.gr + 6, JSON.stringify({ plain, lit }));
   }
+  {
+    // Enemies pick up the same light: a crawler beside the player, ambient off vs on.
+    const crawler = async (off) => page.evaluate(async (off) => {
+      const { game, renderer } = window.__terrabound;
+      renderer.noAmbient = off;
+      game.iframes = 5;
+      game.enemies = [{ id: 77, kind: 'crawler', x: game.body.x + 3, y: game.body.y - 0.01, vx: 0, vy: 0, hp: 9999, dir: 1, iframes: 0, age: 0, phase: 0 }];
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const e = game.enemies[0];
+      const p = renderer.worldToScreen(e.x, e.y);
+      const s = renderer.scale;
+      const d = document.getElementById('game').getContext('2d').getImageData(Math.round(p.x - 6 * s), Math.round(p.y - 8 * s), Math.round(12 * s), Math.round(8 * s)).data;
+      let gr = 0;
+      for (let i = 0; i < d.length; i += 4) gr += d[i + 1] - d[i];
+      return { gr: Math.round(gr / (d.length / 4)), lit: renderer.ambientLit };
+    }, off);
+    const ePlain = await crawler(true);
+    const eLit = await crawler(false);
+    await page.screenshot({ path: path.join(out, '27f-enemy-ambient.png'), clip: { x: 540, y: 300, width: 260, height: 180 } });
+    await page.evaluate(() => { window.__terrabound.game.enemies = []; });
+    check('in the Circuit layer enemies pick up the green cave light too', eLit.lit > 0 && ePlain.lit === 0 && eLit.gr > ePlain.gr + 4, JSON.stringify({ ePlain, eLit }));
+  }
   check('deep layers show their name in the HUD', await page.evaluate(() => window.__terrabound.game.layer === 1));
   const rimCave = await page.evaluate(() => window.__terrabound.renderer.lastRimCount);
   check('cave rock facing the lamp gets rim light in a deep cave', rimCave > 20, JSON.stringify({ rimCave }));

@@ -61,7 +61,7 @@ import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
-import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, droneRows, makeCanvas, wallRow, VEHICLES, vehicleRows, wheelSpinTime } from './sprites';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, PAL, droneRows, makeCanvas, wallRow, VEHICLES, vehicleRows, wheelSpinTime } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 import { drawGlyph, hasGlyph } from './glyphs';
 import { ropePoints, ropeSag, twangAmp } from './ropefx';
@@ -69,7 +69,7 @@ import { scorchK } from './scorchfx';
 import { CONE_PUFFS, CRACK_VARIANTS, DRIFT_H, DRIFT_VARIANTS, conePuff, crackAt, crackPixels, driftPixels } from './ashfx';
 import { GRIME_VARIANTS, HANG_H, HANG_VARIANTS, RCRACK_VARIANTS, grimeAt, grimePixels, SOOT_VARIANTS, hangAt, hangKind, hangPixels, ruinCrackAt, ruinCrackPixels, sootAt, sootPixels } from './ruinfx';
 import { layerAt } from '../sim/layers';
-import { layerAmbient } from './ambient';
+import { ambientColor, layerAmbient, litRemap, type Ambient } from './ambient';
 
 /** Paints pixel arrays (TS wide) side by side into one strip canvas. */
 function stripOf(n: number, h: number, pixels: (v: number) => (string | null)[]): HTMLCanvasElement {
@@ -206,8 +206,19 @@ export class Renderer {
   scorchShown = 0;
   /** Layer ambient strength last drawn on the player (0 = none). Debug/e2e. */
   ambientShown = 0;
-  /** Debug/e2e switch: draw the player without the layer ambient. */
+  /** Debug/e2e switch: draw the player, enemies, pets and NPCs without the layer ambient. */
   noAmbient = false;
+  /** Sprites (enemies, pet, NPCs) drawn with a layer ambient this frame. Debug/e2e. */
+  ambientLit = 0;
+  private ambPadY = 0;
+
+  /** Layer ambient at a world row (null on the surface / Scrap layer or when switched off); counts lit sprites. */
+  private ambientAt(y: number): Ambient | null {
+    if (this.noAmbient) return null;
+    const a = layerAmbient(layerAt(y - this.ambPadY));
+    if (a) this.ambientLit++;
+    return a;
+  }
   /** Last frame's hurt vignette alpha (read by e2e). */
   lastHurtAlpha = 0;
   /** Mood hearts drawn last frame (read by e2e). */
@@ -308,6 +319,8 @@ export class Renderer {
   }
 
   draw(game: Game, fx: Fx, aim: Aim | null, time: number): void {
+    this.ambPadY = game.world.padY;
+    this.ambientLit = 0;
     const ctx = this.ctx;
     const { w, h, scale } = this;
     const ts = TS * scale;
@@ -487,9 +500,9 @@ export class Renderer {
         ctx.save();
         ctx.translate(ex, ey);
         ctx.scale(sq.sx, sq.sy);
-        drawEnemySprite(ctx, e.kind, 0, 0, scale * ENEMY_SCALE, e.dir, time, !this.reduceFlash && e.iframes > HIT_SQUASH_TIME * 0.4, !!e.raid);
+        drawEnemySprite(ctx, e.kind, 0, 0, scale * ENEMY_SCALE, e.dir, time, !this.reduceFlash && e.iframes > HIT_SQUASH_TIME * 0.4, !!e.raid, this.ambientAt(e.y));
         ctx.restore();
-      } else drawEnemySprite(ctx, e.kind, ex, ey, scale * ENEMY_SCALE, e.dir, time, false, !!e.raid);
+      } else drawEnemySprite(ctx, e.kind, ex, ey, scale * ENEMY_SCALE, e.dir, time, false, !!e.raid, this.ambientAt(e.y));
       if (e.raid) {
         const cy = ey - h - 7 * scale + Math.round(Math.sin(time * 6 + e.id) * scale);
         ctx.fillStyle = (e.chew ?? 0) > 0 && Math.floor(time * 8) % 2 ? '#ffcf4a' : '#ff4a3a';
@@ -535,7 +548,9 @@ export class Renderer {
       this.petSwim = water;
       const pxp = this.sx(game.pet.x, shakeX);
       const pyp = this.sy(game.pet.y, shakeY) + pose.bob * u;
-      const pd = GEAR[petId];
+      const pg = GEAR[petId];
+      const pa = this.ambientAt(game.pet.y);
+      const pd = pa ? { color: ambientColor(pg.color, pa), accent: ambientColor(pg.accent, pa) } : pg;
       if (pose.bubble) {
         const b = pose.bubble;
         ctx.strokeStyle = `rgba(220,245,255,${(0.85 * b.alpha).toFixed(3)})`;
@@ -1688,7 +1703,8 @@ export class Renderer {
       const info = NPC_INFO[n.kind];
       const kind = n.kind === 'merchant' ? 'trader' : n.kind;
       const look = ROBOT_LOOK[kind];
-      const remap = look.remap;
+      const na = this.ambientAt(n.y);
+      const remap = na ? litRemap(PAL, look.remap ?? {}, na) : look.remap;
       const t = time + n.home * 0.01;
       if (n.pose === 'sleep') this.drawNpcAsleep(ctx, game, n, x, y, t, kind, game.raid !== null);
       else if (n.pose === 'sit') {
