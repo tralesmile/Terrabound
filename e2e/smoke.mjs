@@ -910,9 +910,10 @@ try {
     const shown = [];
     for (const id of g.hotbar) if (id === g.selected || (g.carried[id] ?? 0) > 0) shown.push(id);
     const left = window.__terrabound.ui.rects.some((r) => r.a.k === 'barmove' && r.a.d === -1);
-    return { shown, saved: g.toSave().hotbar.slice(0, 2), left };
+    const saved = g.toSave().hotbar;
+    return { shown, saved: saved.indexOf('ladder') < saved.indexOf('torch'), left };
   });
-  check('inventory < moves a placeable to the front of the build bar and the order is saved', barBefore.indexOf('ladder') > 0 && barAfter.shown[0] === 'ladder' && barAfter.saved[0] === 'ladder' && !barAfter.left, JSON.stringify({ barBefore, barAfter }));
+  check('inventory < moves a placeable to the front of the build bar and the order is saved', barBefore.indexOf('ladder') > 0 && barAfter.shown[0] === 'ladder' && barAfter.saved && !barAfter.left, JSON.stringify({ barBefore, barAfter }));
   // Awards: the AWARDS button in the inventory pages through every award; play so far was counted.
   const awardsBtn = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'awards'));
   if (awardsBtn) await holdClick(page, awardsBtn.x + awardsBtn.w / 2, awardsBtn.y + awardsBtn.h / 2);

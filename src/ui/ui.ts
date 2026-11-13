@@ -1126,6 +1126,13 @@ export class UI {
         const lx = rx + Math.min(rw - mw * 2 - u * 0.5, u * 11);
         this.button(ctx, lx, by, mw, u * 2.2, '<', { k: 'barmove', id: sel, d: -1 }, u * 0.85, { enabled: at > 0 });
         this.button(ctx, lx + mw + u * 0.5, by, mw, u * 2.2, '>', { k: 'barmove', id: sel, d: 1 }, u * 0.85, { enabled: at < shownBar.length - 1 });
+        // Preview of the build bar in its arranged order (tap a slot to select that item here).
+        const cs = Math.round(u * 1.9);
+        const fit = Math.max(1, Math.floor(rw / (cs + 3)));
+        const first = Math.max(0, Math.min(at - Math.floor(fit / 2), shownBar.length - fit));
+        shownBar.slice(first, first + fit).forEach((id, k) => {
+          this.cell(ctx, rx + k * (cs + 3), by + u * 2.8, cs, id, null, id === sel, { k: 'invsel', id });
+        });
       }
     }
   }
