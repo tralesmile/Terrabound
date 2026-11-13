@@ -1718,6 +1718,34 @@ try {
     await page.screenshot({ path: path.join(out, '26c-boss-impact.png') });
     await page.evaluate(() => clearInterval(window.__bossHold));
     check('a boss slam lands with a flat shockwave ring as wide as its reach and flying debris', impact.wave && impact.parts >= 20, JSON.stringify(impact));
+    // Crystal Golem and Frost Titan art pass: re-skin the held boss, look for the glowing chest heart
+    // (cyan) and, on a slam, glittering shards in the boss's colours.
+    const reskin = async (id, shot) => {
+      await page.evaluate((id) => { window.__terrabound.game.boss.id = id; }, id);
+      await holdBoss(null);
+      await page.waitForTimeout(400);
+      const r = await page.evaluate(async (id) => {
+        const { game, renderer, fx } = window.__terrabound;
+        const b = game.boss;
+        const p = renderer.worldToScreen(b.x, b.y - (id === 'titan' ? 2.3 : 2.1));
+        const d = document.querySelector('canvas').getContext('2d').getImageData(Math.round(p.x) - 24, Math.round(p.y) - 24, 48, 48).data;
+        let cyan = 0;
+        for (let i = 0; i < d.length; i += 4) if (d[i] < 200 && d[i + 1] > 180 && d[i + 2] > 200) cyan++;
+        const p0 = fx.particles.length;
+        game.events.push({ t: 'bossslam', x: b.x, y: b.y, halfW: 1.5, accent: '#c77a5e' });
+        await new Promise((res) => setTimeout(res, 90));
+        const white = fx.particles.slice(p0).filter((q) => q.color === '#ffffff').length;
+        return { cyan, white, parts: fx.particles.length - p0 };
+      }, id);
+      await page.waitForTimeout(150);
+      await page.screenshot({ path: path.join(out, shot) });
+      return r;
+    };
+    const golemArt = await reskin('golem', '26d-golem.png');
+    check('Crystal Golem shows a glowing geode heart and throws glittering shards on a slam', golemArt.cyan > 15 && golemArt.white >= 4, JSON.stringify(golemArt));
+    const titanArt = await reskin('titan', '26e-titan.png');
+    check('Frost Titan shows a glowing frost rune and throws ice shards on a slam', titanArt.cyan > 15 && titanArt.white >= 4, JSON.stringify(titanArt));
+    await page.evaluate(() => { clearInterval(window.__bossHold); window.__terrabound.game.boss.id = 'colossus'; });
   }
   await page.evaluate(() => {
     const g = window.__terrabound.game;

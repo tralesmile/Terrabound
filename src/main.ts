@@ -5,6 +5,7 @@ import { FTUE_STEPS } from './sim/ftue';
 import { audioGains, shakeMul, uiScale } from './sim/settings';
 import { CROPS } from './sim/farming';
 import { drawDecorGallery } from './render/decor';
+import { slamShards } from './render/bossart';
 import { dailyCode } from './sim/daily';
 import { clock as mmss } from './sim/records';
 import { Input } from './platform/input';
@@ -612,7 +613,7 @@ function boot(): void {
         ui.invOpen = false;
         break;
       case 'bossslam':
-        fx.slamImpact(e.x, e.y, e.halfW, SLAM_RADIUS, TILE_COLORS[game.world.get(Math.floor(e.x), Math.floor(e.y + 0.05))] ?? '#c9a35a', e.accent);
+        fx.slamImpact(e.x, e.y, e.halfW, SLAM_RADIUS, TILE_COLORS[game.world.get(Math.floor(e.x), Math.floor(e.y + 0.05))] ?? '#c9a35a', e.accent, game.boss ? slamShards(game.boss.id) : null);
         break;
       case 'bosshit':
         fx.text(e.x, e.y, `${Math.round(e.dmg)}`, '#ffd24a');

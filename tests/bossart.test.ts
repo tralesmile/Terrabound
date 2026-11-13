@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BOSSES, type BossId } from '../src/sim/bosses';
-import { BOSS_ART, BOSS_OUTLINE, animOffset, armAngle, plateSwing, slamRaise, bossArtSize, partPixels, shade, walkerRig, wyrmSegments, type PartShape } from '../src/render/bossart';
+import { BOSS_ART, BOSS_OUTLINE, animOffset, armAngle, plateSwing, slamRaise, slamShards, bossArtSize, partPixels, shade, walkerRig, wyrmSegments, type PartShape } from '../src/render/bossart';
 
 const IDS = Object.keys(BOSSES) as BossId[];
 
@@ -12,7 +12,7 @@ describe('boss art', () => {
   });
 
   it('every part shape is outlined, filled and deterministic', () => {
-    for (const shape of ['box', 'disc', 'diamond', 'spike'] as PartShape[]) {
+    for (const shape of ['box', 'disc', 'diamond', 'spike', 'wedge', 'drip'] as PartShape[]) {
       for (const style of ['scrap', 'vine', 'crystal', 'ice', 'ember', 'core'] as const) {
         const spec = { w: 20, h: 18, shape, base: '#5a7390', accent: '#e6f6ff', style, seed: 3 };
         const px = partPixels(spec);
@@ -69,7 +69,7 @@ describe('boss art', () => {
     for (let i = 2; i < segs.length; i++) expect(segs[i].w).toBeLessThanOrEqual(segs[i - 1].w);
   });
 
-  it('Colossus art pass: fists ride the arms, a loose plate dangles, other walkers stay plain', () => {
+  it('Colossus art pass: fists ride the arms, a loose plate dangles; the Vine Queen has no fists', () => {
     const rig = walkerRig('colossus');
     const keys = rig.map((p) => p.key);
     expect(keys).toEqual(expect.arrayContaining(['fistF', 'fistB', 'plate']));
@@ -80,7 +80,50 @@ describe('boss art', () => {
     expect(keys.indexOf('fistB')).toBe(keys.indexOf('armB') + 1);
     expect(keys.indexOf('fistF')).toBe(keys.indexOf('armF') + 1);
     expect(keys.indexOf('fistF')).toBeGreaterThan(keys.indexOf('head'));
-    for (const id of ['golem', 'titan'] as BossId[]) expect(walkerRig(id).some((p) => p.arm || p.dangle)).toBe(false);
+    expect(walkerRig('vine_queen').some((p) => p.arm || p.dangle)).toBe(false);
+    for (const id of ['golem', 'titan'] as BossId[]) expect(walkerRig(id).some((p) => p.dangle)).toBe(false);
+  });
+
+  it('Golem and Titan art pass: broad wedge torso, fists on both arms, a glowing heart', () => {
+    for (const id of ['golem', 'titan'] as BossId[]) {
+      const rig = walkerRig(id);
+      const keys = rig.map((p) => p.key);
+      expect(rig.find((p) => p.key === 'torso')?.spec.shape).toBe('wedge');
+      expect(rig.find((p) => p.key === 'fistF')?.arm).toBe('armF');
+      expect(rig.find((p) => p.key === 'fistB')?.arm).toBe('armB');
+      expect(keys.indexOf('fistF')).toBeGreaterThan(keys.indexOf('armF'));
+      expect(BOSS_ART[id].heart).toBeDefined();
+      expect(new Set(keys).size).toBe(keys.length);
+    }
+    // Wedge: shoulders wider than the waist.
+    const px = partPixels({ w: 40, h: 30, shape: 'wedge', base: '#4f3a8a', accent: '#d8b8ff', style: 'crystal', seed: 1 });
+    const rowW = (y: number): number => px.slice(y * 40, y * 40 + 40).filter(Boolean).length;
+    expect(rowW(4)).toBeGreaterThan(rowW(28) + 6);
+    // Drip: wide top, pointed bottom.
+    const dr = partPixels({ w: 8, h: 14, shape: 'drip', base: '#cfeeff', accent: '#ffffff', style: 'ice', seed: 1 });
+    expect(dr.slice(0, 8).filter(Boolean).length).toBeGreaterThan(dr.slice(13 * 8).filter(Boolean).length);
+  });
+
+  it('Golem grows tall leaning crystal clusters that glint; the Titan has horns and an icicle beard', () => {
+    const g = walkerRig('golem');
+    const shards = g.filter((p) => p.key.startsWith('shard'));
+    expect(shards.length).toBeGreaterThanOrEqual(3);
+    expect(shards.some((p) => (p.tilt ?? 0) < 0) && shards.some((p) => (p.tilt ?? 0) > 0)).toBe(true);
+    expect(Math.max(...shards.map((p) => p.spec.h))).toBeGreaterThanOrEqual(30);
+    expect(g.some((p) => p.glint)).toBe(true);
+    const t = walkerRig('titan');
+    expect(t.filter((p) => p.key.startsWith('horn')).every((p) => p.spec.h >= 20 && p.tilt)).toBe(true);
+    const beard = t.filter((p) => p.key.startsWith('beard'));
+    expect(beard.length).toBe(3);
+    for (const b of beard) expect(b.spec.shape).toBe('drip');
+    expect(t.some((p) => p.key.startsWith('icicle'))).toBe(true);
+  });
+
+  it('only crystal and ice bosses throw glittering slam shards', () => {
+    expect(slamShards('golem')?.n).toBeGreaterThan(8);
+    expect(slamShards('titan')?.colors).toContain('#ffffff');
+    expect(slamShards('colossus')).toBeNull();
+    expect(slamShards('vine_queen')).toBeNull();
   });
 
   it('slam raises both arms overhead over the warning and holds them while airborne', () => {

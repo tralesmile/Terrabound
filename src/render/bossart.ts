@@ -7,7 +7,7 @@ import { hash2 } from '../sim/rng';
 import { BOSSES, type BossId } from '../sim/bosses';
 
 export type BossStyle = 'scrap' | 'vine' | 'crystal' | 'ice' | 'ember' | 'core';
-export type PartShape = 'box' | 'disc' | 'diamond' | 'spike';
+export type PartShape = 'box' | 'disc' | 'diamond' | 'spike' | 'wedge' | 'drip';
 
 export const BOSS_OUTLINE = '#161a24';
 
@@ -43,6 +43,13 @@ function inside(shape: PartShape, w: number, h: number, x: number, y: number): b
     case 'spike':
       // Point at the top, full width at the bottom.
       return Math.abs(nx) <= (y + 1) / h / 2;
+    case 'drip':
+      // Icicle: full width at the top, point at the bottom.
+      return Math.abs(nx) <= (h - y) / h / 2;
+    case 'wedge':
+      // Broad shoulders tapering to a 72% waist; 2 px rounded top corners.
+      if (y < 2 && (x < 2 - y || x > w - 3 + y)) return false;
+      return Math.abs(nx) <= 0.5 - 0.14 * ((y + 0.5) / h);
     default: {
       // Rounded box: cut 2 px corners (1 px on tiny parts).
       const r = Math.min(w, h) >= 8 ? 2 : 1;
@@ -196,6 +203,10 @@ export interface RigPart {
   arm?: 'armB' | 'armF';
   /** Swings freely from its top corner (loose scrap plate). */
   dangle?: boolean;
+  /** Fixed lean (radians, facing right) about the part's bottom centre: crystal clusters, horns. */
+  tilt?: number;
+  /** Glints: a twinkling highlight is drawn on the part (crystal). */
+  glint?: boolean;
 }
 
 interface ArtDef {
@@ -203,16 +214,30 @@ interface ArtDef {
   /** Head shape. */
   head: PartShape;
   ornament: 'stack' | 'petals' | 'shards' | 'horns' | 'none';
+  /** Torso outline: broad-shouldered wedge for the heavy walkers. */
+  torso?: PartShape;
+  /** Fists riding the arm ends: shape and colour. */
+  fist?: { shape: PartShape; base: string; scale: number };
+  /** Glowing heart in the chest: scrap furnace grate, crystal geode, frost rune. */
+  heart?: 'furnace' | 'geode' | 'rune';
 }
 
 export const BOSS_ART: Record<BossId, ArtDef> = {
-  colossus: { style: 'scrap', head: 'box', ornament: 'stack' },
+  colossus: { style: 'scrap', head: 'box', ornament: 'stack', fist: { shape: 'box', base: '#4a5568', scale: 1.3 }, heart: 'furnace' },
   vine_queen: { style: 'vine', head: 'disc', ornament: 'petals' },
-  golem: { style: 'crystal', head: 'box', ornament: 'shards' },
-  titan: { style: 'ice', head: 'box', ornament: 'horns' },
+  golem: { style: 'crystal', head: 'box', ornament: 'shards', torso: 'wedge', fist: { shape: 'diamond', base: '#8a6ad8', scale: 1.6 }, heart: 'geode' },
+  titan: { style: 'ice', head: 'box', ornament: 'horns', torso: 'wedge', fist: { shape: 'box', base: '#a8cce4', scale: 1.45 }, heart: 'rune' },
   wyrm: { style: 'ember', head: 'box', ornament: 'none' },
   hollow_ai: { style: 'core', head: 'disc', ornament: 'none' },
 };
+
+/** Extra glittering shards a slam throws up (crystal and ice bosses): how many and in which colours. Pure. */
+export function slamShards(id: BossId): { n: number; colors: string[] } | null {
+  const style = BOSS_ART[id].style;
+  if (style === 'crystal') return { n: 14, colors: [BOSSES[id].accent, '#ffffff', BOSSES[id].eye] };
+  if (style === 'ice') return { n: 14, colors: [BOSSES[id].accent, '#ffffff', '#9cd8f0'] };
+  return null;
+}
 
 /** Art size of a boss in art px (1 art px = 1 logical px of a 16 px tile). */
 export function bossArtSize(id: BossId): { w: number; h: number } {
@@ -249,21 +274,24 @@ export function walkerRig(id: BossId): RigPart[] {
     { key: 'armB', spec: spec(armW, armH, 'box', d.color, 5), x: -W / 2 - armW / 2 + 2, y: torsoTop + 2, anim: 'armBack', back: true },
     { key: 'legL', spec: spec(legW, legH, 'box', legBase, 1), x: -W * 0.32, y: -legH, anim: 'legL' },
     { key: 'legR', spec: spec(legW, legH, 'box', legBase, 2), x: W * 0.02, y: -legH, anim: 'legR' },
-    { key: 'torso', spec: spec(torsoW, torsoH, 'box', d.color, 3), x: -W / 2, y: torsoTop, anim: 'body' },
+    { key: 'torso', spec: spec(torsoW, torsoH, a.torso ?? 'box', d.color, 3), x: -W / 2, y: torsoTop, anim: 'body' },
     { key: 'head', spec: spec(headW, headH, a.head, shade(d.color, 0.1), 4), x: -headW / 2 + W * 0.06, y: headTop, anim: 'head' },
     { key: 'armF', spec: spec(armW, armH, 'box', shade(d.color, 0.08), 6), x: W / 2 - armW / 2 - 2, y: torsoTop + 2, anim: 'armFront' },
   ];
   const orn = (key: string, w: number, h: number, shape: PartShape, base: string, x: number, y: number, anim: RigPart['anim']): void => {
     parts.push({ key, spec: spec(w, h, shape, base, 7 + parts.length), x, y, anim });
   };
-  if (a.style === 'scrap') {
-    // Junk fists (a wider, darker block on each arm end) and a loose plate hanging off the hip.
-    const fw = Math.round(armW * 1.3);
-    const fh = Math.max(6, Math.round(armH * 0.3));
+  if (a.fist) {
+    // Fists on each arm end (junk blocks, crystal gems, ice blocks); they ride the arm's swing.
+    const fw = Math.round(armW * a.fist.scale);
+    const fh = Math.max(6, Math.round(armH * (a.fist.shape === 'diamond' ? 0.55 : 0.3)));
     const armB = parts[0];
     const armF = parts[parts.length - 1];
-    parts.splice(1, 0, { key: 'fistB', spec: spec(fw, fh, 'box', '#4a5568', 11), x: armB.x + armW / 2 - fw / 2, y: armB.y + armH - 3, anim: 'armBack', back: true, arm: 'armB' });
-    parts.push({ key: 'fistF', spec: spec(fw, fh, 'box', '#5a6578', 12), x: armF.x + armW / 2 - fw / 2, y: armF.y + armH - 3, anim: 'armFront', arm: 'armF' });
+    parts.splice(1, 0, { key: 'fistB', spec: spec(fw, fh, a.fist.shape, a.fist.base, 11), x: armB.x + armW / 2 - fw / 2, y: armB.y + armH - 3, anim: 'armBack', back: true, arm: 'armB' });
+    parts.push({ key: 'fistF', spec: spec(fw, fh, a.fist.shape, shade(a.fist.base, 0.1), 12), x: armF.x + armW / 2 - fw / 2, y: armF.y + armH - 3, anim: 'armFront', arm: 'armF', glint: a.style === 'crystal' });
+  }
+  if (a.style === 'scrap') {
+    // A loose plate hanging off the hip.
     parts.splice(parts.length - 2, 0, { key: 'plate', spec: spec(Math.round(W * 0.26), Math.round(H * 0.13), 'box', d.accent, 13), x: W * 0.08, y: torsoTop + torsoH - 6, anim: 'body', dangle: true });
   }
   if (a.ornament === 'stack') {
@@ -272,11 +300,32 @@ export function walkerRig(id: BossId): RigPart[] {
   } else if (a.ornament === 'petals') {
     for (let i = 0; i < 3; i++) orn('petal' + i, 6, 8, 'spike', d.accent, -headW / 2 + W * 0.06 + i * (headW / 3), headTop - 6, 'head');
   } else if (a.ornament === 'shards') {
-    orn('shardL', 8, 14, 'spike', d.accent, -W / 2 + 1, torsoTop - 11, 'body');
-    orn('shardR', 7, 11, 'spike', d.accent, W / 2 - 9, torsoTop - 8, 'body');
+    // Crystal clusters growing out of the back and shoulders, leaning outward; drawn behind the head.
+    const cluster: [string, number, number, number, number, number][] = [
+      // key, w, h, x, y (bottom-left), tilt
+      ['shardL', 13, 30, -W / 2 - 1, torsoTop + 6, -0.5],
+      ['shardM', 15, 40, -W * 0.3, torsoTop + 6, -0.18],
+      ['shardS', 9, 20, -W * 0.08, torsoTop + 5, 0.12],
+      ['shardR', 12, 26, W / 2 - 13, torsoTop + 6, 0.55],
+    ];
+    const at = parts.findIndex((p) => p.key === 'head');
+    cluster.forEach(([key, w, h, x, y, tilt], i) => {
+      parts.splice(at + i, 0, { key, spec: spec(w, h, 'spike', i % 2 ? shade(d.accent, -0.12) : d.accent, 20 + i), x, y: y - h, anim: 'body', tilt, glint: i === 1 || i === 3 });
+    });
+    // A small crown of crystal on the head.
+    parts.push({ key: 'crown', spec: spec(6, 9, 'spike', d.accent, 26), x: -3 + W * 0.06, y: headTop - 7, anim: 'head', tilt: 0.15, glint: true });
   } else if (a.ornament === 'horns') {
-    orn('hornL', 5, 10, 'spike', d.accent, -headW / 2 + W * 0.06 - 2, headTop - 8, 'head');
-    orn('hornR', 5, 10, 'spike', d.accent, headW / 2 + W * 0.06 - 3, headTop - 8, 'head');
+    // Big ram horns leaning outward, an icicle beard under the visor and icicles on the torso hem.
+    const hx = W * 0.06;
+    parts.push({ key: 'hornL', spec: spec(10, 24, 'spike', '#9cc0dc', 30), x: hx - headW / 2 - 4, y: headTop - 18, anim: 'head', tilt: -0.6 });
+    parts.push({ key: 'hornR', spec: spec(10, 24, 'spike', '#b4d4ec', 31), x: hx + headW / 2 - 6, y: headTop - 18, anim: 'head', tilt: 0.6 });
+    const at = parts.findIndex((p) => p.key === 'armF');
+    const beard: PartSpec[] = [spec(5, 9, 'drip', '#cfeeff', 32), spec(6, 12, 'drip', '#e6f6ff', 33), spec(5, 8, 'drip', '#cfeeff', 34)];
+    beard.forEach((b, i) => parts.splice(at + i, 0, { key: 'beard' + i, spec: b, x: hx - 8 + i * 5, y: headTop + headH - 3, anim: 'head' }));
+    for (let i = 0; i < 4; i++) {
+      const ih = 6 + ((i * 5) % 4);
+      parts.splice(at, 0, { key: 'icicle' + i, spec: spec(4, ih, 'drip', '#cfeeff', 36 + i), x: -W / 2 + 6 + i * (W - 14) / 3, y: torsoTop + torsoH - 3, anim: 'body' });
+    }
   }
   return parts;
 }
@@ -435,11 +484,18 @@ export function drawWalkerBoss(ctx: CanvasRenderingContext2D, id: BossId, cx: nu
       swung(ctx, img, cx, by, px, py, p.x - arm.x - arm.spec.w / 2, p.y - arm.y - 2, u, f, armAngle(p.anim, pose));
     } else if (p.dangle) {
       swung(ctx, img, cx, by, p.x + o.dx + 1, p.y + o.dy + 1, -1, -1, u, f, plateSwing(pose));
+    } else if (p.tilt) {
+      swung(ctx, img, cx, by, p.x + p.spec.w / 2 + o.dx, p.y + p.spec.h + o.dy, -p.spec.w / 2, -p.spec.h, u, f, p.tilt);
     } else blit(ctx, img, cx, by, p.x + o.dx, p.y + o.dy, u, f);
+    if (p.glint && !pose.flash) glint(ctx, p, o, cx, by, u, f, pose, arm ? armAngle(p.anim as 'armBack' | 'armFront', pose) : 0);
     if (p.key === 'head') head = p;
     if (p.key === 'torso') torso = p;
   }
-  if (torso && BOSS_ART[id].style === 'scrap' && !pose.flash) furnace(ctx, torso, animOffset('body', pose), cx, by, u, f, pose);
+  const heart = BOSS_ART[id].heart;
+  if (torso && heart && !pose.flash) {
+    if (heart === 'furnace') furnace(ctx, torso, animOffset('body', pose), cx, by, u, f, pose);
+    else coldHeart(ctx, heart, torso, animOffset('body', pose), cx, by, u, f, pose, d.eye);
+  }
   if (head && !pose.flash) {
     // Visor slit with a glowing eye on the facing side.
     const o = animOffset('head', pose);
@@ -455,6 +511,7 @@ export function drawWalkerBoss(ctx: CanvasRenderingContext2D, id: BossId, cx: nu
     const pulse = 0.5 + 0.5 * Math.sin(pose.age * (pose.enraged ? 10 : 4));
     glowEye(ctx, Math.round(cx + ex * u), Math.round(by + ey * u), Math.ceil(eyeW * u), Math.ceil(2 * u), pose.enraged ? '#ff3a3a' : d.eye, u, pulse);
   }
+  if (head && BOSS_ART[id].style === 'ice' && !pose.flash) frostBreath(ctx, head, cx, by, u, f, pose);
   if (BOSS_ART[id].ornament === 'stack' && !pose.flash) {
     // Smoke puffs from the stack.
     const { w: W, h: H } = bossArtSize(id);
@@ -467,6 +524,100 @@ export function drawWalkerBoss(ctx: CanvasRenderingContext2D, id: BossId, cx: nu
       const r = (2 + t * 4) * u;
       ctx.fillRect(Math.round(cx + sx * u - r / 2), Math.round(by + (top - 2 - t * 14) * u - r / 2), Math.ceil(r), Math.ceil(r));
     }
+  }
+}
+
+/** Frost breath: pale puffs drift forward and down out of the Titan's visor. */
+function frostBreath(ctx: CanvasRenderingContext2D, head: RigPart, cx: number, by: number, u: number, f: number, pose: BossPose): void {
+  const o = animOffset('head', pose);
+  const mxArt = head.x + head.spec.w - 2 + o.dx;
+  const my = head.y + head.spec.h * 0.75 + o.dy;
+  const strong = (pose.raise ?? 0) > 0.5 || pose.enraged;
+  for (let i = 0; i < 4; i++) {
+    const t = (pose.age * 0.7 + i / 4) % 1;
+    const xArt = mxArt + t * 18;
+    const x = f > 0 ? xArt : -xArt;
+    const r = (2 + t * 5) * u;
+    ctx.fillStyle = `rgba(220,244,255,${(strong ? 0.55 : 0.35) * (1 - t)})`;
+    ctx.fillRect(Math.round(cx + x * u - r / 2), Math.round(by + (my + t * 6) * u - r / 2), Math.ceil(r), Math.ceil(r));
+  }
+}
+
+/** Twinkle on a crystal part: a 4-point star that blinks on in turn (phase from the part's seed). */
+function glint(ctx: CanvasRenderingContext2D, p: RigPart, o: { dx: number; dy: number }, cx: number, by: number, u: number, f: number, pose: BossPose, ang: number): void {
+  const k = Math.sin(pose.age * 2.2 + p.spec.seed * 1.7);
+  if (k < 0.55 || ang < -0.5) return;
+  const a = (k - 0.55) / 0.45;
+  // Near the top third of the part (or its centre for fists), leaning with its tilt.
+  const lean = p.tilt ?? 0;
+  const ly = p.arm ? p.spec.h / 2 : p.spec.h * 0.3;
+  const xArt = p.x + p.spec.w / 2 + o.dx + (p.arm ? 0 : Math.sin(lean) * (p.spec.h - ly));
+  const yArt = p.y + o.dy + ly + (p.arm ? 0 : (1 - Math.cos(lean)) * (p.spec.h - ly));
+  const x = Math.round(cx + (f > 0 ? xArt : -xArt) * u);
+  const y = Math.round(by + yArt * u);
+  const arm = Math.max(1, Math.round((1 + a * 2) * u));
+  ctx.save();
+  ctx.globalAlpha = 0.5 + 0.5 * a;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(x - arm, y, arm * 2 + Math.ceil(u), Math.ceil(u));
+  ctx.fillRect(x, y - arm, Math.ceil(u), arm * 2 + Math.ceil(u));
+  ctx.restore();
+}
+
+/** Cold heart in the chest: the Golem's geode (a pulsing faceted gem) or the Titan's frost rune (a glowing snowflake cross). */
+function coldHeart(ctx: CanvasRenderingContext2D, kind: 'geode' | 'rune', torso: RigPart, o: { dx: number; dy: number }, cx: number, by: number, u: number, f: number, pose: BossPose, eye: string): void {
+  const s = Math.round(torso.spec.w * 0.22);
+  const gxArt = torso.x + Math.round(torso.spec.w * 0.5) + o.dx;
+  const gy = torso.y + Math.round(torso.spec.h * 0.42) + o.dy;
+  const gx = Math.round(cx + (f > 0 ? gxArt : -gxArt) * u);
+  const y = Math.round(by + gy * u);
+  const heat = Math.min(1, 0.45 + 0.25 * Math.sin(pose.age * 2.5) + (pose.enraged ? 0.3 : 0) + (pose.raise ?? 0) * 0.4);
+  const col = pose.enraged ? '#ff5a8a' : eye;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.1 + 0.22 * heat;
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.arc(gx, y, (s * 0.6 + 2) * u, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  const r = (s / 2) * u;
+  if (kind === 'geode') {
+    // Dark socket, then a diamond gem with a bright upper facet.
+    ctx.fillStyle = BOSS_OUTLINE;
+    ctx.beginPath();
+    ctx.moveTo(gx, y - r - 2 * u);
+    ctx.lineTo(gx + r + 2 * u, y);
+    ctx.lineTo(gx, y + r + 2 * u);
+    ctx.lineTo(gx - r - 2 * u, y);
+    ctx.fill();
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(gx, y - r);
+    ctx.lineTo(gx + r, y);
+    ctx.lineTo(gx, y + r);
+    ctx.lineTo(gx - r, y);
+    ctx.fill();
+    ctx.fillStyle = heat > 0.8 ? '#ffffff' : shade(col, 0.55);
+    ctx.beginPath();
+    ctx.moveTo(gx, y - r);
+    ctx.lineTo(gx + r * 0.5, y - r * 0.5);
+    ctx.lineTo(gx, y);
+    ctx.lineTo(gx - r * 0.5, y - r * 0.5);
+    ctx.fill();
+  } else {
+    // Six-armed frost rune: a cross and two diagonals, bright centre.
+    const t = Math.max(1, Math.round(u * 1.5));
+    ctx.fillStyle = col;
+    ctx.fillRect(gx - Math.round(r), y - Math.floor(t / 2), Math.round(r * 2), t);
+    ctx.fillRect(gx - Math.floor(t / 2), y - Math.round(r), t, Math.round(r * 2));
+    for (let i = -2; i <= 2; i++) {
+      const d = Math.round((i * r) / 3);
+      ctx.fillRect(gx + d - Math.floor(t / 2), y + d - Math.floor(t / 2), t, t);
+      ctx.fillRect(gx + d - Math.floor(t / 2), y - d - Math.floor(t / 2), t, t);
+    }
+    ctx.fillStyle = heat > 0.8 ? '#ffffff' : shade(col, 0.6);
+    ctx.fillRect(gx - t, y - t, t * 2, t * 2);
   }
 }
 

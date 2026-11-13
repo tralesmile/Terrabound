@@ -281,7 +281,7 @@ export class Fx {
    * (so the player sees where it hurt), a fast inner ring, rolling dust walls both ways in the ground's
    * colour and debris chunks thrown up from where each fist lands. Returns the particles made.
    */
-  slamImpact(x: number, y: number, halfW: number, radius: number, ground: string, accent: string): number {
+  slamImpact(x: number, y: number, halfW: number, radius: number, ground: string, accent: string, shards?: { n: number; colors: string[] } | null): number {
     const before = this.particles.length;
     this.ring(x, y, radius, lighten(ground, 0.55), 0.55);
     this.rings[this.rings.length - 1].flat = 0.18;
@@ -301,6 +301,23 @@ export class Fx {
           color: i % 3 === 0 ? accent : ground,
           size: 2 + (i % 2),
           g: 24,
+        });
+      }
+    }
+    if (shards) {
+      // Crystal / ice bosses: glittering shards fly high and tumble down slowly, spread over the reach.
+      for (let i = 0; i < shards.n && this.particles.length < MAX_PARTICLES; i++) {
+        const dir = i % 2 ? 1 : -1;
+        this.particles.push({
+          x: x + dir * Math.random() * halfW * 1.5,
+          y: y - 0.2,
+          vx: dir * (2 + Math.random() * 5),
+          vy: -7 - Math.random() * 6,
+          life: 0.9 + Math.random() * 0.5,
+          max: 1.4,
+          color: shards.colors[i % shards.colors.length],
+          size: 2,
+          g: 16,
         });
       }
     }
