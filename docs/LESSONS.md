@@ -166,3 +166,7 @@
 - **Renderer draw counters are cumulative across the e2e run.** A count check after visiting five biomes passes for the wrong reason. Guard: reset the counter and `renderer.chunks.clear()` right before the scene you are checking.
 - **`flowLiquids(world, cx, cy, tick)` takes a centre.** A test called it with two args and "passed" while flowing nothing. Guard: the cinder test flows around each crater and also asserts the cell above stays air.
 - **Retro:** two slices, two ships (~6-7 min each), no red gate. The full gate and e2e need background runs (`nohup ... &` + sleep) because one tool call times out at 2 min; never edit `src` while a background build has not finished.
+
+- **Merging toasts changes what layout checks count.** The e2e toast layout check fed "Discovered" + "Codex reward" and expected two pills; after the merge they are one. Guard: the layout check now uses two non-arrival messages, and a separate check asserts the merged pill (one pill, two follow-up lines) on desktop and mobile.
+- **Screenshots of projectiles need the right moment.** The first eruption shot caught the bombs at the top of their arcs, off the top of the screen. Guard: the e2e waits until every bomb is falling and one is below the crater line before shooting; arcs were lowered (up 10-13, gravity 18) so they stay in view.
+- **Retro:** three slices, two ships (~6 min each), no red gate, no rebase. Editing src while the baseline check ran meant the baseline built my change too; it was green, but start edits only after the baseline finishes (or work in the scratchpad).

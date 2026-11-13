@@ -596,3 +596,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** cone eruptions (telegraphed lava bombs), half-tile slope caps on diagonal edges, merge the award + discovered toasts; P1.9 follow-ups (plane with cargo, charge station); longer lore logs.
 
 **Known issues:** worldgen changed again (cinder cones), so existing saves' Ash Dunes regenerate with cones near the band ends; cones look stepped (tile grid); the e2e boss probe hides the boss by nulling `game.boss` for 60 frames; the log reader leaves empty space on desktop; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).
+
+## 2026-11-13 Scheduled run 40
+
+**Done:** baseline green (690 tests). Creative review: arriving somewhere new stacked three dark panels over the world (goal, discovered, codex reward, often plus an award; carried 3 runs), and the cinder cones were scenery. Arrival toasts merge (src/ui/toastfx.ts `mergeTarget`/`extraLine`): a discovery, its codex gift and the award it unlocks within 1.2 s fold into one pill as small coloured follow-up lines ("+ 2 Crystal", "Award: Scout! +4 Crystal"; 46-toasts-merged, 46b-mobile-toasts-merged). Cone eruptions (src/sim/eruptions.ts, game `stepEruptions`): a live cone within 36 tiles rumbles every 26-48 s; 2.4 s of warning (glow swells and flickers faster, a magma bead rises in the mouth, tremor, smoke, low growl), then 4-6 lava bombs fan out both ways in slow arcs with a glowing landing mark each; a hit or splash burns (12, chars the suit, knocks back); bombs never break blocks; a plugged crater stays quiet (22j-cone-rumble, 22k-cone-erupt).
+
+**Numbers:** 703 unit tests (new: toastmerge 5, eruptions 8), e2e adds merged arrival pill (desktop + mobile), cone rumble telegraph, bombs + landing marks drawn (all green), bundle 392 kB (136.9 kB gzip).
+
+**Next:** half-tile slope caps on exposed diagonal edges; slimmer goal card; longer lore logs; P1.9 follow-ups (plane with cargo, charge station).
+
+**Known issues:** tall cones put the top of the bomb arcs above the screen when the player stands at the foot (the marks still warn; 22k); an eruption can start 12 s after reaching a cone on a fresh dive (by design, so players meet it); bombs pass through the player's i-frames silently; the log reader leaves empty space on desktop; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).
