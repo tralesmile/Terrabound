@@ -70,3 +70,45 @@ describe('soil strata (render, pure)', () => {
     }
   });
 });
+
+import { rootThreads, topsoilShade, TOPSOIL_DEPTH } from '../src/render/strata';
+
+describe('topsoil cross-section (render, pure)', () => {
+  it('darkens the top organic band, strongest at the very top, zero below', () => {
+    expect(topsoilShade(0)).toBe(0);
+    expect(topsoilShade(1)).toBeGreaterThan(0);
+    expect(topsoilShade(1)).toBeGreaterThan(topsoilShade(TOPSOIL_DEPTH));
+    expect(topsoilShade(TOPSOIL_DEPTH + 1)).toBe(0);
+    for (let d = 1; d <= TOPSOIL_DEPTH; d++) expect(topsoilShade(d)).toBeLessThan(0.2);
+  });
+
+  it('roots appear only in shallow soil, wander down, and are deterministic', () => {
+    let tiles = 0;
+    let withRoots = 0;
+    for (let x = 0; x < 160; x++) {
+      for (let y = 0; y < 12; y++) {
+        const r = rootThreads(x, y + 50, y);
+        if (y < 1 || y > 6) {
+          expect(r).toBeNull();
+          continue;
+        }
+        tiles++;
+        if (r) {
+          withRoots++;
+          // Threads span the tile top to bottom and stay inside 0..16.
+          expect(r.length).toBeGreaterThan(4);
+          for (const [rx, ry, rw, rh] of r) {
+            expect(rx).toBeGreaterThanOrEqual(0);
+            expect(rx + rw).toBeLessThanOrEqual(16);
+            expect(ry + rh).toBeLessThanOrEqual(16);
+          }
+          // Same input twice gives the same thread.
+          expect(rootThreads(x, y + 50, y)).toEqual(r);
+        }
+      }
+    }
+    const rate = withRoots / tiles;
+    expect(rate).toBeGreaterThan(0.1);
+    expect(rate).toBeLessThan(0.35);
+  });
+});

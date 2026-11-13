@@ -1,6 +1,6 @@
 import { aoRects } from './ao';
 import { computeRims, type Rim } from './rimlight';
-import { buriedDecal, decalRects, hasStrata, strataShade } from './strata';
+import { buriedDecal, decalRects, hasStrata, rootThreads, strataShade, topsoilShade } from './strata';
 import type { Game, Hook, Shot } from '../sim/game';
 import { petSwimPose, petWater, type PetWater } from './petfx';
 import { coneCrater, lavafallSpan } from '../sim/structures';
@@ -1242,7 +1242,7 @@ export class Renderer {
     // shows the sky instead (its own back wall would read as a dark notch above the ground line).
     if (mask !== 0 && !(slope && !isCeilingSlope(slope) && ty <= world.surface[tx])) this.drawBack(ctx, world, tx, ty, dx, dy, ts);
     ctx.drawImage(this.atlas, atlasCol(v, slope || mask) * TS, t * TS, TS, TS, dx, dy, ts, ts);
-    if (hasStrata(t) && !world.edits.has(ty * world.w + tx)) this.drawStrata(ctx, tx, ty - world.surface[tx], ty, dx, dy, ts, mask, slope);
+    if (hasStrata(t) && !world.edits.has(ty * world.w + tx)) this.drawStrata(ctx, tx, ty - world.surface[tx], ty, dx, dy, ts, mask, slope, t === T.RUST || t === T.SOIL || t === T.SAND);
     if (this.oreMarks && hasGlyph(t)) drawGlyph(ctx, t, dx, dy, ts);
     if (t === T.RUIN) this.drawRuinWeather(ctx, world, tx, ty, dx, dy, ts);
     if (slope) {
@@ -1312,7 +1312,7 @@ export class Renderer {
   }
 
   /** Soil strata bands, band seams and rare buried bones / pipes in natural ground near the surface. */
-  private drawStrata(ctx: CanvasRenderingContext2D, tx: number, depth: number, ty: number, dx: number, dy: number, ts: number, mask: number, slope = 0): void {
+  private drawStrata(ctx: CanvasRenderingContext2D, tx: number, depth: number, ty: number, dx: number, dy: number, ts: number, mask: number, slope = 0, roots = false): void {
     const sh = strataShade(depth, tx);
     const u = ts / 16;
     if (slope) {
@@ -1328,8 +1328,10 @@ export class Renderer {
       }
       return;
     }
-    if (sh.dark > 0) {
-      ctx.fillStyle = `rgba(10,6,14,${sh.dark.toFixed(3)})`;
+    const topsoil = topsoilShade(depth);
+    const totalDark = sh.dark + topsoil;
+    if (totalDark > 0) {
+      ctx.fillStyle = `rgba(10,6,14,${Math.min(0.5, totalDark).toFixed(3)})`;
       if (mask === 0) ctx.fillRect(dx, dy, ts, ts);
       else {
         // Edge tiles have cut (transparent) corner pixels: a cross shape keeps the overlay off them.
@@ -1342,8 +1344,15 @@ export class Renderer {
       ctx.fillStyle = `rgba(255,226,190,${sh.seam.toFixed(3)})`;
       ctx.fillRect(dx, dy, ts, Math.max(1, ts / 8));
     }
+    if (mask !== 0) return;
+    // Fine root threads give the shallow topsoil its cross-section texture (warm soil only).
+    const threads = roots ? rootThreads(tx, ty, depth) : null;
+    if (threads) { this.lastRootCount++; for (const [x, y, w, h, c] of threads) {
+      ctx.fillStyle = c;
+      ctx.fillRect(dx + x * u, dy + y * u, w * u, h * u);
+    } }
     const decal = buriedDecal(tx, ty, depth);
-    if (!decal || mask !== 0) return;
+    if (!decal) return;
     for (const [x, y, w, h, c] of decalRects(decal, ((tx + ty) & 1) === 1)) {
       ctx.fillStyle = c;
       ctx.fillRect(dx + x * u, dy + y * u, w * u, h * u);
@@ -2591,6 +2600,8 @@ export class Renderer {
   private rims: Rim[] = [];
   /** Rims drawn last frame (e2e reads it to check caves get a rim and open sky does not). */
   lastRimCount = 0;
+  /** Root-thread tiles drawn into chunks since the last reset (e2e check). */
+  lastRootCount = 0;
 
   /** Thin warm highlights on lit cave faces, 1 art px thick. */
   private drawRims(ctx: CanvasRenderingContext2D, shakeX: number, shakeY: number): void {

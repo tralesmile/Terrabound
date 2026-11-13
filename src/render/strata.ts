@@ -34,7 +34,39 @@ export function strataShade(depth: number, tx: number): StrataShade {
   return { dark, seam };
 }
 
+/** Rows of darker organic topsoil just under the grass line. */
+export const TOPSOIL_DEPTH = 4;
+
+/**
+ * Extra black overlay for the organic topsoil band in the first rows: a real cross-section is
+ * darkest at the very top (humus) and lightens into subsoil. Zero below the topsoil band.
+ */
+export function topsoilShade(depth: number): number {
+  if (depth < 1 || depth > TOPSOIL_DEPTH) return 0;
+  return 0.16 * (1 - (depth - 1) / TOPSOIL_DEPTH);
+}
+
 export type DecalKind = 'bone' | 'pipe' | 'pebbles' | 'skull';
+
+/** Thin root threads for a shallow soil tile (16ths of a tile), or null. Denser than buried junk. */
+export function rootThreads(tx: number, ty: number, depth: number): R[] | null {
+  if (depth < 1 || depth > 6) return null;
+  const h = hash2(tx, ty, 5501);
+  if (h > 0.22) return null;
+  const dark = '#2e2015';
+  const mid = '#3c2a1b';
+  // A main thread wandering down from the top with one or two offshoots.
+  const sx = 3 + Math.floor(hash2(ty, tx, 5503) * 10);
+  const out: R[] = [];
+  let x = sx;
+  for (let y = 0; y < 16; y += 2) {
+    x += hash2(tx * 7 + y, ty, 5507) < 0.5 ? -1 : 1;
+    x = Math.max(1, Math.min(14, x));
+    out.push([x, y, 1, 2, y < 8 ? mid : dark]);
+    if (y === 6 && h < 0.1) out.push([Math.min(13, x + 1), y + 1, 2, 1, dark]);
+  }
+  return out;
+}
 
 /** A rare buried object in this ground tile, or null. Bones and pipes sit in the top rows only. */
 export function buriedDecal(tx: number, ty: number, depth: number): DecalKind | null {

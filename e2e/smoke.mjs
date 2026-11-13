@@ -2817,6 +2817,15 @@ try {
   const inPit = await page.evaluate(({ top }) => window.__terrabound.game.body.y > top + 10, pit);
   await page.screenshot({ path: path.join(out, '43-strata.png') });
   check('soil strata pit renders with the player at its floor', inPit, JSON.stringify(pit));
+  // Topsoil cross-section: shallow warm-soil tiles carry fine root threads (baked into chunks).
+  const roots = await page.evaluate(() => {
+    const { game, renderer, fx } = window.__terrabound;
+    renderer.chunks.clear();
+    renderer.lastRootCount = 0;
+    renderer.draw(game, fx, null, performance.now() / 1000);
+    return renderer.lastRootCount;
+  });
+  check('shallow topsoil grows fine root threads', roots > 0, JSON.stringify({ roots }));
   // The pit walls are below the surface line, so they get rims; zoomed crop for the art review.
   const rimPit = await page.evaluate(() => window.__terrabound.renderer.lastRimCount);
   check('dug pit walls get a rim light (surface sky does not)', rimPit > 6, JSON.stringify({ rimPit }));
