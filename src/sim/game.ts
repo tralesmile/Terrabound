@@ -63,6 +63,18 @@ export const GRAVITY = 42;
 export const STEP_KEEP = 0.85;
 export const STEP_EASE = 9;
 export const MAX_FALL = 28;
+/** The jump pad cell under a standing body's feet (either foot), or null. Pure. */
+export function padUnder(world: World, x: number, y: number): { x: number; y: number } | null {
+  const row = Math.floor(y + 0.02);
+  if (Math.abs(y - Math.round(y)) > 0.05) return null;
+  for (const fx of [x - HALF_W + 0.05, x + HALF_W - 0.05]) {
+    const cx = Math.floor(fx);
+    if (world.get(cx, row) === T.JUMP_PAD) return { x: cx, y: row };
+  }
+  return null;
+}
+/** Jump pad launch speed (tiles/s): about 12 tiles up, enough to reach the sky islands from below. */
+export const PAD_V = 32;
 export const JUMP_V = 15.5;
 export const FALL_SAFE = 19;
 /** Swimming: max stroke speed up, max sink speed, acid damage per second. */
@@ -175,6 +187,7 @@ export type GameEvent =
   | { t: 'bank'; total: number }
   | { t: 'death'; lost: number; medic: boolean }
   | { t: 'jump' }
+  | { t: 'pad'; x: number; y: number }
   | { t: 'step' }
   | { t: 'land'; speed: number }
   | { t: 'lowbattery' }
@@ -335,6 +348,8 @@ export class Game {
   chestOpen: { x: number; y: number } | null = null;
   private prevDig = false;
   /** Fishing line state (rod tool). */
+  /** In the air after a jump pad launch: no jump cut, no fall damage on the next landing. */
+  padLaunch = false;
   fishing: Fishing | null = null;
   /** Casts so far this session (seeds the bite timer and catch). */
   private casts = 0;
@@ -1457,7 +1472,17 @@ export class Game {
       this.jumpBuf = 0;
       this.emit({ t: 'jump' });
     }
-    if (!c.jump && b.vy < -6 && !this.hook && veh !== 'sky_jet') b.vy = -6;
+    // Jump pad under the feet (not while holding down, so a pad can be stood on to build): launch.
+    const pad = grounded && !c.down && !this.riding && b.vy >= 0 ? padUnder(this.world, b.x, b.y) : null;
+    if (pad) {
+      b.vy = -PAD_V;
+      this.padLaunch = true;
+      this.coyote = 0;
+      this.jumpBuf = 0;
+      this.emit({ t: 'pad', x: pad.x, y: pad.y });
+    }
+    // Releasing jump cuts a normal jump short; a pad launch keeps its height.
+    if (!c.jump && b.vy < -6 && !this.hook && veh !== 'sky_jet' && !this.padLaunch) b.vy = -6;
     this.prevJump = c.jump;
 
     const swimT = this.world.get(Math.floor(b.x), Math.floor(b.y - BODY_H / 2));
@@ -1538,8 +1563,11 @@ export class Game {
     if (this.garageOpen && (!this.reachable(this.garageOpen.x, this.garageOpen.y) || this.world.get(this.garageOpen.x, this.garageOpen.y) !== T.GARAGE)) this.garageOpen = null;
     if (b.onGround && !this.wasGround) {
       this.emit({ t: 'land', speed: impact });
-      if (impact > FALL_SAFE && !vst?.soft) this.hurt((impact - FALL_SAFE) * 6);
+      // The landing after a pad launch is cushioned (the pad's own drop is the point, not a trap).
+      if (impact > FALL_SAFE && !vst?.soft && !this.padLaunch) this.hurt((impact - FALL_SAFE) * 6);
+      this.padLaunch = false;
     }
+    if (this.hook || this.inLiquid) this.padLaunch = false;
     this.wasGround = b.onGround;
 
     this.runDeepest = Math.max(this.runDeepest, this.depth);

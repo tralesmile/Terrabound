@@ -10,7 +10,7 @@ export const BASE_ROWS = 16;
 export type BaseTiles = number[];
 
 /** T.WALL is legacy (v2 saves stored back walls as tiles); v3 keeps them in the wall layer. */
-export const BASE_KEEP: ReadonlySet<number> = new Set<number>([T.RUST, T.METAL, T.TORCH, T.LADDER, T.SCAFFOLD, T.PLATFORM, T.DOOR, T.SOLAR, T.SMELTER, T.BATTERY, T.MINER, T.DRONE, T.TURRET, T.SPIKES, T.REINFORCED, T.SHIELD, T.TABLE, T.LAMP, T.SCREEN, T.POT_PLANT, T.BANNER, T.BED, T.BED_FOOT, T.TABLE_END, T.CHAIR, T.WINDOW, T.LIFT, T.SPRINKLER, T.POT]);
+export const BASE_KEEP: ReadonlySet<number> = new Set<number>([T.RUST, T.METAL, T.TORCH, T.LADDER, T.SCAFFOLD, T.PLATFORM, T.DOOR, T.SOLAR, T.SMELTER, T.BATTERY, T.MINER, T.DRONE, T.TURRET, T.SPIKES, T.REINFORCED, T.SHIELD, T.TABLE, T.LAMP, T.SCREEN, T.POT_PLANT, T.BANNER, T.BED, T.BED_FOOT, T.TABLE_END, T.CHAIR, T.WINDOW, T.LIFT, T.SPRINKLER, T.POT, T.JUMP_PAD]);
 /** What the saved base carries into the next world: BASE_KEEP plus crops (planted on built soil). Raids still use BASE_KEEP. */
 export const BASE_SAVE: ReadonlySet<number> = new Set<number>([...BASE_KEEP, ...CROP_IDS.flatMap((c) => CROPS[c].tiles)]);
 const KEEP_WALLS = new Set<number>([W.PLATE]);

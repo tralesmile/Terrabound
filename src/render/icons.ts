@@ -602,6 +602,23 @@ export const ICONS: Record<string, IconDef> = {
       '  oooooooo  ',
     ],
   },
+  jump_pad: {
+    pal: { a: '#36e0e8', b: '#c9d0e4', c: '#3d4458', d: '#c8ffff' },
+    rows: [
+      '            ',
+      '            ',
+      'oooooooooooo',
+      'oddaaaaaaaao',
+      'oooooooooooo',
+      '   obbbbo   ',
+      '  obbbbo    ',
+      '   obbbbo   ',
+      '  obbbbo    ',
+      'oooooooooooo',
+      'occcccccccco',
+      'oooooooooooo',
+    ],
+  },
   spikes: {
     pal: { a: '#c9d0e4', b: '#5d6a80' },
     rows: [

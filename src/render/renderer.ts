@@ -360,6 +360,8 @@ export class Renderer {
     this.cropWet = (x, y) => game.cropWatered(x, y);
     this.drawDynamic(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
     this.drawLavafalls(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
+    this.drawBoings(ctx, game, shakeX, shakeY, Math.min(0.1, Math.max(0, time - this.boingClock)));
+    this.boingClock = time;
     this.drawCones(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time, game.rumbleState());
 
     // Aim highlight and crack overlay.
@@ -1103,6 +1105,11 @@ export class Renderer {
       this.drawSpikes(ctx, dx, dy, ts);
       return;
     }
+    if (t === T.JUMP_PAD) {
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      this.drawJumpPad(ctx, dx, dy, ts, 0);
+      return;
+    }
     const art = furnitureArt(t, wideSide(world, tx, ty));
     if (art) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
@@ -1414,6 +1421,63 @@ export class Renderer {
   }
 
   /** Floor spikes: a dark plate with five steel teeth, lit on the left edge. */
+  /** Jump pad: a dark base, a zig-zag spring and a teal top plate; `squash` 0..1 presses the plate down. */
+  private drawJumpPad(ctx: CanvasRenderingContext2D, dx: number, dy: number, ts: number, squash: number): void {
+    const u = ts / 16;
+    const top = Math.round(3 + squash * 6);
+    ctx.fillStyle = '#161a24';
+    ctx.fillRect(dx, dy + 11 * u, ts, 5 * u);
+    ctx.fillStyle = '#3d4458';
+    ctx.fillRect(dx + u, dy + 12 * u, ts - 2 * u, 3 * u);
+    ctx.fillStyle = '#ffb03a';
+    ctx.fillRect(dx + 2 * u, dy + 13 * u, 2 * u, u);
+    ctx.fillRect(dx + 12 * u, dy + 13 * u, 2 * u, u);
+    // Spring coil between the plate and the base.
+    const coilTop = top + 3;
+    const coilH = 11 - coilTop;
+    ctx.fillStyle = '#c9d0e4';
+    const turns = 3;
+    for (let i = 0; i < turns * 2; i++) {
+      const y = dy + (coilTop + (i * coilH) / (turns * 2)) * u;
+      const x = dx + (i % 2 ? 4 : 6) * u;
+      ctx.fillRect(x, y, 6 * u, Math.max(1, u));
+    }
+    ctx.fillStyle = '#161a24';
+    ctx.fillRect(dx, dy + top * u, ts, 3 * u);
+    ctx.fillStyle = '#36e0e8';
+    ctx.fillRect(dx + u, dy + (top + 0.5) * u, ts - 2 * u, 2 * u);
+    ctx.fillStyle = '#c8ffff';
+    ctx.fillRect(dx + 2 * u, dy + (top + 0.5) * u, 4 * u, u);
+  }
+
+  /** Recent pad launches (cell + age), so the plate springs back over the chunk-baked rest pose. */
+  private boings: { x: number; y: number; t: number }[] = [];
+  padsBoinged = 0;
+  private boingClock = 0;
+  padBoing(x: number, y: number): void {
+    this.boings = this.boings.filter((b) => b.x !== x || b.y !== y).slice(-7);
+    this.boings.push({ x, y, t: 0 });
+    this.padsBoinged++;
+  }
+
+  private drawBoings(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, dt: number): void {
+    if (!this.boings.length) return;
+    const ts = TS * this.scale;
+    for (const b of this.boings) {
+      b.t += dt;
+      if (game.world.get(b.x, b.y) !== T.JUMP_PAD) continue;
+      // Pressed flat at once, then a damped wobble back to rest over ~0.4 s.
+      const k = Math.max(0, 1 - b.t / 0.4);
+      const squash = k * Math.abs(Math.cos(b.t * 22));
+      const dx = this.sx(b.x, shakeX);
+      const dy = this.sy(b.y, shakeY);
+      ctx.fillStyle = '#0b0e16';
+      ctx.fillRect(dx, dy, ts, ts * 0.72);
+      this.drawJumpPad(ctx, dx, dy, ts, squash);
+    }
+    this.boings = this.boings.filter((b) => b.t < 0.4);
+  }
+
   private drawSpikes(ctx: CanvasRenderingContext2D, dx: number, dy: number, ts: number): void {
     const u = ts / 16;
     ctx.fillStyle = '#161a24';

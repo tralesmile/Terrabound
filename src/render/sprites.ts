@@ -264,6 +264,7 @@ export const TILE_COLORS: Record<number, string> = {
   [T.FROST]: '#9fcbe8',
   [T.SAND]: '#8272a6',
   [T.ICE]: '#bfe6f5',
+  [T.JUMP_PAD]: '#36e0e8',
   [T.CRYSTAL]: '#c08cff',
   [T.RUIN]: '#525870',
   [T.TRUNK]: '#6b4a2e',

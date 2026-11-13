@@ -1069,6 +1069,35 @@ try {
   });
   await page.waitForTimeout(600);
   await page.screenshot({ path: path.join(out, '20-sky-island.png') });
+  // Jump pad: beside a sky island, a pad on the ground launches the player high (no jump key held); the plate springs.
+  const padAt = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const s = w.structures.find((x) => x.kind === 'island');
+    if (!s) return null;
+    const x = s.x0 - 3;
+    const y = w.surface[x];
+    for (let xx = x - 3; xx <= x + 3; xx++) {
+      for (let yy = y - 5; yy < y; yy++) if (w.get(xx, yy) !== 0 && !(xx > s.x0 - 1)) w.set(xx, yy, 0);
+    }
+    w.set(x, y, 70);
+    g.enemies = [];
+    g.body.x = x + 0.5;
+    g.body.y = y - 2;
+    g.body.vx = g.body.vy = 0;
+    window.__padTop = y;
+    return { x, y };
+  });
+  let padRise = 0;
+  if (padAt) {
+    await page.waitForFunction(() => window.__terrabound.game.body.vy < -20, null, { timeout: 3000 }).catch(() => {});
+    await page.waitForFunction(() => window.__terrabound.game.body.vy > -3, null, { timeout: 3000 }).catch(() => {});
+    padRise = await page.evaluate(() => window.__padTop - window.__terrabound.game.body.y);
+    await page.waitForTimeout(150);
+    await page.screenshot({ path: path.join(out, '20b-jump-pad.png') });
+  }
+  const boinged = await page.evaluate(() => window.__terrabound.renderer.padsBoinged);
+  check('a jump pad launches the player 9+ tiles up beside a sky island and its plate springs', padRise > 9 && boinged > 0, JSON.stringify({ padAt, padRise, boinged }));
   // Garage: craft a kit, place it with a right click, open it with E, BUILD with real clicks, walk up, ride with V.
   const bay = await page.evaluate(() => {
     const g = window.__terrabound.game;

@@ -572,6 +572,10 @@ function boot(): void {
       case 'cast':
         fx.burst(e.x + 0.5, e.y, '#9fd8ff', 8, 3);
         break;
+      case 'pad':
+        fx.burst(e.x + 0.5, e.y, '#36e0e8', 12, 5);
+        renderer.padBoing(e.x, e.y);
+        break;
       case 'bite':
         ui.toast('Bite! Click now!', '#ffcf4a', 1);
         fx.addShake(0.15);

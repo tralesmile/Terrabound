@@ -181,6 +181,13 @@ export class Sfx {
       case 'jump':
         this.tone(300, 0.12, 'square', 0.06, 560);
         break;
+      case 'pad':
+        // Spring boing: a fast rising sweep with a wobbly tail.
+        if (this.ok('pad', 120)) {
+          this.tone(180, 0.22, 'triangle', 0.14, 900);
+          this.tone(520, 0.16, 'sine', 0.06, 360, 0.08);
+        }
+        break;
       case 'step':
         // A soft scuff, quieter than a jump.
         if (this.ok('step', 90)) this.noise(0.04, 0.06);

@@ -34,6 +34,7 @@ export const RECIPES: Recipe[] = [
   { id: 'battery', name: 'Battery x1', out: 'battery', qty: 1, cost: { metal: 3, copper_wire: 1 }, fab: 1 },
   { id: 'miner', name: 'Miner rig x1', out: 'miner', qty: 1, cost: { metal: 3, copper_wire: 2 }, fab: 2 },
   { id: 'drone', name: 'Drone bay x1', out: 'drone', qty: 1, cost: { metal: 4, copper_wire: 3, crystal: 1 }, fab: 2 },
+  { id: 'jump_pad', name: 'Jump pad x2', out: 'jump_pad', qty: 2, cost: { metal: 2, copper_wire: 2 }, fab: 1 },
   { id: 'spikes', name: 'Spike trap x2', out: 'spikes', qty: 2, cost: { iron_scrap: 3, metal: 1 }, fab: 1 },
   { id: 'reinforced', name: 'Reinforced wall x4', out: 'reinforced', qty: 4, cost: { metal: 3, iron_scrap: 2 }, fab: 1 },
   { id: 'shield', name: 'Shield wall x4', out: 'shield', qty: 4, cost: { metal: 4, crystal: 2, copper_wire: 2 }, fab: 1, raids: 6 },
