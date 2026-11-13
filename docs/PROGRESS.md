@@ -672,7 +672,7 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 
 **Done:** baseline green (776 tests). Creative review: deep Circuit caves still read as one flat tone with a barely visible floor edge (27-deep-layer, carried 2), and the build bar order was fixed (carried 3). Deep-layer floor glow (src/render/rimlight.ts `LAYER_RIM`/`rimColor`/`floorGlowBands`, renderer `drawRims`): rims take each layer's colour (circuit green, plasma pink, core violet), lit top faces in deep layers get three fading rows below the edge (27d-floor-glow). Arrangeable build bar (tiles.ts `hotbarOrder`/`moveInHotbar`, game `hotbar`/`moveHotbar`, save v27 `hotbar`): select a placeable in the inventory, press < or > to swap it with its bar neighbour, a preview strip shows the bar; cycling the held block follows the order; new placeables append (18b-hotbar-arrange, 51i-mobile-bar-arrange).
 
-**Numbers:** 791 unit tests (new: floorglow 4, hotbar 9; paints test's pinned SAVE_VERSION moved 26 -> 27 on purpose), 220 e2e checks (new: floor glow count, inventory < reorders + saved, mobile arrange buttons fit and >= 44 px), bundle 416.6 kB (145.8 kB gzip).
+**Numbers:** 787 unit tests (new: floorglow 4, hotbar 9; paints test's pinned SAVE_VERSION moved 26 -> 27 on purpose), 220 e2e checks (new: floor glow count, inventory < reorders + saved, mobile item details + arrange buttons fit inside the panel and are >= 44 px; the phone inventory panel is now taller (u*50) because HOLD/DROP used to spill below it), bundle 416.6 kB (145.8 kB gzip).
 
 **Next:** keys 6-0 pick arranged bar slots; touch long-press on hotbar slots; Crystal Golem / Frost Titan art pass; run-summary card (P4); P1.9 follow-ups (plane with cargo, charge station).
 

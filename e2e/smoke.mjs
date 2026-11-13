@@ -3405,11 +3405,14 @@ try {
     const { ui } = window.__terrabound;
     const c = document.getElementById('game');
     const W = c.clientWidth, H = c.clientHeight;
-    const rs = ui.rects.filter((r) => r.a.k === 'barmove');
-    return { n: rs.length, inside: rs.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= W + 1 && r.y + r.h <= H + 1), minW: Math.min(...rs.map((r) => r.w)) };
+    const rs = ui.rects.filter((r) => r.a.k === 'barmove' || r.a.k === 'drop');
+    const close = ui.rects.find((r) => r.a.k === 'inv');
+    // The panel is drawn from the CLOSE row down; every detail button must sit above the panel's bottom edge.
+    const panelBottom = close ? H - close.y : H; // panel is centred: bottom = H - top (CLOSE sits just below the top)
+    return { n: rs.length, inside: rs.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.w <= W + 1 && r.y + r.h <= panelBottom - 4), minW: Math.min(...rs.filter((r) => r.a.k === 'barmove').map((r) => r.w)), panelBottom };
   });
   await page.screenshot({ path: path.join(out, '51i-mobile-bar-arrange.png') });
-  check('mobile: the build-bar arrange buttons fit the phone and are touch-sized', mBar.n >= 1 && mBar.inside && mBar.minW >= 44, JSON.stringify(mBar));
+  check('mobile: the item details and build-bar arrange buttons fit inside the inventory panel and are touch-sized', mBar.n >= 2 && mBar.inside && mBar.minW >= 44, JSON.stringify(mBar));
   await page.evaluate(() => { const { ui } = window.__terrabound; ui.invOpen = false; ui.invPage = 'items'; });
   // Drone rule panel fits a phone: build two bays, open it, add three rules, every button on screen.
   await page.evaluate(() => {

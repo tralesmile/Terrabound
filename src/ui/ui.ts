@@ -980,7 +980,8 @@ export class UI {
 
   private drawInventory(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, time: number): void {
     const pw = Math.min(w - u, u * 46);
-    const ph = Math.min(h - u, u * 32);
+    // Phones stack the character above the pack, so the item details (and the build-bar row) need a taller panel.
+    const ph = Math.min(h - u, pw < u * 30 ? u * 50 : u * 32);
     const px = (w - pw) / 2;
     const py = (h - ph) / 2;
     this.panel(ctx, px, py, pw, ph);
