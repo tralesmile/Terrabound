@@ -62,7 +62,7 @@ const HULL_FLOOR: Record<'buggy' | 'drill_tank', number> = { buggy: 7, drill_tan
 import { GEAR, type RangedKind } from '../sim/gear';
 import { ATTACK_TIME, BOSSES, phase as bossPhase } from '../sim/bosses';
 import { BOSS_ART, SHELL_PLATES, drawBossArt, shade, shellPlates, slamRaise } from './bossart';
-import { arenaFloor, drawArenaFloor } from './arenafx';
+import { arenaFloor, drawArenaFloor, drawArenaZap } from './arenafx';
 import { boltTrail, drawBossMuzzle, drawBossTelegraph, drawSummonTelegraph } from './bosstele';
 import { ACT_INFO } from '../sim/drones';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, isCeilingSlope, leafMask, nextSink, slopeSink, SLOPE_CR, SLOPE_R, slopeBottom, slopeShape, slopeTop } from './autotile';
@@ -2573,6 +2573,8 @@ export class Renderer {
 
   /** Floor cells the Hollow AI arena circuit was last drawn on (e2e reads it). */
   arenaCells: { x: number; y: number }[] = [];
+  /** Floor cells the Hollow AI's zap lit last frame (e2e probe). */
+  zapLit = 0;
 
   private drawBoss(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
     const bs = game.boss;
@@ -2592,6 +2594,7 @@ export class Renderer {
       const w = game.world;
       this.arenaCells = arenaFloor((x, y) => w.isSolid(x, y), bs.ax0, bs.ax1, bs.y - 1, 20);
       drawArenaFloor(ctx, bs, this.arenaCells, tv, time);
+      this.zapLit = bs.zap ? drawArenaZap(ctx, bs.zap, this.arenaCells, tv, time) : 0;
     }
     drawBossTelegraph(ctx, bs, tv, time);
     drawSummonTelegraph(ctx, bs, tv, time);

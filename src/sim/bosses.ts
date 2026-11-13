@@ -7,6 +7,7 @@ import type { EnemyKind } from './enemies';
 import type { GearId } from './gear';
 import type { Inventory, ItemId } from './tiles';
 import type { World } from './world';
+import type { Zap } from './arenazap';
 
 export type BossId = 'colossus' | 'vine_queen' | 'golem' | 'wyrm' | 'titan' | 'hollow_ai';
 export type AttackKind = 'slam' | 'rain' | 'charge' | 'volley' | 'summon';
@@ -36,6 +37,8 @@ export interface BossDef {
   color: string;
   accent: string;
   eye: string;
+  /** Phase 2 electrifies the arena floor in waves (arenazap.ts). */
+  floorZaps?: boolean;
 }
 
 export const BOSSES: Record<BossId, BossDef> = {
@@ -43,7 +46,7 @@ export const BOSSES: Record<BossId, BossDef> = {
   vine_queen: { name: 'Vine Queen', biome: B.JUNGLE, hp: 520, halfW: 1.2, h: 3.0, speed: 2.8, flying: false, contact: 16, attacks: ['volley', 'summon', 'charge'], cooldown: 2.2, minion: 'vine', beacon: 'beacon_vine', reward: { crystal: 12, biomass: 30, seed: 6 }, gear: 'thorn_whip', color: '#2f6a34', accent: '#7fcf5a', eye: '#ff7ab8' },
   golem: { name: 'Crystal Golem', biome: B.CRYSTAL, hp: 640, halfW: 1.5, h: 3.6, speed: 1.8, flying: false, contact: 22, attacks: ['slam', 'volley', 'rain'], cooldown: 2.6, minion: 'mite', beacon: 'beacon_golem', reward: { crystal: 25, metal: 10 }, gear: 'prism_lance', color: '#4f3a8a', accent: '#d8b8ff', eye: '#8ff4ff' },
   wyrm: { name: 'Ash Wyrm', biome: B.ASH, hp: 700, halfW: 1.3, h: 1.8, speed: 4.2, flying: true, contact: 24, attacks: ['charge', 'volley', 'rain'], cooldown: 2.0, minion: 'ember', beacon: 'beacon_wyrm', reward: { crystal: 18, copper_wire: 20 }, gear: 'ember_cannon', color: '#3a1f1a', accent: '#ff8a3c', eye: '#ffd24a' },
-  hollow_ai: { name: 'The Hollow AI', biome: -1, layer: 3, hp: 2200, halfW: 1.8, h: 3.2, speed: 3.2, flying: true, contact: 30, attacks: ['volley', 'rain', 'summon', 'charge', 'volley'], cooldown: 1.8, minion: 'flyer', beacon: 'beacon_ai', reward: { core_shard: 20, crystal: 40, plasma: 20 }, gear: 'ai_crown', color: '#2a1a3a', accent: '#ff5aff', eye: '#ffffff' },
+  hollow_ai: { name: 'The Hollow AI', biome: -1, layer: 3, hp: 2200, halfW: 1.8, h: 3.2, speed: 3.2, flying: true, contact: 30, attacks: ['volley', 'rain', 'summon', 'charge', 'volley'], cooldown: 1.8, minion: 'flyer', beacon: 'beacon_ai', reward: { core_shard: 20, crystal: 40, plasma: 20 }, gear: 'ai_crown', color: '#2a1a3a', accent: '#ff5aff', eye: '#ffffff', floorZaps: true },
   titan: { name: 'Frost Titan', biome: B.FROST, hp: 820, halfW: 1.7, h: 4.0, speed: 1.6, flying: false, contact: 26, attacks: ['slam', 'rain', 'volley', 'summon'], cooldown: 2.5, minion: 'hulk', beacon: 'beacon_titan', reward: { crystal: 30, metal: 25 }, gear: 'frost_core', color: '#5a7390', accent: '#e6f6ff', eye: '#36e0e8' },
 };
 export const BOSS_IDS = Object.keys(BOSSES) as BossId[];
@@ -85,6 +88,9 @@ export interface Boss {
   iframes: number;
   age: number;
   nextAttack: number;
+  /** Floor wave in flight or charging (arenazap.ts), and seconds to the next one. */
+  zap: Zap | null;
+  zapCd: number;
 }
 
 export interface BossBolt {
@@ -106,7 +112,7 @@ export interface BossOut {
 }
 
 export function makeBoss(id: BossId, x: number, y: number): Boss {
-  return { id, x, y, vx: 0, vy: 0, hp: BOSSES[id].hp, facing: -1, ax0: x - ARENA_HALF, ax1: x + ARENA_HALF, cd: 2, attack: null, at: 0, iframes: 0, age: 0, nextAttack: 0 };
+  return { id, x, y, vx: 0, vy: 0, hp: BOSSES[id].hp, facing: -1, ax0: x - ARENA_HALF, ax1: x + ARENA_HALF, cd: 2, attack: null, at: 0, iframes: 0, age: 0, nextAttack: 0, zap: null, zapCd: 1.5 };
 }
 
 export function phase(b: Boss): 1 | 2 {

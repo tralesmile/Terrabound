@@ -1777,7 +1777,7 @@ try {
     check('Frost Titan shows a glowing frost rune and throws ice shards on a slam', titanArt.cyan > 15 && titanArt.white >= 4, JSON.stringify(titanArt));
     // Hollow AI art pass: a battered plate shell round the core; plates break off (with debris) and
     // glowing seams and cracks show as its health drops.
-    await page.evaluate(() => { const b = window.__terrabound.game.boss; window.__hpSave = b.hp; b.id = 'hollow_ai'; b.hp = 2200; b.iframes = 0; });
+    await page.evaluate(() => { const b = window.__terrabound.game.boss; window.__hpSave = b.hp; b.id = 'hollow_ai'; b.hp = 2200; b.iframes = 0; b.zapCd = 99; });
     await holdBoss(null);
     await page.waitForTimeout(400);
     const corePink = () => page.evaluate(() => {
@@ -1847,6 +1847,34 @@ try {
     const hollowHurt = await corePink();
     const arena2 = await arenaGlow();
     await page.screenshot({ path: path.join(out, '28e-hollow-arena.png') });
+    // Phase-2 floor zap: a charging pool under the boss, then a white-hot crest with arcs rolling out
+    // along the floor (held at fixed times; marked spent so it never hurts the player here).
+    const zapAt = (t) => page.evaluate(async (t) => {
+      const { game, renderer } = window.__terrabound;
+      const b = game.boss;
+      const y0 = renderer.arenaCells.length ? renderer.arenaCells.reduce((m, c) => (Math.abs(c.x + 0.5 - b.x) < Math.abs(m.x + 0.5 - b.x) ? c : m)).y : Math.floor(b.y + 3);
+      clearInterval(window.__zapHold);
+      window.__zapHold = setInterval(() => { const q = game.boss; if (!q) return; q.zapCd = 99; q.zap = { t, x0: b.x, y0, hit: true }; }, 4);
+      await new Promise((r) => setTimeout(r, 200));
+      const ctx = document.querySelector('canvas').getContext('2d');
+      const r = t < 0 ? 0 : t * 11;
+      let white = 0;
+      for (const c of renderer.arenaCells) {
+        const dd = Math.abs(Math.abs(c.x + 0.5 - b.x) - r);
+        if (dd > 1 || Math.abs(c.y - y0) > 4) continue;
+        const a = renderer.worldToScreen(c.x, c.y - 1.5);
+        const z = renderer.worldToScreen(c.x + 1, c.y);
+        if (a.x < 0 || a.y < 0 || z.x > ctx.canvas.width) continue;
+        const d = ctx.getImageData(Math.round(a.x), Math.round(a.y), Math.max(1, Math.round(z.x - a.x)), Math.max(1, Math.round(z.y - a.y))).data;
+        for (let i = 0; i < d.length; i += 4) if (d[i] > 240 && d[i + 1] > 220 && d[i + 2] > 225) white++;
+      }
+      return { lit: renderer.zapLit, white, hp: game.hp };
+    }, t);
+    const zapWarn = await zapAt(-0.2);
+    const zapWave = await zapAt(0.4);
+    await page.screenshot({ path: path.join(out, '28f-hollow-zap.png') });
+    await page.evaluate(() => { clearInterval(window.__zapHold); const b = window.__terrabound.game.boss; if (b) { b.zap = null; b.zapCd = 99; } });
+    check('an enraged Hollow AI charges the floor, then a white-hot zap crest with arcs rolls outward', zapWarn.lit >= 3 && zapWarn.white > 10 && zapWave.lit >= 4 && zapWave.white > 40, JSON.stringify({ zapWarn, zapWave }));
     check('the Hollow AI arena floor glows with a pink circuit that turns red in phase 2', arena1.cells > 20 && arena1.pink > 80 && arena2.red > 80 && arena2.red > arena2.pink, JSON.stringify({ arena1, arena2 }));
     await page.screenshot({ path: path.join(out, '28c-hollow-cracked.png') });
     check('the Hollow AI wears a plate shell that breaks off with debris as it is hurt', hollowFull.left === 8 && hollowHurt.left === 3 && hollowShed.breaks === hollowFull.breaks + 1 && hollowShed.debris >= 14, JSON.stringify({ full: hollowFull, shed: hollowShed, hurt: hollowHurt }));

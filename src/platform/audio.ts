@@ -305,6 +305,14 @@ export class Sfx {
       case 'bosswarn':
         this.tone(660, 0.12, 'square', 0.08, 990);
         break;
+      case 'zapwarn':
+        // Rising electric whine while the floor charges.
+        this.tone(180, 0.8, 'sawtooth', 0.05, 720);
+        break;
+      case 'zaphit':
+        this.noise(0.15, 0.35);
+        this.tone(1200, 0.12, 'square', 0.07, 300);
+        break;
       case 'bossslam':
         this.noise(0.4, 0.5);
         this.tone(60, 0.4, 'triangle', 0.2, 30);

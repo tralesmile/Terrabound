@@ -625,6 +625,14 @@ function boot(): void {
       case 'bossslam':
         fx.slamImpact(e.x, e.y, e.halfW, SLAM_RADIUS, TILE_COLORS[game.world.get(Math.floor(e.x), Math.floor(e.y + 0.05))] ?? '#c9a35a', e.accent, game.boss ? slamShards(game.boss.id) : null);
         break;
+      case 'zapwarn':
+        fx.burst(e.x, e.y - 0.2, '#ff3a4a', 8, 3);
+        break;
+      case 'zaphit':
+        fx.burst(e.x, e.y - 0.3, '#fff4f8', 10, 6);
+        fx.addShake(0.3);
+        ui.toast('Zapped! Jump the floor wave', '#ff3a4a', 1.4);
+        break;
       case 'bosshit':
         fx.text(e.hx, e.hy - 0.4, `${Math.round(e.dmg)}`, '#ffd24a');
         fx.bossSparks(e.hx, e.hy, e.dir, hitSparkSpec(e.id, e.dmg));
