@@ -7,7 +7,7 @@
 import type { Awards } from './achievements';
 import { BOSSES, BOSS_IDS } from './bosses';
 import { ENEMIES, type EnemyKind } from './enemies';
-import { CODEX, LORE } from './explore';
+import { CODEX, LORE, LORE_MORE } from './explore';
 import type { GameEvent } from './game';
 import { NPC_INFO, NPC_ORDER, type NpcKind } from './npcs';
 
@@ -161,8 +161,9 @@ export function stepLog(aw: Readonly<Awards>, i: number, d: 1 | -1): number | nu
 }
 
 /** Full log text without its "LOG nn:" head, and the head. */
-export function logParts(i: number): { head: string; body: string } {
+export function logParts(i: number): { head: string; body: string; more: readonly string[] } {
   const line = LORE[i] ?? '';
   const c = line.indexOf(':');
-  return c < 0 ? { head: line, body: '' } : { head: line.slice(0, c), body: line.slice(c + 2) };
+  const more = LORE_MORE[i] ?? [];
+  return c < 0 ? { head: line, body: '', more } : { head: line.slice(0, c), body: line.slice(c + 2), more };
 }

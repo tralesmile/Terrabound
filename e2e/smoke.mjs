@@ -880,10 +880,10 @@ try {
   const openedLog = await clickAct("r.a.k === 'logread' && r.a.i === 2");
   const reader1 = await page.evaluate(() => {
     const { ui } = window.__terrabound;
-    return { open: ui.logOpen, next: ui.rects.find((r) => r.a.k === 'logread' && r.a.i !== null && r.y > 300)?.a.i ?? null, cards: ui.rects.filter((r) => r.a.k === 'logread' && r.h > 40).length };
+    return { open: ui.logOpen, lines: ui.logLinesShown, next: ui.rects.find((r) => r.a.k === 'logread' && r.a.i !== null && r.y > 300)?.a.i ?? null, cards: ui.rects.filter((r) => r.a.k === 'logread' && r.h > 40).length };
   });
   await page.screenshot({ path: path.join(out, '51f-log-reader.png') });
-  check('a read log opens in the reader with NEXT to the next read log', openedLog && reader1.open === 2 && reader1.next === 7 && reader1.cards === 0, JSON.stringify(reader1));
+  check('a read log opens in the reader in full (4+ lines) with NEXT to the next read log', openedLog && reader1.open === 2 && reader1.lines >= 4 && reader1.next === 7 && reader1.cards === 0, JSON.stringify(reader1));
   await clickAct("r.a.k === 'logread' && r.a.i === 7");
   const reader2 = await page.evaluate(() => window.__terrabound.ui.logOpen);
   await clickAct("r.a.k === 'logread' && r.a.i === null");

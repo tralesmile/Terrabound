@@ -3,7 +3,7 @@ import { newAwards } from '../src/sim/achievements';
 import { BOSS_IDS } from '../src/sim/bosses';
 import { CREW_KINDS, ENEMY_KINDS, codexCounts, codexRows, crewKey, killKey, logParts, loreKey, noteCodexEvent, readLogs, stepLog } from '../src/sim/codex';
 import { countEvent } from '../src/sim/achievements';
-import { CODEX, LORE, POI_NOTES } from '../src/sim/explore';
+import { CODEX, LORE, LORE_MORE, POI_NOTES } from '../src/sim/explore';
 import { Game } from '../src/sim/game';
 import { defaultSave, parseSave, serializeSave } from '../src/sim/save';
 
@@ -117,7 +117,28 @@ describe('codex screen data', () => {
     expect(stepLog(aw, 7, -1)).toBe(2);
     expect(stepLog(aw, 2, -1)).toBeNull();
     expect(readLogs(newAwards())).toEqual([]);
-    expect(logParts(0)).toEqual({ head: 'LOG 01', body: LORE[0].slice(8) });
-    expect(logParts(999)).toEqual({ head: '', body: '' });
+    expect(logParts(0)).toEqual({ head: 'LOG 01', body: LORE[0].slice(8), more: LORE_MORE[0] });
+    expect(logParts(999)).toEqual({ head: '', body: '', more: [] });
+  });
+});
+
+describe('long lore logs', () => {
+  it('every log has 2-3 more lines that fit a phone reader and end in punctuation', () => {
+    expect(LORE_MORE.length).toBe(LORE.length);
+    for (const more of LORE_MORE) {
+      expect(more.length).toBeGreaterThanOrEqual(2);
+      expect(more.length).toBeLessThanOrEqual(3);
+      for (const ln of more) {
+        expect(ln.length).toBeLessThanOrEqual(100);
+        expect(/[.!?]$/.test(ln)).toBe(true);
+      }
+    }
+  });
+  it('logParts carries the headline body and the rest of the log', () => {
+    const p = logParts(1);
+    expect(p.head).toBe('LOG 04');
+    expect(p.body.startsWith('The rust is not rust')).toBe(true);
+    expect(p.more).toEqual(LORE_MORE[1]);
+    expect(logParts(999).more).toEqual([]);
   });
 });

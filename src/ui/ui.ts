@@ -827,12 +827,15 @@ export class UI {
     this.text(ctx, `Page ${cur}/${pages}  -  ${tot.found} of ${tot.total} known`, px + pw / 2, fy + u * 1.3, Math.round(u * 0.7), '#8a90a2', 'center', pw - u * 14);
   }
 
+  /** Wrapped lines the log reader drew last frame (e2e). */
+  logLinesShown = 0;
+
   /** Log reader: one recovered log in full, paged through the read logs in story order. */
   private drawLogReader(ctx: CanvasRenderingContext2D, game: Game, px: number, top: number, pw: number, h: number, u: number, color: string): void {
     const i = this.logOpen ?? 0;
     const aw = game.awards;
     const read = readLogs(aw);
-    const { head, body } = logParts(i);
+    const { head, body, more } = logParts(i);
     const x = px + u;
     const w = pw - u * 2;
     const foot = u * 2.8;
@@ -846,9 +849,20 @@ export class UI {
     for (let yy = top + u * 0.5; yy < top + h - foot; yy += u * 0.5) ctx.fillRect(x, yy, w, Math.max(1, u * 0.12));
     this.text(ctx, head, x + u * 1.2, top + u * 1.6, Math.round(u * 1.1), color, 'left', w - u * 10);
     this.text(ctx, `${read.indexOf(i) + 1} of ${read.length} recovered`, x + w - u * 1.2, top + u * 1.6, Math.round(u * 0.65), '#8a90a2', 'right', u * 12);
-    const size = Math.round(u * (w < u * 28 ? 0.9 : 1.05));
-    this.wrapLines(ctx, body, w - u * 2.4, size, 6).forEach((ln, j) => {
-      this.text(ctx, ln, x + u * 1.2, top + u * 3.6 + j * size * 1.45, size, '#e8e0ff', 'left', w - u * 2.4);
+    // The headline, then the rest of the log as paragraphs, as many lines as fit above the story strip.
+    const size = Math.round(u * (w < u * 28 ? 0.85 : 1));
+    const lh = size * 1.45;
+    const bottom = top + h - foot - u * 4;
+    let ly = top + u * 3.6;
+    this.logLinesShown = 0;
+    [body, ...more].forEach((para, pi) => {
+      for (const ln of this.wrapLines(ctx, para, w - u * 2.4, size, 8)) {
+        if (ly > bottom) return;
+        this.text(ctx, ln, x + u * 1.2, ly, size, pi === 0 ? '#e8e0ff' : '#b8b0d8', 'left', w - u * 2.4);
+        ly += lh;
+        this.logLinesShown++;
+      }
+      ly += lh * 0.45;
     });
     // Story strip: one cell per log in order; read ones lit, this one ringed, gaps stay dark.
     const n = LORE.length;

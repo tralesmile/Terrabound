@@ -151,6 +151,69 @@ export const LORE: string[] = [
   'LOG 33: Last log. Going deeper. Do not follow without a full battery.',
 ];
 
+/** The rest of each log (2-3 more lines), shown in the Codex log reader; LORE keeps the one-line headline for toasts. */
+export const LORE_MORE: string[][] = [
+  [
+    'Six of us, one lander, ninety days of air. The orbital scan called it a dead world.',
+    'Dead worlds do not hum. Kade says it is wind in the old towers. There is no wind.',
+  ],
+  [
+    'We scraped a test patch clean at dusk. By morning it was orange again, thicker.',
+    'Under the scope the flakes are tiny machines, folding metal into more of themselves.',
+    'They only eat what is left lying around. Note to crew: do not leave tools out.',
+  ],
+  [
+    'Every drone we sent past 60m turned around on its own and parked at the pad.',
+    'Their logs show the same burst of data each time, like a handshake. Not ours.',
+    'I reflashed one and went down with it. At 61m it stopped and waited for me.',
+  ],
+  [
+    'Crystal output doubles after sunset and the caves light up like a city at night.',
+    'Ines thinks they are batteries, charging from the planet and leaking at the seams.',
+    'If she is right, someone built a power grid the size of a continent.',
+  ],
+  [
+    'The pad plates came from a ruined tower west of camp. They fit together on their own.',
+    'When we powered it up, the beam was already tuned to a frequency we never set.',
+    'The city was not abandoned. It was put to sleep, and it kept the lights on for us.',
+  ],
+  [
+    'Frost team went north to map the spires. Twelve days, no voice, no telemetry.',
+    'Their beacon still blinks every 40 seconds. It is not on their schedule.',
+    'Something is keeping it charged. If you find the camp, bring the beacon home.',
+  ],
+  [
+    'Cut a vine today and it bled copper. Inside: insulation, and a signal.',
+    'The whole jungle is a cable bundle gone wild, still carrying power somewhere.',
+    'The fruit is safe to eat. Strange, but safe. Kade has eaten nothing else for a week.',
+  ],
+  [
+    'In the Ash Dunes the flakes drift upward, out of cracks in the ground.',
+    'The cinder cones are vents. Something deep below is running hot, on purpose.',
+    'We plugged one crater with a block to test it. The next one over grew louder.',
+  ],
+  [
+    'The Core walls are warm to the touch, and the warmth comes in slow waves, like breath.',
+    'Our seismometers picked up footsteps. Each one is the weight of a building.',
+    'Whatever it is, it guards the deepest gate. It does not chase. It waits.',
+  ],
+  [
+    'Lost my pack in the Hollow today. Went back an hour later and it was gone.',
+    'The rust had not touched it. Something carried it down, one tile at a time.',
+    'Bank often. Anything the Hollow takes, it keeps. Anything at the pad is yours.',
+  ],
+  [
+    'Found a seat in the deepest chamber, shaped for someone our size. Not for its builders.',
+    'The Hollow AI spoke through every screen at once: one word, over and over. PILOT.',
+    'It was never broken. It was waiting for someone to come down and take the controls.',
+  ],
+  [
+    'The others are on the lander. I am going down to answer it.',
+    'If you are reading this, the pad still works and the planet chose you too.',
+    'Charge the battery. Bank your loot. And when it asks, tell it I said hello.',
+  ],
+];
+
 /** Lore line for a terminal at (x, y): stable per world position. */
 export function loreAt(seed: number, x: number, y: number): string {
   const i = Math.abs((x * 73856093) ^ (y * 19349663) ^ seed) % LORE.length;
