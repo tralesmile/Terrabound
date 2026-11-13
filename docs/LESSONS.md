@@ -215,4 +215,5 @@
 
 
 - **A colour-count check must not include parts that change colour with the state you are testing.** The Hollow AI "hurt glows more pink" check counted the iris, which turns red when enraged, so a hurt boss counted *fewer* pinks (3956 -> 871) although seams and cracks were drawn. Guard: sample only the annulus where the new art lives (outside the iris), and look at the screenshot before trusting a pixel count.
+- **Net particle deltas are flaky; count your own particles.** The shell-debris check used `parts after - parts before`, but other particles died in the same 60 ms window (passed once with +18, failed next gate with +8). Guard: the renderer records the debris colour and a break counter (`shellDebris`, `shellBreaks`), and the e2e counts particles of that colour.
 - **Retro (run 51):** three slices, one combined gate. Drafting each slice (code + unit test) in the scratchpad while the previous e2e ran, then applying after EXIT, kept CPU free for the frame probes.

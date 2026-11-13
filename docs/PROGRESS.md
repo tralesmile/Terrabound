@@ -713,7 +713,7 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 
 **Done:** baseline green (813 tests). Creative review: the final boss (28-final-boss) was still a dark disc with an eye, boss bolts were plain dots, and the boss bar was a flat strip that hid how much a hit took. Boss bolt trails (src/render/bosstele.ts `boltTrail`, `BOLT_LIFE` now a sim constant): seven fading accent dots back along the bolt's path, growing in from the muzzle (26j-bolt-trail). Hollow AI art pass (src/render/bossart.ts `shellPlates`/`coreCracks`/`crackPath`/`drawCoreShell`, pose `hp`): a ring of eight riveted armour plates round the core breaks off in a scattered order as health drops, each loss throws armour debris, a ring and a shake (renderer `shellLeft`), shed plates leave glowing seams and up to five glowing cracks open across the core (28b-hollow-shell, 28c-hollow-cracked). Boss bar (src/ui/bossbar.ts `stepChip`): a pale damage chip holds 0.4 s then drains to the fill; a notch marks the 50% phase change (28d-boss-bar-chip).
 
-**Numbers:** 827 unit tests (new: bolttrail 3, hollowshell 4, bossbar 4... see gate), e2e adds bolt trail, shell shed + debris, seams/cracks glow, bar chip checks. Bundle ~432 kB (~150 kB gzip).
+**Numbers:** 824 unit tests (new: bolttrail 3, hollowshell 4, bossbar 4), 238 e2e checks all green (new: bolt trail, shell shed + debris, seams/cracks glow, bar chip holds then drains). Bundle 433.4 kB (151.7 kB gzip). Two ships: first red on a flaky net-particle count (nothing pushed), fixed and re-shipped.
 
 **Next:** Hollow AI arena (pulsing floor ring, red in phase 2); a lighter dive report on beam-home; dive stats on the share card; P1.9 follow-ups (plane with cargo, charge station); equipment slots (P3).
 
