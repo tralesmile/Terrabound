@@ -1125,10 +1125,13 @@ try {
     check('a cinder cone rumbles before it erupts: glow swells and magma wells up in the mouth', rumbling.k > 0.5 && rumbling.drawn >= 1 && rumbling.bead[0] > 200 && rumbling.bead[1] > 120, JSON.stringify(rumbling));
     await page.screenshot({ path: path.join(out, '22j-cone-rumble.png') });
     await page.evaluate(() => (window.__terrabound.game.hp = window.__terrabound.game.derived.maxHp));
-    await page.waitForFunction(() => window.__terrabound.renderer.bombsShown >= 3, null, { timeout: 5000 }).catch(() => {});
-    await page.waitForTimeout(250);
-    const bombs = await page.evaluate(() => ({ flying: window.__terrabound.game.lavaBombs.length, drawn: window.__terrabound.renderer.bombsShown, rumble: window.__terrabound.game.rumble }));
-    check('the eruption lobs glowing lava bombs that are drawn in flight', bombs.flying >= 2 && bombs.drawn >= 2 && bombs.rumble === null, JSON.stringify(bombs));
+    // Shoot while the bombs come down (past the top of their arcs), with their landing marks glowing.
+    await page.waitForFunction((c) => {
+      const g = window.__terrabound.game;
+      return g.lavaBombs.length >= 2 && g.lavaBombs.every((b) => b.vy > 0) && g.lavaBombs.some((b) => b.y > c.cy - 2);
+    }, coneAt, { timeout: 5000 }).catch(() => {});
+    const bombs = await page.evaluate(() => ({ flying: window.__terrabound.game.lavaBombs.length, drawn: window.__terrabound.renderer.bombsShown, marks: window.__terrabound.renderer.marksShown, rumble: window.__terrabound.game.rumble }));
+    check('the eruption lobs glowing lava bombs with landing marks on the ground', bombs.flying >= 2 && bombs.drawn >= 2 && bombs.marks >= 2 && bombs.rumble === null, JSON.stringify(bombs));
     await page.screenshot({ path: path.join(out, '22k-cone-erupt.png') });
     await page.waitForFunction(() => window.__terrabound.game.lavaBombs.length === 0, null, { timeout: 6000 }).catch(() => {});
     await page.evaluate(() => {

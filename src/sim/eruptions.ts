@@ -38,6 +38,9 @@ export interface LavaBomb {
   vx: number;
   vy: number;
   life: number;
+  /** Where it will land (worked out at launch; drawn as a warning mark). */
+  lx?: number;
+  ly?: number;
 }
 
 /** The crater cell of a cone (centre of its apex). */
@@ -84,6 +87,24 @@ export function launchBombs(s: Structure, rng: () => number): LavaBomb[] {
     out.push({ x: c.x + 0.5, y: c.y - 0.2, vx, vy, life: 0 });
   }
   return out;
+}
+
+/** Flies a copy of the bomb to its landing point (the world is static while it flies: bombs never dig). */
+export function landingOf(world: World, b: LavaBomb, dt = 1 / 60): { x: number; y: number } {
+  const c = { ...b };
+  while (!stepBomb(world, c, dt));
+  return { x: c.x, y: c.y };
+}
+
+/** Launches with each bomb's landing point filled in. */
+export function launchMarked(world: World, s: Structure, rng: () => number): LavaBomb[] {
+  const bs = launchBombs(s, rng);
+  for (const b of bs) {
+    const l = landingOf(world, b);
+    b.lx = l.x;
+    b.ly = l.y;
+  }
+  return bs;
 }
 
 /**

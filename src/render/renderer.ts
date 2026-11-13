@@ -785,7 +785,22 @@ export class Renderer {
       }
     }
 
-    // Lava bombs: a glowing blob with a dark crust and a hot trail behind it.
+    // Lava bombs: a glowing mark where each will land (brighter as it falls), then the bomb itself.
+    this.marksShown = 0;
+    for (const m of game.lavaBombs) {
+      if (m.lx === undefined || m.ly === undefined) continue;
+      const k = Math.min(1, m.life / 1.2);
+      const gx = this.sx(m.lx, shakeX);
+      const gy = this.sy(m.ly, shakeY);
+      if (gx < -40 || gy < -40 || gx > this.w + 40 || gy > this.h + 40) continue;
+      this.marksShown++;
+      const u = scale;
+      const blink = 0.6 + 0.4 * Math.sin(time * (10 + 10 * k));
+      const hw = Math.round(5 + 4 * k);
+      ctx.fillStyle = `rgba(255,${Math.round(120 + 60 * k)},40,${(0.25 + 0.45 * k * blink).toFixed(3)})`;
+      ctx.fillRect(Math.round(gx / u - hw) * u, Math.round(gy / u) * u - u, hw * 2 * u, u);
+      ctx.fillRect(Math.round(gx / u - hw + 2) * u, Math.round(gy / u) * u - 2 * u, (hw - 2) * 2 * u, u);
+    }
     this.bombsShown = 0;
     for (const m of game.lavaBombs) {
       const mx = this.sx(m.x, shakeX);
@@ -813,12 +828,14 @@ export class Renderer {
       const px = Math.round(mx / u) * u;
       const py = Math.round(my / u) * u;
       ctx.fillStyle = '#3a1a10';
-      ctx.fillRect(px - 3 * u, py - 2 * u, 6 * u, 4 * u);
-      ctx.fillRect(px - 2 * u, py - 3 * u, 4 * u, 6 * u);
-      ctx.fillStyle = '#ff7a2a';
-      ctx.fillRect(px - 2 * u, py - 2 * u, 4 * u, 4 * u);
-      ctx.fillStyle = '#ffe08a';
-      ctx.fillRect(px - u, py - u, 2 * u, 2 * u);
+      ctx.fillRect(px - 4 * u, py - 3 * u, 8 * u, 6 * u);
+      ctx.fillRect(px - 3 * u, py - 4 * u, 6 * u, 8 * u);
+      ctx.fillStyle = '#ff6a1a';
+      ctx.fillRect(px - 3 * u, py - 3 * u, 6 * u, 6 * u);
+      ctx.fillStyle = '#ffb347';
+      ctx.fillRect(px - 2 * u, py - 2 * u, 4 * u, 3 * u);
+      ctx.fillStyle = '#fff2c0';
+      ctx.fillRect(px - u, py - 2 * u, 2 * u, 2 * u);
     }
 
     // Meteors: bright head with a long fading trail.
@@ -1908,6 +1925,7 @@ export class Renderer {
   /** Cones drawn rumbling last frame, and lava bombs drawn (e2e). */
   conesRumbling = 0;
   bombsShown = 0;
+  marksShown = 0;
 
   /**
    * Ash Dunes cinder cones: the crater glows and pulses, a plume of smoke rises and leans downwind,

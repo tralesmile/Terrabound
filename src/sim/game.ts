@@ -28,7 +28,7 @@ import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgr
 import { recipeById } from './recipes';
 import { chestLoot } from './loot';
 import { SOIL_TILES, growTime, inLavafall, stepSaplings, type Structure } from './structures';
-import { ERUPT, bombHits, coneLive, craterOf, launchBombs, nearestCone, nextGap, stepBomb, type LavaBomb } from './eruptions';
+import { ERUPT, bombHits, coneLive, craterOf, launchMarked, nearestCone, nextGap, stepBomb, type LavaBomb } from './eruptions';
 import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
 import { BIOME_BOSSES, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
 import { BIOMES, type BiomeId } from './biomes';
@@ -1150,7 +1150,7 @@ export class Game {
         const cone = this.rumble.cone;
         this.rumble = null;
         if (coneLive(this.world, cone)) {
-          this.lavaBombs.push(...launchBombs(cone, this.rng));
+          this.lavaBombs.push(...launchMarked(this.world, cone, this.rng));
           const c = craterOf(cone);
           this.emit({ t: 'erupt', x: c.x + 0.5, y: c.y });
         }

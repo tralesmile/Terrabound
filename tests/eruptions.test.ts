@@ -4,7 +4,7 @@ import { defaultSave } from '../src/sim/save';
 import { T } from '../src/sim/tiles';
 import { generateWorld } from '../src/sim/world';
 import { mulberry32 } from '../src/sim/rng';
-import { ERUPT, bombHits, coneLive, craterOf, launchBombs, nearestCone, nextGap, stepBomb } from '../src/sim/eruptions';
+import { ERUPT, bombHits, coneLive, craterOf, landingOf, launchBombs, launchMarked, nearestCone, nextGap, stepBomb } from '../src/sim/eruptions';
 
 const cones = (w: ReturnType<typeof generateWorld>) => w.structures.filter((s) => s.kind === 'cone');
 
@@ -53,6 +53,19 @@ describe('cinder cone eruptions (pure)', () => {
     expect(Array.from(w.tiles)).toEqual(before);
   });
 
+  it('every bomb carries a landing mark that matches where it really lands', () => {
+    const bs = launchMarked(w, cone, mulberry32(11));
+    for (const b of bs) {
+      expect(b.lx).toBeDefined();
+      const pred = { x: b.lx ?? 0, y: b.ly ?? 0 };
+      while (!stepBomb(w, b, 1 / 60));
+      expect(Math.abs(b.x - pred.x)).toBeLessThan(0.01);
+      expect(Math.abs(b.y - pred.y)).toBeLessThan(0.01);
+      // The mark sits on top of ground: solid below the landing cell's row.
+      expect(landingOf(w, { ...b, x: pred.x, y: pred.y - 3, vx: 0, vy: 0, life: 0 }).y).toBeCloseTo(pred.y, 0);
+    }
+  });
+
   it('gaps between eruptions stay in range and the hit box is fair', () => {
     const rng = mulberry32(3);
     for (let i = 0; i < 50; i++) {
@@ -87,6 +100,7 @@ describe('cinder cone eruptions in the game', () => {
     let rumbleAt = -1;
     let eruptAt = -1;
     let maxBombs = 0;
+    let marked = false;
     for (let t = 0; t < 10; t += FIXED_DT) {
       g.step(FIXED_DT, NO_CONTROLS);
       for (const e of g.drainEvents()) {
@@ -95,11 +109,13 @@ describe('cinder cone eruptions in the game', () => {
         if (e.t === 'bombhit') seen.push(e.t);
       }
       maxBombs = Math.max(maxBombs, g.lavaBombs.length);
+      if (g.lavaBombs.length && g.lavaBombs.every((b) => b.lx !== undefined)) marked = true;
       if (rumbleAt >= 0 && eruptAt < 0) expect(g.rumbleState()?.k ?? -1).toBeGreaterThanOrEqual(0);
     }
     expect(rumbleAt).toBeGreaterThanOrEqual(0);
     expect(eruptAt - rumbleAt).toBeGreaterThanOrEqual(ERUPT.rumbleT - 0.1);
     expect(maxBombs).toBeGreaterThanOrEqual(ERUPT.minBombs);
+    expect(marked).toBe(true);
     expect(seen.length).toBeGreaterThanOrEqual(ERUPT.minBombs);
     expect(g.lavaBombs.length).toBe(0);
     expect(g.eruptCd).toBeGreaterThan(ERUPT.minGap - 10);
