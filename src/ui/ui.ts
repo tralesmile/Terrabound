@@ -18,6 +18,7 @@ import { ROBOT_LOOK, playerGear } from '../render/renderer';
 import { FOOD, bestHeal, healCount } from '../sim/fishing';
 import { GEAR, GEAR_IDS, GEAR_SLOTS, type GearId } from '../sim/gear';
 import { BOSSES, bossForBeacon } from '../sim/bosses';
+import { PHASE_NOTCH, newChip, stepChip, type ChipState } from './bossbar';
 import { BIOMES, type BiomeId } from '../sim/biomes';
 import { LAYERS } from '../sim/layers';
 import { MAX_PART, PART_IDS, VEHICLES, VEHICLE_IDS, partCost, vehicleStats, type PartId, type VehicleId } from '../sim/garage';
@@ -401,6 +402,9 @@ export class UI {
   reeling = false;
   /** Touch long-press in progress on a build-bar slot (item id, 0..1 fill), drawn as a ring on the slot. */
   barPress: { id: string; k: number } | null = null;
+  /** Boss bar damage chip (null when no fight) and the time it was last stepped. */
+  bossChip: ChipState | null = null;
+  private bossChipT = 0;
   insets: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
   /** The safe frame used by the last draw (rects are stored in full-canvas CSS px). */
   frame = { x: 0, y: 0, w: 0, h: 0 };
@@ -454,7 +458,8 @@ export class UI {
       return;
     }
     this.drawHud(ctx, game, w, h, u, time);
-    if (game.boss) this.drawBossBar(ctx, game, w, u);
+    if (!game.boss) this.bossChip = null;
+    if (game.boss) this.drawBossBar(ctx, game, w, u, time);
     else if (game.raid) {
       const left = game.raid.ids.length + game.raid.plan.length - game.raid.next;
       this.text(ctx, `RAID: ${left} RAIDER${left === 1 ? '' : 'S'} LEFT`, w / 2, u * 4.6, Math.round(u * 0.85), Math.floor(time * 2) % 2 ? '#ff5a5a' : '#ff9a7a', 'center');
@@ -706,20 +711,40 @@ export class UI {
     this.button(ctx, (w - bw) / 2, h * 0.76 + u * 3.2, bw, u * 2.2, 'SHARE MY WIN', { k: 'share' }, u * 0.85, { color: '#7a5a1f' });
   }
 
-  private drawBossBar(ctx: CanvasRenderingContext2D, game: Game, w: number, u: number): void {
+  /** Boss bar: health fill, a pale damage chip that lags behind each hit, and a notch where phase 2 starts. */
+  private drawBossBar(ctx: CanvasRenderingContext2D, game: Game, w: number, u: number, time: number): void {
     const bs = game.boss;
     if (!bs) return;
     const d = BOSSES[bs.id];
+    const hp = Math.max(0, bs.hp / d.hp);
+    const dt = Math.max(0, Math.min(0.1, time - this.bossChipT));
+    this.bossChipT = time;
+    this.bossChip = this.bossChip ? stepChip(this.bossChip, hp, dt) : newChip(hp);
     const bw = Math.min(w - u * 14, u * 26);
     const x = (w - bw) / 2;
     const y = u * 4.2;
+    const bh = u * 1.2;
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.fillRect(x - 2, y - 2, bw + 4, u * 1.2 + 4);
+    ctx.fillRect(x - 2, y - 2, bw + 4, bh + 4);
     ctx.fillStyle = '#5a1a1a';
-    ctx.fillRect(x, y, bw, u * 1.2);
-    ctx.fillStyle = bs.hp <= d.hp / 2 ? '#ff5a2a' : '#ff9a3c';
-    ctx.fillRect(x, y, bw * Math.max(0, bs.hp / d.hp), u * 1.2);
-    this.text(ctx, `${d.name}${bs.hp <= d.hp / 2 ? '  (enraged)' : ''}`, w / 2, y - u * 0.9, Math.round(u * 0.95), '#ffd8a8', 'center', bw);
+    ctx.fillRect(x, y, bw, bh);
+    const chip = this.bossChip.chip;
+    if (chip > hp) {
+      ctx.fillStyle = '#ffe9c8';
+      ctx.fillRect(x + bw * hp, y, bw * (chip - hp), bh);
+    }
+    const enraged = hp <= PHASE_NOTCH;
+    ctx.fillStyle = enraged ? '#ff5a2a' : '#ff9a3c';
+    ctx.fillRect(x, y, bw * hp, bh);
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillRect(x, y, bw * hp, Math.max(1, bh * 0.25));
+    // Phase notch: a dark cut through the bar and a small tick above it.
+    const nx = Math.round(x + bw * PHASE_NOTCH);
+    ctx.fillStyle = '#1a0a0a';
+    ctx.fillRect(nx - 1, y - 2, 2, bh + 4);
+    ctx.fillStyle = enraged ? '#ff5a2a' : '#ffd8a8';
+    ctx.fillRect(nx - Math.round(u * 0.25), y - Math.round(u * 0.45), Math.round(u * 0.5), Math.round(u * 0.3));
+    this.text(ctx, `${d.name}${enraged ? '  (enraged)' : ''}`, w / 2, y - u * 0.9, Math.round(u * 0.95), '#ffd8a8', 'center', bw);
   }
 
   /** Long-press feedback: a ring fills clockwise around the held slot until its actions open. */

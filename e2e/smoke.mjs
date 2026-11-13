@@ -1781,14 +1781,27 @@ try {
     });
     const hollowFull = await corePink();
     await page.screenshot({ path: path.join(out, '28b-hollow-shell.png') });
+    const barPale = () => page.evaluate(() => {
+      const c = document.querySelector('canvas');
+      const d = c.getContext('2d').getImageData(Math.round(c.width * 0.35), 0, Math.round(c.width * 0.3), Math.round(c.height * 0.15)).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] > 240 && d[i + 1] > 225 && d[i + 2] > 190) n++;
+      const ch = window.__terrabound.ui.bossChip;
+      return { n, chip: ch ? ch.chip : -1 };
+    });
+    const barBefore = await barPale();
     await page.evaluate(() => { window.__terrabound.game.boss.hp = 2200 * 0.3; });
     await page.waitForTimeout(60);
+    const barHit = await barPale();
+    await page.screenshot({ path: path.join(out, '28d-boss-bar-chip.png') });
     const hollowShed = await corePink();
     await page.waitForTimeout(400);
     const hollowHurt = await corePink();
     await page.screenshot({ path: path.join(out, '28c-hollow-cracked.png') });
     check('the Hollow AI wears a plate shell that breaks off with debris as it is hurt', hollowFull.left === 8 && hollowHurt.left === 3 && hollowShed.parts - hollowFull.parts >= 14, JSON.stringify({ full: hollowFull, shed: hollowShed, hurt: hollowHurt }));
     check('a hurt Hollow AI glows through shed-plate seams and core cracks', hollowHurt.pink > hollowFull.pink + 60, JSON.stringify({ full: hollowFull.pink, hurt: hollowHurt.pink }));
+    const barAfter = await barPale();
+    check('a big hit leaves a pale damage chip on the boss bar that then drains away', barHit.chip > 0.9 && barHit.n > barBefore.n + 40 && barAfter.chip < barHit.chip, JSON.stringify({ barBefore, barHit, barAfter }));
     await page.evaluate(() => { window.__terrabound.game.boss.hp = window.__hpSave; });
     // Ranged / dash telegraphs (Vine Queen): a red chevron lane toward where the charge ends, speed streaks and
     // kicked-up dust during the dash, and a swelling orb at the muzzle before a volley.
