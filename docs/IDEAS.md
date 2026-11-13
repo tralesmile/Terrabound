@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 54
+
+- Done this run: the landing pad is a real deck now (steel plates, hazard chevrons, landing ring, runway lights that chase toward the centre); blocks and machines name themselves under a resting mouse with dig time; streams splash into pools; the boss bar drops under the HUD on small phones (28g).
+- Weakest first impression: the pad is the first thing a player sees; a short landing beam / dust puff when the player beams home onto the ring would make returning feel like an arrival (Dome Keeper's return-to-dome beat).
+- Weakest UI: toasts still stack 3-4 deep at depth (awards fold, but the column covers a quarter of a phone screen); cap the column at two pills on phones and fold the rest into a "+2" chip.
+- Weakest progression: the dive report still only shows on death; a lighter "dive banked" card on beam-home (carried, P4 follow-up).
+- Weakest finale play: a non-conducting safe platform node in the Hollow AI arena (carried, BACKLOG P1.10 follow-up).
+
 ## 2026-11-13 run 53
 
 - Done this run: the Hollow AI's phase 2 now electrifies its floor circuit: a charging pool flickers under the boss (0.9 s), then a white-hot crest with zigzag arcs rolls out both ways; standing on the floor as it passes hurts, a jump dodges it (28f). Every boss answers hits in its own material sound (clank, thump, crystal ping, ember hiss, ice crack, glitch).
@@ -40,11 +48,3 @@
 - Weakest feel: at the pad, carried placeable blocks bank instantly, so you can't hold a building stack at base (only ores/loot should bank).
 - Weakest UI: the final boss Hollow AI is the one boss with no art pass beyond the core disc; its arena deserves the same shard/impact treatment.
 - Weakest performance: boss frame probe ~8.4 ms vs 6.3 plain; the new per-part swung()/glint draws add a little. Watch the boss probe; cache the glint star if it climbs.
-
-## 2026-11-13 run 48
-
-- Done this run: suit picks up the deep layers' light colour (27e-layer-ambient), keys 6-0 and - pick the arranged bar slots with key hints, touch long-press on a bar slot opens its item actions with a filling ring (51j/51k).
-- Weakest boss art: Crystal Golem and Frost Titan are still plain rects with eyes (top of P1.10 follow-ups; next run).
-- Weakest graphics: enemies, pets and NPCs in deep layers still use surface colours next to the now-tinted player; reuse ambientRemap on their sprites.
-- Weakest feel: at the pad, carried rust/metal blocks bank instantly, so a player can't hold a stack of building blocks at base; consider keeping placeables selected in the bar carried (bank only ores/loot).
-- Weakest progression: still no run-summary/share card (P4) for a good dive.

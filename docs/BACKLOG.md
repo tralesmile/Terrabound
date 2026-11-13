@@ -83,7 +83,8 @@ World size and variety:
 - [x] Pet redesign: pixel-art sprites with animation for scout bot, glow moth and spark pup
 - [x] Hover tooltips for item cells everywhere and for items on the ground
 - [x] Bigger world: 2800 x 480 for new worlds (old saves keep 1400 x 420), 1.5x wider biome bands, worldgen 1.7x faster (noiseGrid)
-- [ ] Follow-ups (scheduled runs may take these): tooltips for world blocks and machines under the cursor; a "start a bigger world" prompt for legacy saves; lava scene renders ~11 ms vs 7.5 ms plain in headless (profile the lavafall rows); splash where a stream lands in a pool
+- [x] Hover tooltips for world blocks and machines (0.5 s dwell, dig time + drop), splash where a stream lands in a pool (run 54)
+- [ ] Follow-ups (scheduled runs may take these): a "start a bigger world" prompt for legacy saves; lava scene renders ~11 ms vs 7.5 ms plain in headless (profile the lavafall rows)
 
 ## P1.10 Owner request 2026-11-12: better driving and swimming graphics, lava (done 2026-11-12)
 
@@ -108,7 +109,8 @@ World size and variety:
 - [x] Boss bolts leave a fading accent trail; Hollow AI art pass: battered plate shell that sheds plates with debris, glowing seams and core cracks as it is hurt; boss bar damage chip + phase notch (run 51)
 - [x] Hollow AI arena floor circuit (pink pulse rings rolling outward, red and faster in phase 2); boss hit sparks in each boss's colours from the hit face toward the attacker, damage number at the hit point (run 52)
 - [x] Hollow AI phase-2 floor zaps (charging pool telegraph, white-hot crest rolling out both ways, jump to dodge); per-boss hit sounds (run 53)
-- [ ] Follow-ups (scheduled runs may take these): Core-layer HUD/boss-title overlap check on small phones; a non-conducting safe platform node in the Hollow AI arena
+- [x] Landing pad deck art (steel plates, hazard ends, landing ring, chasing runway lights); boss bar drops under the HUD on small phones (run 54)
+- [ ] Follow-ups (scheduled runs may take these): a non-conducting safe platform node in the Hollow AI arena
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 
