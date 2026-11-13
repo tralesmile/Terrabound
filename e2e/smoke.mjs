@@ -583,6 +583,18 @@ try {
     await page.screenshot({ path: path.join(out, '11f-slope-walk.png') });
     const onFlat = await sinkAt(stair.x - 0.5);
     check('standing on a slope cap draws the feet on the diagonal, flat ground does not sink', onCap.ground && onCap.sink > 0.35 && onCap.sink < 0.65 && onFlat.sink < 0.05, JSON.stringify({ onCap, onFlat }));
+    // Walkers follow the diagonal too: a crawler on the cap is drawn sunk into it, not floating over the cut.
+    await page.evaluate((st) => {
+      const g = window.__terrabound.game;
+      g.body.x = st.x - 2.5;
+      g.enemies = [{ id: 9902, kind: 'crawler', x: st.x + 0.6, y: st.top, vx: 0, vy: 0, hp: 999, dir: -1, iframes: 0, age: 0, phase: 0 }];
+    }, stair);
+    let crawlSink = 0;
+    for (let i = 0; i < 10; i++) {
+      await page.waitForTimeout(30);
+      crawlSink = Math.max(crawlSink, await page.evaluate(() => window.__terrabound.renderer.enemySinks.get(9902) || 0));
+    }
+    check('a walking crawler on a slope cap is drawn on the diagonal', crawlSink > 0.2, JSON.stringify({ crawlSink }));
     await page.evaluate(() => { window.__terrabound.game.enemies = []; });
   }
   // Cave ceilings soften too: stand under a one-tile ceiling staircase and count the upside-down caps.

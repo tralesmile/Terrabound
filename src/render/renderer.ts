@@ -238,6 +238,23 @@ export class Renderer {
 
   /** How far below the physical feet the player is drawn so it walks the slope-cap diagonals (tiles). */
   footSink = 0;
+  /** Same drawn slope sink per walking enemy (by id), so crawlers and hulks walk the diagonals too. */
+  readonly enemySinks = new Map<number, number>();
+
+  /** Eased drawn sink for one walking enemy; grounded = resting on whole-tile feet with no vertical speed. */
+  enemySink(id: number, get: (x: number, y: number) => number, built: (x: number, y: number) => boolean, x: number, y: number, vy: number, dt: number): number {
+    const grounded = Math.abs(vy) < 0.5 && Math.abs(y - Math.round(y)) < 1e-3;
+    let room = 2;
+    for (let k = 0; k <= 2; k++) {
+      if (isBlock(get(Math.floor(x), Math.floor(y) + k))) {
+        room = Math.floor(y) + k - y;
+        break;
+      }
+    }
+    const next = nextSink(this.enemySinks.get(id) ?? 0, grounded ? slopeSink(get, x, y, built) : null, vy, Math.max(0, room), dt);
+    this.enemySinks.set(id, next);
+    return next;
+  }
 
   /** Back-wall layer: cave walls underground, player-built plates; nothing (sky) otherwise. */
   private drawBack(ctx: CanvasRenderingContext2D, world: Game['world'], tx: number, ty: number, dx: number, dy: number, ts: number): void {
@@ -432,11 +449,19 @@ export class Renderer {
         ctx.fillRect(fx - r, fy - r * (acid ? 2.2 : 1), r * 2, r * (acid ? 2.2 : 2));
       }
     }
+    const getTile = (x: number, y: number): number => world.get(x, y);
+    const builtAt = (x: number, y: number): boolean => world.edits.has(y * world.w + x);
+    if (this.enemySinks.size > game.enemies.length * 2 + 8) {
+      const alive = new Set(game.enemies.map((en) => en.id));
+      for (const id of this.enemySinks.keys()) if (!alive.has(id)) this.enemySinks.delete(id);
+    }
     for (const e of game.enemies) {
       const d = ENEMIES[e.kind];
       const ex = this.sx(e.x, shakeX);
+      // Walkers follow floor slope caps like the player (render only); flyers never sink.
+      const sink = d.flying ? 0 : this.enemySink(e.id, getTile, builtAt, e.x, e.y, e.vy, dtFrame);
       // After an auto-step the drawn body eases up from the old floor instead of popping.
-      const ey = this.sy(e.y + stepEase(e.lift ?? 0), shakeY);
+      const ey = this.sy(e.y + Math.max(stepEase(e.lift ?? 0), sink), shakeY);
       const w = d.halfW * 2 * ts;
       const h = d.h * ts;
       if (e.raid) {
