@@ -636,3 +636,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** per-layer back walls (Circuit open caves read brighter than its solid blocks, 27-deep-layer); enemies follow slope diagonals; desktop hover labels for HUD glyphs; lore placed in story order by depth; P1.9 follow-ups (plane with cargo, charge station).
 
 **Known issues:** glyph buttons have no text, so a new desktop player learns them by trying (key hints help); enemies still float over caps; tall cones put bomb arcs above the screen from the foot; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).
+
+## 2026-11-13 Scheduled run 44
+
+**Done:** baseline green (739 tests). Creative review: in the Circuit layer the lit open cave (rust back wall) read brighter than the solid rock (27-deep-layer, carried 1), and the hurt flash was a flat white silhouette every other frame (27c). Per-layer cave back walls (src/render/sprites.ts `LAYER_WALL_LOOK`/`wallRow`, render only, baked in chunks): natural cave walls in Circuit become a dark board mesh with traces and a solder dot, Plasma a basalt with dim magenta veins, Core an obsidian with violet veins; plates unchanged. Enemies follow slope diagonals (renderer `enemySinks`, per-id eased sink like the feet). Desktop hover labels for HUD glyphs (`hoverLabel` in hudbuttons.ts; "Map (M)", 06e-hud-hover). Lore in story order by depth (explore.ts `loreIndexAt`: shallow terminals hold early logs, a read log gives way to the nearest unread). Hurt flash tints the suit red (scorchfx `hurtRemap`, 05c-hurt-tint).
+
+**Numbers:** 754 unit tests (new: layerwalls 4, hudhover 3, loreorder 6, hurttint 2), 208 e2e checks all green (new: crawler drawn on the cap diagonal, hover label on/off, red hurt tint not white), bundle 406.6 kB (141.1 kB gzip).
+
+**Next:** surface dirt cross-section detail; Junk Colossus art pass; old toasts fade to a ghost line; deep-cave floor rim light; P1.9 follow-ups (plane with cargo, charge station).
+
+**Known issues:** the hurt tint shows the held tool (it used to vanish with the white flash); lore order depends on terminal depth, so a player who only digs shallow reads logs 1-3 first and the rest later (by design); enemies use the same sink rule as the player, so a hulk wider than a cap still sinks by its centre; tall cones put bomb arcs above the screen from the foot; full-screen panels fill only the safe frame; drone mining counts toward "mined"; digits 1-0 not remappable; e2e farm uses raw tile ids (57-67).

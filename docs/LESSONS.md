@@ -183,3 +183,7 @@
 - **A visual offset that stacks with another eased offset can double-dip.** The auto-step lift (drawn below, easing to 0) and the new slope sink both push the feet down right after a step-up onto a cap; adding them would dip a whole tile. Guard: the renderer uses `max(stepEase(lift), footSink)`, and `nextSink` never draws the feet below the floor under the centre (unit-tested).
 - **Changing a returned shape breaks `toEqual` tests on purpose.** `logParts` gained `more`; the old test was updated to the new shape with the same values, not loosened.
 - **Retro:** three slices, three ships (~7 min each), no red gate, no rebase. Drafting each next slice in the scratchpad and applying it only once the ship log showed the build finished (e2e reads dist) kept every gate clean; `sleep` over 2 min in one call times out, poll in <=110 s chunks.
+
+- **A sim entity without `onGround` needs its own grounded test for render effects.** Enemies have no `onGround`; the slope sink uses "vy ~ 0 and feet on a whole row" instead. Guard: the e2e places a crawler on a real cap and asserts its drawn sink.
+- **Private fields block test setup; build the state through the constructor.** `game.save` is private, so the lore test builds a save with the awards it needs and reads through the public `awards` getter.
+- **Retro:** five slices, five ships (~6 min each), no red gate, no rebase. Drafting each slice as a scratchpad `apply.py` and applying it once the ship log reached e2e kept the pipeline full; a node e2e already running is unaffected by edits to smoke.mjs.

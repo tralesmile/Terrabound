@@ -86,7 +86,8 @@ World size and variety:
 - [x] Half-tile slope caps on one-tile staircase corners (render), auto-step over one-tile ledges (sim, eased), codex field-guide notes for every place incl. cone eruptions (run 41)
 - [x] Walkers auto-step one-tile ledges and walk down one-tile drops (pets fly, nothing to do); slim one-row goal card; cave-ceiling slope caps; natural Scrap-layer metal slopes (player-placed blocks stay square) (run 42)
 - [x] Icon HUD (square glyph buttons, two wide, key hints, 44 px touch), longer lore logs (2-3 more lines each in the reader), the player's feet follow slope-cap diagonals (render-only sink) (run 43)
-- [ ] Follow-ups (scheduled runs may take these): per-layer back walls so open caves never read brighter than solid rock (Circuit mesh, Plasma basalt); enemies follow slope diagonals too; hover labels for HUD glyphs on desktop; lore logs placed in story order by depth
+- [x] Per-layer cave back walls (circuit mesh, plasma basalt, core obsidian), enemies follow slope diagonals, desktop hover labels for HUD glyphs, lore logs in story order by depth, red hurt-flash tint (run 44)
+- [ ] Follow-ups (scheduled runs may take these): surface dirt cross-section detail (pebbles, roots, darker bands in the first tiles); Junk Colossus art pass (swinging arms on the slam telegraph, loose plates); old toasts fade to a one-line ghost after 4 s; soft rim light on deep-layer cave floors
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 
