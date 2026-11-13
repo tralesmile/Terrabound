@@ -980,6 +980,65 @@ try {
     const [bx, by, bw, bh] = molten.box;
     await page.screenshot({ path: path.join(out, '22e-lava-close.png'), clip: { x: Math.max(0, bx / 1 - 40), y: Math.max(0, by - 120), width: Math.min(600, bw + 80), height: 260 } });
   }
+  // Lavafall: an Ash Dunes crag pours a sheet of lava into a catch pool (seen from beside the pool).
+  const fall = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const s = w.structures.find((st) => st.kind === 'lavafall');
+    if (!s) return null;
+    // Stand on the pool's far rim so the fall sits just left of centre, clear of the HUD panels.
+    const stand = s.x1;
+    g.hp = g.maxHp ?? 100;
+    g.body.x = stand + 0.5;
+    g.body.y = w.surface[stand];
+    g.body.vx = g.body.vy = 0;
+    g.enemies = [];
+    return { col: s.x0 + 5, y0: s.y0, y1: s.y1 };
+  });
+  await page.waitForTimeout(400);
+  await page.waitForFunction(() => Math.abs(window.__terrabound.renderer.camX - window.__terrabound.game.body.x) < 0.3, null, { timeout: 3000 }).catch(() => {});
+  check('the Ash Dunes have a lavafall', !!fall, JSON.stringify(fall));
+  if (fall) {
+    const sheet = await page.evaluate((lf) => {
+      const { renderer } = window.__terrabound;
+      const c = document.getElementById('game');
+      const ctx = c.getContext('2d');
+      // The lowest two tiles of the sheet, inside its crust edges (the top can sit under the HUD).
+      const a = renderer.worldToScreen(lf.col + 0.12, lf.y1 - 2);
+      const b = renderer.worldToScreen(lf.col + 0.5, lf.y1 - 0.2);
+      const w = Math.max(1, Math.round(b.x - a.x));
+      const h = Math.max(1, Math.round(b.y - a.y));
+      const d = ctx.getImageData(Math.round(a.x), Math.round(a.y), w, h).data;
+      let hot = 0;
+      const cols = new Set();
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i] > 150 && d[i] > d[i + 2] + 60) hot++;
+        cols.add(`${d[i] >> 4},${d[i + 1] >> 4},${d[i + 2] >> 4}`);
+      }
+      return { shown: renderer.lavafallsShown, hot: hot / (d.length / 4), colours: cols.size, box: [Math.round(a.x), Math.round(a.y), w, h] };
+    }, fall);
+    check('the lavafall pours a streaked sheet of lava down the crag face', sheet.shown >= 1 && sheet.hot > 0.8 && sheet.colours >= 3, JSON.stringify(sheet));
+    await page.screenshot({ path: path.join(out, '22f-lavafall.png') });
+    const [fx, fy] = sheet.box;
+    await page.screenshot({ path: path.join(out, '22g-lavafall-close.png'), clip: { x: Math.max(0, fx - 160), y: Math.max(0, fy - 80), width: 360, height: 300 } });
+    // Walking into the sheet burns.
+    const burn = await page.evaluate(async (lf) => {
+      const g = window.__terrabound.game;
+      const hp0 = g.hp;
+      for (let i = 0; i < 6; i++) {
+        g.body.x = lf.col + 0.5;
+        g.body.y = lf.y1 - 1;
+        g.body.vx = g.body.vy = 0;
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      const hp1 = g.hp;
+      g.hp = hp0;
+      g.body.x = lf.col + 4.5;
+      g.body.y = g.world.surface[lf.col + 4];
+      return { hp0, hp1 };
+    }, fall);
+    check('standing in the lavafall burns', burn.hp1 < burn.hp0, JSON.stringify(burn));
+  }
   // Grappling hook: tool 5, click a ceiling, swing.
   const hookAt = await page.evaluate(() => {
     const g = window.__terrabound.game;

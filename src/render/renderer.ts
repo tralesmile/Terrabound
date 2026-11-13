@@ -2,7 +2,8 @@ import { aoRects } from './ao';
 import { computeRims, type Rim } from './rimlight';
 import { buriedDecal, decalRects, hasStrata, strataShade } from './strata';
 import type { Game, Hook, Shot } from '../sim/game';
-import { LAVA_BLOCK, SHIMMER_ROW, SHIMMER_ROWS, lavaDepthShade, lavaShade, shimmerRuns, shimmerShift } from './lavafx';
+import { lavafallSpan } from '../sim/structures';
+import { FALL_W, LAVA_BLOCK, SHIMMER_ROW, SHIMMER_ROWS, fallShade, lavaDepthShade, lavaShade, shimmerRuns, shimmerShift } from './lavafx';
 import { acidBubble, causticBand, depthShade, surfaceGlint, waveOffsets } from './liquidfx';
 import { cropAt, isCropTile, isWatered } from '../sim/farming';
 import { cropSway, drawCropTile, ripeSparkle, sprinklerDrops } from './crops';
@@ -283,6 +284,7 @@ export class Renderer {
     this.batteryFill = game.power.cap > 0 ? game.power.charge / game.power.cap : 0;
     this.cropWet = (x, y) => game.cropWatered(x, y);
     this.drawDynamic(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
+    this.drawLavafalls(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
 
     // Aim highlight and crack overlay.
     if (aim) {
@@ -1622,6 +1624,78 @@ export class Renderer {
     this.shimmerCells.length = 0;
   }
 
+  /** Lavafall sheets drawn last frame (e2e) and the air cells they pour through (light sources). */
+  lavafallsShown = 0;
+  private fallCells = new Set<number>();
+
+  /**
+   * Ash Dunes lavafalls: lava spills over the crag lip and pours down the face in a sheet of
+   * downward-scrolling streaks, lights the rock beside it, and spatters and throws embers where it
+   * meets the catch pool. The sheet stops at whatever blocks it (lavafallSpan, shared with the burn).
+   */
+  private drawLavafalls(ctx: CanvasRenderingContext2D, world: Game['world'], x0: number, y0: number, x1: number, y1: number, shakeX: number, shakeY: number, time: number): void {
+    this.lavafallsShown = 0;
+    this.fallCells.clear();
+    const u = this.scale;
+    const ts = TS * u;
+    for (const st of world.structures) {
+      if (st.kind !== 'lavafall' || st.x1 < x0 - 1 || st.x0 > x1 + 1 || st.y1 < y0 - 1 || st.y0 > y1 + 1) continue;
+      const f = lavafallSpan(world, st);
+      for (let y = f.y0; y < f.y1; y++) this.fallCells.add(y * world.w + f.x);
+      this.lavafallsShown++;
+      const left = this.sx(f.x, shakeX);
+      const top = this.sy(f.y0, shakeY);
+      const rows = (f.y1 - f.y0) * 16 + 2;
+      // Warm light on the crag face and the ground around the foot (additive, so it reads at night too).
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const pulse = 0.5 + 0.5 * Math.sin(time * 3.1 + f.x);
+      ctx.fillStyle = `rgba(255,110,30,${(0.18 + 0.08 * pulse).toFixed(3)})`;
+      ctx.fillRect(left - ts, top, ts, (f.y1 - f.y0) * ts);
+      const fy = this.sy(f.y1, shakeY);
+      const g = ctx.createRadialGradient(left + 5 * u, fy, u, left + 5 * u, fy, ts * 2.2);
+      g.addColorStop(0, `rgba(255,150,50,${(0.35 + 0.1 * pulse).toFixed(3)})`);
+      g.addColorStop(1, 'rgba(255,90,20,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(left - ts * 2, fy - ts * 2.2, ts * 4.5, ts * 3.2);
+      ctx.restore();
+      // Overflow: a thin skin of lava rolling over the lip into the sheet.
+      for (let bx = 4; bx < 16; bx += LAVA_BLOCK) {
+        const s = lavaShade((f.x - 1) * 16 + bx, f.y0 * 16, time * 3, false);
+        ctx.fillStyle = s === 1 ? '#ff5a1f' : LAVA_SHADES[s];
+        ctx.fillRect(left - ts + bx * u, top, LAVA_BLOCK * u, 3 * u);
+      }
+      // The sheet: base melt, then streaks in whole art px.
+      ctx.fillStyle = '#ff5a1f';
+      ctx.fillRect(left, top, FALL_W * u, rows * u);
+      for (let ay = 0; ay < rows; ay += LAVA_BLOCK) {
+        for (let ax = 0; ax < FALL_W; ax++) {
+          const s = fallShade(ax, ay, time, FALL_W);
+          if (s === 1) continue;
+          ctx.fillStyle = s === 0 ? '#a8260e' : LAVA_SHADES[s];
+          ctx.fillRect(left + ax * u, top + ay * u, u, LAVA_BLOCK * u);
+        }
+      }
+      // Spatter at the foot: hot droplets hop out of the pool in little arcs.
+      for (let k = 0; k < 5; k++) {
+        const ph = (time * 1.7 + k * 0.37) % 1;
+        const dir = k % 2 === 0 ? 1 : -1;
+        const ox = 5 + dir * (2 + k) * ph * 2;
+        const oy = -Math.sin(ph * Math.PI) * (4 + k);
+        ctx.fillStyle = k === 0 ? '#fff0b0' : '#ffa53a';
+        ctx.fillRect(left + Math.round(ox) * u, fy + Math.round(oy) * u, u, u);
+      }
+      // Embers drift up from the splash and fade.
+      for (let k = 0; k < 4; k++) {
+        const ph = (time * 0.45 + k * 0.29) % 1;
+        const ex = 5 + Math.round(Math.sin(time * 1.3 + k * 2.1) * 4 + (k - 1.5) * 3);
+        const ey = -Math.round(ph * 40);
+        ctx.fillStyle = `rgba(255,${170 + k * 15},80,${(1 - ph).toFixed(3)})`;
+        ctx.fillRect(left + ex * u, fy + ey * u, u, u);
+      }
+    }
+  }
+
   private drawMagma(ctx: CanvasRenderingContext2D, world: Game['world'], tx: number, ty: number, dx: number, dy: number, ts: number, time: number): void {
     const p = magmaPulse(tx, ty, time);
     const u = ts / 16;
@@ -2098,6 +2172,7 @@ export class Renderer {
           else if ((tt === T.GATE || tt === T.CIRCUIT_ORE || tt === T.PLASMA_ORE || tt === T.CORE_ORE) && !world.isSolid(xx, yy - 1)) sources.push({ x: xx, y: yy, level: tt === T.GATE ? 16 : 12 });
           else if (tt === T.ACID_POOL && world.get(xx, yy - 1) !== T.ACID_POOL) sources.push({ x: xx, y: yy, level: 14 });
           else if (tt === T.MAGMA && world.get(xx, yy - 1) !== T.MAGMA) sources.push({ x: xx, y: yy, level: 28 });
+          else if (tt === T.AIR && this.fallCells.has(yy * world.w + xx)) sources.push({ x: xx, y: yy, level: 24 });
           else if (tt === T.CRYSTAL && !world.isSolid(xx, yy - 1) || tt === T.CRYSTAL && !world.isSolid(xx, yy + 1)) sources.push({ x: xx, y: yy, level: 18 });
           else if (tt === T.PLANT && yy > world.surface[xx] + 1) sources.push({ x: xx, y: yy, level: 14 });
         }

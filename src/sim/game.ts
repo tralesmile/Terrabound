@@ -27,7 +27,7 @@ import {
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
 import { recipeById } from './recipes';
 import { chestLoot } from './loot';
-import { SOIL_TILES, growTime, stepSaplings } from './structures';
+import { SOIL_TILES, growTime, inLavafall, stepSaplings } from './structures';
 import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
 import { BIOME_BOSSES, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
 import { BIOMES, type BiomeId } from './biomes';
@@ -322,6 +322,8 @@ export class Game {
   /** Liquid tile the player's body centre is in (0 = none). */
   inLiquid = 0;
   private acidTick = 0;
+  /** Seconds until a lavafall burns again while the player stands in it. */
+  private fallBurn = 0;
   /** Base power grid snapshot (solar vs smelters), refreshed twice a second. */
   power: PowerState = newPower();
   private smeltProgress = 0;
@@ -1372,6 +1374,13 @@ export class Game {
     const swimT = this.world.get(Math.floor(b.x), Math.floor(b.y - BODY_H / 2));
     const wasLiquid = this.inLiquid;
     this.inLiquid = isLiquid(swimT) ? swimT : 0;
+    // Falling lava (Ash Dunes lavafalls) burns like the magma it pours into.
+    this.fallBurn = Math.max(0, this.fallBurn - dt);
+    if (this.fallBurn <= 0 && inLavafall(this.world, b.x, b.y, HALF_W, BODY_H)) {
+      this.fallBurn = 0.25;
+      // Half the pool's heat: a sheet brushed in passing should sting, not kill outright.
+      this.hurt(((TILES[T.MAGMA].dps ?? 0) * 0.5) / 4);
+    }
     // Breaking the surface while stroking up: leap out, so pools can be left onto a ledge.
     if (wasLiquid && !this.inLiquid && c.jump && b.vy < 0) b.vy = -LEAP_V;
     this.jetting = false;

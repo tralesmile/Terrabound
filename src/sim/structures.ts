@@ -13,7 +13,7 @@ export const PAD_CLEAR = 22;
 /** Plants keep out of the base strip. */
 export const PLANT_CLEAR = 9;
 
-export type StructureKind = 'ruin' | 'tower' | 'ship' | 'vault' | 'geode' | 'shrine' | 'wreck' | 'pond' | 'island' | 'lava';
+export type StructureKind = 'ruin' | 'tower' | 'ship' | 'vault' | 'geode' | 'shrine' | 'wreck' | 'pond' | 'island' | 'lava' | 'lavafall';
 export interface Structure {
   kind: StructureKind;
   x0: number;
@@ -29,6 +29,7 @@ export function decorate(world: World): Structure[] {
   surfaceStructures(world, used, out);
   ponds(world, used, out);
   lavaPools(world, used, out);
+  lavafalls(world, used, out);
   islands(world, out);
   trees(world, used);
   plants(world);
@@ -459,6 +460,88 @@ function lavaPools(world: World, used: Uint8Array, out: Structure[]): void {
     }
     start = x;
   }
+}
+
+/** Lavafall geometry: crag columns x0..x0+4, the falling column, then a 3-wide catch pool. */
+export const LAVAFALL = { crag: 5, pool: 3, minH: 6, maxH: 8 } as const;
+
+/** The air column a lavafall pours down (right of the crag face). */
+export function lavafallColumn(s: Structure): number {
+  return s.x0 + LAVAFALL.crag;
+}
+
+/**
+ * Where the lava pours this frame: from the crag top down to the first non-air cell (the catch pool,
+ * or a block the player put in the way). Pure, so the hazard and the render agree.
+ */
+export function lavafallSpan(world: World, s: Structure): { x: number; y0: number; y1: number } {
+  const x = lavafallColumn(s);
+  let y = s.y0;
+  while (y < s.y1 && world.get(x, y) === T.AIR) y++;
+  return { x, y0: s.y0, y1: y };
+}
+
+/** True when a box (centre x, feet y, half width hw, height h) touches a falling sheet of lava. */
+export function inLavafall(world: World, x: number, y: number, hw: number, h: number): boolean {
+  for (const s of world.structures) {
+    if (s.kind !== 'lavafall') continue;
+    const f = lavafallSpan(world, s);
+    if (x + hw <= f.x + 0.15 || x - hw >= f.x + 0.8) continue;
+    if (y <= f.y0 || y - h >= f.y1) continue;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Ash Dunes lavafalls: a basalt crag with a lava spring on top whose overflow pours down its face
+ * into a small catch pool. The falling sheet is drawn and burns (no flowing cells), so the spring and
+ * pool are sealed and stable. One per Ash band, midway between the two lava pools.
+ */
+function lavafalls(world: World, used: Uint8Array, out: Structure[]): void {
+  const seed = world.seed ^ 0x1af1;
+  let start = 0;
+  for (let x = 1; x <= world.w; x++) {
+    if (x < world.w && world.biome[x] === world.biome[start]) continue;
+    if (world.biome[start] === B.ASH && x - start > 30) {
+      const want = start + Math.floor((x - start) / 2);
+      // x0 is the crag's left column; the footprint (plus a margin) must be free and inside the band.
+      const span = LAVAFALL.crag + 1 + LAVAFALL.pool + 1;
+      const offs = Array.from({ length: 40 }, (_, i) => (i % 2 ? 1 : -1) * Math.ceil(i / 2) * 6);
+      const x0 = offs.map((o) => want + o - 5).find(
+        (c) => c - 3 > start && c + span + 3 < x && c > 8 && c + span < world.w - 8 && Math.abs(c + 5 - world.padX) > PAD_CLEAR + 10 && !used.subarray(c - 3, c + span + 3).some((u) => u),
+      );
+      if (x0 !== undefined) out.push(lavafall(world, used, x0, hash2(start, 11, seed)));
+    }
+    start = x;
+  }
+}
+
+function lavafall(world: World, used: Uint8Array, x0: number, r: number): Structure {
+  const H = LAVAFALL.minH + Math.floor(r * (LAVAFALL.maxH - LAVAFALL.minH + 1));
+  const col = x0 + LAVAFALL.crag;
+  const right = col + LAVAFALL.pool + 1;
+  let g = world.h;
+  for (let c = x0 - 1; c <= right; c++) g = Math.min(g, world.surface[c]);
+  flatten(world, x0 - 1, right, g, H + 4);
+  // Crag: a sloped shoulder on the left, a sheer face on the right.
+  const heights = [H - 3, H, H, H, H];
+  const top = g - H;
+  for (let i = 0; i < LAVAFALL.crag; i++) {
+    for (let y = g - heights[i]; y < g; y++) put(world, x0 + i, y, T.BASALT);
+    world.surface[x0 + i] = g - heights[i];
+  }
+  // Spring on the crag top, held by a basalt rim (left) and the lip (right, the face column).
+  put(world, x0 + 2, top, T.MAGMA);
+  put(world, x0 + 3, top, T.MAGMA);
+  // Catch pool at the foot, basalt lined.
+  for (let i = 0; i < LAVAFALL.pool; i++) {
+    put(world, col + i, g, T.MAGMA);
+    put(world, col + i, g + 1, T.BASALT);
+  }
+  put(world, right, g, T.BASALT);
+  for (let c = x0 - 3; c <= right + 3; c++) used[c] = 1;
+  return { kind: 'lavafall', x0, y0: top, x1: right, y1: g };
 }
 
 /** Floating sky islands: one or two per biome band, each with soil, a tree and a rich chest. */

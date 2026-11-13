@@ -157,7 +157,7 @@ export class MapView {
     ctx.lineWidth = Math.max(1, u * 0.12);
     for (const st of world.structures) {
       if (!game.fog.isSeen(Math.floor((st.x0 + st.x1) / 2), Math.floor((st.y0 + st.y1) / 2))) continue;
-      const col = st.kind === 'vault' || st.kind === 'geode' ? '#c08cff' : st.kind === 'pond' ? '#9fd8ff' : st.kind === 'lava' ? '#ff6a2a' : st.kind === 'island' ? '#7dffb0' : '#ffcf4a';
+      const col = st.kind === 'vault' || st.kind === 'geode' ? '#c08cff' : st.kind === 'pond' ? '#9fd8ff' : st.kind === 'lava' || st.kind === 'lavafall' ? '#ff6a2a' : st.kind === 'island' ? '#7dffb0' : '#ffcf4a';
       ctx.strokeStyle = col;
       ctx.strokeRect(toX(st.x0) - 1, toY(st.y0) - 1, Math.max(4, (st.x1 - st.x0 + 1) * z) + 2, Math.max(4, (st.y1 - st.y0 + 1) * z) + 2);
       if (z >= 3) {

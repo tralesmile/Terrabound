@@ -62,3 +62,23 @@ export function shimmerRuns(cells: { tx: number; ty: number }[]): { tx: number; 
   }
   return out;
 }
+
+/** Downward speed of the lavafall streaks in art px per second. */
+export const FALL_SPEED = 40;
+/** Width in art px of a lavafall sheet (it hugs the crag face, the rest of the tile is air). */
+export const FALL_W = 10;
+
+/**
+ * Shade of a lavafall sheet at art px (ax across, ay down from the lip) at `time`, for a sheet `width`
+ * art px wide: 0 cooled crust (the two edges always), 1 base melt, 2 hot streak, 3 white-hot.
+ * Long vertical streaks scroll down at FALL_SPEED: the value depends on time only through ay - speed*t.
+ */
+export function fallShade(ax: number, ay: number, time: number, width: number): 0 | 1 | 2 | 3 {
+  if (ax <= 0 || ax >= width - 1) return 0;
+  const v = ay - time * FALL_SPEED;
+  const s = Math.sin(ax * 1.3 + Math.sin(v * 0.07) * 1.4) + 0.6 * Math.sin(ax * 2.9 - v * 0.035 + 1.7);
+  if (s > 1.15) return 3;
+  if (s > 0.45) return 2;
+  if (s < -1.1) return 0;
+  return 1;
+}
