@@ -1,5 +1,6 @@
 import type { GameEvent } from '../sim/game';
 import { BEATS_PER_BAR, composeBar, tempo, type Mood } from './composer';
+import { bossHitVoice } from './hitvoice';
 
 const MASTER_GAIN = 0.44;
 
@@ -304,6 +305,14 @@ export class Sfx {
         break;
       case 'bosswarn':
         this.tone(660, 0.12, 'square', 0.08, 990);
+        break;
+      case 'bosshit':
+        if (this.ok('bosshit', 70)) {
+          const v = bossHitVoice(e.id, e.dmg);
+          this.tone(v.freq, v.dur, v.type, v.vol, v.slide);
+          if (v.ring) this.tone(v.ring, v.dur * 1.6, 'sine', v.vol * 0.5, undefined, 0.01);
+          if (v.noise) this.noise(v.noise, v.noiseVol);
+        }
         break;
       case 'zapwarn':
         // Rising electric whine while the floor charges.
