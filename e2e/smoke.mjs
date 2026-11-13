@@ -1635,6 +1635,28 @@ try {
   const groundTip = await page.evaluate(() => window.__terrabound.ui.tipShown);
   await page.screenshot({ path: path.join(out, '22h-tooltip-ground.png') });
   check('hovering an item on the ground names it', groundTip.startsWith('Crystal'), JSON.stringify({ groundTip, dropPos }));
+  // A solid block under the feet names itself after the mouse rests on it; a held button keeps it quiet.
+  const blockPos = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.drops.length = 0;
+    const tx = Math.floor(g.body.x) + 2;
+    let ty = Math.floor(g.body.y) + 1;
+    while (!g.world.isSolid(tx, ty) && ty < g.world.h - 1) ty++;
+    g.fog.reveal(tx, ty, 4);
+    const p = window.__terrabound.renderer.worldToScreen(tx + 0.5, ty + 0.5);
+    return { x: p.x / devicePixelRatio, y: p.y / devicePixelRatio, name: (window.__terrabound.game.world.get(tx, ty)) };
+  });
+  await page.mouse.move(blockPos.x, blockPos.y);
+  await page.waitForTimeout(80);
+  const blockEarly = await page.evaluate(() => window.__terrabound.ui.tipShown);
+  await page.waitForTimeout(700);
+  const blockTip = await page.evaluate(() => window.__terrabound.ui.tipShown);
+  await page.screenshot({ path: path.join(out, '22h-tooltip-block.png') });
+  await page.mouse.down({ button: 'right' });
+  await page.waitForTimeout(120);
+  const blockHeld = await page.evaluate(() => window.__terrabound.ui.tipShown);
+  await page.mouse.up({ button: 'right' });
+  check('resting the mouse on a block names it with its dig time; quiet at first and while a button is held', blockEarly === '' && blockTip.length > 0 && blockHeld === '', JSON.stringify({ blockEarly, blockTip, blockHeld, blockPos }));
   // Grappling hook: tool 5, click a ceiling, swing.
   const hookAt = await page.evaluate(() => {
     const g = window.__terrabound.game;

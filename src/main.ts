@@ -4,6 +4,7 @@ import { PAINT_SLOT_NAMES } from './sim/paints';
 import { VEHICLES } from './sim/garage';
 import { dropAt } from './sim/drops';
 import { itemTip } from './ui/itemtip';
+import { TileDwell, tileTip } from './ui/tiletip';
 import { FTUE_STEPS } from './sim/ftue';
 import { audioGains, shakeMul, uiScale } from './sim/settings';
 import { CROPS } from './sim/farming';
@@ -78,6 +79,7 @@ function boot(): void {
   }
   if (game.offlineRipe > 0) ui.toast(`Your farm grew while you were away: ${game.offlineRipe} crop${game.offlineRipe === 1 ? ' is' : 's are'} ripe`, '#ffe36a', 6);
   const fx = new Fx();
+  const tileDwell = new TileDwell();
   const sfx = new Sfx();
   sfx.muted = game.muted;
   sfx.musicOn = game.musicOn;
@@ -889,6 +891,10 @@ function boot(): void {
       const wp = ui.hover && ui.screen === 'play' ? renderer.screenToWorld(input.mouse.x * dpr, input.mouse.y * dpr) : null;
       const hd = wp ? dropAt(game.drops, wp.x, wp.y) : null;
       ui.worldTip = hd ? itemTip(hd.item, hd.n) : null;
+      // A block or machine names itself once the mouse rests on it (never while a button is held).
+      const ht = wp ? { x: Math.floor(wp.x), y: Math.floor(wp.y) } : null;
+      const seen = ht && ht.x >= 0 && ht.y >= 0 && ht.x < game.world.w && ht.y < game.world.h && game.fog.isSeen(ht.x, ht.y) ? ht : null;
+      if (tileDwell.update(dt, seen, input.pressing) && !hd && seen) ui.worldTip = tileTip(game.world.get(seen.x, seen.y), game.derived.digPower);
       ui.draw(ctx, game, canvas.clientWidth, canvas.clientHeight, clock);
       const st = input.stick();
       if (st) {

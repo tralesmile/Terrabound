@@ -22,6 +22,10 @@ interface PointerInfo {
 export class Input {
   private keys = new Set<string>();
   private pointers = new Map<number, PointerInfo>();
+  /** True while any mouse button or touch is held (hover tips stay quiet while digging or building). */
+  get pressing(): boolean {
+    return this.pointers.size > 0;
+  }
   mouse = { x: 0, y: 0, has: false };
   /** Settings: 0 move stick on the left third, 1 on the right third (left-handed). */
   stickSide = 0;
