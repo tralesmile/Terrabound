@@ -528,7 +528,11 @@ function lavafall(world: World, used: Uint8Array, x0: number, r: number): Struct
   const heights = [H - 3, H, H, H, H];
   const top = g - H;
   for (let i = 0; i < LAVAFALL.crag; i++) {
-    for (let y = g - heights[i]; y < g; y++) put(world, x0 + i, y, T.BASALT);
+    for (let y = g - heights[i]; y < g; y++) {
+      put(world, x0 + i, y, T.BASALT);
+      // Below the (new) surface everything carries a natural back wall.
+      putWall(world, x0 + i, y, W.CAVE_ROCK);
+    }
     world.surface[x0 + i] = g - heights[i];
   }
   // Spring on the crag top, held by a basalt rim (left) and the lip (right, the face column).
