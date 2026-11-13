@@ -677,3 +677,13 @@ Interactive session claims are all finished; scheduled runs continue P1.8 from "
 **Next:** keys 6-0 pick arranged bar slots; touch long-press on hotbar slots; Crystal Golem / Frost Titan art pass; run-summary card (P4); P1.9 follow-ups (plane with cargo, charge station).
 
 **Known issues:** digits 6-0 and - still select fixed placeables (rust, metal, torch, ladder, scaffold, wall), not the arranged slots; the bar preview strip shows at most what fits the panel width, centred on the selected item; only the Junk Colossus has slam-impact juice; tall cones put bomb arcs above the screen from the foot; full-screen panels fill only the safe frame; drone mining counts toward "mined"; e2e farm uses raw tile ids (57-67, 69/70).
+
+## 2026-11-13 Scheduled run 48
+
+**Done:** baseline green (787 tests). Creative review: in the Circuit layer the suit read as a flat warm cut-out against the green cave (27-deep-layer, carried 1), keys 6-0 still picked fixed blocks (carried 1), touch item actions needed the inventory. Layer ambient on the suit (src/render/ambient.ts `layerAmbient`/`ambientRemap`, render only): circuit green, plasma pink, core violet, none on the surface or in Scrap; hurt flash still wins, scorch is lit too (27e-layer-ambient). Keys 6-0 and - pick visible bar slots 1-6 in the arranged order (tiles.ts `barSlotItem`/`BAR_SLOT_KEYS`, game `selectBarSlot`), with key hints on the slots and in the first-minute hint. Touch long-press on a bar slot (src/platform/longpress.ts): tap selects, holding 450 ms fills a gold ring and opens the inventory with that item's actions; sliding 14 px cancels (51j/51k-mobile-long-press).
+
+**Numbers:** 796 unit tests (new: ambient 4, bar slots 2, longpress 3), 224 e2e checks all green (new: keys 6/7 pick slots, '-' picks the wall once arranged into slot 6 (replaces the fixed '-' = wall check), suit green-red shift vs ambient off, long-press ring + open), bundle 419.0 kB (146.6 kB gzip).
+
+**Next:** Crystal Golem / Frost Titan art pass + impact juice; layer ambient on enemies, pets and NPCs; run-summary card (P4); P1.9 follow-ups (plane with cargo, charge station).
+
+**Known issues:** digit keys 6-0 are not remappable (tools 1-5 neither); at the pad, carried non-kit blocks (rust, metal, soil) bank instantly, so they vanish from the bar there; only the player gets the layer ambient; only the Junk Colossus has slam-impact juice; tall cones put bomb arcs above the screen from the foot; full-screen panels fill only the safe frame; drone mining counts toward "mined"; e2e farm uses raw tile ids (57-67, 69/70).

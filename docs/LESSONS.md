@@ -202,3 +202,6 @@
 - **Tests that pin `SAVE_VERSION` to a literal break on every bump** (paints.test.ts). Updating the literal with the bump is expected; the new hotbar test pins 27 the same way, so the next bump touches both.
 - **Retro:** two slices, three ships (one red from the wrong-index e2e assertion above, caught before push). Starting the verification e2e while writing the next slice's code (no tsc/vitest during it) saved ~5 min.
 - **"Fits the phone" is not "fits the panel".** The mobile inventory's item details (HOLD/DROP) had drawn below the panel since they were added; the screen-bounds check passed. Guard: the mobile arrange check bounds detail buttons by the panel's bottom (from the CLOSE row), not the viewport.
+
+- **The pad banks carried non-kit items every frame.** The first bar-slot e2e filled the pack with rust/metal at the pad; they vanished into the stash between key presses and the "slot 2" check compared against a moving bar (and setting `selected` to an unowned item also inserts it into the bar). Guard: e2e that rely on the carried pack at the pad use kit items only (torch, ladder, scaffold, platform, door, wall) and select an owned item.
+- **Retro:** three slices, two ships (first red from the banking slip above, caught before push). Drafting slice 3 + its e2e as scratchpad patch scripts while ship 1 ran made the fix-and-reship cheap.

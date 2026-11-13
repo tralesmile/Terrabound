@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-13 run 48
+
+- Done this run: suit picks up the deep layers' light colour (27e-layer-ambient), keys 6-0 and - pick the arranged bar slots with key hints, touch long-press on a bar slot opens its item actions with a filling ring (51j/51k).
+- Weakest boss art: Crystal Golem and Frost Titan are still plain rects with eyes (top of P1.10 follow-ups; next run).
+- Weakest graphics: enemies, pets and NPCs in deep layers still use surface colours next to the now-tinted player; reuse ambientRemap on their sprites.
+- Weakest feel: at the pad, carried rust/metal blocks bank instantly, so a player can't hold a stack of building blocks at base; consider keeping placeables selected in the bar carried (bank only ores/loot).
+- Weakest progression: still no run-summary/share card (P4) for a good dive.
+
 ## 2026-11-13 run 47
 
 - Done this run: deep-layer floor glow (rims take the layer's colour; lit floors get a soft fading sheen so the walkable ledge reads; 27d-floor-glow), arrangeable build bar (< / > in the inventory with a bar preview strip, saved; 18b-hotbar-arrange).
@@ -23,11 +31,3 @@
 - Weakest boss feel: the slam lands with only a shake; a dust ring and debris chunks flying from the fists on impact would sell the hit (Dome Keeper / Core Keeper boss slams).
 - Weakest UI: the toast column still covers the top-left quarter when a gate opens (27); fade toasts older than 4 s to a one-line ghost (carried 1).
 - Weakest controls: the hotbar order is fixed (PLACEABLE order); let the player drag slots (backlog P1.6 follow-up).
-
-## 2026-11-13 run 44
-
-- Done this run: per-layer cave back walls (dark circuit mesh, plasma basalt, core obsidian; carried 1), enemies follow slope diagonals, desktop hover labels for HUD glyphs, lore logs in story order by depth, red hurt-flash tint (was a flat white silhouette every other frame, 27c).
-- Weakest graphics: the surface dirt is a wide flat orange noise field (11f, 26-boss); a few buried pebbles, roots and darker bands in the first 6 tiles would give the cross-section depth (Terraria, Core Keeper).
-- Weakest boss art: the Junk Colossus is a brick block with eyes (26-boss); arms that swing on its slam telegraph and loose scrap plates would sell the weight.
-- Weakest feel: lit deep caves are still one flat tone near the player; a soft rim light on cave floors in the deep layers would show the walkable edge.
-- Weakest UI: the toast column (goal + 2 toasts) still covers the top-left quarter when a gate opens (27); fade toasts older than 4 s to a one-line ghost.
