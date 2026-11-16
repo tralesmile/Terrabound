@@ -30,7 +30,7 @@ import { ICON, drawIcon } from './icons';
 import { vehicleRemap } from './sprites';
 import { PAD_PAL, padDeckRows, padLight, padRun } from './padfx';
 import { RECALL_TIME } from '../sim/explore';
-import { arrivalBeam, beamMotes, chargeBeam, type BeamShape } from './beamfx';
+import { arrivalBeam, beamMotes, chargeBeam, hexRgb, lootBeam, type BeamShape } from './beamfx';
 /**
  * Swim tilt in radians (canvas rotation; positive leans the head right): head-first toward the
  * swim direction, but never upside down.
@@ -1517,6 +1517,17 @@ export class Renderer {
   private boings: { x: number; y: number; t: number }[] = [];
   /** Arrival pillar at the pad after a beam home (t in s since landing, null when idle). */
   private arrival: { x: number; y: number; t: number } | null = null;
+  /** Boss-drop loot beams (feet at x, y in tiles) in the dropped gear's colour. */
+  private lootBeams: { x: number; y: number; t: number; rgb: [number, number, number]; gem: string }[] = [];
+  /** e2e probe: loot beams drawn last frame. */
+  lootShown = 0;
+
+  /** Stand a loot beam over a boss drop: the column lands on the floor under (x, y). */
+  lootBeamAt(game: Game, x: number, y: number, color: string, gem: string): void {
+    let fy = Math.floor(y);
+    for (let i = 0; i < 12 && !game.world.isSolid(Math.floor(x), fy + 1); i++) fy++;
+    this.lootBeams.push({ x: Math.floor(x) + 0.5, y: fy + 1, t: 0, rgb: hexRgb(color), gem });
+  }
   private beamClock = 0;
   /** e2e probes: arrivals started and the alpha of the last beam drawn (charge or arrival). */
   beamsArrived = 0;
@@ -1543,6 +1554,39 @@ export class Renderer {
       if (shape.alpha <= 0) this.arrival = null;
       else this.drawBeam(ctx, this.arrival.x, this.arrival.y, shape, shakeX, shakeY, time);
     }
+    this.lootShown = 0;
+    for (const lb of this.lootBeams) {
+      lb.t += dt;
+      const shape = lootBeam(lb.t);
+      if (shape.alpha <= 0) continue;
+      this.lootShown++;
+      this.drawBeam(ctx, lb.x, lb.y, shape, shakeX, shakeY, time, lb.rgb);
+      this.drawLootGem(ctx, lb.x, lb.y, lb.t, shape.alpha, lb.gem, lb.rgb, shakeX, shakeY);
+    }
+    this.lootBeams = this.lootBeams.filter((lb) => lootBeam(lb.t).alpha > 0);
+  }
+
+  /** The trinket at the base of a loot beam: a bobbing diamond gem with a white glint. */
+  private drawLootGem(ctx: CanvasRenderingContext2D, x: number, y: number, t: number, alpha: number, gem: string, rgb: [number, number, number], shakeX: number, shakeY: number): void {
+    const ts = TS * this.scale;
+    const cx = this.sx(x, shakeX);
+    const cy = this.sy(y, shakeY) - ts * (0.9 + 0.15 * Math.sin(t * 4));
+    const r = ts * 0.32;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, alpha * 1.3);
+    ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r);
+    ctx.lineTo(cx + r * 0.75, cy);
+    ctx.lineTo(cx, cy + r);
+    ctx.lineTo(cx - r * 0.75, cy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = gem;
+    ctx.fillRect(Math.round(cx - r * 0.2), Math.round(cy - r * 0.5), Math.max(2, Math.round(r * 0.4)), Math.max(2, Math.round(r * 0.5)));
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(Math.round(cx - r * 0.45), Math.round(cy - r * 0.25), Math.max(1, Math.round(this.scale)), Math.max(1, Math.round(this.scale)));
+    ctx.restore();
   }
 
   /** Charge arcs drawn last frame and whether the bay showed its full lamp (e2e). */
@@ -1669,7 +1713,7 @@ export class Renderer {
     ctx.restore();
   }
 
-  private drawBeam(ctx: CanvasRenderingContext2D, x: number, y: number, s: BeamShape, shakeX: number, shakeY: number, time: number): void {
+  private drawBeam(ctx: CanvasRenderingContext2D, x: number, y: number, s: BeamShape, shakeX: number, shakeY: number, time: number, rgb: [number, number, number] = [54, 224, 232]): void {
     if (s.alpha <= 0) return;
     this.lastBeam = Math.max(this.lastBeam, s.alpha);
     const ts = TS * this.scale;
@@ -1677,33 +1721,37 @@ export class Renderer {
     const fy = this.sy(y, shakeY);
     const top = fy - s.height * ts;
     const half = s.half * ts;
+    // The beam-home teal keeps its hand-picked highlights; other tints mix toward white.
+    const teal = rgb[0] === 54 && rgb[1] === 224 && rgb[2] === 232;
+    const lt = teal ? '160,250,255' : rgb.map((c) => Math.round(c + (255 - c) * 0.6)).join(',');
+    const wt = teal ? '220,255,255' : rgb.map((c) => Math.round(c + (255 - c) * 0.85)).join(',');
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     // Soft halo three times the core width, fading toward the sky.
     const halo = ctx.createLinearGradient(0, top, 0, fy);
-    halo.addColorStop(0, 'rgba(54,224,232,0)');
-    halo.addColorStop(1, `rgba(54,224,232,${(0.35 * s.alpha).toFixed(3)})`);
+    halo.addColorStop(0, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0)`);
+    halo.addColorStop(1, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${(0.35 * s.alpha).toFixed(3)})`);
     ctx.fillStyle = halo;
     ctx.fillRect(cx - half * 3, top, half * 6, fy - top);
     // Bright core with a white centre line.
     const core = ctx.createLinearGradient(0, top, 0, fy);
-    core.addColorStop(0, 'rgba(160,250,255,0)');
-    core.addColorStop(0.35, `rgba(160,250,255,${(0.6 * s.alpha).toFixed(3)})`);
-    core.addColorStop(1, `rgba(220,255,255,${(0.85 * s.alpha).toFixed(3)})`);
+    core.addColorStop(0, `rgba(${lt},0)`);
+    core.addColorStop(0.35, `rgba(${lt},${(0.6 * s.alpha).toFixed(3)})`);
+    core.addColorStop(1, `rgba(${wt},${(0.85 * s.alpha).toFixed(3)})`);
     ctx.fillStyle = core;
     ctx.fillRect(cx - half, top, half * 2, fy - top);
     ctx.fillStyle = `rgba(255,255,255,${(0.7 * s.alpha).toFixed(3)})`;
     ctx.fillRect(cx - Math.max(1, half * 0.25), top + (fy - top) * 0.3, Math.max(2, half * 0.5), (fy - top) * 0.7);
     // Rising motes inside the column.
     const u = this.scale;
-    ctx.fillStyle = `rgba(200,255,255,${(0.8 * s.alpha).toFixed(3)})`;
+    ctx.fillStyle = `rgba(${wt},${(0.8 * s.alpha).toFixed(3)})`;
     beamMotes(time, s.height, 7).forEach((h, i) => {
       const mx = cx + Math.sin(time * 5 + i * 2.1) * half * 1.4;
       ctx.fillRect(Math.round(mx), Math.round(fy - h * ts), 2 * u, 2 * u);
     });
     // Ground ring: a flat ellipse at the feet.
     if (s.ring > 0) {
-      ctx.strokeStyle = `rgba(95,242,248,${(0.8 * s.alpha).toFixed(3)})`;
+      ctx.strokeStyle = `rgba(${lt},${(0.8 * s.alpha).toFixed(3)})`;
       ctx.lineWidth = Math.max(1, u * 1.5);
       ctx.beginPath();
       ctx.ellipse(cx, fy, s.ring * ts, Math.max(2, s.ring * ts * 0.22), 0, 0, Math.PI * 2);

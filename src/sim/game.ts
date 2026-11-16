@@ -30,12 +30,12 @@ import {
 } from './tiles';
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
 import { recipeById } from './recipes';
-import { chestAccessory, chestLoot } from './loot';
+import { bossBonus, chestAccessory, chestLoot } from './loot';
 import { SOIL_TILES, growTime, inLavafall, stepSaplings, type Structure } from './structures';
 import { ERUPT, bombHits, coneLive, craterOf, launchMarked, nearestCone, nextGap, stepBomb, type LavaBomb } from './eruptions';
 import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
 import { ZAP_DMG, padsReached, safePads, stepZap, zapHits, zapRadius } from './arenazap';
-import { BIOME_BOSSES, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossContact, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
+import { BIOME_BOSSES, BOSS_IDS, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossContact, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
 import { BIOMES, type BiomeId } from './biomes';
 import { LAYERS, layerAt, openGates } from './layers';
 import { METEOR_RATE, weatherAt, weatherEnemy, type WeatherKind } from './weather';
@@ -164,7 +164,7 @@ export type GameEvent =
   | { t: 'part'; id: VehicleId; part: PartId; level: number }
   | { t: 'novehicle'; reason: string }
   /** An accessory found in a chest (tile x, y); `worn` when it went straight into a free socket. */
-  | { t: 'gearfound'; id: GearId; x: number; y: number; worn: boolean }
+  | { t: 'gearfound'; id: GearId; x: number; y: number; worn: boolean; boss?: boolean }
   /** All accessory sockets are full: take one off first. */
   | { t: 'accfull'; id: GearId }
   | { t: 'dismount' }
@@ -2348,14 +2348,19 @@ export class Game {
   /** First look into a world chest: maybe an accessory (owned forever, worn at once if a socket is free). */
   private findAccessory(tx: number, ty: number): void {
     const id = chestAccessory(this.world.seed, tx, ty, ty - this.world.padY, this.save.gear.owned);
-    if (!id) return;
+    if (id) this.grantAccessory(id, tx, ty, false);
+  }
+
+  /** An accessory found (chest or boss drop): owned forever, worn at once if a socket is free. */
+  private grantAccessory(id: GearId, x: number, y: number, boss: boolean): void {
+    if (this.ownsGear(id)) return;
     this.save.gear.owned.push(id);
     const worn = this.save.gear.acc.length < ACC_SLOTS;
     if (worn) {
       this.save.gear.acc = [...this.save.gear.acc, id];
       this.gearCache = null;
     }
-    this.emit({ t: 'gearfound', id, x: tx, y: ty, worn });
+    this.emit(boss ? { t: 'gearfound', id, x, y, worn, boss } : { t: 'gearfound', id, x, y, worn });
   }
 
   openChestAt(tx: number, ty: number): boolean {
@@ -2566,6 +2571,8 @@ export class Game {
       if (!this.ownsGear(d.gear)) this.save.gear.owned.push(d.gear);
     }
     this.emit({ t: 'bossdown', id: bs.id, first });
+    const bonus = bossBonus(this.world.seed, d.trinket, Math.floor(bs.age * 60) + BOSS_IDS.indexOf(bs.id) * 7919, first, this.save.gear.owned);
+    if (bonus) this.grantAccessory(bonus, Math.floor(bs.x), Math.floor(bs.y - 1), true);
     const rec = this.worldRecord();
     if (rec && noteBoss(rec)) this.emit({ t: 'record', beat: 'boss', value: rec.boss, code: rec.code });
     if (openGates(this.world, this.biomeBossesBeaten()) > 0) this.emit({ t: 'gateopen' });

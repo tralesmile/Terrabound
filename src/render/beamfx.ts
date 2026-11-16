@@ -62,3 +62,32 @@ export function beamMotes(time: number, height: number, n: number): number[] {
   }
   return out;
 }
+
+/** How long a boss-drop loot beam stands (s). */
+export const LOOT_T = 3.2;
+
+/**
+ * Loot beam over a boss-dropped accessory, t seconds after the drop (Diablo/Terraria rarity beam):
+ * shoots up over the first 0.25 s, holds with a slow breathing pulse, then fades over the last 0.8 s.
+ * The ring is the gem's halo at the base.
+ */
+export function lootBeam(t: number): BeamShape {
+  if (t < 0 || t >= LOOT_T) return NONE;
+  const rise = Math.min(1, t / 0.25);
+  const fade = t > LOOT_T - 0.8 ? (LOOT_T - t) / 0.8 : 1;
+  const pulse = 0.85 + 0.15 * Math.sin(t * 6);
+  return {
+    alpha: 0.85 * fade * pulse,
+    half: 0.28 + 0.1 * pulse,
+    height: 14 * rise,
+    ring: 0.9 + 0.3 * pulse,
+  };
+}
+
+/** Parse '#rrggbb' to [r, g, b] (falls back to gold). */
+export function hexRgb(hex: string): [number, number, number] {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return [255, 210, 58];
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}

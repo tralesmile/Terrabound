@@ -1,5 +1,5 @@
 import { diveTitle, reportRows, tripChips, type DiveReport, type TripReport } from '../sim/divereport';
-import { BANK_CARD_LIFE, bankCardFade, bankCardLayout } from './bankcard';
+import { BANK_CARD_LIFE, bankCardAge, bankCardFade, bankCardLayout } from './bankcard';
 import { PAINTS, PAINT_SLOTS, unlockedPaints, type PaintSlot } from '../sim/paints';
 import { codexCounts, logParts, readLogs, stepLog, type CodexSection } from '../sim/codex';
 import { AWARDS, awardGift, awardProgress } from '../sim/achievements';
@@ -1703,6 +1703,7 @@ export class UI {
     // What is held, above the bar.
     const heldName = TOOL_SLOTS.find((t) => t.tool === game.tool)?.label ?? '';
     this.text(ctx, game.tool === 'rod' && game.fishing ? (game.fishing.bite > 0 ? 'BITE! Click now!' : 'Waiting for a bite...') : heldName, w / 2, sy - u * 0.5, Math.round(u * 0.85), game.fishing && game.fishing.bite > 0 ? '#ffcf4a' : '#c9d0e4', 'center');
+    if (this.bankCard) this.bankCard.age = bankCardAge(this.bankCard.age, Math.hypot(game.body.x - game.world.padX, game.body.y - game.world.padY));
     this.drawBankCard(ctx, w, u, sy - u * 1.5, time);
 
     // Toasts: newest on top, left-aligned under the HUD text.

@@ -2287,6 +2287,24 @@ try {
   });
   await page.waitForTimeout(300);
   check('defeating the boss grants its trophy', await page.evaluate(() => window.__terrabound.game.ownsGear('junk_hammer')));
+  // Boss bonus roll: the Colossus can drop its own trinket (50% first kill, sure on a repeat kill); a loot beam marks it.
+  {
+    const loot = await page.evaluate(async () => {
+      const { game } = window.__terrabound;
+      if (!game.ownsGear('scrap_core')) {
+        game.carried.beacon_colossus = 1;
+        game.useItem('beacon_colossus');
+        if (game.boss) {
+          game.boss.iframes = 0;
+          game.damageBoss(9999);
+        }
+      }
+      await new Promise((res) => setTimeout(res, 700));
+      return { owned: game.ownsGear('scrap_core'), beams: window.__terrabound.renderer.lootShown };
+    });
+    await page.screenshot({ path: path.join(out, '26l-boss-loot-beam.png') });
+    check('a boss kill drops its trinket under a loot beam in the trinket colour', loot.owned && loot.beams >= 1, JSON.stringify(loot));
+  }
 
   // Deep layers: the Plasma gate (still sealed) seen from inside the Circuit layer.
   await page.evaluate(() => {
@@ -3839,6 +3857,20 @@ try {
   });
   await page.screenshot({ path: path.join(out, '13d-trip-banked.png') });
   check('banking at the pad shows a trip card with the loot count and highlights above the bar', !!tripCard && tripCard.banked >= 17 && tripCard.alpha > 0.9 && tripCard.chips.includes('48 m deep') && tripCard.chips.some((c) => c.endsWith('mined')) && !tripCard.onToast && tripCard.bottom < tripCard.vh * 0.9, JSON.stringify(tripCard));
+  // Walking off on a new trip: a card still up fades out once the player is 20+ tiles from the pad.
+  const tripLeave = await page.evaluate(async () => {
+    const { ui, game } = window.__terrabound;
+    const trip = ui.bankCard.trip;
+    ui.bankCard.age = 0.5;
+    const bx = game.body.x;
+    game.body.x = bx + 30;
+    await new Promise((res) => setTimeout(res, 800));
+    const gone = ui.bankCardRect === null;
+    game.body.x = bx;
+    ui.bankCard = { trip, age: 0.5 };
+    return { gone };
+  });
+  check('the trip card fades out once the player walks off on a new trip', tripLeave.gone, JSON.stringify(tripLeave));
   await page.evaluate(() => { window.__terrabound.ui.bankCard.age = 99; });
   await page.waitForTimeout(150);
   check('the trip card goes away when its time is up', await page.evaluate(() => window.__terrabound.ui.bankCardRect === null && window.__terrabound.ui.bankCard === null));

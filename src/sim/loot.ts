@@ -51,3 +51,23 @@ export function chestAccessory(seed: number, x: number, y: number, depth: number
   if (pool.length === 0) return null;
   return pool[Math.floor(hash2(y + 17, x + 3, seed ^ 0x7a1e) * pool.length) % pool.length];
 }
+
+/** Chance a boss drops its own trinket on the first kill; a repeat kill always drops it until owned (no endless farming). */
+export const BOSS_TRINKET_FIRST = 0.5;
+/** Once the boss trinket is owned, chance a kill still drops an unowned craftable accessory. */
+export const BOSS_BONUS_CHANCE = 0.35;
+
+/**
+ * Boss bonus accessory roll (Terraria-style boss drops). `trinket` is the boss's own accessory;
+ * `salt` varies per fight (deterministic from the sim). First kill: 50% for the trinket; any later
+ * kill: the trinket for sure if still missing. With the trinket owned, 35% for a new craftable
+ * accessory. Never returns one the player owns. Pure.
+ */
+export function bossBonus(seed: number, trinket: GearId, salt: number, first: boolean, owned: readonly GearId[]): GearId | null {
+  const roll = hash2(salt | 0, trinket.length * 31 + 7, seed ^ 0xb055);
+  if (!owned.includes(trinket)) return !first || roll < BOSS_TRINKET_FIRST ? trinket : null;
+  if (roll >= BOSS_BONUS_CHANCE) return null;
+  const pool = CHEST_ACCESSORIES.filter((id) => !owned.includes(id));
+  if (pool.length === 0) return null;
+  return pool[Math.floor(hash2(salt | 0, 91, seed ^ 0x51ee) * pool.length) % pool.length];
+}

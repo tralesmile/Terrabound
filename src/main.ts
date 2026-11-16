@@ -605,7 +605,9 @@ function boot(): void {
       }
       case 'gearfound': {
         const g = GEAR[e.id];
-        ui.toast(`Found ${g.name}! ${e.worn ? 'Worn on your belt' : 'Sockets full: swap it in from the inventory'}`, '#ffd23a', 3.5);
+        const where = e.worn ? 'Worn on your belt' : 'Sockets full: swap it in from the inventory';
+        ui.toast(e.boss ? `Boss drop: ${g.name}! ${where}` : `Found ${g.name}! ${where}`, '#ffd23a', e.boss ? 4.5 : 3.5);
+        if (e.boss) renderer.lootBeamAt(game, e.x, e.y, g.color, g.accent);
         fx.ring(e.x + 0.5, e.y + 0.5, 1.4, g.color, 0.5);
         fx.burst(e.x + 0.5, e.y + 0.3, g.color, 14, 4);
         break;

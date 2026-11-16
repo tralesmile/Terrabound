@@ -94,7 +94,13 @@ export type GearId =
   | 'power_coil'
   | 'grip_gloves'
   | 'aegis_charm'
-  | 'feather_charm';
+  | 'feather_charm'
+  | 'scrap_core'
+  | 'bloom_seed'
+  | 'prism_eye'
+  | 'ember_wing'
+  | 'frost_heart'
+  | 'null_core';
 
 export const GEAR: Record<GearId, GearDef> = {
   energy_blade: { name: 'Energy blade', slot: 'melee', desc: 'Quick arc, 12 damage', cost: {}, mod: {}, color: '#36e0e8', accent: '#c8ffff' },
@@ -134,6 +140,13 @@ export const GEAR: Record<GearId, GearDef> = {
   grip_gloves: { name: 'Grip gloves', slot: 'acc', desc: 'Accessory: +15% dig speed', cost: { iron_scrap: 8, biomass: 4 }, mod: { digMul: 1.15 }, color: '#e8a33d', accent: '#ffd8a8' },
   aegis_charm: { name: 'Aegis charm', slot: 'acc', desc: 'Accessory: 8% armor', cost: { metal: 6, crystal: 2 }, mod: { armor: 0.08 }, color: '#8e98b0', accent: '#e6f6ff' },
   feather_charm: { name: 'Feather charm', slot: 'acc', desc: 'Accessory: one extra jump in the air', cost: { biomass: 6, crystal: 4, copper_wire: 4 }, mod: { airJumps: 1 }, color: '#7dffb0', accent: '#ffffff' },
+  // Boss-only accessories (loot.ts bossBonus): a boss kill can drop its own trinket, stronger than the craftables.
+  scrap_core: { name: 'Scrap core', slot: 'acc', desc: 'Colossus trinket: +25 health, 6% armor', cost: {}, mod: { maxHp: 25, armor: 0.06 }, bossOnly: true, color: '#c77a5e', accent: '#ff5a2a' },
+  bloom_seed: { name: 'Bloom seed', slot: 'acc', desc: 'Vine Queen trinket: melee hits heal 2 HP, +10 health', cost: {}, mod: { leech: 2, maxHp: 10 }, bossOnly: true, color: '#7fcf5a', accent: '#ff7ab8' },
+  prism_eye: { name: 'Prism eye', slot: 'acc', desc: 'Golem trinket: +3 light radius, +20% dig speed', cost: {}, mod: { light: 3, digMul: 1.2 }, bossOnly: true, color: '#d8b8ff', accent: '#8ff4ff' },
+  ember_wing: { name: 'Ember wing', slot: 'acc', desc: 'Wyrm trinket: one extra air jump, battery lasts 10% longer', cost: {}, mod: { airJumps: 1, drainMul: 0.9 }, bossOnly: true, color: '#ff8a3c', accent: '#ffd24a' },
+  frost_heart: { name: 'Frost heart', slot: 'acc', desc: 'Titan trinket: 12% armor, +20 health', cost: {}, mod: { armor: 0.12, maxHp: 20 }, bossOnly: true, color: '#e6f6ff', accent: '#36e0e8' },
+  null_core: { name: 'Null core', slot: 'acc', desc: 'Hollow AI trinket: battery lasts 30% longer, pulls loot from 8 tiles', cost: {}, mod: { drainMul: 0.7, magnet: 8 }, bossOnly: true, color: '#ff5aff', accent: '#ffffff' },
   sky_jet: { name: 'Sky Jet', slot: 'vehicle', desc: 'Garage: a small plane, fly anywhere (uses battery)', cost: { metal: 20, copper_wire: 12, crystal: 8 }, mod: {}, garage: true, color: '#5aa6ff', accent: '#ffffff' },
 };
 
@@ -188,6 +201,7 @@ export function gearStats(equip: Loadout, acc: readonly GearId[] = []): GearStat
     if (m.glider) s.glider = true;
     if (m.magnet) s.magnet = Math.max(s.magnet, m.magnet);
     if (m.petZap) s.petZap += m.petZap;
+    if (m.leech) s.leech += m.leech;
     if (m.meleeDmg !== undefined) s.meleeDmg = m.meleeDmg;
     if (m.meleeRange !== undefined) s.meleeRange = m.meleeRange;
     if (m.meleeCd !== undefined) s.meleeCd = m.meleeCd;

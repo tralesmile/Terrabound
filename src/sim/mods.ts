@@ -85,7 +85,7 @@ export function applyMods(s: GearStats, fit: ModSave['fit']): GearStats {
       o.meleeRange += 0.6;
       break;
     case 'leech':
-      o.leech = LEECH_HEAL;
+      o.leech += LEECH_HEAL;
       break;
     case 'quick_grip':
       o.meleeCd *= 0.75;

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { newDive, tripChips, tripSince } from '../src/sim/divereport';
 import { Game, NO_CONTROLS } from '../src/sim/game';
 import { defaultSave } from '../src/sim/save';
-import { BANK_CARD_LIFE, bankCardFade, bankCardLayout } from '../src/ui/bankcard';
+import { BANK_CARD_LIFE, BANK_CARD_RANGE, bankCardAge, bankCardFade, bankCardLayout } from '../src/ui/bankcard';
 
 describe('trip banked card', () => {
   it('a trip is the dive since the last bank, never negative', () => {
@@ -64,5 +64,15 @@ describe('trip banked card', () => {
     g.bank();
     const again = g.drainEvents().find((e) => e.t === 'bank');
     expect(again && again.t === 'bank' ? again.trip : null).toMatchObject({ banked: 2, mined: 0, kills: 0, depth: 0 });
+  });
+
+  it('walking off on a new trip fades the card out instead of carrying it into the next biome', () => {
+    expect(bankCardAge(0.5, BANK_CARD_RANGE - 1)).toBe(0.5);
+    const far = bankCardAge(0.5, BANK_CARD_RANGE + 5);
+    expect(far).toBeGreaterThan(0.5);
+    expect(far).toBeLessThan(BANK_CARD_LIFE);
+    expect(bankCardFade(far).alpha).toBeGreaterThan(0.9);
+    expect(bankCardFade(far + 0.7).alpha).toBe(0);
+    expect(bankCardAge(4, BANK_CARD_RANGE + 5)).toBe(4);
   });
 });

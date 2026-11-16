@@ -9,6 +9,14 @@ export const BANK_CARD_LIFE = 4.2;
 const IN = 0.28;
 const OUT = 0.6;
 
+/** Tiles from the pad at which the card has done its job: once the player walks off on a new trip it fades out. */
+export const BANK_CARD_RANGE = 20;
+
+/** Card age after the player moved `dist` tiles from the pad: far away skips straight to the fade-out. */
+export function bankCardAge(age: number, dist: number): number {
+  return dist > BANK_CARD_RANGE ? Math.max(age, BANK_CARD_LIFE - OUT) : age;
+}
+
 /** Slide-in (0..1) and opacity (0..1) at a card age; opacity 0 once the card is done. */
 export function bankCardFade(age: number): { slide: number; alpha: number } {
   if (age < 0 || age >= BANK_CARD_LIFE) return { slide: 1, alpha: 0 };

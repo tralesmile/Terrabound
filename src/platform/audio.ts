@@ -187,6 +187,8 @@ export class Sfx {
         this.tone(660, 0.12, 'triangle', 0.08, 880);
         this.tone(880, 0.12, 'triangle', 0.07, 1175, 0.08);
         this.tone(1175, 0.2, 'sine', 0.06, 1568, 0.16);
+        // Boss drop: a long bright tail so the loot beam sings.
+        if (e.boss) this.tone(1568, 0.6, 'sine', 0.05, 2093, 0.3);
         break;
       case 'airjump':
         // Lighter and higher than a ground jump, with a soft airy chirp on top.

@@ -7,7 +7,8 @@ import { DOLL_SLOTS, dollLayout } from '../src/ui/dollslots';
 import { CHEST_ACCESSORIES, accessoryChance, chestAccessory } from '../src/sim/loot';
 import { T } from '../src/sim/tiles';
 
-const ACCS = GEAR_IDS.filter((id) => GEAR[id].slot === 'acc');
+// Craftable accessories (boss trinkets are covered in bosstrinket.test.ts).
+const ACCS = GEAR_IDS.filter((id) => GEAR[id].slot === 'acc' && !GEAR[id].bossOnly);
 
 const rich = (): Game => {
   const g = new Game(defaultSave());
