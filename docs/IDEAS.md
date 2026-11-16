@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-16 run 66
+
+- Done this run: weapon rarity prefixes with a Workshop REFORGE (Terraria goblin tinkerer; odds printed, no money) and rarity rims on weapon cells (08c); per-material break debris (clods, sparks, shards, splinters, leaves) felt on every dig (02b).
+- Weakest progression (loot): prefixes only come from reforging; let chest weapons and boss refights drop a weapon already rolled (an epic drop is a moment).
+- Weakest graphics (character): the held weapon looks the same at every rarity; a faint glow or 1 px edge in the rarity colour on the drawn blade/gun.
+- Weakest gameplay feel (digging): harder tiles crack the same way; crack stages could tint by material (metal scratches, crystal fractures).
+- Weakest UI: the common rarity grey reads like a disabled row; use near-white with a thin grey rim instead.
+
 ## 2026-11-16 run 65
 
 - Done this run: topsoil roots are continuous lines down a column of tiles (thick lit top, side fibres, forked tips) instead of per-tile scratches (02-digging); a loaded Cargo Lifter's crates rattle when flying fast (22n).

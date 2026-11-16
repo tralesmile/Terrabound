@@ -865,3 +865,13 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 
 **Known issues:** crates in the rattle screenshot are small at 1280x720 (the Lifter is drawn at 1x scale); roots only cross the shallow 6-tile band, so a long root stops at depth 6 without tips if `rootLength` is 5 and the band ends (it cannot: max 5 < 6).
 
+
+## 2026-11-16 Scheduled run 66
+
+**Done:** baseline green (945 tests, all e2e). Creative review: every weapon of a kind was identical (P3 rarity was the first open gameplay item) and every block broke with the same grey-ish puff. Weapon rarity (sim/rarity `PREFIXES`/`rollReforge`/`applyPrefixes`, Game `reforge`/`canReforge`/`prefixOf`, event `reforge`): 13 Terraria-style prefixes over common/rare/epic (Sharp, Swift, Long, Brutal, Lightning, Vampiric, Godly; Heavy, Rapid, Charged, Bouncy, Overclocked, Piercing); the Workshop gear tab has REFORGE on owned weapons with the price and the odds (60/30/10) printed; the roll hashes the world seed, weapon and reforge count (no re-roll by reload) and never repeats the current prefix. Names show in the rarity colour, every weapon cell gets a rarity rim and corner gem, tips name the prefix; toast + ring + a chime with one note per rarity step (08c-reforge). Save v30 (`gear.prefix`, `gear.reforges`). Per-material break debris (render/breakfx `breakStyle`/`breakDebris`, Fx `addParticles`): dirt clods + dust, metal sparks, crystal shards with white glints, wood splinters, fluttering leaves, cyan tech sparks (02b-break-debris).
+
+**Numbers:** 956 unit tests (new: rarity 7, breakfx 4), e2e new checks: per-material debris, debris in flight, REFORGE prefix + rim. Bundle 491.8 kB (172.4 kB gzip).
+
+**Next:** set bonuses; weapon drops with rolled prefixes from chests and boss refights; Boss 2 Logic Warden; dive stats on the share card.
+
+**Known issues:** the common rarity colour is a pale grey that can read as "disabled" next to plain white names; the e2e resets the pistol prefix through private fields (`g['save']`) after the reforge check.

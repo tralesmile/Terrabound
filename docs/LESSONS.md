@@ -293,3 +293,9 @@
 - **Setting `body.vx` from `page.evaluate` does nothing for a ridden vehicle:** the sim pulls vx back to input speed every step, so the renderer saw ~0. Guard: drive speed in e2e with `page.keyboard.down`, and report the measured max speed in the check JSON.
 - **Retro (run 65):** two small slices, one ship. The PIL preview from a throwaway vitest dump (run 63 lesson) again caught the art in seconds.
 
+
+## 2026-11-16 run 66
+
+- **Debris in the dig screenshot was already gone** (02-digging is taken 1.5 s into a hold, particles live ~0.7 s). Guard: the new 02b check waits on `fx.breaks` with `polling: 'raf'` and shoots 60 ms after the break; for any short-lived effect, wait on a counter, not a fixed delay.
+- **Rolled gear changes later e2e checks** (run 62 lesson again): a Bouncy/Piercing pistol would change bolt checks. Guard: the reforge check clears the prefix right after its screenshot.
+- **Retro (run 66):** two slices, one ship; a partial `timeout 100 npm run e2e` run reached the new early checks in under 2 minutes, which is a fast way to iterate on checks near the top of smoke.mjs.

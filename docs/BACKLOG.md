@@ -233,7 +233,8 @@ Money (ethical, no paywalls)
 - [x] Socket row on phones under the gear grid (run 59)
 - [x] Magnet pull tethers: drops the magnet ring / scout bot reel in draw faint tinted lines with beads sliding into the suit (run 61)
 - [x] Boss bonus accessory roll and boss-only accessories: 6 boss trinkets, 50% on the first kill, sure on a repeat, then 35% for a new craftable; loot beam + gem marks the drop; codex boss cards show the trinket (run 62); creatures codex footer counts "Trinkets n/6" (run 63)
-- [ ] Rarity and weapon modifiers; mod chips; set bonuses
+- [x] Rarity and weapon modifiers: 13 prefixes (common/rare/epic, odds 60/30/10 shown), REFORGE on the Workshop gear tab for a visible price, rarity rim + gem on weapon cells, prefixed names in tips (save v30) (run 66); mod chips existed (Gunsmith)
+- [ ] Follow-ups: set bonuses (2-3 piece armor sets); chests and boss refights can drop a weapon with a rolled prefix; weapon glow in the rarity colour on the character
 - [x] Layer 2 Circuit: tiles, ores, enemies, hazards, dark zones (done in P1.8; layers.ts)
 - [x] Boss 1 Junk Colossus with telegraphed attacks and arena (done in P1.8 + P1.10)
 - [ ] Boss 2 Logic Warden; unlock flow between layers
