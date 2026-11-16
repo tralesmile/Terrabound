@@ -31,6 +31,31 @@ export function arenaFloor(isSolid: (x: number, y: number) => boolean, ax0: numb
   return out;
 }
 
+/**
+ * Remembers the last arena floor scan: the floor only changes when the world is edited (its version)
+ * or the arena moves, so a fight scans it once instead of every frame.
+ */
+export class FloorMemo {
+  private key = '';
+  private cells: FloorCell[] = [];
+  /** Scans run so far (perf checks). */
+  scans = 0;
+
+  get(key: string, scan: () => FloorCell[]): FloorCell[] {
+    if (key !== this.key) {
+      this.key = key;
+      this.cells = scan();
+      this.scans++;
+    }
+    return this.cells;
+  }
+
+  /** Forget the scan (a new world object). */
+  reset(): void {
+    this.key = '';
+  }
+}
+
 /** Seconds between pulse rings: phase 2 pulses almost twice as fast. */
 export function pulsePeriod(ph: 1 | 2): number {
   return ph === 2 ? 0.7 : 1.3;

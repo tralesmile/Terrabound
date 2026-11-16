@@ -85,6 +85,21 @@ export function stepZap(b: Boss, dt: number, isSolid: (x: number, y: number) => 
   return 'warn';
 }
 
+/**
+ * Pad edges the crest reached this step (its radius went from r0 to r1): the edge of each pad that
+ * faces the wave start. The wave dies there with a "tink". Pure.
+ */
+export function padsReached(pads: [number, number][], z: Zap, r0: number, r1: number): number[] {
+  if (r1 < 0) return [];
+  const out: number[] = [];
+  for (const [a, e] of pads) {
+    const edge = a + 0.5 > z.x0 ? a : e;
+    const d = Math.abs(edge - z.x0);
+    if (d > r0 && d <= r1) out.push(edge);
+  }
+  return out;
+}
+
 /** Does the wave hurt a player at feet (px, py) this frame? Standing on a safe pad never does. Marks the wave as spent when it does. */
 export function zapHits(z: Zap | null, px: number, py: number, onGround: boolean, pads: [number, number][] = []): boolean {
   if (!z || z.hit || z.t < 0 || !onGround) return false;

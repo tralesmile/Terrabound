@@ -65,7 +65,7 @@ const HULL_FLOOR: Record<'buggy' | 'drill_tank', number> = { buggy: 7, drill_tan
 import { GEAR, type RangedKind } from '../sim/gear';
 import { ATTACK_TIME, BOSSES, phase as bossPhase } from '../sim/bosses';
 import { BOSS_ART, SHELL_PLATES, drawBossArt, shade, shellPlates, slamRaise } from './bossart';
-import { arenaFloor, drawArenaFloor, drawArenaZap } from './arenafx';
+import { FloorMemo, arenaFloor, drawArenaFloor, drawArenaZap } from './arenafx';
 import { safePads } from '../sim/arenazap';
 import { boltTrail, drawBossMuzzle, drawBossTelegraph, drawSummonTelegraph } from './bosstele';
 import { ACT_INFO } from '../sim/drones';
@@ -2716,6 +2716,9 @@ export class Renderer {
 
   /** Floor cells the Hollow AI arena circuit was last drawn on (e2e reads it). */
   arenaCells: { x: number; y: number }[] = [];
+  /** Arena floor scan, redone only when the world or the arena changes. */
+  readonly arenaMemo = new FloorMemo();
+  private arenaWorld: object | null = null;
   /** Floor cells the Hollow AI's zap lit last frame (e2e probe). */
   zapLit = 0;
   /** Insulator pad cells drawn in the Hollow AI arena last frame (e2e probe). */
@@ -2737,7 +2740,12 @@ export class Renderer {
     const tv = { sx: (x: number) => this.sx(x, shakeX), sy: (y: number) => this.sy(y, shakeY), ts, u };
     if (BOSS_ART[bs.id].style === 'core') {
       const w = game.world;
-      this.arenaCells = arenaFloor((x, y) => w.isSolid(x, y), bs.ax0, bs.ax1, bs.y - 1, 20);
+      if (this.arenaWorld !== w) {
+        this.arenaWorld = w;
+        this.arenaMemo.reset();
+      }
+      const key = `${w.version}|${bs.ax0}|${bs.ax1}|${Math.floor(bs.y - 1)}`;
+      this.arenaCells = this.arenaMemo.get(key, () => arenaFloor((x, y) => w.isSolid(x, y), bs.ax0, bs.ax1, bs.y - 1, 20));
       this.padCells = drawArenaFloor(ctx, bs, this.arenaCells, tv, time);
       this.zapLit = bs.zap ? drawArenaZap(ctx, bs.zap, this.arenaCells, tv, time, safePads(bs)) : 0;
     }

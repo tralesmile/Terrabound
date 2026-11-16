@@ -318,6 +318,13 @@ export class Sfx {
         // Rising electric whine while the floor charges.
         this.tone(180, 0.8, 'sawtooth', 0.05, 720);
         break;
+      case 'zappad':
+        // The crest dies on an insulator pad: a bright glassy tink.
+        if (this.ok('zappad', 60)) {
+          this.tone(2093, 0.09, 'triangle', 0.06, 1760);
+          this.tone(3136, 0.05, 'sine', 0.025, undefined, 0.01);
+        }
+        break;
       case 'zaphit':
         this.noise(0.15, 0.35);
         this.tone(1200, 0.12, 'square', 0.07, 300);

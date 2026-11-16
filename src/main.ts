@@ -633,6 +633,9 @@ function boot(): void {
       case 'zapwarn':
         fx.burst(e.x, e.y - 0.2, '#ff3a4a', 8, 3);
         break;
+      case 'zappad':
+        fx.burst(e.x, e.y - 0.1, '#7af0e0', 6, 3);
+        break;
       case 'zaphit':
         fx.burst(e.x, e.y - 0.3, '#fff4f8', 10, 6);
         fx.addShake(0.3);

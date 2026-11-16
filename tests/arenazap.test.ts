@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { BOSSES, makeBoss } from '../src/sim/bosses';
 import { FIXED_DT, Game, NO_CONTROLS } from '../src/sim/game';
 import { defaultSave } from '../src/sim/save';
-import { floorBelow, onSafePad, safePads, SAFE_PAD_OFFSETS, SAFE_PAD_W, stepZap, zapHits, zapRadius, zapsNow, ZAP_HALF, ZAP_REST, ZAP_REACH, ZAP_SPEED, ZAP_WARN } from '../src/sim/arenazap';
+import { floorBelow, onSafePad, padsReached, safePads, SAFE_PAD_OFFSETS, SAFE_PAD_W, stepZap, zapHits, zapRadius, zapsNow, ZAP_HALF, ZAP_REST, ZAP_REACH, ZAP_SPEED, ZAP_WARN } from '../src/sim/arenazap';
 
 const flat = (_x: number, y: number) => y >= 20;
 
@@ -128,6 +128,38 @@ describe('floor zaps in a fight', () => {
     expect(ground.lost).toBeGreaterThan(0);
     const air = run(true);
     expect(air.hit).toBe(false);
+  });
+
+  it('padsReached reports each pad edge facing the wave once, on the step the crest gets there', () => {
+    const pads: [number, number][] = [[89, 92], [111, 114]];
+    const z = { t: 0, x0: 100, y0: 20, hit: false };
+    expect(padsReached(pads, z, -1, -1)).toEqual([]);
+    expect(padsReached(pads, z, 7, 7.9)).toEqual([]);
+    expect(padsReached(pads, z, 7.9, 8.2)).toEqual([92]);
+    expect(padsReached(pads, z, 10.9, 11.1)).toEqual([111]);
+    expect(padsReached(pads, z, 11, 12)).toEqual([]);
+    // A wave starting left of both pads meets the near edge of each.
+    expect(padsReached(pads, { ...z, x0: 80 }, 0, 40)).toEqual([89, 111]);
+  });
+
+  it('the game emits one zappad per pad as a wave rolls across the arena', () => {
+    const g = new Game(defaultSave());
+    g.step(FIXED_DT, NO_CONTROLS);
+    const x = g.world.padX + 60;
+    g.body.x = x + 0.5;
+    g.body.y = g.world.surface[x];
+    g.boss = makeBoss('hollow_ai', g.body.x + 30, g.body.y - 4);
+    g.boss.hp = BOSSES.hollow_ai.hp * 0.4;
+    g.boss.zapCd = 99;
+    g.boss.zap = { t: 0, x0: g.boss.x, y0: g.body.y, hit: false };
+    g.drainEvents();
+    let pads = 0;
+    for (let i = 0; i < 120 && g.boss && g.boss.zap; i++) {
+      g.boss.zapCd = 99;
+      g.step(FIXED_DT, NO_CONTROLS);
+      pads += g.drainEvents().filter((e) => e.t === 'zappad').length;
+    }
+    expect(pads).toBe(SAFE_PAD_OFFSETS.length);
   });
 });
 

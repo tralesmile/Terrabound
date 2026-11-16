@@ -2031,6 +2031,11 @@ try {
     await page.waitForTimeout(150);
     const deskBoss = await page.evaluate(() => { const { ui } = window.__terrabound; const l = ui.bossSlot; return l ? { bottom: l.below, y: l.y, tip: ui.worldTip ? ui.worldTip.title : null, hover: !!ui.hover } : null; });
     check('on desktop the boss bar stays centred at the top, and block tooltips stay quiet in the fight', deskBoss && deskBoss.bottom === false && deskBoss.y < 120 && deskBoss.tip === null, JSON.stringify(deskBoss));
+    // The arena floor scan is cached: about 60 frames of the fight rescan it only when something changed.
+    const scans0 = await page.evaluate(() => window.__terrabound.renderer.arenaMemo.scans);
+    await page.waitForTimeout(1000);
+    const scans1 = await page.evaluate(() => ({ scans: window.__terrabound.renderer.arenaMemo.scans, cells: window.__terrabound.renderer.arenaCells.length, boss: !!window.__terrabound.game.boss }));
+    check('the Hollow AI arena floor is scanned once, not every frame', scans1.boss && scans1.cells > 20 && scans1.scans - scans0 <= 5, JSON.stringify({ scans0, ...scans1 }));
     check('Hollow AI arena insulator pads glow teal and a zap crest crossing one leaves the player unhurt', padTest.pads >= 6 && padTest.teal > 40 && padTest.red < padTest.teal / 4 && padTest.hurt === 0 && padTest.spent === false, JSON.stringify(padTest));
     check('a zap crest fizzles in teal arcs at the edge of an insulator pad', padTest.fizz > padTest.calm + 25, JSON.stringify({ calm: padTest.calm, fizz: padTest.fizz }));
     check('the Hollow AI arena floor glows with a pink circuit that turns red in phase 2', arena1.cells > 20 && arena1.pink > 80 && arena2.red > 80 && arena2.red > arena2.pink, JSON.stringify({ arena1, arena2 }));

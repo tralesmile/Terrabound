@@ -61,3 +61,20 @@ describe('zap fizzle at insulator pads', () => {
     expect(padFizz(pads, { t: -0.3, x0: 100, y0: 20, hit: false })).toEqual([]);
   });
 });
+
+describe('arena floor memo', () => {
+  it('scans once per key and again when the world or arena changes', async () => {
+    const { FloorMemo } = await import('../src/render/arenafx');
+    const m = new FloorMemo();
+    let n = 0;
+    const scan = () => { n++; return [{ x: n, y: 1 }]; };
+    expect(m.get('a', scan)).toEqual([{ x: 1, y: 1 }]);
+    m.get('a', scan);
+    m.get('a', scan);
+    expect(n).toBe(1);
+    expect(m.get('b', scan)).toEqual([{ x: 2, y: 1 }]);
+    m.reset();
+    m.get('b', scan);
+    expect(m.scans).toBe(3);
+  });
+});

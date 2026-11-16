@@ -113,7 +113,7 @@ World size and variety:
 - [x] Landing pad deck art (steel plates, hazard ends, landing ring, chasing runway lights); boss bar drops under the HUD on small phones (run 54)
 - [x] Hollow AI arena insulator pads (two teal pads that never conduct zaps; the crest fizzles at their edge); block tooltips quiet in boss fights and raids (run 55)
 - [x] Beam-home juice: a teal column gathers over the player while recall charges; an arrival pillar slams onto the landing ring with deck dust, camera cuts to the pad (run 56)
-- [ ] Follow-ups (scheduled runs may take these): a short "tink" sound where a crest dies at a pad; cache the arena floor scan per boss
+- [x] A glassy "tink" and teal sparks where a zap crest reaches an insulator pad (sim event `zappad`); the arena floor scan is cached per world version (FloorMemo) (run 57)
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)
 
