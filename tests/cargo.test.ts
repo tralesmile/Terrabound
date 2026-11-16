@@ -3,7 +3,7 @@ import { FIXED_DT, Game, NO_CONTROLS, type Controls } from '../src/sim/game';
 import { VEHICLES, VEHICLE_IDS, cargoLoad, cargoOf } from '../src/sim/garage';
 import { GEAR } from '../src/sim/gear';
 import { defaultSave, parseSave, serializeSave } from '../src/sim/save';
-import { CARGO_BAYS, VEHICLES as SPRITES, cargoHold, vehicleRows } from '../src/render/sprites';
+import { CARGO_BAYS, RATTLE_SPEED, VEHICLES as SPRITES, cargoHold, cargoRattle, vehicleRows } from '../src/render/sprites';
 import { invTotal } from '../src/sim/tiles';
 
 const run = (g: Game, s: number, c: Partial<Controls> = {}): void => {
@@ -91,5 +91,32 @@ describe('Cargo Lifter', () => {
     const back = parseSave(serializeSave(g.toSave()));
     expect(back.gear.owned).toContain('cargo_lifter');
     expect(back.garage.parked?.id).toBe('cargo_lifter');
+  });
+
+  it('crates sit still at cruise and rattle out of step when flying fast', () => {
+    for (let t = 0; t < 2; t += 0.05) expect(cargoRattle(RATTLE_SPEED - 1, t)).toEqual([0, 0, 0, 0]);
+    let jolts = 0;
+    let mixed = 0;
+    for (let t = 0; t < 2; t += 0.05) {
+      const l = cargoRattle(RATTLE_SPEED + 4, t);
+      const n = l.reduce((a, b) => a + b, 0);
+      jolts += n;
+      if (n > 0 && n < l.length) mixed++;
+    }
+    expect(jolts).toBeGreaterThan(10);
+    expect(mixed).toBeGreaterThan(5);
+    expect(cargoRattle(Number.NaN, 1)).toEqual([0, 0, 0, 0]);
+  });
+
+  it('a rattled crate pops one row up with an empty slot under it', () => {
+    const rows = cargoHold(1, [1, 0, 0, 0]);
+    const c = CARGO_BAYS[0];
+    expect(rows[8].slice(c, c + 4)).toBe('cddc');
+    expect(rows[9].slice(c, c + 4)).toBe('CccC');
+    expect(rows[10].slice(c, c + 4)).toBe('LLLL');
+    expect(rows[9].slice(CARGO_BAYS[1], CARGO_BAYS[1] + 4)).toBe('cddc');
+    // Lift on an empty bay draws nothing; widths never change.
+    expect(cargoHold(0, [1, 1, 1, 1])).toEqual(cargoHold(0));
+    for (const r of vehicleRows('cargo_lifter', 0, true, 1, [1, 1, 1, 1])) expect(r.length).toBeLessThanOrEqual(SPRITES.cargo_lifter.w);
   });
 });

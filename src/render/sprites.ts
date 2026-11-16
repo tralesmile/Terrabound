@@ -878,7 +878,7 @@ export function vehicleRemap(id: VehicleSpriteId, paint?: readonly [string, stri
  * Rows for a vehicle at time t: hover pads pulse, the jet's exhaust flickers (longer when boosting).
  * Flame columns sit left of the tail so they flip with the vehicle. Pure.
  */
-export function vehicleRows(id: VehicleSpriteId, t: number, boost: boolean, load = 0): string[] {
+export function vehicleRows(id: VehicleSpriteId, t: number, boost: boolean, load = 0, lift: readonly number[] = []): string[] {
   const f = Math.floor(Math.max(0, t) * 20);
   if (id === 'buggy') {
     const wh = f % 2 ? WHEEL_A : WHEEL_B;
@@ -903,24 +903,44 @@ export function vehicleRows(id: VehicleSpriteId, t: number, boost: boolean, load
   // the long flame frames.
   const flame = boost ? JET_FLAME[1 + (f % 2)] : JET_FLAME[0];
   const flick = boost || f % 2 === 0;
-  return (id === 'cargo_lifter' ? cargoHold(load) : SKY_JET).map((r, i) => {
+  return (id === 'cargo_lifter' ? cargoHold(load, lift) : SKY_JET).map((r, i) => {
     const fl = i === 6 && flick ? flame[0] : i === 7 && flick ? flame[1] : '';
     return fl.slice(-3).padStart(3) + r;
   });
 }
 
-/** The Cargo Lifter with its hold filled: bay k shows a crate once the load passes k/4. Pure. */
-export function cargoHold(load: number): string[] {
+/** Flight speed (tiles/s) above which the Cargo Lifter's crates rattle in their bays. */
+export const RATTLE_SPEED = 8;
+
+/**
+ * Per-bay lift (0 or 1 art px) for the Cargo Lifter's crates at time t: below RATTLE_SPEED all sit
+ * still; above it each crate jolts up out of step with its neighbours, more often the faster you
+ * fly. Pure.
+ */
+export function cargoRattle(speed: number, t: number): number[] {
+  if (!(speed > RATTLE_SPEED)) return CARGO_BAYS.map(() => 0);
+  const rate = 10 + Math.min(10, (speed - RATTLE_SPEED) * 2);
+  return CARGO_BAYS.map((_, k) => (Math.floor(Math.max(0, t) * rate + k * 1.7 + (k % 2) * 0.5) % 3 === 0 ? 1 : 0));
+}
+
+/**
+ * The Cargo Lifter with its hold filled: bay k shows a crate once the load passes k/4. A crate
+ * with lift[k] = 1 is drawn one row higher (popping over the hull edge, an empty slot under it).
+ * Pure.
+ */
+export function cargoHold(load: number, lift: readonly number[] = []): string[] {
   const full = Math.max(0, Math.min(CARGO_BAYS.length, Math.ceil(load * CARGO_BAYS.length - 1e-9)));
-  return CARGO_LIFTER.map((r, i) => {
-    if (i !== 9 && i !== 10) return r;
-    let row = r;
-    for (let k = 0; k < full; k++) {
-      const c = CARGO_BAYS[k];
-      row = row.slice(0, c) + (i === 9 ? 'cddc' : 'CccC') + row.slice(c + 4);
-    }
-    return row;
-  });
+  const rows = CARGO_LIFTER.slice();
+  const put = (i: number, c: number, s: string): void => {
+    rows[i] = rows[i].slice(0, c) + s + rows[i].slice(c + 4);
+  };
+  for (let k = 0; k < full; k++) {
+    const c = CARGO_BAYS[k];
+    const top = lift[k] ? 8 : 9;
+    put(top, c, 'cddc');
+    put(top + 1, c, 'CccC');
+  }
+  return rows;
 }
 
 /** Paint `top` over `base` wherever `top` is not a space. */

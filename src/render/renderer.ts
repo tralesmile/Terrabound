@@ -77,7 +77,7 @@ import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
-import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, PAL, droneRows, makeCanvas, wallRow, VEHICLES, vehicleRows, wheelSpinTime } from './sprites';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, PAL, droneRows, makeCanvas, wallRow, VEHICLES, vehicleRows, wheelSpinTime, cargoRattle } from './sprites';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 import { drawGlyph, hasGlyph } from './glyphs';
 import { ropePoints, ropeSag, twangAmp } from './ropefx';
@@ -209,6 +209,8 @@ export class Renderer {
   private swimAngle = 0;
   /** Vehicle tilt (radians) and landing squash (0-1) this frame (e2e). */
   vehPose: { tilt: number; squash: number } | null = null;
+  /** Per-bay crate lift drawn last frame (e2e probe; empty unless riding a loaded Cargo Lifter). */
+  lastRattle: number[] = [];
   private vehTilt = 0;
   private vehSquashT = 0;
   private vehAir = false;
@@ -713,7 +715,9 @@ export class Renderer {
       const moving = wheelSpinTime(this.wheelDist);
       // Ground vehicles are drawn larger so the pilot sits inside, not on top of a toy.
       const vs = ground ? scale * VEHICLE_ART_SCALE : scale;
-      const drawVeh = (): void => drawRows(ctx, vehicleRows(veh, ground ? moving : time, game.jetting, game.cargoFill), px - (vd.w / 2) * vs, py - (vd.top - bob) * vs, vs, game.facing < 0, vd.w, undefined, rideRemap(veh));
+      // A loaded Cargo Lifter's crates jolt in their bays when flying fast.
+      this.lastRattle = veh === 'cargo_lifter' && game.cargoFill > 0 ? cargoRattle(Math.hypot(b.vx, b.vy), time) : [];
+      const drawVeh = (): void => drawRows(ctx, vehicleRows(veh, ground ? moving : time, game.jetting, game.cargoFill, this.lastRattle), px - (vd.w / 2) * vs, py - (vd.top - bob) * vs, vs, game.facing < 0, vd.w, undefined, rideRemap(veh));
       ctx.save();
       vehXf();
       drawVeh();

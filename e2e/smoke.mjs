@@ -1548,6 +1548,42 @@ try {
   });
   await page.screenshot({ path: path.join(out, '22l-cargo-lifter.png') });
   check('the Cargo Lifter adds a 30 hold while riding and shows crates as it fills', lifter.v === 'cargo_lifter' && lifter.cap === lifter.foot + 30 && lifter.fill > 0.5 && crates > 40, JSON.stringify({ ...lifter, crates }));
+  // Flying the loaded Lifter fast rattles its crates out of step; at a hover they sit still.
+  const still = await page.evaluate(async () => {
+    const { game: g, renderer } = window.__terrabound;
+    let n = 0;
+    for (let i = 0; i < 10; i++) {
+      g.body.vx = g.body.vy = 0;
+      await new Promise((r) => requestAnimationFrame(r));
+      n += renderer.lastRattle.reduce((a, b) => a + b, 0);
+    }
+    return n;
+  });
+  await page.keyboard.down('KeyD');
+  const rattle = await page.evaluate(async () => {
+    const { game: g, renderer } = window.__terrabound;
+    let jolts = 0;
+    let frames = 0;
+    let lifted = false;
+    let speed = 0;
+    const t0 = performance.now();
+    while (performance.now() - t0 < 1500) {
+      await new Promise((r) => requestAnimationFrame(r));
+      const n = renderer.lastRattle.reduce((a, b) => a + b, 0);
+      jolts += n;
+      frames++;
+      speed = Math.max(speed, Math.abs(g.body.vx));
+      if (n > 0 && performance.now() - t0 > 500) {
+        lifted = true;
+        break;
+      }
+    }
+    return { jolts, frames, lifted, speed, bays: renderer.lastRattle.slice() };
+  });
+  await page.screenshot({ path: path.join(out, '22n-cargo-rattle.png') });
+  await page.keyboard.up('KeyD');
+  rattle.still = still;
+  check('a loaded Cargo Lifter rattles its crates when flying fast and holds them still at a hover', rattle.still === 0 && rattle.jolts > 0 && rattle.lifted, JSON.stringify(rattle));
   const out2 = await page.evaluate(() => {
     const g = window.__terrabound.game;
     g.carried = {};
