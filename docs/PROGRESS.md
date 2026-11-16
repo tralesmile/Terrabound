@@ -850,3 +850,18 @@ Second slice: DEPLOY parks ground vehicles under the carport (garage `parkOffset
 **Next:** open-roof hangar so flyers dock and charge; tree trunk roots/branch stubs (IDEAS); P3 rarity and weapon modifiers; P3 Boss 2 Logic Warden.
 
 **Known issues:** the Cargo Lifter has no garage-panel art preview beyond the shared jet icon; a carried load over the suit pack after getting out blocks pickups until you bank (by design, said in the toast).
+
+## 2026-11-16 Scheduled run 64 (recovered by run 65)
+
+Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:** flyer apron (garage `bayAt` takes `flying`; columns 4..6 right of the carport are a striped landing strip with chasing runway lights that hold green while a flyer charges; the dock cable reaches parked flyers, 22m-apron-dock); tree trunks flare into three roots on the ground tile (a bolted footplate in the wastes) and about a third of mid-trunk tiles grow a branch stub with a leaf tuft (trunks.test.ts).
+
+## 2026-11-16 Scheduled run 65
+
+**Done:** baseline green (942 tests, all e2e). Creative review: the topsoil in 02-digging and 06-mobile-play is crossed by short black per-tile strokes that read as scratches, not roots; the last open P1.9 follow-up was crate rattle. Cargo rattle (sprites `cargoRattle`/`RATTLE_SPEED` 8 tiles/s, `cargoHold(load, lift)`, renderer `lastRattle`): above cruise each loaded crate jolts up one art px out of step with its neighbours, still at a hover (22n-cargo-rattle). Continuous roots (strata `rootLength`/`rootEntry`): a root grows 2-5 tiles down one column, each tile's thread starts where the tile above ended, thicker with a lit edge near the surface, side fibres, two tips at the end.
+
+**Numbers:** 945 unit tests (new: cargo rattle 2, root continuity 1), e2e new check: crates rattle fast / still at hover. Bundle 484.3 kB (169.9 kB gzip), 274 e2e checks green; ship green first time.
+
+**Next:** P3 rarity and weapon modifiers (first open gameplay item); Boss 2 Logic Warden; dive stats on the share card; persist the dive tally.
+
+**Known issues:** crates in the rattle screenshot are small at 1280x720 (the Lifter is drawn at 1x scale); roots only cross the shallow 6-tile band, so a long root stops at depth 6 without tips if `rootLength` is 5 and the band ends (it cannot: max 5 < 6).
+

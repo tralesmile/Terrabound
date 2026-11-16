@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-16 run 65
+
+- Done this run: topsoil roots are continuous lines down a column of tiles (thick lit top, side fibres, forked tips) instead of per-tile scratches (02-digging); a loaded Cargo Lifter's crates rattle when flying fast (22n).
+- Weakest graphics (vehicles): the flyers are drawn at 1x while ground vehicles get VEHICLE_ART_SCALE, so the Lifter's crates are barely visible; draw flyers at the same art scale (check the take-off and apron e2e geometry).
+- Weakest progression: every weapon of a kind is identical; P3 rarity tiers (common/rare/epic colour rims) with one rolled modifier would give chest and boss loot a second reason to exist (Terraria prefixes, Core Keeper rarities).
+- Weakest gameplay feel (digging): breaking a block gives the same crumble for every tile; per-material break debris (sparks for metal, shards for crystal, clods for dirt) is cheap and felt on every click.
+- Weakest UI (phones): the underground below the lit pad is near black in 06-mobile-play; a faint ambient fill for the first rows below the surface would show the dig target before the player lights it.
+
 ## 2026-11-16 run 63
 
 - Done this run: tree canopies are lobed leaf clumps (2-3 round puffs per tile, lit upper-left, shaded underside, a darker band under the crown) instead of 20% speckle; frost crowns get a real snow cap with drips and snow flecks on each lobe while the inside stays green (11-biome-frost); 4 leaf variants instead of 2.

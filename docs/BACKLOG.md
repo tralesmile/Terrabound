@@ -126,7 +126,8 @@ World size and variety:
 - [x] Field garages show on the map as green bolt charge pins (run 61)
 - [x] DEPLOY parks ground vehicles under the carport roof (flyers just outside); a parked vehicle hangs on a dock cable with a green pulse, and the bay charges you while seated (run 61)
 - [x] Cargo Lifter: a heavy garage plane (slower, thriftier than the Sky Jet) with a +30 cargo hold while you fly it; four crate bays in the hull light up as the load passes the suit pack; getting out over the pack keeps the load with a toast (run 63)
-- [ ] Follow-ups: open-roof hangar so flyers dock and charge; cargo crates rattle/sway when flying fast
+- [x] Flyer apron: a hazard-striped strip beside the carport where flyers dock and charge, runway lights chase outward (run 64)
+- [x] Cargo crates rattle in their bays when the Lifter flies fast (run 65)
 
 ## P1.8 Owner request 2026-11-11: "add all" (do these FIRST, top to bottom, before P2)
 

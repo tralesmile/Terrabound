@@ -286,3 +286,10 @@
 - **Preview pixel art before the 10-minute gate.** A throwaway vitest that dumps `leafPixels` to JSON plus a PIL upscale gave a canopy preview in seconds and caught that the first lobe pass was too faint. Delete the temp test before committing (`tests/_preview*` must not be committed).
 - **Check an idea against the screenshot before building it.** The carried "phone camera bias" idea was wrong once I looked at 06-mobile-play (HUD on top, dark rock below); dropped it in IDEAS instead of shipping a change nobody would feel.
 - **Retro (run 63):** three slices, two ships; docs written while the gate ran. The gate is ~10 minutes, so batching small slices per ship stays the right call.
+
+## 2026-11-16 run 65
+
+- **A run can ship code and lose its docs:** run 64's last commit had no PROGRESS/BACKLOG entry. Guard in practice: at start compare `git log -1` against the newest PROGRESS run number; recover the entry from the commit body (this run did). Write the PROGRESS entry before the final ship, not after.
+- **Setting `body.vx` from `page.evaluate` does nothing for a ridden vehicle:** the sim pulls vx back to input speed every step, so the renderer saw ~0. Guard: drive speed in e2e with `page.keyboard.down`, and report the measured max speed in the check JSON.
+- **Retro (run 65):** two small slices, one ship. The PIL preview from a throwaway vitest dump (run 63 lesson) again caught the art in seconds.
+
