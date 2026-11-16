@@ -26,6 +26,8 @@ import type { PlayerGear, VehicleSpriteId } from './sprites';
 import { ICON, drawIcon } from './icons';
 import { vehicleRemap } from './sprites';
 import { PAD_PAL, padDeckRows, padLight, padRun } from './padfx';
+import { RECALL_TIME } from '../sim/explore';
+import { arrivalBeam, beamMotes, chargeBeam, type BeamShape } from './beamfx';
 /**
  * Swim tilt in radians (canvas rotation; positive leans the head right): head-first toward the
  * swim direction, but never upside down.
@@ -401,6 +403,7 @@ export class Renderer {
     this.drawBoings(ctx, game, shakeX, shakeY, Math.min(0.1, Math.max(0, time - this.boingClock)));
     this.boingClock = time;
     this.drawCones(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time, game.rumbleState());
+    this.drawBeams(ctx, game, shakeX, shakeY, time);
 
     // Aim highlight and crack overlay.
     if (aim) {
@@ -1500,6 +1503,78 @@ export class Renderer {
 
   /** Recent pad launches (cell + age), so the plate springs back over the chunk-baked rest pose. */
   private boings: { x: number; y: number; t: number }[] = [];
+  /** Arrival pillar at the pad after a beam home (t in s since landing, null when idle). */
+  private arrival: { x: number; y: number; t: number } | null = null;
+  private beamClock = 0;
+  /** e2e probes: arrivals started and the alpha of the last beam drawn (charge or arrival). */
+  beamsArrived = 0;
+  lastBeam = 0;
+
+  /** Start the arrival pillar at the pad (feet at x, y in tiles). */
+  beamArrive(x: number, y: number): void {
+    this.arrival = { x, y, t: 0 };
+    this.beamsArrived++;
+    // A teleport is a cut: snap the camera to the pad so the pillar lands on screen, not mid-pan.
+    this.snapped = false;
+  }
+
+  /** Charging column over the player while recall runs, and the arrival pillar at the pad. */
+  private drawBeams(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
+    const dt = Math.min(0.1, Math.max(0, time - this.beamClock));
+    this.beamClock = time;
+    this.lastBeam = 0;
+    const p = game.recallT > 0 ? game.recallT / RECALL_TIME : 0;
+    if (p > 0) this.drawBeam(ctx, game.body.x, game.body.y, chargeBeam(p), shakeX, shakeY, time);
+    if (this.arrival) {
+      this.arrival.t += dt;
+      const shape = arrivalBeam(this.arrival.t);
+      if (shape.alpha <= 0) this.arrival = null;
+      else this.drawBeam(ctx, this.arrival.x, this.arrival.y, shape, shakeX, shakeY, time);
+    }
+  }
+
+  private drawBeam(ctx: CanvasRenderingContext2D, x: number, y: number, s: BeamShape, shakeX: number, shakeY: number, time: number): void {
+    if (s.alpha <= 0) return;
+    this.lastBeam = Math.max(this.lastBeam, s.alpha);
+    const ts = TS * this.scale;
+    const cx = this.sx(x, shakeX);
+    const fy = this.sy(y, shakeY);
+    const top = fy - s.height * ts;
+    const half = s.half * ts;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    // Soft halo three times the core width, fading toward the sky.
+    const halo = ctx.createLinearGradient(0, top, 0, fy);
+    halo.addColorStop(0, 'rgba(54,224,232,0)');
+    halo.addColorStop(1, `rgba(54,224,232,${(0.35 * s.alpha).toFixed(3)})`);
+    ctx.fillStyle = halo;
+    ctx.fillRect(cx - half * 3, top, half * 6, fy - top);
+    // Bright core with a white centre line.
+    const core = ctx.createLinearGradient(0, top, 0, fy);
+    core.addColorStop(0, 'rgba(160,250,255,0)');
+    core.addColorStop(0.35, `rgba(160,250,255,${(0.6 * s.alpha).toFixed(3)})`);
+    core.addColorStop(1, `rgba(220,255,255,${(0.85 * s.alpha).toFixed(3)})`);
+    ctx.fillStyle = core;
+    ctx.fillRect(cx - half, top, half * 2, fy - top);
+    ctx.fillStyle = `rgba(255,255,255,${(0.7 * s.alpha).toFixed(3)})`;
+    ctx.fillRect(cx - Math.max(1, half * 0.25), top + (fy - top) * 0.3, Math.max(2, half * 0.5), (fy - top) * 0.7);
+    // Rising motes inside the column.
+    const u = this.scale;
+    ctx.fillStyle = `rgba(200,255,255,${(0.8 * s.alpha).toFixed(3)})`;
+    beamMotes(time, s.height, 7).forEach((h, i) => {
+      const mx = cx + Math.sin(time * 5 + i * 2.1) * half * 1.4;
+      ctx.fillRect(Math.round(mx), Math.round(fy - h * ts), 2 * u, 2 * u);
+    });
+    // Ground ring: a flat ellipse at the feet.
+    if (s.ring > 0) {
+      ctx.strokeStyle = `rgba(95,242,248,${(0.8 * s.alpha).toFixed(3)})`;
+      ctx.lineWidth = Math.max(1, u * 1.5);
+      ctx.beginPath();
+      ctx.ellipse(cx, fy, s.ring * ts, Math.max(2, s.ring * ts * 0.22), 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
   padsBoinged = 0;
   private boingClock = 0;
   padBoing(x: number, y: number): void {

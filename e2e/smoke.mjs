@@ -3612,8 +3612,32 @@ try {
   await page.waitForTimeout(200);
   check('beam home is offered on the surface', await page.evaluate(() => window.__terrabound.game.canRecall()));
   await page.keyboard.press('KeyR');
+  // Charging column: a teal beam gathers over the player while recall runs (sample beside the head).
+  const beamCyan = () => {
+    const { game, renderer } = window.__terrabound;
+    const c = document.querySelector('canvas');
+    const s = renderer.scale;
+    const p = renderer.worldToScreen(game.body.x, game.body.y);
+    const d = c.getContext('2d').getImageData(Math.round(p.x - 3 * s), Math.round(p.y - 120 * s), Math.round(6 * s), Math.round(80 * s)).data;
+    let n = 0;
+    for (let i = 0; i < d.length; i += 4) if (d[i + 2] > 200 && d[i + 1] > 200) n++;
+    return n;
+  };
+  const beamIdle = await page.evaluate(beamCyan);
+  await page.waitForFunction(() => window.__terrabound.game.recallT > 1.6, null, { polling: 'raf', timeout: 4000 }).catch(() => {});
+  const beamCharge = await page.evaluate(() => ({ alpha: window.__terrabound.renderer.lastBeam, t: window.__terrabound.game.recallT }));
+  const beamChargePx = await page.evaluate(beamCyan);
+  await page.screenshot({ path: path.join(out, '13b-beam-charge.png') });
+  check('beaming home draws a teal column of light over the player as it charges', beamCharge.alpha > 0.4 && beamChargePx > beamIdle + 40, JSON.stringify({ ...beamCharge, beamIdle, beamChargePx }));
+  const arrived0 = await page.evaluate(() => window.__terrabound.renderer.beamsArrived);
   await page.waitForFunction(() => window.__terrabound.game.isAtBase(), null, { timeout: 5000 }).catch(() => {});
+  const beamArrive = await page.evaluate((a0) => ({ arrived: window.__terrabound.renderer.beamsArrived - a0, alpha: window.__terrabound.renderer.lastBeam }), arrived0);
+  const beamArrivePx = await page.evaluate(beamCyan);
+  await page.screenshot({ path: path.join(out, '13c-beam-arrive.png') });
+  check('arriving at the pad slams a beam pillar onto the landing ring', beamArrive.arrived === 1 && beamArrive.alpha > 0.2 && beamArrivePx > 40, JSON.stringify({ ...beamArrive, beamArrivePx }));
   check('R beams the player home from the surface', await page.evaluate(() => window.__terrabound.game.isAtBase()));
+  await page.waitForTimeout(900);
+  check('the arrival pillar fades out', (await page.evaluate(() => window.__terrabound.renderer.lastBeam)) === 0);
   check('codex records discoveries', (await page.evaluate(() => window.__terrabound.game.codex.length)) >= 2);
 
   // Day/night: the sky darkens at night and the moon is out.

@@ -828,6 +828,10 @@ function boot(): void {
         break;
       case 'recall':
         fx.burst(game.body.x, game.body.y - 1, '#36e0e8', 30, 8);
+        renderer.beamArrive(game.body.x, game.body.y);
+        fx.dust(game.body.x, game.body.y - 0.1, '#9fdfe8', 8, 5, -1);
+        fx.dust(game.body.x, game.body.y - 0.1, '#9fdfe8', 8, 5, 1);
+        fx.addShake(0.25);
         ui.toast('Back at the pad', '#36e0e8');
         break;
       default:
