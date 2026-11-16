@@ -245,3 +245,8 @@
 - **Check the code before logging an idea as missing.** Run 55 listed "surface strata" as the weakest graphics; strata.ts already draws bands and topsoil. Guard: grep src/render for the idea's noun before writing it into IDEAS.md.
 - **Retro (run 56):** two slices, one combined gate; e2e alone (~4 min) after each slice, the full ship gate once at the end.
 
+
+## 2026-11-16 run 57
+
+- A unit test for a pure edge function had a wrong hand-computed distance (pad edge 92 is 8 tiles from 100, not 9). Guard: when a test asserts geometry, derive the expected numbers from the same constants in a comment line before writing the expectation.
+- A screenshot showing a clipped toast was an animation caught mid-slide, not a layout bug. Before logging a visual bug from a single frame, check whether the element is animating (age/slide) at capture time.

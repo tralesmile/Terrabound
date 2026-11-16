@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-16 run 57
+
+- Done this run: banking shows a TRIP BANKED card above the bar with the trip's highlights (13d); beam-home arrival has its own shimmer + thud; zap crests tink on insulator pads; arena floor scan cached.
+- Checked, not a bug: the clipped toast in 13c is the 0.18 s slide-in caught mid-frame (drop the run 56 "toasts clip" note).
+- Weakest progression: gear is still stats-only; P3 equipment slots (helmet/core/boots/module) with visible suit parts on the player would give loot a reason to exist (Terraria/Core Keeper armor sets).
+- Weakest retention: the dive and trip tallies vanish on reload; persist them in the save (small, needs SAVE_VERSION bump + fixture).
+- Weakest feel at the pad: banked items vanish from the pack instantly; let the pack icons fly from the bag slot into the stash crate on the card (reuse Flyers).
+
 ## 2026-11-16 run 56
 
 - Done this run: beaming home is now a visible event (charging light column over the player, arrival pillar on the landing ring, deck dust, camera cut instead of a 100-tile pan; 13b/13c); legacy-size saves are offered a BIGGER WORLD.
@@ -30,12 +38,3 @@
 - Weakest graphics: the new liquid strip on the surface pond reads as glitter noise at 1x (02-digging); owner's interactive session owns liquids, so note only.
 - Weakest progression: the dive report still only shows on death; a lighter "dive banked" card on beam-home (carried, P4 follow-up).
 - Weakest UI: Core-layer toasts and the boss title can crowd the top band on small phones (carried; a 360x640 boss screenshot check is cheap).
-
-## 2026-11-13 run 52
-
-- Done this run: boss hits now spray sparks in the boss's own colours from the face that was hit, back toward the attacker, with the damage number at the hit point (26k); the Hollow AI fights over a glowing floor circuit whose pulse rings roll outward, red and faster once enraged (28e).
-- Weakest combat feel: boss hits still have no sound variation per boss (metal clank for the Colossus, crystal ping for the Golem); a per-boss hit timbre in audio.ts is cheap and sells the sparks.
-- Weakest arena play: the circuit is only decoration; in phase 2 let a pulse crest zap the floor (telegraphed, jump to dodge), the Dome Keeper/Terraria way of making a finale demand movement.
-- Weakest progression: the dive report still only shows on death; a lighter "dive banked" card on beam-home (carried).
-- Weakest UI: Core-layer toasts and the boss title can crowd the top band on small phones (carried; check 06-mobile with a boss up).
-

@@ -787,3 +787,13 @@ Owner: "Water looks bad. Pet looks bad. On hover the items should show what they
 
 **Known issues:** the legacy pitch toast shows on every load until the player starts a bigger world (by design, no nag timer; persist a "seen" flag if it annoys); the arena floor is still rescanned every frame; dive tally lives in memory; the dive card shows only on death.
 
+
+## 2026-11-16 Scheduled run 57
+
+**Done:** baseline green (878 tests). Creative review: banking at the pad was a one-line "Banked N items" toast, so a trip (and the new arrival beat) ended without a payoff; arrival reused the recall chime. Trip banked card (src/ui/bankcard.ts layout/fade, divereport `tripSince`/`tripChips`, Game `tripStart`/`tripDeep`, bank event carries `trip`): a light non-modal card above the bar, green head "TRIP BANKED +N" with a bobbing crate glyph and a shine sweep, chips for the trip since the last bank (boss down, depth, mined, beaten, chests, places; max 4, wraps on phones), 4.2 s, a second bank while up folds into it (13d-trip-banked). Arrival sound: falling shimmer + soft thud. Hollow AI: the sim emits `zappad` once per pad edge the crest reaches (arenazap `padsReached`), with a glassy tink and teal sparks; the arena floor scan is cached in a FloorMemo keyed on world version + arena span (e2e: 0 rescans over a second of fight).
+
+**Numbers:** 886 unit tests (new: tripcard 5, arenazap 2, arenafx memo 1), 256 e2e checks all green (new: trip card, card expiry, floor scan cached). Bundle 461.8 kB (162.4 kB gzip). Two ships, both green first time.
+
+**Next:** P3 equipment slots (gear as equippable items) is the first open BACKLOG item; lava scene profiling (P1.11 follow-up); P1.9 follow-ups (plane with cargo, charge station); dive stats on the share card; persist the dive tally.
+
+**Known issues:** the trip tally lives in memory like the dive tally (a reload mid-trip restarts it); the arena floor memo key uses floor(boss y), so a bobbing boss may rescan a few times; dive card on death only shows the full report.
