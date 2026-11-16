@@ -35,7 +35,8 @@ import { SOIL_TILES, growTime, inLavafall, stepSaplings, type Structure } from '
 import { ERUPT, bombHits, coneLive, craterOf, launchMarked, nearestCone, nextGap, stepBomb, type LavaBomb } from './eruptions';
 import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
 import { ZAP_DMG, padsReached, safePads, stepZap, zapHits, zapRadius } from './arenazap';
-import { BIOME_BOSSES, BOSS_IDS, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossContact, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
+import { GRID_DMG, gridColumns, gridFiring, gridHits } from './lasergrid';
+import { BIOME_BOSSES, BOSS_IDS, GATE_BOSSES, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossContact, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
 import { BIOMES, type BiomeId } from './biomes';
 import { LAYERS, layerAt, openGates } from './layers';
 import { METEOR_RATE, weatherAt, weatherEnemy, type WeatherKind } from './weather';
@@ -184,6 +185,8 @@ export type GameEvent =
   | { t: 'bosswarn'; kind: AttackKind }
   | { t: 'zapwarn'; x: number; y: number }
   | { t: 'zaphit'; x: number; y: number }
+  | { t: 'gridfire'; x: number; y: number; n: number }
+  | { t: 'gridhit'; x: number; y: number }
   | { t: 'zappad'; x: number; y: number }
   | { t: 'bossslam'; x: number; y: number; halfW: number; accent: string }
   | { t: 'bosshit'; id: BossId; x: number; y: number; dmg: number; hx: number; hy: number; dir: number }
@@ -460,7 +463,7 @@ export class Game {
     applyDiff(this.world, this.fog, this.save.world);
     stampBase(this.world, this.save.base);
     stampWalls(this.world, this.save.walls);
-    openGates(this.world, this.biomeBossesBeaten());
+    openGates(this.world, this.gateBossesBeaten());
     this.respawn(false);
     this.time = this.save.away.time;
     this.power = { ...newPower(), charge: this.save.away.charge };
@@ -1106,7 +1109,7 @@ export class Game {
     this.riding = false;
     stampBase(this.world, this.save.base);
     stampWalls(this.world, this.save.walls);
-    openGates(this.world, this.biomeBossesBeaten());
+    openGates(this.world, this.gateBossesBeaten());
     this.respawn(true);
   }
 
@@ -2619,6 +2622,11 @@ export class Game {
     return BIOME_BOSSES.filter((id) => this.save.bosses.includes(id)).length;
   }
 
+  /** Bosses that open the layer gates: the biome bosses plus the Circuit layer's Logic Warden. */
+  gateBossesBeaten(): number {
+    return GATE_BOSSES.filter((id) => this.save.bosses.includes(id)).length;
+  }
+
   /** Depth layer the player is in (layers.ts). */
   get layer(): number {
     return layerAt(this.depth);
@@ -2658,7 +2666,7 @@ export class Game {
     if (honed) this.grantWeapon(d.gear, honed, Math.floor(bs.x), Math.floor(bs.y - 1), true);
     const rec = this.worldRecord();
     if (rec && noteBoss(rec)) this.emit({ t: 'record', beat: 'boss', value: rec.boss, code: rec.code });
-    if (openGates(this.world, this.biomeBossesBeaten()) > 0) this.emit({ t: 'gateopen' });
+    if (openGates(this.world, this.gateBossesBeaten()) > 0) this.emit({ t: 'gateopen' });
     if (bs.id === FINAL_BOSS) this.emit({ t: 'victory', first });
     this.boss = null;
     this.bossBolts = [];
@@ -2678,7 +2686,16 @@ export class Game {
       return;
     }
     const d = BOSSES[bs.id];
+    const wasLive = gridFiring(bs);
     const out = stepBoss(bs, this.world, dt, b.x, b.y, this.rng);
+    // Logic Warden laser grid: beams stand across the arena for a moment; the lanes between are safe.
+    if (!wasLive && gridFiring(bs)) this.emit({ t: 'gridfire', x: bs.x, y: bs.y - d.h / 2, n: gridColumns(bs).length });
+    if (this.iframes === 0 && gridHits(bs, b.x, HALF_W)) {
+      this.hurt(GRID_DMG);
+      this.iframes = 0.6;
+      b.vy = Math.min(b.vy, -6);
+      this.emit({ t: 'gridhit', x: b.x, y: b.y });
+    }
     if (out.warn) {
       this.bossWarn = { kind: out.warn, t: ATTACK_TIME[out.warn].warn };
       this.emit({ t: 'bosswarn', kind: out.warn });

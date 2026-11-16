@@ -23,6 +23,7 @@ export const RECIPES: Recipe[] = [
   { id: 'beacon_golem', name: 'Prism beacon (Crystal Golem)', out: 'beacon_golem', qty: 1, cost: { crystal: 14, metal: 8 } },
   { id: 'beacon_wyrm', name: 'Ember beacon (Ash Wyrm)', out: 'beacon_wyrm', qty: 1, cost: { crystal: 12, copper_wire: 14, metal: 10 } },
   { id: 'beacon_ai', name: 'Core key (The Hollow AI)', out: 'beacon_ai', qty: 1, cost: { core_shard: 10, plasma: 10, circuit: 10 } },
+  { id: 'beacon_warden', name: 'Logic key (Logic Warden)', out: 'beacon_warden', qty: 1, cost: { circuit: 12, copper_wire: 12, crystal: 8 } },
   { id: 'beacon_titan', name: 'Frost beacon (Frost Titan)', out: 'beacon_titan', qty: 1, cost: { crystal: 20, metal: 16, copper_wire: 10 } },
   { id: 'ladder', name: 'Ladder x4', out: 'ladder', qty: 4, cost: { rust: 3, iron_scrap: 1 } },
   { id: 'scaffold', name: 'Scaffold x6', out: 'scaffold', qty: 6, cost: { rust: 4 } },

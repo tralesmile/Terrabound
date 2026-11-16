@@ -23,7 +23,7 @@ import { ROBOT_LOOK, playerGear } from '../render/renderer';
 import { FOOD, bestHeal, healCount } from '../sim/fishing';
 import { ACC_SLOTS, GEAR, GEAR_IDS, GEAR_SLOTS, type GearId } from '../sim/gear';
 import { DOLL_SLOTS, dollLayout, type DollRect } from './dollslots';
-import { BOSSES, bossForBeacon } from '../sim/bosses';
+import { BOSSES, GATE_BOSSES, bossForBeacon } from '../sim/bosses';
 import { PHASE_NOTCH, bossBarSlot, newChip, stepChip, type BossSlot, type ChipState } from './bossbar';
 import { LAYERS } from '../sim/layers';
 import { MAX_PART, PART_IDS, VEHICLES, VEHICLE_IDS, partCost, vehicleStats, type PartId, type VehicleId } from '../sim/garage';
@@ -865,7 +865,7 @@ export class UI {
     this.text(ctx, 'THE HOLLOW IS FREE', w / 2, h * 0.24, Math.round(u * 2), `rgba(255,90,255,${glow.toFixed(2)})`, 'center', w - u * 2);
     const lines = [
       'The Hollow AI is silent. The machine-planet breathes again.',
-      `Bosses beaten: ${game.biomeBossesBeaten()}/5 + the Hollow AI`,
+      `Bosses beaten: ${game.gateBossesBeaten()}/${GATE_BOSSES.length} + the Hollow AI`,
       `Deepest dive: ${game.stats.deepest}m   Deaths: ${game.stats.deaths}   Codex: ${game.codex.length}/${CODEX.length}`,
       'Made by the Terrabound team. Thank you for playing!',
       'Your world, base and gear stay: keep exploring, building and fishing.',

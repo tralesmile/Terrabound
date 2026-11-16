@@ -4,7 +4,7 @@
  */
 import type { Game } from '../sim/game';
 import { BIOMES, type BiomeId } from '../sim/biomes';
-import { BIOME_BOSSES } from '../sim/bosses';
+import { GATE_BOSSES } from '../sim/bosses';
 
 export const CARD_W = 1200;
 export const CARD_H = 630;
@@ -14,7 +14,7 @@ export function shareLines(game: Game): string[] {
   const col = Math.max(0, Math.min(game.world.w - 1, Math.floor(game.body.x)));
   const biome = BIOMES[game.world.biome[col] as BiomeId]?.name ?? '';
   return [
-    `Deepest dive ${game.stats.deepest} m   Bosses ${game.biomeBossesBeaten()}/${BIOME_BOSSES.length}   Codex ${game.codex.length}`,
+    `Deepest dive ${game.stats.deepest} m   Bosses ${game.gateBossesBeaten()}/${GATE_BOSSES.length}   Codex ${game.codex.length}`,
     `Now in the ${biome}, ${Math.floor(game.depth)} m down`,
     `Play my world: code ${game.seedCode}`,
   ];

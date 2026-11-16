@@ -681,6 +681,14 @@ function boot(): void {
       case 'zappad':
         fx.burst(e.x, e.y - 0.1, '#7af0e0', 6, 3);
         break;
+      case 'gridfire':
+        fx.addShake(0.15);
+        break;
+      case 'gridhit':
+        fx.burst(e.x, e.y - 0.8, '#eaffd0', 12, 6);
+        fx.addShake(0.3);
+        ui.toast('Burned! Stand in the gaps between the beams', '#5aff9a', 1.6);
+        break;
       case 'zaphit':
         fx.burst(e.x, e.y - 0.3, '#fff4f8', 10, 6);
         fx.addShake(0.3);

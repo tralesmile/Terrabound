@@ -5,8 +5,9 @@
  */
 import { hash2 } from '../sim/rng';
 import { BOSSES, type BossId } from '../sim/bosses';
+import { drawWardenBoss } from './wardenart';
 
-export type BossStyle = 'scrap' | 'vine' | 'crystal' | 'ice' | 'ember' | 'core';
+export type BossStyle = 'scrap' | 'vine' | 'crystal' | 'ice' | 'ember' | 'core' | 'logic';
 export type PartShape = 'box' | 'disc' | 'diamond' | 'spike' | 'wedge' | 'drip';
 
 export const BOSS_OUTLINE = '#161a24';
@@ -228,6 +229,7 @@ export const BOSS_ART: Record<BossId, ArtDef> = {
   golem: { style: 'crystal', head: 'box', ornament: 'shards', torso: 'wedge', fist: { shape: 'diamond', base: '#8a6ad8', scale: 1.6 }, heart: 'geode' },
   titan: { style: 'ice', head: 'box', ornament: 'horns', torso: 'wedge', fist: { shape: 'box', base: '#a8cce4', scale: 1.45 }, heart: 'rune' },
   wyrm: { style: 'ember', head: 'box', ornament: 'none' },
+  warden: { style: 'logic', head: 'box', ornament: 'none' },
   hollow_ai: { style: 'core', head: 'disc', ornament: 'none' },
 };
 
@@ -836,6 +838,7 @@ export function drawBossArt(ctx: CanvasRenderingContext2D, id: BossId, x: number
   const style = BOSS_ART[id].style;
   const { h: H } = bossArtSize(id);
   if (style === 'core') drawCoreBoss(ctx, id, x, y - (H / 2) * u, u, pose);
+  else if (style === 'logic') drawWardenBoss(ctx, id, x, y - (H / 2) * u, u, pose);
   else if (BOSSES[id].flying) drawWyrmBoss(ctx, id, x, y - (H / 2) * u, u, pose);
   else drawWalkerBoss(ctx, id, x, y, u, pose);
 }

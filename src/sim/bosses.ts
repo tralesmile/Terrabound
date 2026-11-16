@@ -9,8 +9,8 @@ import type { Inventory, ItemId } from './tiles';
 import type { World } from './world';
 import type { Zap } from './arenazap';
 
-export type BossId = 'colossus' | 'vine_queen' | 'golem' | 'wyrm' | 'titan' | 'hollow_ai';
-export type AttackKind = 'slam' | 'rain' | 'charge' | 'volley' | 'summon';
+export type BossId = 'colossus' | 'vine_queen' | 'golem' | 'wyrm' | 'titan' | 'warden' | 'hollow_ai';
+export type AttackKind = 'slam' | 'rain' | 'charge' | 'volley' | 'summon' | 'grid';
 
 export interface BossDef {
   name: string;
@@ -49,12 +49,15 @@ export const BOSSES: Record<BossId, BossDef> = {
   golem: { name: 'Crystal Golem', biome: B.CRYSTAL, hp: 640, halfW: 1.5, h: 3.6, speed: 1.8, flying: false, contact: 22, attacks: ['slam', 'volley', 'rain'], cooldown: 2.6, minion: 'mite', beacon: 'beacon_golem', reward: { crystal: 25, metal: 10 }, gear: 'prism_lance', trinket: 'prism_eye', color: '#4f3a8a', accent: '#d8b8ff', eye: '#8ff4ff' },
   wyrm: { name: 'Ash Wyrm', biome: B.ASH, hp: 700, halfW: 1.3, h: 1.8, speed: 4.2, flying: true, contact: 24, attacks: ['charge', 'volley', 'rain'], cooldown: 2.0, minion: 'ember', beacon: 'beacon_wyrm', reward: { crystal: 18, copper_wire: 20 }, gear: 'ember_cannon', trinket: 'ember_wing', color: '#3a1f1a', accent: '#ff8a3c', eye: '#ffd24a' },
   hollow_ai: { name: 'The Hollow AI', biome: -1, layer: 3, hp: 2200, halfW: 1.8, h: 3.2, speed: 3.2, flying: true, contact: 30, attacks: ['volley', 'rain', 'summon', 'charge', 'volley'], cooldown: 1.8, minion: 'flyer', beacon: 'beacon_ai', reward: { core_shard: 20, crystal: 40, plasma: 20 }, gear: 'ai_crown', trinket: 'null_core', color: '#2a1a3a', accent: '#ff5aff', eye: '#ffffff', floorZaps: true },
+  warden: { name: 'Logic Warden', biome: -1, layer: 1, hp: 1000, halfW: 1.4, h: 2.8, speed: 2.6, flying: true, contact: 20, attacks: ['grid', 'volley', 'summon', 'grid', 'charge'], cooldown: 2.2, minion: 'mite', beacon: 'beacon_warden', reward: { circuit: 20, crystal: 15, copper_wire: 20 }, gear: 'logic_repeater', trinket: 'logic_chip', color: '#1c2b33', accent: '#5aff9a', eye: '#eaffd0' },
   titan: { name: 'Frost Titan', biome: B.FROST, hp: 820, halfW: 1.7, h: 4.0, speed: 1.6, flying: false, contact: 26, attacks: ['slam', 'rain', 'volley', 'summon'], cooldown: 2.5, minion: 'hulk', beacon: 'beacon_titan', reward: { crystal: 30, metal: 25 }, gear: 'frost_core', trinket: 'frost_heart', color: '#5a7390', accent: '#e6f6ff', eye: '#36e0e8' },
 };
 export const BOSS_IDS = Object.keys(BOSSES) as BossId[];
-/** The five biome bosses (the gates count these); the Hollow AI is the final boss. */
+/** The five biome bosses; the Logic Warden guards the Circuit layer and the Hollow AI is the final boss. */
 export const BIOME_BOSSES = BOSS_IDS.filter((id) => BOSSES[id].layer === undefined);
 export const FINAL_BOSS: BossId = 'hollow_ai';
+/** Bosses that count toward opening the layer gates: the biome bosses plus the Circuit layer's Logic Warden. */
+export const GATE_BOSSES = BOSS_IDS.filter((id) => id !== FINAL_BOSS);
 
 /** Telegraph (warning) and active time per attack. */
 export const ATTACK_TIME: Record<AttackKind, { warn: number; act: number }> = {
@@ -63,6 +66,7 @@ export const ATTACK_TIME: Record<AttackKind, { warn: number; act: number }> = {
   charge: { warn: 0.6, act: 1.1 },
   volley: { warn: 0.5, act: 0.9 },
   summon: { warn: 0.8, act: 0.3 },
+  grid: { warn: 0.95, act: 0.45 },
 };
 
 export const SLAM_RADIUS = 6;

@@ -25,6 +25,7 @@ const BASE: Record<BossId, HitVoice> = {
   golem: { freq: 1320, type: 'triangle', slide: 1180, ring: 1980, noise: 0.02, noiseVol: 0.06, vol: 0.07, dur: 0.22 },
   wyrm: { freq: 180, type: 'sawtooth', slide: 70, ring: 0, noise: 0.14, noiseVol: 0.2, vol: 0.05, dur: 0.12 },
   titan: { freq: 900, type: 'square', slide: 300, ring: 1800, noise: 0.08, noiseVol: 0.16, vol: 0.04, dur: 0.09 },
+  warden: { freq: 700, type: 'square', slide: 1400, ring: 2100, noise: 0.02, noiseVol: 0.08, vol: 0.045, dur: 0.07 },
   hollow_ai: { freq: 520, type: 'square', slide: 1560, ring: 260, noise: 0.03, noiseVol: 0.1, vol: 0.05, dur: 0.08 },
 };
 

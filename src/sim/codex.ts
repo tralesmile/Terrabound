@@ -40,6 +40,7 @@ const BOSS_NOTES: Record<string, string> = {
   golem: 'Crystal Flats. Its prism volley telegraphs with a glow. Move, then hit.',
   wyrm: 'Ash Dunes. Burrows and charges. Stay off the sand when it dives.',
   titan: 'Frozen Spires. Huge reach and frost minions. Patience wins this one.',
+  warden: 'Circuit layer. A logic monolith that walls its arena with laser beams. Stand in the gaps.',
   hollow_ai: 'The Core. The mind under the planet. Beat it to end the Hollow.',
 };
 

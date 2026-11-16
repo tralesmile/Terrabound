@@ -16,6 +16,7 @@ export type ItemId =
   | 'beacon_golem'
   | 'beacon_wyrm'
   | 'beacon_titan'
+  | 'beacon_warden'
   | 'beacon_ai'
   | 'circuit'
   | 'plasma'
@@ -75,6 +76,7 @@ export const ITEM_IDS: ItemId[] = [
   'beacon_golem',
   'beacon_wyrm',
   'beacon_titan',
+  'beacon_warden',
   'beacon_ai',
   'circuit',
   'plasma',
@@ -336,6 +338,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   beacon_golem: { name: 'Prism beacon', color: '#d8b8ff', places: null },
   beacon_wyrm: { name: 'Ember beacon', color: '#ff8a3c', places: null },
   beacon_titan: { name: 'Frost beacon', color: '#e6f6ff', places: null },
+  beacon_warden: { name: 'Logic key', color: '#5aff9a', places: null },
   beacon_ai: { name: 'Core key', color: '#ff5aff', places: null },
   circuit: { name: 'Gold circuit', color: '#ffcf4a', places: null },
   plasma: { name: 'Plasma cell', color: '#ff5a8a', places: null },

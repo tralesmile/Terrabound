@@ -85,6 +85,7 @@ export type GearId =
   | 'prism_lance'
   | 'ember_cannon'
   | 'frost_core'
+  | 'logic_repeater'
   | 'ai_crown'
   | 'plasma_saber'
   | 'core_plate'
@@ -103,6 +104,7 @@ export type GearId =
   | 'prism_eye'
   | 'ember_wing'
   | 'frost_heart'
+  | 'logic_chip'
   | 'null_core';
 
 export const GEAR: Record<GearId, GearDef> = {
@@ -128,6 +130,7 @@ export const GEAR: Record<GearId, GearDef> = {
   thorn_whip: { name: 'Thorn whip', slot: 'melee', desc: 'Vine Queen trophy: 4.5 tile reach, 20 damage', cost: {}, mod: { meleeDmg: 20, meleeRange: 4.5, meleeCd: 0.32 }, bossOnly: true, color: '#7fcf5a', accent: '#ff7ab8' },
   prism_lance: { name: 'Prism lance', slot: 'ranged', desc: 'Golem trophy: piercing beam, 26 damage', cost: {}, mod: { ranged: 'rail', rangedDmg: 26, rangedCd: 0.4 }, bossOnly: true, color: '#d8b8ff', accent: '#8ff4ff' },
   ember_cannon: { name: 'Ember cannon', slot: 'ranged', desc: 'Wyrm trophy: heavy bombs, 34 damage', cost: {}, mod: { ranged: 'bomb', rangedDmg: 34, rangedCd: 0.7 }, bossOnly: true, color: '#ff8a3c', accent: '#ffd24a' },
+  logic_repeater: { name: 'Logic repeater', slot: 'ranged', desc: 'Warden trophy: rapid piercing bolts, 18 damage', cost: {}, mod: { ranged: 'rail', rangedDmg: 18, rangedCd: 0.22 }, bossOnly: true, color: '#5aff9a', accent: '#eaffd0' },
   frost_core: { name: 'Frost core armor', slot: 'body', desc: 'Titan trophy: 35% armor, +40 health', cost: {}, mod: { armor: 0.35, maxHp: 40 }, bossOnly: true, color: '#e6f6ff', accent: '#36e0e8' },
   ai_crown: { name: 'Crown of the Hollow', slot: 'head', desc: 'Final trophy: 20% armor, +4 light, +50% dig speed', cost: {}, mod: { armor: 0.2, light: 4, digMul: 1.5 }, bossOnly: true, color: '#ff5aff', accent: '#ffffff' },
   plasma_saber: { name: 'Plasma saber', slot: 'melee', desc: 'Deep-layer blade: 40 damage, 3 tile reach', cost: { plasma: 8, circuit: 6, metal: 10 }, mod: { meleeDmg: 40, meleeRange: 3, meleeCd: 0.3 }, color: '#ff5a8a', accent: '#ffd0e0' },
@@ -149,6 +152,7 @@ export const GEAR: Record<GearId, GearDef> = {
   prism_eye: { name: 'Prism eye', slot: 'acc', desc: 'Golem trinket: +3 light radius, +20% dig speed', cost: {}, mod: { light: 3, digMul: 1.2 }, bossOnly: true, color: '#d8b8ff', accent: '#8ff4ff' },
   ember_wing: { name: 'Ember wing', slot: 'acc', desc: 'Wyrm trinket: one extra air jump, battery lasts 10% longer', cost: {}, mod: { airJumps: 1, drainMul: 0.9 }, bossOnly: true, color: '#ff8a3c', accent: '#ffd24a' },
   frost_heart: { name: 'Frost heart', slot: 'acc', desc: 'Titan trinket: 12% armor, +20 health', cost: {}, mod: { armor: 0.12, maxHp: 20 }, bossOnly: true, color: '#e6f6ff', accent: '#36e0e8' },
+  logic_chip: { name: 'Logic chip', slot: 'acc', desc: 'Warden trinket: +20% dig speed, battery lasts 15% longer', cost: {}, mod: { digMul: 1.2, drainMul: 0.85 }, bossOnly: true, color: '#5aff9a', accent: '#eaffd0' },
   null_core: { name: 'Null core', slot: 'acc', desc: 'Hollow AI trinket: battery lasts 30% longer, pulls loot from 8 tiles', cost: {}, mod: { drainMul: 0.7, magnet: 8 }, bossOnly: true, color: '#ff5aff', accent: '#ffffff' },
   sky_jet: { name: 'Sky Jet', slot: 'vehicle', desc: 'Garage: a small plane, fly anywhere (uses battery)', cost: { metal: 20, copper_wire: 12, crystal: 8 }, mod: {}, garage: true, color: '#5aa6ff', accent: '#ffffff' },
   cargo_lifter: { name: 'Cargo Lifter', slot: 'vehicle', desc: 'Garage: a heavy plane with a +30 cargo hold (uses battery)', cost: { metal: 26, iron_scrap: 12, copper_wire: 14, crystal: 10 }, mod: {}, garage: true, color: '#f0b43c', accent: '#ffffff' },

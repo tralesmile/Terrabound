@@ -358,6 +358,14 @@ export class Sfx {
           this.tone(3136, 0.05, 'sine', 0.025, undefined, 0.01);
         }
         break;
+      case 'gridfire':
+        this.tone(1800, 0.25, 'sawtooth', 0.05, 900);
+        this.tone(450, 0.3, 'square', 0.04, 440);
+        break;
+      case 'gridhit':
+        this.noise(0.12, 0.3);
+        this.tone(1500, 0.12, 'square', 0.07, 600);
+        break;
       case 'zaphit':
         this.noise(0.15, 0.35);
         this.tone(1200, 0.12, 'square', 0.07, 300);

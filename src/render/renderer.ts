@@ -70,6 +70,7 @@ import { ATTACK_TIME, BOSSES, phase as bossPhase } from '../sim/bosses';
 import { BOSS_ART, SHELL_PLATES, drawBossArt, shade, shellPlates, slamRaise } from './bossart';
 import { FloorMemo, arenaFloor, drawArenaFloor, drawArenaZap } from './arenafx';
 import { safePads } from '../sim/arenazap';
+import { drawGridBeams } from './gridfx';
 import { boltTrail, drawBossMuzzle, drawBossTelegraph, drawSummonTelegraph } from './bosstele';
 import { ACT_INFO } from '../sim/drones';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, isCeilingSlope, leafMask, nextSink, slopeSink, SLOPE_CR, SLOPE_R, slopeBottom, slopeShape, slopeTop } from './autotile';
@@ -3057,6 +3058,8 @@ export class Renderer {
   zapLit = 0;
   /** Insulator pad cells drawn in the Hollow AI arena last frame (e2e probe). */
   padCells = 0;
+  /** Logic Warden grid beams (or telegraph guides) drawn last frame (e2e probe). */
+  gridBeams = 0;
 
   private drawBoss(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
     const bs = game.boss;
@@ -3085,6 +3088,7 @@ export class Renderer {
     }
     drawBossTelegraph(ctx, bs, tv, time);
     drawSummonTelegraph(ctx, bs, tv, time);
+    this.gridBeams = drawGridBeams(ctx, bs, tv, time, (x, y) => game.world.isSolid(x, y));
     drawBossArt(ctx, bs.id, cx, by, u, {
       facing: bs.facing,
       age: bs.age,

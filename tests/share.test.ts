@@ -8,7 +8,7 @@ describe('share card text', () => {
     const g = new Game(defaultSave());
     const lines = shareLines(g);
     expect(lines.length).toBe(3);
-    expect(lines[0]).toContain('Bosses 0/5');
+    expect(lines[0]).toContain('Bosses 0/6');
     expect(lines[1]).toContain('Rust Wastes');
     expect(lines[2]).toContain(g.seedCode);
   });

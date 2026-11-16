@@ -946,7 +946,7 @@ export function iconDef(id: ItemId | Tool | string): IconDef {
     return { pal, rows: SHAPES[shape] };
   }
   if (id.startsWith('beacon_')) {
-    const col = { beacon_colossus: '#c77a5e', beacon_vine: '#7fcf5a', beacon_golem: '#d8b8ff', beacon_wyrm: '#ff8a3c', beacon_titan: '#e6f6ff', beacon_ai: '#ff5aff' }[id] ?? '#ffcf4a';
+    const col = { beacon_colossus: '#c77a5e', beacon_vine: '#7fcf5a', beacon_golem: '#d8b8ff', beacon_wyrm: '#ff8a3c', beacon_titan: '#e6f6ff', beacon_warden: '#5aff9a', beacon_ai: '#ff5aff' }[id] ?? '#ffcf4a';
     return { pal: { a: '#5d6a80', b: col }, rows: SHAPES.beacon };
   }
   if (id.startsWith('mod_') && MODS[id.slice(4) as ModId]) {

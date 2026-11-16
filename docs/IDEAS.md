@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-16 run 70
+
+- Done this run: Boss 2 Logic Warden with a laser-grid attack (26f/26g/26h): a read-the-floor dodge like Dome Keeper/Enter the Gungeon patterns; every other boss attack was a jump or a strafe, the grid asks you to pick a lane.
+- Checked, dropped: the "melee hit-stop" idea from run 69 already exists (`HITSTOP` 40 ms on enemy and boss hits); read the code before carrying an idea.
+- Weakest graphics (ground): strata bands follow the generated surface, so a flattened or dug area shows hard-edged band rectangles (26-boss); key the band depth on the current top solid tile, cached per column.
+- Weakest progression: the Circuit layer has a boss but no set; a Circuit set (helm + suit from gold circuits) would pay off the Warden's materials.
+- Weakest UI: the boss bar is the same orange for every boss; tint it with the boss accent (green Warden, pink Hollow AI).
+
 ## 2026-11-16 run 69
 
 - Done this run: the swing is a filled crescent smear from the shoulder over the whole sweep, thick at the blade (05c; Terraria/Core Keeper slashes read as one arc, ours was a dash floating ahead); a full armour set breathes an aura in the set colour with rising motes (18e).

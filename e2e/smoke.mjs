@@ -1303,7 +1303,7 @@ try {
     return { sec: ui.codexSec, shown: ui.codexShown, hulk: game.codexRows.find((r) => r.id === 'enemy:hulk')?.found, foot: ui.codexFoot, tk: game.trinkets };
   });
   await page.screenshot({ path: path.join(out, '51b-codex-creatures.png') });
-  check('the creatures codex footer counts boss trinkets collected', codex2.foot.includes(`Trinkets ${codex2.tk.found}/6`), JSON.stringify({ foot: codex2.foot, tk: codex2.tk }));
+  check('the creatures codex footer counts boss trinkets collected', codex2.tk.total === 7 && codex2.foot.includes(`Trinkets ${codex2.tk.found}/${codex2.tk.total}`), JSON.stringify({ foot: codex2.foot, tk: codex2.tk }));
   check('CREATURES tab lists enemies and bosses; a kill reveals its entry', codex2.sec === 'creatures' && codex2.shown >= 6 && codex2.hulk === true, JSON.stringify(codex2));
   await page.evaluate(() => window.__terrabound.game.emit({ t: 'lore', text: 'LOG 07: Drones refuse orders below 60m. Something talks to them.' }));
   await clickAct("r.a.k === 'codexsec' && r.a.sec === 'logs'");
@@ -2276,6 +2276,38 @@ try {
     check('Crystal Golem shows a glowing geode heart and throws glittering shards on a slam', golemArt.cyan > 15 && golemArt.white >= 4, JSON.stringify(golemArt));
     const titanArt = await reskin('titan', '26e-titan.png');
     check('Frost Titan shows a glowing frost rune and throws ice shards on a slam', titanArt.cyan > 15 && titanArt.white >= 4, JSON.stringify(titanArt));
+    // Logic Warden: a floating circuit monolith; its laser grid telegraphs thin guide lines across the
+    // arena, then fires white-hot beams in green glow. The player is kept invulnerable while it is held.
+    const wardenLook = (attack, at) => page.evaluate(async ({ attack, at }) => {
+      const { game: g, renderer } = window.__terrabound;
+      clearInterval(window.__bossHold);
+      g.boss.id = 'warden';
+      g.boss.hp = 1000;
+      window.__bossHold = setInterval(() => { const b = g.boss; if (!b) return; b.attack = attack; b.at = at; b.cd = 5; b.vx = 0; g.iframes = Math.max(g.iframes, 1); }, 4);
+      await new Promise((r) => setTimeout(r, 350));
+      const b = g.boss;
+      const ctx = document.querySelector('canvas').getContext('2d');
+      const p = renderer.worldToScreen(b.x, b.y - 1.4);
+      const d = ctx.getImageData(Math.round(p.x) - 40, Math.round(p.y) - 40, 80, 80).data;
+      let green = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i] < 170 && d[i + 1] > 200 && d[i + 2] > 110 && d[i + 2] < 220) green++;
+      // A strip across the screen at the player's chest: beam light crossing it.
+      const c = document.querySelector('canvas');
+      const q = renderer.worldToScreen(g.body.x, g.body.y - 1);
+      const row = ctx.getImageData(0, Math.round(q.y), c.width, 2).data;
+      let lit = 0;
+      for (let i = 0; i < row.length; i += 4) if (row[i + 1] > 200 && row[i] > 120) lit++;
+      return { green, lit, beams: renderer.gridBeams };
+    }, { attack, at });
+    const wardenRest = await wardenLook(null, 0);
+    await page.screenshot({ path: path.join(out, '26f-warden.png') });
+    const wardenWarn = await wardenLook('grid', -0.3);
+    await page.screenshot({ path: path.join(out, '26g-warden-telegraph.png') });
+    const wardenFire = await wardenLook('grid', 0.1);
+    await page.screenshot({ path: path.join(out, '26h-warden-grid.png') });
+    await holdBoss(null);
+    check('Logic Warden is drawn as a green-lit circuit monolith', wardenRest.green > 30 && wardenRest.beams === 0, JSON.stringify(wardenRest));
+    check('Logic Warden grid telegraphs guide lines, then fires bright beams across the arena', wardenWarn.beams >= 8 && wardenFire.beams >= 8 && wardenFire.lit > wardenWarn.lit * 2 && wardenFire.lit > wardenRest.lit + 40, JSON.stringify({ wardenWarn, wardenFire }));
     // Hollow AI art pass: a battered plate shell round the core; plates break off (with debris) and
     // glowing seams and cracks show as its health drops.
     await page.evaluate(() => { const b = window.__terrabound.game.boss; window.__hpSave = b.hp; b.id = 'hollow_ai'; b.hp = 2200; b.iframes = 0; b.zapCd = 99; });
