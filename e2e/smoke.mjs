@@ -2310,6 +2310,31 @@ try {
     await page.screenshot({ path: path.join(out, '26g-warden-telegraph.png') });
     const wardenFire = await wardenLook('grid', 0.1);
     await page.screenshot({ path: path.join(out, '26h-warden-grid.png') });
+    // Phase 2 adds a floor tripwire across the arena: a bright horizontal band at the player's feet.
+    await page.evaluate(() => { window.__terrabound.game.boss.hp = 300; });
+    const barLook = async (at) => {
+      await page.evaluate(({ at }) => {
+        const { game: g } = window.__terrabound;
+        clearInterval(window.__bossHold);
+        window.__bossHold = setInterval(() => { const b = g.boss; if (!b) return; b.hp = 300; b.attack = 'grid'; b.at = at; b.cd = 5; b.vx = 0; g.iframes = Math.max(g.iframes, 1); }, 4);
+      }, { at });
+      await page.waitForTimeout(350);
+      return page.evaluate(() => {
+        const { game: g, renderer } = window.__terrabound;
+        const ctx = document.querySelector('canvas').getContext('2d');
+        const c = document.querySelector('canvas');
+        const q = renderer.worldToScreen(g.body.x, g.body.y - 0.45);
+        const row = ctx.getImageData(0, Math.round(q.y), c.width, 1).data;
+        let lit = 0;
+        for (let i = 0; i < row.length; i += 4) if (row[i + 1] > 200 && row[i] > 120) lit++;
+        return lit;
+      });
+    };
+    const barWarn = await barLook(-0.3);
+    const barFire = await barLook(0.1);
+    await page.screenshot({ path: path.join(out, '26h2-warden-tripwire.png') });
+    check('Logic Warden phase 2 fires a floor tripwire across the arena', barFire > barWarn + 60, JSON.stringify({ barWarn, barFire }));
+    await page.evaluate(() => { window.__terrabound.game.boss.hp = 1000; });
     await holdBoss(null);
     await page.evaluate(() => { const b = window.__terrabound.game.boss; b.x = window.__wardenHome.x; b.y = window.__wardenHome.y; b.vy = 0; });
     check('Logic Warden is drawn as a green-lit circuit monolith', wardenRest.green > 30 && wardenRest.beams === 0, JSON.stringify(wardenRest));

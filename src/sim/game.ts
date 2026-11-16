@@ -35,7 +35,7 @@ import { SOIL_TILES, growTime, inLavafall, stepSaplings, type Structure } from '
 import { ERUPT, bombHits, coneLive, craterOf, launchMarked, nearestCone, nextGap, stepBomb, type LavaBomb } from './eruptions';
 import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
 import { ZAP_DMG, padsReached, safePads, stepZap, zapHits, zapRadius } from './arenazap';
-import { GRID_DMG, gridColumns, gridFiring, gridHits } from './lasergrid';
+import { GRID_DMG, gridBarHits, gridColumns, gridFiring, gridFloorY, gridHits } from './lasergrid';
 import { BIOME_BOSSES, BOSS_IDS, GATE_BOSSES, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossContact, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
 import { BIOMES, type BiomeId } from './biomes';
 import { LAYERS, layerAt, openGates } from './layers';
@@ -2690,7 +2690,7 @@ export class Game {
     const out = stepBoss(bs, this.world, dt, b.x, b.y, this.rng);
     // Logic Warden laser grid: beams stand across the arena for a moment; the lanes between are safe.
     if (!wasLive && gridFiring(bs)) this.emit({ t: 'gridfire', x: bs.x, y: bs.y - d.h / 2, n: gridColumns(bs).length });
-    if (this.iframes === 0 && gridHits(bs, b.x, HALF_W)) {
+    if (this.iframes === 0 && (gridHits(bs, b.x, HALF_W) || (gridFiring(bs) && gridBarHits(bs, gridFloorY((x, y) => this.world.isSolid(x, y), bs), b.y, b.x)))) {
       this.hurt(GRID_DMG);
       this.iframes = 0.6;
       b.vy = Math.min(b.vy, -6);

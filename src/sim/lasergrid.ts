@@ -47,3 +47,25 @@ export function safeLane(b: Boss, x: number): number {
   }
   return best;
 }
+
+/** Phase 2 twist: a tripwire beam skims the whole arena floor, so standing in a lane is not enough; hop it. */
+export const GRID_BAR_H = 0.9;
+
+export function gridBarActive(b: Boss): boolean {
+  return phase(b) === 2 && b.attack === 'grid';
+}
+
+/** First solid row below the boss at its column: the arena floor the tripwire rides on. Pure. */
+export function gridFloorY(isSolid: (x: number, y: number) => boolean, b: Boss, maxDepth = 30): number {
+  const tx = Math.floor(b.x);
+  const y0 = Math.max(0, Math.floor(b.y));
+  for (let y = y0; y < y0 + maxDepth; y++) if (isSolid(tx, y)) return y;
+  return y0 + maxDepth;
+}
+
+/** Does the live tripwire catch a body whose feet are at feetY (y grows downward) and centre at x? */
+export function gridBarHits(b: Boss, floorY: number, feetY: number, x: number): boolean {
+  if (!gridBarActive(b) || !gridFiring(b)) return false;
+  if (x < b.ax0 || x > b.ax1) return false;
+  return feetY > floorY - GRID_BAR_H;
+}

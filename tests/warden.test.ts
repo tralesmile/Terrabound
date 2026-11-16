@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FIXED_DT, Game, NO_CONTROLS } from '../src/sim/game';
 import { ATTACK_TIME, BOSSES, GATE_BOSSES, makeBoss, stepBoss } from '../src/sim/bosses';
-import { GRID_GAP, GRID_GAP_P2, GRID_HALF, gridColumns, gridFiring, gridHits, safeLane } from '../src/sim/lasergrid';
+import { GRID_BAR_H, gridBarHits, gridFloorY, GRID_GAP, GRID_GAP_P2, GRID_HALF, gridColumns, gridFiring, gridHits, safeLane } from '../src/sim/lasergrid';
 import { LAYERS } from '../src/sim/layers';
 import { defaultSave } from '../src/sim/save';
 import { GEAR } from '../src/sim/gear';
@@ -113,6 +113,41 @@ describe('laser grid', () => {
       const hp = g.hp;
       g.step(FIXED_DT, NO_CONTROLS);
       expect(g.hp < hp).toBe(!inLane);
+    }
+  });
+
+  it('phase 2 adds a floor tripwire that only a hop clears; phase 1 has none', () => {
+    const b = makeBoss('warden', 100, 40);
+    b.attack = 'grid';
+    b.at = 0.1;
+    expect(gridBarHits(b, 50, 50, 100)).toBe(false);
+    b.hp = BOSSES.warden.hp * 0.4;
+    expect(gridBarHits(b, 50, 50, 100)).toBe(true);
+    expect(gridBarHits(b, 50, 50 - GRID_BAR_H - 0.1, 100)).toBe(false);
+    b.at = -0.3;
+    expect(gridBarHits(b, 50, 50, 100)).toBe(false);
+    b.at = 0.1;
+    expect(gridBarHits(b, 50, 50, b.ax1 + 5)).toBe(false);
+    expect(gridFloorY((_x, y) => y >= 47, b)).toBe(47);
+  });
+
+  it('the game burns a grounded player in a lane in phase 2 but not one mid-hop', () => {
+    for (const hop of [false, true]) {
+      const g = new Game(defaultSave());
+      circuitArena(g);
+      g.carried = { beacon_warden: 1 };
+      g.useItem('beacon_warden');
+      const bs = g.boss;
+      if (!bs) throw new Error('no boss');
+      bs.hp = BOSSES.warden.hp * 0.4;
+      bs.attack = 'grid';
+      bs.at = 0.01;
+      bs.x = g.body.x + 12;
+      g.body.x = safeLane(bs, g.body.x);
+      if (hop) g.body.y -= 2.5;
+      const hp = g.hp;
+      g.step(FIXED_DT, NO_CONTROLS);
+      expect(g.hp < hp).toBe(!hop);
     }
   });
 

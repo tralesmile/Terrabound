@@ -5,7 +5,7 @@
  * Beams stop on the first floor below the boss, with a scorch glow where they land. The helpers are pure.
  */
 import { ATTACK_TIME, BOSSES, type Boss } from '../sim/bosses';
-import { GRID_HALF, gridColumns, gridFiring } from '../sim/lasergrid';
+import { GRID_BAR_H, GRID_HALF, gridBarActive, gridColumns, gridFiring, gridFloorY } from '../sim/lasergrid';
 import type { TeleView } from './bosstele';
 
 export interface GridLook {
@@ -90,6 +90,32 @@ export function drawGridBeams(ctx: CanvasRenderingContext2D, b: Boss, tv: TeleVi
       ctx.ellipse(x, bot, w * 1.6, tv.u * 3, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.globalCompositeOperation = 'source-over';
+    }
+  }
+  if (gridBarActive(b)) {
+    // Phase 2 tripwire: a flat beam skimming the floor across the whole arena; hop it.
+    const fy = gridFloorY(isSolid, b);
+    const y1 = tv.sy(fy);
+    const hh = GRID_BAR_H * tv.ts;
+    const xa = tv.sx(b.ax0);
+    const xb = tv.sx(b.ax1);
+    ctx.fillStyle = d.accent;
+    if (!look.live) {
+      ctx.globalAlpha = look.alpha * (0.75 + 0.25 * Math.sin(time * 40));
+      const dash = tv.u * 6;
+      const shift = (time * 60 * tv.u) % (dash * 2);
+      const th = Math.max(tv.u, look.width * tv.ts);
+      for (let x = xa - dash * 2 + shift; x < xb; x += dash * 2) ctx.fillRect(Math.round(x), Math.round(y1 - hh / 2 - th / 2), Math.ceil(dash), Math.ceil(th));
+    } else {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.35 * look.alpha;
+      ctx.fillRect(xa, Math.round(y1 - hh * 1.2), xb - xa, Math.ceil(hh * 1.4));
+      ctx.globalAlpha = 0.85 * look.alpha;
+      ctx.fillRect(xa, Math.round(y1 - hh), xb - xa, Math.ceil(hh));
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = look.alpha;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(xa, Math.round(y1 - hh / 2 - tv.u), xb - xa, Math.ceil(tv.u * 2));
     }
   }
   ctx.restore();
