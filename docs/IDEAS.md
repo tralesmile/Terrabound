@@ -1,5 +1,11 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-16 run 71
+
+- Done this run: Warden phase 2 tripwire (26h2): phase 2 now asks for lane choice AND a timed hop, like Dome Keeper/Gungeon layered patterns.
+- Weakest gameplay feel (bosses): attacks are readable but silent; give each telegraph a rising tone so the hop can be timed by ear (mobile players watch their thumbs).
+- Weakest graphics (ground): strata bands still ignore dug-out tops (carried).
+
 ## 2026-11-16 run 70
 
 - Done this run: Boss 2 Logic Warden with a laser-grid attack (26f/26g/26h): a read-the-floor dodge like Dome Keeper/Enter the Gungeon patterns; every other boss attack was a jump or a strafe, the grid asks you to pick a lane.
