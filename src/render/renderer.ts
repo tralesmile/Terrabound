@@ -85,6 +85,8 @@ import { scorchK } from './scorchfx';
 import { CONE_PUFFS, CRACK_VARIANTS, DRIFT_H, DRIFT_VARIANTS, conePuff, crackAt, crackPixels, driftPixels } from './ashfx';
 import { GRIME_VARIANTS, HANG_H, HANG_VARIANTS, RCRACK_VARIANTS, grimeAt, grimePixels, SOOT_VARIANTS, hangAt, hangKind, hangPixels, ruinCrackAt, ruinCrackPixels, sootAt, sootPixels } from './ruinfx';
 import { layerAt } from '../sim/layers';
+import { swingStyle, type SwingStyle } from './swingfx';
+import { RARITY, rarityOf } from '../sim/rarity';
 import { ambientColor, layerAmbient, litRemap, type Ambient } from './ambient';
 
 /** Paints pixel arrays (TS wide) side by side into one strip canvas. */
@@ -231,6 +233,8 @@ export class Renderer {
   pullTint: string | null = null;
   /** Layer ambient strength last drawn on the player (0 = none). Debug/e2e. */
   ambientShown = 0;
+  /** e2e: the style of the last melee swing trail drawn (weapon colour + rarity glow). */
+  swingShown: SwingStyle | null = null;
   /** Debug/e2e switch: draw the player, enemies, pets and NPCs without the layer ambient. */
   noAmbient = false;
   /** Sprites (enemies, pet, NPCs) drawn with a layer ambient this frame. Debug/e2e. */
@@ -555,13 +559,38 @@ export class Renderer {
       }
     }
     if (game.swing > 0) {
+      // Swing trail in the weapon's own colours; a rare or epic prefix adds a rarity glow and sparkles.
       const k = 1 - game.swing / 0.18;
-      ctx.strokeStyle = `rgba(120,255,255,${1 - k})`;
-      ctx.lineWidth = scale * 2;
-      ctx.beginPath();
+      const wid = game.equipped('melee');
+      const wg = wid ? GEAR[wid] : null;
+      const rar = rarityOf(wid ? game.prefixOf(wid) : undefined);
+      const st = swingStyle(wg?.color ?? '#78ffff', wg?.accent ?? '#e8ffff', rar, RARITY[rar].color);
+      this.swingShown = st;
       const a0 = game.facing > 0 ? -1.2 + k * 2.2 : Math.PI + 1.2 - k * 2.2;
-      ctx.arc(px, py - 12 * scale, 2 * ts * 0.9, a0 - 0.5, a0 + 0.1);
-      ctx.stroke();
+      const R = 2 * ts * 0.9;
+      const cy = py - 12 * scale;
+      ctx.save();
+      ctx.lineCap = 'round';
+      for (const l of st.layers) {
+        ctx.globalAlpha = l.alpha * (1 - k);
+        ctx.strokeStyle = l.color;
+        ctx.lineWidth = scale * l.width;
+        ctx.beginPath();
+        ctx.arc(px, cy, R * l.r, a0 - 0.5, a0 + 0.1);
+        ctx.stroke();
+      }
+      if (st.sparkles > 0) {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = RARITY[rar].color;
+        for (let i = 0; i < st.sparkles; i++) {
+          const a = a0 - 0.5 + (0.6 * (i + 0.5)) / st.sparkles;
+          const tw = 0.5 + 0.5 * Math.sin(time * 40 + i * 2.1);
+          ctx.globalAlpha = (1 - k) * tw;
+          const sz = scale * (1 + tw);
+          ctx.fillRect(px + Math.cos(a) * R * 1.08 - sz / 2, cy + Math.sin(a) * R * 1.08 - sz / 2, sz, sz);
+        }
+      }
+      ctx.restore();
     }
     // Boss: big procedural body, attack telegraph and its bolts.
     if (game.boss) this.drawBoss(ctx, game, shakeX, shakeY, time);

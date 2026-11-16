@@ -191,6 +191,13 @@ export class Sfx {
         // Boss drop: a long bright tail so the loot beam sings.
         if (e.boss) this.tone(1568, 0.6, 'sine', 0.05, 2093, 0.3);
         break;
+      case 'weaponfound': {
+        // Treasure sparkle, then one extra note per rarity step (same ladder as a reforge).
+        this.tone(660, 0.12, 'triangle', 0.08, 880);
+        const n = 2 + ['common', 'rare', 'epic'].indexOf(PREFIXES[e.prefix].rarity);
+        [880, 1109, 1319, 1760].slice(0, n).forEach((f, i) => this.tone(f, 0.16, 'triangle', 0.07, undefined, 0.08 + i * 0.08));
+        break;
+      }
       case 'airjump':
         // Lighter and higher than a ground jump, with a soft airy chirp on top.
         this.tone(420, 0.1, 'square', 0.05, 760);

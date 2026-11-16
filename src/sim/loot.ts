@@ -2,6 +2,7 @@
 import { hash2 } from './rng';
 import type { Inventory, ItemId } from './tiles';
 import { GEAR_IDS, GEAR, type GearId } from './gear';
+import { PREFIXES, RARITIES, pickPrefix, type PrefixId, type WeaponSlot } from './rarity';
 
 interface LootRow {
   item: ItemId;
@@ -70,4 +71,50 @@ export function bossBonus(seed: number, trinket: GearId, salt: number, first: bo
   const pool = CHEST_ACCESSORIES.filter((id) => !owned.includes(id));
   if (pool.length === 0) return null;
   return pool[Math.floor(hash2(salt | 0, 91, seed ^ 0x51ee) * pool.length) % pool.length];
+}
+
+/** Weapons that can turn up in world chests: every craftable melee/ranged weapon (not starters or boss trophies). */
+export const CHEST_WEAPONS: GearId[] = GEAR_IDS.filter((id) => (GEAR[id].slot === 'melee' || GEAR[id].slot === 'ranged') && !GEAR[id].bossOnly && Object.keys(GEAR[id].cost).length > 0);
+
+/** Chance that a world chest holds a weapon (when it holds no accessory): 6% near the surface, rising to 20% deep. */
+export function weaponChance(depth: number): number {
+  return Math.min(0.2, 0.06 + Math.max(0, depth) / 500);
+}
+
+export interface WeaponFind {
+  id: GearId;
+  prefix: PrefixId;
+}
+
+/**
+ * The weapon found in a world chest the first time it is opened, or null: always one the player does
+ * not own yet, already rolled with a prefix at the printed reforge odds. Deterministic from the seed and
+ * chest position. Pure.
+ */
+export function chestWeapon(seed: number, x: number, y: number, depth: number, owned: readonly GearId[]): WeaponFind | null {
+  if (hash2(x * 11 + 3, y * 5 + 2, seed ^ 0x3ea9) >= weaponChance(depth)) return null;
+  const pool = CHEST_WEAPONS.filter((id) => !owned.includes(id));
+  if (pool.length === 0) return null;
+  const id = pool[Math.floor(hash2(y + 29, x + 7, seed ^ 0x5bd1) * pool.length) % pool.length];
+  const slot = GEAR[id].slot as WeaponSlot;
+  return { id, prefix: pickPrefix(slot, hash2(x, y + 61, seed ^ 0x77a3), hash2(y, x + 43, seed ^ 0x19c4)) };
+}
+
+/** Rarity rank (0 common .. 2 epic) of a weapon prefix; no prefix is -1 so any roll beats it. */
+export function rarityRank(p: PrefixId | undefined): number {
+  return p ? RARITIES.indexOf(PREFIXES[p].rarity) : -1;
+}
+
+/**
+ * Boss refight weapon roll: the boss's trophy weapon comes back honed with a rare-or-better prefix
+ * (rare 75%, epic 25%), but only when that beats the trophy's current prefix, so refights stop paying
+ * out once it is epic (no endless farming). Never on the first kill. Pure.
+ */
+export function bossWeapon(seed: number, trophy: GearId, salt: number, first: boolean, current: PrefixId | undefined): PrefixId | null {
+  if (first) return null;
+  const slot = GEAR[trophy].slot;
+  if (slot !== 'melee' && slot !== 'ranged') return null;
+  const r1 = 0.6 + 0.4 * hash2(salt | 0, 53, seed ^ 0x4f0e);
+  const p = pickPrefix(slot, r1, hash2(salt | 0, 59, seed ^ 0x2c6b), current);
+  return rarityRank(p) > rarityRank(current) ? p : null;
 }

@@ -617,6 +617,16 @@ function boot(): void {
         fx.burst(e.x + 0.5, e.y + 0.3, g.color, 14, 4);
         break;
       }
+      case 'weaponfound': {
+        const g = GEAR[e.id];
+        const rc = RARITY[PREFIXES[e.prefix].rarity];
+        const name = prefixedName(g.name, e.prefix);
+        ui.toast(e.boss ? `Trophy honed: ${name} (${rc.name})!` : `Found ${name} (${rc.name})! Equip it in the inventory`, rc.color, 4);
+        renderer.lootBeamAt(game, e.x, e.y, rc.color, g.color);
+        fx.ring(e.x + 0.5, e.y + 0.5, PREFIXES[e.prefix].rarity === 'epic' ? 2.2 : 1.4, rc.color, 0.5);
+        fx.burst(e.x + 0.5, e.y + 0.3, rc.color, 18, 4);
+        break;
+      }
       case 'accfull':
         ui.toast(`Accessory sockets full: take one off to wear ${GEAR[e.id].name}`, '#ff9a3c', 2.5);
         break;

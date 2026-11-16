@@ -30,7 +30,7 @@ import {
 } from './tiles';
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
 import { recipeById } from './recipes';
-import { bossBonus, chestAccessory, chestLoot } from './loot';
+import { bossBonus, bossWeapon, chestAccessory, chestLoot, chestWeapon } from './loot';
 import { SOIL_TILES, growTime, inLavafall, stepSaplings, type Structure } from './structures';
 import { ERUPT, bombHits, coneLive, craterOf, launchMarked, nearestCone, nextGap, stepBomb, type LavaBomb } from './eruptions';
 import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
@@ -167,6 +167,8 @@ export type GameEvent =
   | { t: 'novehicle'; reason: string }
   /** An accessory found in a chest (tile x, y); `worn` when it went straight into a free socket. */
   | { t: 'gearfound'; id: GearId; x: number; y: number; worn: boolean; boss?: boolean }
+  /** A weapon found already rolled (chest: a new weapon; boss refight: the trophy comes back honed). */
+  | { t: 'weaponfound'; id: GearId; prefix: PrefixId; x: number; y: number; boss: boolean }
   /** All accessory sockets are full: take one off first. */
   | { t: 'accfull'; id: GearId }
   /** `over`: items carried past the suit pack once out of a cargo vehicle (they stay; pickups pause). */
@@ -2394,7 +2396,20 @@ export class Game {
   /** First look into a world chest: maybe an accessory (owned forever, worn at once if a socket is free). */
   private findAccessory(tx: number, ty: number): void {
     const id = chestAccessory(this.world.seed, tx, ty, ty - this.world.padY, this.save.gear.owned);
-    if (id) this.grantAccessory(id, tx, ty, false);
+    if (id) {
+      this.grantAccessory(id, tx, ty, false);
+      return;
+    }
+    const w = chestWeapon(this.world.seed, tx, ty, ty - this.world.padY, this.save.gear.owned);
+    if (w) this.grantWeapon(w.id, w.prefix, tx, ty, false);
+  }
+
+  /** A rolled weapon found (chest find or a boss trophy honed on a refight): owned, prefix set, not auto-equipped. */
+  private grantWeapon(id: GearId, prefix: PrefixId, x: number, y: number, boss: boolean): void {
+    if (!this.ownsGear(id)) this.save.gear.owned.push(id);
+    this.save.gear.prefix[id] = prefix;
+    this.gearCache = null;
+    this.emit({ t: 'weaponfound', id, prefix, x, y, boss });
   }
 
   /** An accessory found (chest or boss drop): owned forever, worn at once if a socket is free. */
@@ -2619,6 +2634,9 @@ export class Game {
     this.emit({ t: 'bossdown', id: bs.id, first });
     const bonus = bossBonus(this.world.seed, d.trinket, Math.floor(bs.age * 60) + BOSS_IDS.indexOf(bs.id) * 7919, first, this.save.gear.owned);
     if (bonus) this.grantAccessory(bonus, Math.floor(bs.x), Math.floor(bs.y - 1), true);
+    const salt = Math.floor(bs.age * 60) + BOSS_IDS.indexOf(bs.id) * 7919;
+    const honed = this.ownsGear(d.gear) ? bossWeapon(this.world.seed, d.gear, salt, first, this.save.gear.prefix[d.gear]) : null;
+    if (honed) this.grantWeapon(d.gear, honed, Math.floor(bs.x), Math.floor(bs.y - 1), true);
     const rec = this.worldRecord();
     if (rec && noteBoss(rec)) this.emit({ t: 'record', beat: 'boss', value: rec.boss, code: rec.code });
     if (openGates(this.world, this.biomeBossesBeaten()) > 0) this.emit({ t: 'gateopen' });

@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-16 run 67
+
+- Done this run: chests and boss refights drop weapons already rolled (Terraria/Diablo: an epic drop is a moment, refights now have a jackpot that ends at epic); the melee swing trail is drawn in the weapon's own colours with a rarity glow and sparkles (05c), so a good roll shows on every swing.
+- Weakest graphics (character): the held blade sprite in 05-blade is the same cyan for every weapon; draw the held tool in the equipped weapon's colour (plasma axe orange, arc spear violet).
+- Weakest gameplay feel (combat): the swing arc sits far in front of the suit and is short (0.6 rad); a wider arc that starts at the hand would read as a real slash (Core Keeper).
+- Weakest progression: armour pieces are independent; 2-3 piece set bonuses give a reason to collect a theme.
+- Weakest UI: a found weapon is not equipped and the toast is the only hint; a small "NEW" dot on the inventory button until the gear tab is opened.
+
 ## 2026-11-16 run 66
 
 - Done this run: weapon rarity prefixes with a Workshop REFORGE (Terraria goblin tinkerer; odds printed, no money) and rarity rims on weapon cells (08c); per-material break debris (clods, sparks, shards, splinters, leaves) felt on every dig (02b).

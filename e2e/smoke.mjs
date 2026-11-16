@@ -406,6 +406,45 @@ try {
   const hurt = await page.evaluate(() => window.__terrabound.game.enemies.every((e) => e.hp < 24));
   check('blade swing damages an enemy', hurt);
   await page.screenshot({ path: path.join(out, '05-blade.png') });
+  // Epic swing: an epic prefix on the blade draws the trail with a purple glow and sparkles.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g['save'].gear.prefix[g.equipped('melee')] = 'godly';
+    g['gearCache'] = null;
+    g.enemies = [];
+    window.__terrabound.renderer.swingShown = null;
+  });
+  await page.waitForTimeout(350);
+  await page.mouse.down();
+  const epicSwing = await page
+    .waitForFunction(() => {
+      const { game, renderer } = window.__terrabound;
+      const s = renderer.swingShown;
+      return game.swing > 0.08 && s && s.sparkles > 0 ? { sparkles: s.sparkles, glow: s.layers[0].color, layers: s.layers.length } : null;
+    }, null, { polling: 'raf', timeout: 3000 })
+    .then((h) => h.jsonValue())
+    .catch(() => null);
+  await page.screenshot({ path: path.join(out, '05c-epic-swing.png') });
+  await page.mouse.up();
+  check('an epic blade swings a glowing purple trail with sparkles', !!epicSwing && epicSwing.sparkles === 5 && epicSwing.layers === 3, JSON.stringify(epicSwing));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g['save'].gear.prefix = {};
+    g['gearCache'] = null;
+  });
+  // Rolled weapon find: a chest weapon arrives with its prefix, a rarity-coloured toast and a loot beam.
+  const wfind = await page.evaluate(async () => {
+    const { game: g, ui, renderer } = window.__terrabound;
+    ui.toasts = [];
+    g['grantWeapon']('arc_spear', 'vampiric', Math.floor(g.body.x) + 1, Math.floor(g.body.y) - 1, false);
+    await new Promise((r) => setTimeout(r, 250));
+    const out = { toast: ui.toasts.map((t) => t.text).join('|'), beams: renderer.lootShown, prefix: g.prefixOf('arc_spear'), equip: g.equipped('melee') };
+    g['save'].gear.prefix = {};
+    g['save'].gear.owned = g['save'].gear.owned.filter((id) => id !== 'arc_spear');
+    g['gearCache'] = null;
+    return out;
+  });
+  check('a found weapon arrives rolled with a rarity toast and a loot beam, not auto-equipped', wfind.toast.includes('Vampiric Arc spear (Epic)') && wfind.beams > 0 && wfind.prefix === 'vampiric' && wfind.equip !== 'arc_spear', JSON.stringify(wfind));
   // Hit squash: freeze the sim on the hit frame (long hit-stop) and check the crawler draws squashed flat.
   const squash = await page.evaluate(async () => {
     const t = window.__terrabound;

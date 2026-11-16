@@ -12,7 +12,7 @@ export type Rarity = 'common' | 'rare' | 'epic';
 export type WeaponSlot = Extract<GearSlot, 'melee' | 'ranged'>;
 
 export const RARITY: Record<Rarity, { name: string; color: string; weight: number }> = {
-  common: { name: 'Common', color: '#c8d0e0', weight: 60 },
+  common: { name: 'Common', color: '#e8ecf4', weight: 60 },
   rare: { name: 'Rare', color: '#4aa8ff', weight: 30 },
   epic: { name: 'Epic', color: '#c070ff', weight: 10 },
 };
