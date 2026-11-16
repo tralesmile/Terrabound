@@ -125,7 +125,8 @@ World size and variety:
 - [x] Charging bay: a garage placed in the field charges the battery at 30/s under its roof (on foot or riding), green arc + rising motes, steady green lamp when full, toast + hum (run 59)
 - [x] Field garages show on the map as green bolt charge pins (run 61)
 - [x] DEPLOY parks ground vehicles under the carport roof (flyers just outside); a parked vehicle hangs on a dock cable with a green pulse, and the bay charges you while seated (run 61)
-- [ ] Follow-ups (scheduled runs may take these): plane variant with cargo
+- [x] Cargo Lifter: a heavy garage plane (slower, thriftier than the Sky Jet) with a +30 cargo hold while you fly it; four crate bays in the hull light up as the load passes the suit pack; getting out over the pack keeps the load with a toast (run 63)
+- [ ] Follow-ups: open-roof hangar so flyers dock and charge; cargo crates rattle/sway when flying fast
 
 ## P1.8 Owner request 2026-11-11: "add all" (do these FIRST, top to bottom, before P2)
 
@@ -230,7 +231,7 @@ Money (ethical, no paywalls)
 - [x] Accessories in world chests: 10% of shallow chests rising to 30% deep hold an unowned accessory, worn at once if a socket is free, gold toast + ring + sparkle (run 58); feather-charm air jump wisps (run 58)
 - [x] Socket row on phones under the gear grid (run 59)
 - [x] Magnet pull tethers: drops the magnet ring / scout bot reel in draw faint tinted lines with beads sliding into the suit (run 61)
-- [x] Boss bonus accessory roll and boss-only accessories: 6 boss trinkets, 50% on the first kill, sure on a repeat, then 35% for a new craftable; loot beam + gem marks the drop; codex boss cards show the trinket (run 62)
+- [x] Boss bonus accessory roll and boss-only accessories: 6 boss trinkets, 50% on the first kill, sure on a repeat, then 35% for a new craftable; loot beam + gem marks the drop; codex boss cards show the trinket (run 62); creatures codex footer counts "Trinkets n/6" (run 63)
 - [ ] Rarity and weapon modifiers; mod chips; set bonuses
 - [x] Layer 2 Circuit: tiles, ores, enemies, hazards, dark zones (done in P1.8; layers.ts)
 - [x] Boss 1 Junk Colossus with telegraphed attacks and arena (done in P1.8 + P1.10)

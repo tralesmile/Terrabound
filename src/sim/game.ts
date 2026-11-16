@@ -1,5 +1,5 @@
 import { activePaint, nextPaint, type PaintDef, type PaintSlot } from './paints';
-import { CREW_KINDS, codexRows, loreKey, noteCodexEvent, type CodexRow } from './codex';
+import { CREW_KINDS, codexRows, loreKey, noteCodexEvent, trinketCount, type CodexRow } from './codex';
 import { currentGoal, FTUE_STEPS, goalIndex } from './ftue';
 import { foldDive, newDive, tripSince, type DiveReport, type TripReport } from './divereport';
 import { awardGift, checkAwards, countEvent, newAwards, noteMax, sanitizeAwards, type Awards, type Tier } from './achievements';
@@ -978,6 +978,11 @@ export class Game {
   }
 
   /** Codex screen rows (places, creatures, logs) from what this save knows. */
+  /** Boss trinkets owned / total (codex collection line). */
+  get trinkets(): { found: number; total: number } {
+    return trinketCount(this.save.gear.owned);
+  }
+
   get codexRows(): CodexRow[] {
     return codexRows({ codex: this.save.codex, bosses: this.save.bosses, awards: this.save.awards, present: CREW_KINDS.filter((k) => this.hasNpc(k)), owned: this.save.gear.owned });
   }

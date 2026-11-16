@@ -1,5 +1,14 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-16 run 63
+
+- Done this run: tree canopies are lobed leaf clumps (2-3 round puffs per tile, lit upper-left, shaded underside, a darker band under the crown) instead of 20% speckle; frost crowns get a real snow cap with drips and snow flecks on each lobe while the inside stays green (11-biome-frost); 4 leaf variants instead of 2.
+- Done too: Cargo Lifter, a heavy plane with a +30 hold and crates you can see filling the hull (22l); a haul trip now has a vehicle built for it (Dome Keeper's carry-home loop, Starbound ship cargo).
+- Weakest gameplay feel (vehicles): flyers still park outside the carport, so the bay never charges a plane; an open-roof hangar variant (carried from run 61).
+- Checked, dropped: the phone camera bias. In 06-mobile-play the player already sits mid-screen, the HUD fills the top third and the lower third is unlit rock, so pushing the view down shows more darkness, not more game.
+- Done too: the creatures codex footer reads "Trinkets n/6", a visible collection goal for boss refights.
+- Weakest graphics (next): tree trunks are a flat 6 px column with no roots or branches; flare the base into 2-3 root pixels and let a branch stub poke out under each crown.
+
 ## 2026-11-16 run 62
 
 - Done this run: every boss has a boss-only accessory (scrap core, bloom seed, prism eye, ember wing, frost heart, null core); a kill rolls a bonus (50% trinket on the first kill, sure on a repeat, then 35% for a new craftable), marked by a loot beam in the trinket's colour with a bobbing gem (26l), a "Boss drop" toast and a longer sparkle (Terraria boss drops / Diablo loot beams). Gear can now carry leech.

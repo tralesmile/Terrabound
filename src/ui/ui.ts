@@ -1087,9 +1087,14 @@ export class UI {
     const tot = codexCounts(all);
     this.button(ctx, px + u, fy, u * 5, u * 2, '< PREV', { k: 'codexpage', d: -1 }, u * 0.75, { enabled: cur > 1, color: '#2a3550' });
     this.button(ctx, px + pw - u * 6, fy, u * 5, u * 2, 'NEXT >', { k: 'codexpage', d: 1 }, u * 0.75, { enabled: cur < pages, color: '#2a3550' });
-    this.text(ctx, `Page ${cur}/${pages}  -  ${tot.found} of ${tot.total} known`, px + pw / 2, fy + u * 1.3, Math.round(u * 0.7), '#8a90a2', 'center', pw - u * 14);
+    const tk = game.trinkets;
+    const trink = this.codexSec === 'creatures' ? `  -  Trinkets ${tk.found}/${tk.total}` : '';
+    this.codexFoot = `Page ${cur}/${pages}  -  ${tot.found} of ${tot.total} known${trink}`;
+    this.text(ctx, this.codexFoot, px + pw / 2, fy + u * 1.3, Math.round(u * 0.7), '#8a90a2', 'center', pw - u * 14);
   }
 
+  /** Footer line the codex drew last frame (e2e). */
+  codexFoot = '';
   /** Wrapped lines the log reader drew last frame (e2e). */
   logLinesShown = 0;
 

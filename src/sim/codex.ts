@@ -153,6 +153,11 @@ export function codexCounts(rows: readonly CodexRow[]): { found: number; total: 
   return { found: rows.filter((r) => r.found).length, total: rows.length };
 }
 
+/** Boss trinkets collected out of all of them (the creatures page footer's collection goal). Pure. */
+export function trinketCount(owned: readonly string[]): { found: number; total: number } {
+  return { found: BOSS_IDS.filter((id) => owned.includes(BOSSES[id].trinket)).length, total: BOSS_IDS.length };
+}
+
 /** Story order of the log reader: indices into LORE of the logs read so far. */
 export function readLogs(aw: Readonly<Awards>): number[] {
   return LORE.map((_, i) => i).filter((i) => (aw.n[loreKey(i)] ?? 0) > 0);

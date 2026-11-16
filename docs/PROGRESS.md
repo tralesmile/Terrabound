@@ -840,3 +840,13 @@ Second slice: DEPLOY parks ground vehicles under the carport (garage `parkOffset
 **Next:** P3 rarity and weapon modifiers; tree canopy art pass (IDEAS); phone camera bias on tall screens; P1.9 plane with cargo.
 
 **Known issues:** the loot beam gem can sit on top of the boss's resource drops; the trinket roll salt is the fight length in frames, so the same fight replayed gives the same roll (deterministic by design).
+
+## 2026-11-16 Scheduled run 63
+
+**Done:** baseline green (926 tests, all e2e). Creative review: frost canopies in 11-biome-frost were speckle noise (20% snow-white pixels everywhere), and the first open BACKLOG item was the P1.9 plane with cargo. Lobed canopies (decor `leafLobes`/`leafPixels`, `Foliage.lobe`): 2-3 round leaf puffs per tile, lit upper-left, shaded lower-right, a darker band under each crown, sparse grain only; frost gets a snow cap with drips and a snow fleck on each lobe while the inside stays green; 4 leaf variants (was 2). Cargo Lifter (garage `cargo_lifter`, `cargoOf`/`cargoLoad`, Game `cargoFill`): a heavy flyer (speed 1.7, drain 3.6) with a +30 cargo hold that adds pack space only while riding; four crate bays in the hull fill as the load passes the suit pack (sprites `cargoHold`, `CARGO_BAYS`); the mount toast names the hold, getting out over the suit pack keeps the load with an amber toast (`dismount.over`); HUD reads "Pack 46/60 (hold)" (22l-cargo-lifter). Flying is now `vstats.flying`, not an id check. Codex creatures footer: "Trinkets n/6" (codex `trinketCount`, Game `trinkets`).
+
+**Numbers:** 936 unit tests (new: leaflobes 3, cargo 6, codex trinkets 1), e2e new checks: cargo hold + crates, back to suit pack, trinket footer. Bundle 480.6 kB (168.6 kB gzip). First ship green first time.
+
+**Next:** open-roof hangar so flyers dock and charge; tree trunk roots/branch stubs (IDEAS); P3 rarity and weapon modifiers; P3 Boss 2 Logic Warden.
+
+**Known issues:** the Cargo Lifter has no garage-panel art preview beyond the shared jet icon; a carried load over the suit pack after getting out blocks pickups until you bank (by design, said in the toast).

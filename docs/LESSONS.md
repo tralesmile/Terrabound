@@ -279,3 +279,10 @@
 - **Editing files while a gate runs poisons it.** The baseline `npm run check` ran while I edited sources (it passed against a half-edited tree), and my first `npm run ship` failed because I added a codex test and code mid-gate: vitest loaded the new test with the old module. Guard: once `npm run ship` (or a baseline check) starts, touch only docs/ until it exits; start the next slice after. The ship script already refuses uncommitted tracked changes at start, but not changes made during the run.
 - **Retro (run 62):** the whole gate is ~10 minutes; batch two small slices per ship and write docs while it runs.
 - **New loot leaks into later e2e checks.** Boss kills in the e2e now roll boss trinkets (the salt is fight length in frames, so wall-time dependent); a worn null core (magnet 8, tint #ff5aff) broke the magnet tether check's "none without it" half in the second ship. Guard: the magnet check takes off every worn accessory first and restores them after. Any e2e check that depends on gear stats must start from a known loadout, not inherit one.
+
+## 2026-11-16 run 63
+
+- **Tests reached for `g.save` again** (private; tsc fails the build, see run 58). Guard in practice: build the fixture save first (`const s = defaultSave(); s.gear.owned.push(...); new Game(s)`) and use public getters; the NaN parked placeholder resolves beside the pad via `parkedVehicle()`.
+- **Preview pixel art before the 10-minute gate.** A throwaway vitest that dumps `leafPixels` to JSON plus a PIL upscale gave a canopy preview in seconds and caught that the first lobe pass was too faint. Delete the temp test before committing (`tests/_preview*` must not be committed).
+- **Check an idea against the screenshot before building it.** The carried "phone camera bias" idea was wrong once I looked at 06-mobile-play (HUD on top, dark rock below); dropped it in IDEAS instead of shipping a change nobody would feel.
+- **Retro (run 63):** three slices, two ships; docs written while the gate ran. The gate is ~10 minutes, so batching small slices per ship stays the right call.

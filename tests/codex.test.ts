@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { newAwards } from '../src/sim/achievements';
-import { BOSS_IDS } from '../src/sim/bosses';
-import { CREW_KINDS, ENEMY_KINDS, codexCounts, codexRows, crewKey, killKey, logParts, loreKey, noteCodexEvent, readLogs, stepLog } from '../src/sim/codex';
+import { BOSSES, BOSS_IDS } from '../src/sim/bosses';
+import { CREW_KINDS, ENEMY_KINDS, codexCounts, codexRows, crewKey, killKey, logParts, loreKey, noteCodexEvent, readLogs, stepLog, trinketCount } from '../src/sim/codex';
 import { countEvent } from '../src/sim/achievements';
 import { CODEX, LORE, LORE_MORE, POI_NOTES } from '../src/sim/explore';
 import { Game } from '../src/sim/game';
@@ -149,5 +149,14 @@ describe('long lore logs', () => {
     expect(p.body.startsWith('The rust is not rust')).toBe(true);
     expect(p.more).toEqual(LORE_MORE[1]);
     expect(logParts(999).more).toEqual([]);
+  });
+});
+
+describe('boss trinket collection', () => {
+  it('counts the boss-only trinkets owned out of every boss', () => {
+    expect(trinketCount([])).toEqual({ found: 0, total: BOSS_IDS.length });
+    const two = BOSS_IDS.slice(0, 2).map((id) => BOSSES[id].trinket);
+    expect(trinketCount([...two, 'magnet_ring', 'jetpack'])).toEqual({ found: 2, total: BOSS_IDS.length });
+    expect(trinketCount(BOSS_IDS.map((id) => BOSSES[id].trinket)).found).toBe(BOSS_IDS.length);
   });
 });

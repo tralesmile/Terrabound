@@ -1134,9 +1134,10 @@ try {
   await clickAct("r.a.k === 'codexsec' && r.a.sec === 'creatures'");
   const codex2 = await page.evaluate(() => {
     const { ui, game } = window.__terrabound;
-    return { sec: ui.codexSec, shown: ui.codexShown, hulk: game.codexRows.find((r) => r.id === 'enemy:hulk')?.found };
+    return { sec: ui.codexSec, shown: ui.codexShown, hulk: game.codexRows.find((r) => r.id === 'enemy:hulk')?.found, foot: ui.codexFoot, tk: game.trinkets };
   });
   await page.screenshot({ path: path.join(out, '51b-codex-creatures.png') });
+  check('the creatures codex footer counts boss trinkets collected', codex2.foot.includes(`Trinkets ${codex2.tk.found}/6`), JSON.stringify({ foot: codex2.foot, tk: codex2.tk }));
   check('CREATURES tab lists enemies and bosses; a kill reveals its entry', codex2.sec === 'creatures' && codex2.shown >= 6 && codex2.hulk === true, JSON.stringify(codex2));
   await page.evaluate(() => window.__terrabound.game.emit({ t: 'lore', text: 'LOG 07: Drones refuse orders below 60m. Something talks to them.' }));
   await clickAct("r.a.k === 'codexsec' && r.a.sec === 'logs'");
