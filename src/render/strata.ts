@@ -48,22 +48,57 @@ export function topsoilShade(depth: number): number {
 
 export type DecalKind = 'bone' | 'pipe' | 'pebbles' | 'skull';
 
-/** Thin root threads for a shallow soil tile (16ths of a tile), or null. Denser than buried junk. */
-export function rootThreads(tx: number, ty: number, depth: number): R[] | null {
+/** How many soil tiles down the root in column tx reaches (0 = no root in this column). Pure. */
+export function rootLength(tx: number): number {
+  const h = hash2(tx, 0, 5501);
+  return h < 0.34 ? 2 + Math.floor(hash2(tx, 1, 5502) * 4) : 0;
+}
+
+/** Column (0..15) where the root in column tx crosses the top edge of its tile at this depth. Pure. */
+export function rootEntry(tx: number, depth: number): number {
+  return 3 + Math.floor(hash2(tx, depth, 5503) * 10);
+}
+
+/**
+ * Root threads for a shallow soil tile (16ths of a tile), or null. A root grows down one column of
+ * tiles from the topsoil: each tile's thread starts where the tile above left off and wanders to the
+ * next tile's entry, so the root reads as one continuous line. It is thicker near the surface, puts
+ * out a side fibre now and then, and splits into two tips in its last tile.
+ */
+export function rootThreads(tx: number, _ty: number, depth: number): R[] | null {
   if (depth < 1 || depth > 6) return null;
-  const h = hash2(tx, ty, 5501);
-  if (h > 0.22) return null;
+  const len = rootLength(tx);
+  if (depth > len) return null;
   const dark = '#2e2015';
   const mid = '#3c2a1b';
-  // A main thread wandering down from the top with one or two offshoots.
-  const sx = 3 + Math.floor(hash2(ty, tx, 5503) * 10);
+  const lit = '#55402a';
+  const last = depth === len;
+  const x0 = rootEntry(tx, depth);
+  const x1 = rootEntry(tx, depth + 1);
+  const end = last ? 10 : 16;
   const out: R[] = [];
-  let x = sx;
-  for (let y = 0; y < 16; y += 2) {
-    x += hash2(tx * 7 + y, ty, 5507) < 0.5 ? -1 : 1;
-    x = Math.max(1, Math.min(14, x));
-    out.push([x, y, 1, 2, y < 8 ? mid : dark]);
-    if (y === 6 && h < 0.1) out.push([Math.min(13, x + 1), y + 1, 2, 1, dark]);
+  let x = x0;
+  let midX = x0;
+  for (let y = 0; y < end; y += 2) {
+    // Head for the next tile's entry, with a one-pixel wobble away from the tile edges.
+    const goal = Math.round(x0 + ((x1 - x0) * (y + 2)) / 16);
+    const wob = y > 0 && y < 14 && hash2(tx * 7 + y, depth, 5507) < 0.35 ? (hash2(tx, depth * 9 + y, 5508) < 0.5 ? -1 : 1) : 0;
+    const nx = Math.max(1, Math.min(14, (last ? x : goal) + wob));
+    const thick = depth === 1 && y < 10;
+    out.push([Math.min(x, nx), y, Math.abs(nx - x) + (thick ? 2 : 1), 2, depth <= 2 ? mid : dark]);
+    if (thick) out.push([Math.min(x, nx), y, 1, 1, lit]);
+    x = nx;
+    if (y === 6) midX = x;
+  }
+  if (last) {
+    // Two fine tips splay out of the end.
+    out.push([Math.max(0, x - 1), end, 1, 2, dark], [Math.max(0, x - 2), end + 2, 1, 1, dark]);
+    out.push([Math.min(15, x + 1), end, 1, 2, dark], [Math.min(15, x + 2), end + 2, 1, 1, dark]);
+  } else if (hash2(tx, depth, 5509) < 0.4) {
+    // A side fibre off the middle of the thread.
+    const side = hash2(depth, tx, 5510) < 0.5 ? -1 : 1;
+    const fx = Math.max(0, Math.min(13, side > 0 ? midX + 1 : midX - 3));
+    out.push([fx, 7, 3, 1, dark], [Math.max(0, Math.min(15, fx + (side > 0 ? 3 : -1))), 8, 1, 1, dark]);
   }
   return out;
 }

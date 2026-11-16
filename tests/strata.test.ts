@@ -82,7 +82,7 @@ describe('soil strata (render, pure)', () => {
   });
 });
 
-import { rootThreads, topsoilShade, TOPSOIL_DEPTH } from '../src/render/strata';
+import { rootEntry, rootLength, rootThreads, topsoilShade, TOPSOIL_DEPTH } from '../src/render/strata';
 
 describe('topsoil cross-section (render, pure)', () => {
   it('darkens the top organic band, strongest at the very top, zero below', () => {
@@ -121,5 +121,34 @@ describe('topsoil cross-section (render, pure)', () => {
     const rate = withRoots / tiles;
     expect(rate).toBeGreaterThan(0.1);
     expect(rate).toBeLessThan(0.35);
+  });
+
+  it('a root runs on through the tiles below: each thread ends where the next one starts', () => {
+    let chains = 0;
+    for (let x = 0; x < 200; x++) {
+      const len = rootLength(x);
+      if (len === 0) {
+        for (let d = 1; d <= 6; d++) expect(rootThreads(x, 0, d)).toBeNull();
+        continue;
+      }
+      chains++;
+      expect(len).toBeGreaterThanOrEqual(2);
+      expect(len).toBeLessThanOrEqual(5);
+      for (let d = 1; d < len; d++) {
+        const r = rootThreads(x, 0, d) ?? [];
+        // The last segment (rows 14-15) touches the next tile's entry column.
+        const seg = r.find(([, ry]) => ry === 14);
+        expect(seg).toBeDefined();
+        const [sx, , sw] = seg ?? [0, 0, 0];
+        const next = rootEntry(x, d + 1);
+        expect(next).toBeGreaterThanOrEqual(sx - 1);
+        expect(next).toBeLessThanOrEqual(sx + sw);
+        // and the next tile's first segment starts at that entry.
+        const first = (rootThreads(x, 0, d + 1) ?? [])[0];
+        expect(first[0]).toBeLessThanOrEqual(next);
+      }
+      expect(rootThreads(x, 0, len + 1)).toBeNull();
+    }
+    expect(chains).toBeGreaterThan(40);
   });
 });
