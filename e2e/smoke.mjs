@@ -255,6 +255,21 @@ try {
   const carried = await page.evaluate(() => Object.values(window.__terrabound.game.carried).reduce((a, b) => a + (b ?? 0), 0));
   check('mouse digging removes the block', before !== 0 && after === 0, `tile ${before} -> ${after}`);
   check('mined block lands in the pack', carried >= 1, `carried ${carried}`);
+  const brk = await page.evaluate(() => ({ n: window.__terrabound.fx.breaks, style: window.__terrabound.fx.lastBreak }));
+  check('breaking a block throws per-material debris', brk.n >= 1 && ['dirt', 'stone', 'metal', 'crystal', 'wood', 'leaf', 'tech'].includes(brk.style), JSON.stringify(brk));
+  // Catch the debris in flight: dig the next tile down and screenshot as soon as it breaks.
+  {
+    const n0 = brk.n;
+    const pos2 = await tileToCss(page, target.tx, target.ty + 1);
+    await page.mouse.move(pos2.x, pos2.y);
+    await page.mouse.down();
+    const caught = await page.waitForFunction((n) => window.__terrabound.fx.breaks > n, n0, { polling: 'raf', timeout: 4000 }).then(() => true, () => false);
+    await page.mouse.up();
+    await page.waitForTimeout(60);
+    if (caught) await page.screenshot({ path: path.join(out, '02b-break-debris.png') });
+    const live = await page.evaluate(() => window.__terrabound.fx.particles.length);
+    check('debris is in the air right after a break', caught && live >= 6, JSON.stringify({ caught, live }));
+  }
   // Landing pad deck: hazard chevrons at both ends, runway lights chasing toward the centre.
   const padArt = await page.evaluate(async () => {
     const { game, renderer } = window.__terrabound;
@@ -498,6 +513,32 @@ try {
   await page.evaluate(() => { window.__terrabound.ui.setShopTab('fab'); });
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(out, '08-shop-crafting.png') });
+  // Weapon rarity: REFORGE on the gear tab pays a visible price and rolls a coloured prefix.
+  await page.evaluate(() => {
+    const { game, ui } = window.__terrabound;
+    game.stash.crystal = 30;
+    game.stash.copper_wire = 30;
+    ui.setShopTab('gear');
+  });
+  await page.waitForTimeout(250);
+  const rf = await page.evaluate(() => {
+    const b = window.__terrabound.ui.rects.find((r) => r.a.k === 'reforge' && r.a.id === 'pulse_pistol');
+    return b ? { x: b.x + b.w / 2, y: b.y + b.h / 2 } : null;
+  });
+  if (rf) await page.mouse.click(rf.x, rf.y);
+  await page.waitForTimeout(300);
+  const rfAfter = await page.evaluate(() => {
+    const { game, ui } = window.__terrabound;
+    return { prefix: game.prefixOf('pulse_pistol') ?? null, wire: game.stash.copper_wire, rims: ui.rarityRims };
+  });
+  await page.screenshot({ path: path.join(out, '08c-reforge.png') });
+  check('REFORGE on the gear tab rolls a weapon prefix with a rarity rim', !!rf && !!rfAfter.prefix && rfAfter.wire === 24 && rfAfter.rims > 0, JSON.stringify({ rf, rfAfter }));
+  // Later checks assume a plain pistol (bounce/pierce prefixes change bolt behaviour).
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g['save'].gear.prefix = {};
+    g['gearCache'] = null;
+  });
   await page.keyboard.press('Escape');
   await page.keyboard.press('Digit1');
   check('1 selects the drill', (await page.evaluate(() => window.__terrabound.game.tool)) === 'drill');

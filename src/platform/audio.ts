@@ -1,3 +1,4 @@
+import { PREFIXES } from '../sim/rarity';
 import type { GameEvent } from '../sim/game';
 import { BEATS_PER_BAR, composeBar, tempo, type Mood } from './composer';
 import { bossHitVoice } from './hitvoice';
@@ -226,6 +227,13 @@ export class Sfx {
       case 'craft':
         [330, 440, 587].forEach((f, i) => this.tone(f, 0.1, 'square', 0.08, undefined, i * 0.05));
         break;
+      case 'reforge': {
+        // Anvil clang, then a rising chime: three notes for common, four for rare, five for epic.
+        this.tone(220, 0.08, 'square', 0.1, 110);
+        const n = e.prefix ? 3 + ['common', 'rare', 'epic'].indexOf(PREFIXES[e.prefix].rarity) : 3;
+        [440, 554, 659, 880, 1109].slice(0, n).forEach((f, i) => this.tone(f, 0.14, 'triangle', 0.09, undefined, 0.1 + i * 0.07));
+        break;
+      }
       case 'smelt':
         if (this.ok('smelt', 400)) this.tone(196, 0.12, 'triangle', 0.07, 392);
         break;

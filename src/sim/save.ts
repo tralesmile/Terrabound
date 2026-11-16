@@ -17,7 +17,7 @@ import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 29;
+export const SAVE_VERSION = 30;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -46,7 +46,7 @@ export interface SaveData {
   away: { savedAt: number; time: number; charge: number };
   /** v7: world seed chosen from a shared code (null = derived from seedBase and runs). */
   worldSeed: number | null;
-  /** v9: crafted gear (owned forever) and what is equipped per slot. v29: `acc`, up to 3 worn accessories. */
+  /** v9: crafted gear (owned forever) and what is equipped per slot. v29: `acc`, up to 3 worn accessories. v30: `prefix` per weapon and `reforges` (missing = none). */
   gear: GearSave;
   /** v10: bosses defeated (first win grants their trophy gear). */
   bosses: BossId[];

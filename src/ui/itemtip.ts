@@ -2,6 +2,7 @@
  * What an item is, in words: the hover tooltip over item cells and items lying in the world, and the
  * inventory's detail line. Pure (no canvas) so tests can check every item has one.
  */
+import { PREFIXES, RARITY, prefixedName, type PrefixId } from '../sim/rarity';
 import { BIOMES, type BiomeId } from '../sim/biomes';
 import { BOSSES, bossForBeacon } from '../sim/bosses';
 import { FOOD } from '../sim/fishing';
@@ -46,11 +47,15 @@ export function itemUse(id: ItemId): string {
 }
 
 /** Tooltip for an item, tool or gear id; `count` adds "x N" to the title. */
-export function itemTip(id: ItemId | Tool | GearId, count?: number | null): ItemTip {
+export function itemTip(id: ItemId | Tool | GearId, count?: number | null, prefix?: PrefixId): ItemTip {
   const n = count && count > 1 ? `  x${count}` : '';
   if (isTool(id)) return TOOL_TIPS[id];
   if (isGear(id) && !(id in ITEMS)) {
     const g = GEAR[id];
+    if (prefix && PREFIXES[prefix]) {
+      const p = PREFIXES[prefix];
+      return { title: prefixedName(g.name, prefix) + n, lines: [g.desc, `${RARITY[p.rarity].name}: ${p.desc}`], color: RARITY[p.rarity].color };
+    }
     return { title: g.name + n, lines: [g.desc], color: '#9ff6a0' };
   }
   const item = id as ItemId;

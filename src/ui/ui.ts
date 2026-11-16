@@ -1,3 +1,4 @@
+import { PREFIXES, RARITY, REFORGE_COST, oddsText, prefixedName, type PrefixId, type WeaponSlot } from '../sim/rarity';
 import { diveTitle, reportRows, tripChips, type DiveReport, type TripReport } from '../sim/divereport';
 import { BANK_CARD_LIFE, bankCardAge, bankCardFade, bankCardLayout } from './bankcard';
 import { PAINTS, PAINT_SLOTS, unlockedPaints, type PaintSlot } from '../sim/paints';
@@ -104,6 +105,7 @@ export type UiAction =
   /** Touch hold button: reel the grappling rope in while held (handled by Input as a held pointer). */
   | { k: 'reel' }
   | { k: 'craftgear'; id: GearId }
+  | { k: 'reforge'; id: GearId }
   | { k: 'equip'; id: GearId }
   | { k: 'mapzoom'; d: number }
   | { k: 'mapcenter' }
@@ -198,6 +200,8 @@ export class UI {
   /** LORE index open in the log reader, or null for the card list. */
   logOpen: number | null = null;
   codexFirst = 0;
+  /** Rarity rims drawn so far (e2e hook). */
+  rarityRims = 0;
   /** Rows drawn on the CODEX page last frame (e2e). */
   codexShown = 0;
   private codexPer = 8;
@@ -396,7 +400,7 @@ export class UI {
       if (!inside(r)) continue;
       // A panel drawn after this cell, over the mouse, hides it.
       if (this.tipCovers.some((c) => c.at > i && inside(c))) break;
-      tip = itemTip(r.id, r.count);
+      tip = itemTip(r.id, r.count, this.weaponPrefix(r.id));
       break;
     }
     if (!tip && this.worldTip && !this.blocks(this.hover.x, this.hover.y)) tip = this.worldTip;
@@ -500,6 +504,7 @@ export class UI {
 
   /** Draws the whole UI inside the safe frame, then moves the hit rects back to canvas CSS px. */
   draw(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, time: number): void {
+    this.curGame = game;
     const f = safeFrame(w, h, this.insets);
     this.frame = f;
     this.itemRects.length = 0;
@@ -929,6 +934,15 @@ export class UI {
   lastBarPressDrawn = 0;
 
   /** One item cell: dark slot, pixel icon, count in the corner, highlight when selected. */
+  /** Game of the frame being drawn (cells look up weapon prefixes for their rarity rim). */
+  private curGame: Game | null = null;
+
+  /** Prefix of an owned weapon id (rarity rim, tooltip name); undefined for anything else. */
+  private weaponPrefix(id: ItemId | Tool | GearId): PrefixId | undefined {
+    const g = this.curGame;
+    return g && id in GEAR ? g.prefixOf(id as GearId) : undefined;
+  }
+
   private cell(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, id: ItemId | Tool | GearId, count: number | null, sel: boolean, a: UiAction | null, dim = false, iconK = 0.72): void {
     ctx.fillStyle = sel ? 'rgba(54,224,232,0.18)' : 'rgba(10,12,20,0.75)';
     ctx.fillRect(x, y, size, size);
@@ -942,6 +956,24 @@ export class UI {
     ctx.globalAlpha = dim ? 0.35 : 1;
     drawIcon(ctx, id, x + (size - ICON * s) / 2, y + (size - ICON * s) / 2 - size * 0.04, s);
     ctx.globalAlpha = 1;
+    const pre = this.weaponPrefix(id);
+    if (pre) {
+      // Rarity rim: an inner frame in the rarity colour and a corner gem (Terraria/Diablo item colours).
+      const rc = RARITY[PREFIXES[pre].rarity].color;
+      ctx.strokeStyle = rc;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 4, y + 4, size - 8, size - 8);
+      const gs = Math.max(4, Math.round(size * 0.14));
+      ctx.fillStyle = rc;
+      ctx.beginPath();
+      ctx.moveTo(x + size - 5 - gs / 2, y + 5);
+      ctx.lineTo(x + size - 5, y + 5 + gs / 2);
+      ctx.lineTo(x + size - 5 - gs / 2, y + 5 + gs);
+      ctx.lineTo(x + size - 5 - gs, y + 5 + gs / 2);
+      ctx.closePath();
+      ctx.fill();
+      this.rarityRims++;
+    }
     if (count !== null) {
       const label = count >= 1000 ? `${Math.floor(count / 1000)}k` : `${count}`;
       ctx.font = `bold ${Math.round(size * 0.3)}px ${FONT}`;
@@ -2077,9 +2109,18 @@ export class UI {
       const isz = rowH - u * 0.8;
       this.cell(ctx, px + u * 0.8, ry + u * 0.25, isz, id, null, worn, null);
       const tx2 = px + u * 1.4 + isz;
-      this.text(ctx, `${gd.name}  [${gd.slot === 'acc' ? 'accessory' : gd.slot}]`, tx2, ry + rowH * 0.3, Math.round(u * 0.9), '#fff', 'left', pw - isz - u * 9);
-      this.text(ctx, owned || gd.bossOnly ? gd.desc : `${gd.desc}  Cost: ${costText(gd.cost)}`, tx2, ry + rowH * 0.68, Math.round(u * 0.66), owned ? '#9aa3b8' : afford ? '#9ff6a0' : '#ff8a8a', 'left', pw - isz - u * 9);
       const bw = u * 5.5;
+      const weapon = gd.slot === 'melee' || gd.slot === 'ranged';
+      const pre = owned && weapon ? game.prefixOf(id) : undefined;
+      const tw = pw - isz - u * (owned && weapon ? 15 : 9);
+      this.text(ctx, `${prefixedName(gd.name, pre)}  [${gd.slot === 'acc' ? 'accessory' : gd.slot}]`, tx2, ry + rowH * 0.3, Math.round(u * 0.9), pre ? RARITY[PREFIXES[pre].rarity].color : '#fff', 'left', tw);
+      const sub = owned && weapon
+        ? pre
+          ? `${RARITY[PREFIXES[pre].rarity].name}: ${PREFIXES[pre].desc}. Reforge ${costText(REFORGE_COST[gd.slot as WeaponSlot])}`
+          : `Reforge ${costText(REFORGE_COST[gd.slot as WeaponSlot])} (${oddsText()})`
+        : owned || gd.bossOnly ? gd.desc : `${gd.desc}  Cost: ${costText(gd.cost)}`;
+      this.text(ctx, sub, tx2, ry + rowH * 0.68, Math.round(u * 0.66), owned && weapon ? (game.canReforge(id) ? '#9ff6a0' : '#9aa3b8') : owned ? '#9aa3b8' : afford ? '#9ff6a0' : '#ff8a8a', 'left', tw);
+      if (owned && weapon) this.button(ctx, px + pw - bw * 2 - u * 1.2, ry + u * 0.3, bw, rowH - u * 0.9, 'REFORGE', { k: 'reforge', id }, u * 0.75, { enabled: game.canReforge(id), color: '#5a3a8a' });
       if (owned) this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, worn ? 'WORN' : 'EQUIP', { k: 'equip', id }, u * 0.85, { color: worn ? '#2a6a3a' : '#1f6f78' });
       else if (gd.bossOnly) this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, 'BOSS', { k: 'craftgear', id }, u * 0.85, { enabled: false });
       else this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, 'BUILD', { k: 'craftgear', id }, u * 0.85, { enabled: afford });

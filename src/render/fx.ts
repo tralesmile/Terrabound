@@ -544,6 +544,24 @@ export class Fx {
     this.rings.push({ x, y, r, color, life, max: life });
   }
 
+  /** Breaks seen and the style of the last one (e2e hook for per-material debris). */
+  breaks = 0;
+  lastBreak = '';
+  /** Add ready-made particles (block-break debris), within the particle cap. Returns how many were added. */
+  addParticles(ps: readonly Particle[], tag = ''): number {
+    let n = 0;
+    for (const p of ps) {
+      if (this.particles.length >= MAX_PARTICLES) break;
+      this.particles.push(p);
+      n++;
+    }
+    if (tag) {
+      this.breaks++;
+      this.lastBreak = tag;
+    }
+    return n;
+  }
+
   burst(x: number, y: number, color: string, n: number, speed = 4): void {
     for (let i = 0; i < n && this.particles.length < MAX_PARTICLES; i++) {
       const a = Math.random() * Math.PI * 2;

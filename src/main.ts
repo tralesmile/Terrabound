@@ -1,3 +1,5 @@
+import { PREFIXES, RARITY, prefixedName } from './sim/rarity';
+import { breakDebris, breakStyle } from './render/breakfx';
 import { hitSparkSpec } from './render/hitspark';
 import { giftText } from './sim/achievements';
 import { PAINT_SLOT_NAMES } from './sim/paints';
@@ -363,6 +365,9 @@ function boot(): void {
       case 'craftgear':
         if (game.craftGear(a.id)) saveNow();
         break;
+      case 'reforge':
+        if (game.reforge(a.id)) saveNow();
+        break;
       case 'equip':
         game.equipGear(a.id);
         saveNow();
@@ -507,7 +512,7 @@ function boot(): void {
     sfx.handle(e);
     switch (e.t) {
       case 'break':
-        fx.burst(e.x + 0.5, e.y + 0.5, TILE_COLORS[e.tile] ?? '#888', 10, 5);
+        fx.addParticles(breakDebris(e.x + 0.5, e.y + 0.5, e.tile, TILE_COLORS[e.tile] ?? '#888888', Math.random), breakStyle(e.tile));
         fx.addShake(0.12);
         break;
       case 'enemyhit':
@@ -750,6 +755,14 @@ function boot(): void {
         break;
       case 'ricochet':
         fx.burst(e.x, e.y, '#7dffb0', 4, 4);
+        break;
+      case 'reforge':
+        {
+          const rc = RARITY[PREFIXES[e.prefix].rarity];
+          ui.toast(`Reforged: ${prefixedName(GEAR[e.id].name, e.prefix)} (${rc.name})`, rc.color);
+          fx.burst(game.body.x, game.body.y - 1, rc.color, e.prefix && PREFIXES[e.prefix].rarity === 'epic' ? 36 : 18, 6);
+          fx.ring(game.body.x, game.body.y - 1, PREFIXES[e.prefix].rarity === 'epic' ? 2.2 : 1.4, rc.color, 0.4);
+        }
         break;
       case 'craftgear':
         ui.toast(`Built: ${GEAR[e.id].name}`, '#ffcf4a');

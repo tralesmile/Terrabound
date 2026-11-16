@@ -51,6 +51,7 @@ import { isNight, DAY_LENGTH } from './daynight';
 import { SPIKE_DMG, SPIKE_TICK, turretStats, chewTime, machineGoal, spikeVictims, stepTurrets, syncTurrets, type Turret } from './defences';
 import { findRooms, mountOk, roomHint, type Room } from './rooms';
 import { RESEARCH, applyResearch, researchMissing, type ResearchId } from './research';
+import { REFORGE_COST, applyPrefixes, rollReforge, type PrefixId, type WeaponSlot } from './rarity';
 import { MODS, applyMods, bounce, fitMod, type ModId, type ModSlot } from './mods';
 import { BUFF_TIME, CHARGED_DRAIN, MEAL_BUFF, STURDY_TAKEN, SWIFT_SPEED, hasPotIn, stepBuffs, type Buffs, GARDENER_MOODS, cropAt, cropOfSeed, grassSeed, growCrops, harvestYield, isCropTile, isWatered, plantCrop, ripeIn, stepCrops, type CropId } from './farming';
 import { NPC_INFO, NPC_ORDER, TRADES, deathKeep, doTrade, moodGive, npcLine, npcMood, type Mood, npcSpots, reactNpcs, roomFloor, stepNpc, syncNpcs, tradeOpen, type Npc, type NpcKind, type Trade } from './npcs';
@@ -158,6 +159,7 @@ export type GameEvent =
   | { t: 'nosoil' }
   | { t: 'nomount' }
   | { t: 'craftgear'; id: GearId }
+  | { t: 'reforge'; id: GearId; prefix: PrefixId }
   | { t: 'mount'; cargo: number }
   | { t: 'garage' }
   | { t: 'deploy'; id: VehicleId }
@@ -525,7 +527,11 @@ export class Game {
 
   /** Combined stats of the equipped gear (cached until the loadout changes). */
   get gear(): GearStats {
-    if (!this.gearCache) this.gearCache = applyMods(gearStats(this.save.gear.equip, this.save.gear.acc), this.save.mods.fit);
+    if (!this.gearCache) {
+      const g = this.save.gear;
+      const withPrefix = applyPrefixes(gearStats(g.equip, g.acc), g.equip.melee && g.prefix[g.equip.melee], g.equip.ranged && g.prefix[g.equip.ranged]);
+      this.gearCache = applyMods(withPrefix, this.save.mods.fit);
+    }
     return this.gearCache;
   }
 
@@ -595,6 +601,31 @@ export class Game {
     this.save.gear.owned.push(id);
     this.equipGear(id);
     this.emit({ t: 'craftgear', id });
+    return true;
+  }
+
+  /** The rolled prefix of an owned weapon (undefined = plain). */
+  prefixOf(id: GearId): PrefixId | undefined {
+    return this.save.gear.prefix[id];
+  }
+
+  /** Any owned melee or ranged weapon can be reforged at the base for its visible price. */
+  canReforge(id: GearId): boolean {
+    const slot = GEAR[id].slot;
+    return (slot === 'melee' || slot === 'ranged') && this.ownsGear(id) && this.isAtBase() && canAfford(this.stash, REFORGE_COST[slot]);
+  }
+
+  /** Pay and roll a new prefix (never the same one twice in a row). Deterministic: world seed + reforge count. */
+  reforge(id: GearId): boolean {
+    if (!this.canReforge(id)) return false;
+    const slot = GEAR[id].slot as WeaponSlot;
+    pay(this.stash, REFORGE_COST[slot]);
+    const g = this.save.gear;
+    const p = rollReforge(slot, id, g.reforges, this.world.seed, g.prefix[id]);
+    g.reforges++;
+    g.prefix[id] = p;
+    this.gearCache = null;
+    this.emit({ t: 'reforge', id, prefix: p });
     return true;
   }
 
@@ -2794,7 +2825,7 @@ export class Game {
       stats: { ...this.save.stats },
       settings: { ...this.save.settings },
       codex: [...this.save.codex],
-      gear: { owned: [...this.save.gear.owned], equip: { ...this.save.gear.equip }, acc: [...this.save.gear.acc] },
+      gear: { owned: [...this.save.gear.owned], equip: { ...this.save.gear.equip }, acc: [...this.save.gear.acc], prefix: { ...this.save.gear.prefix }, reforges: this.save.gear.reforges },
       bosses: [...this.save.bosses],
       drones: { ...this.save.drones },
       research: [...this.save.research],

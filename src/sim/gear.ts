@@ -3,6 +3,7 @@
  * (never lost on death), equipped one per slot. Pure data plus a stats aggregator.
  */
 import type { Inventory } from './tiles';
+import { sanitizePrefixes, type PrefixId } from './rarity';
 
 export type GearSlot = 'melee' | 'ranged' | 'head' | 'body' | 'feet' | 'back' | 'vehicle' | 'pet' | 'acc';
 /** One item each. Accessories ('acc') are not here: up to ACC_SLOTS of them are worn at once (GearSave.acc). */
@@ -220,10 +221,13 @@ export interface GearSave {
   equip: Loadout;
   /** v29: worn accessories, in socket order (at most ACC_SLOTS, owned, unique). */
   acc: GearId[];
+  /** v30: rolled weapon prefix per owned weapon (rarity.ts) and how many reforges were paid (the roll's salt). */
+  prefix: Partial<Record<GearId, PrefixId>>;
+  reforges: number;
 }
 
 export function defaultGear(): GearSave {
-  return { owned: [...STARTER_GEAR], equip: { melee: 'energy_blade', ranged: 'pulse_pistol' }, acc: [] };
+  return { owned: [...STARTER_GEAR], equip: { melee: 'energy_blade', ranged: 'pulse_pistol' }, acc: [], prefix: {}, reforges: 0 };
 }
 
 /**
@@ -268,5 +272,7 @@ export function sanitizeGear(v: unknown): GearSave {
       if (typeof id === 'string' && id in GEAR && GEAR[id as GearId].slot === 'acc' && out.owned.includes(id as GearId) && !out.acc.includes(id as GearId)) out.acc.push(id as GearId);
     }
   }
+  out.prefix = sanitizePrefixes(r.prefix, out.owned, (id) => GEAR[id].slot);
+  out.reforges = typeof r.reforges === 'number' && Number.isFinite(r.reforges) && r.reforges > 0 ? Math.floor(r.reforges) : 0;
   return out;
 }
