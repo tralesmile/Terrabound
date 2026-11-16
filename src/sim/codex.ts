@@ -6,6 +6,7 @@
  */
 import type { Awards } from './achievements';
 import { BOSSES, BOSS_IDS } from './bosses';
+import { GEAR } from './gear';
 import { ENEMIES, type EnemyKind } from './enemies';
 import { CODEX, LORE, LORE_MORE } from './explore';
 import type { GameEvent } from './game';
@@ -97,6 +98,8 @@ export interface CodexKnowledge {
   awards: Readonly<Awards>;
   /** Crew present right now (robots living here, the merchant if parked); counts as met. */
   present?: readonly NpcKind[];
+  /** Owned gear ids (for each boss card's trinket line). */
+  owned?: readonly string[];
 }
 
 /** Every row of the codex screen in display order: places, crew, creatures, logs. */
@@ -133,7 +136,9 @@ export function codexRows(k: CodexKnowledge): CodexRow[] {
   }
   for (const id of BOSS_IDS) {
     const found = k.bosses.includes(id);
-    rows.push({ section: 'creatures', id: `boss:${id}`, title: found ? `${BOSSES[id].name} (boss)` : '??? (boss)', detail: found ? BOSS_NOTES[id] ?? '' : 'A giant. Craft its summon beacon to face it.', found });
+    const trinket = BOSSES[id].trinket;
+    const tline = k.owned?.includes(trinket) ? ` Trinket: ${GEAR[trinket].name}.` : ' Its trinket is still out there: fight it again.';
+    rows.push({ section: 'creatures', id: `boss:${id}`, title: found ? `${BOSSES[id].name} (boss)` : '??? (boss)', detail: found ? `${BOSS_NOTES[id] ?? ''}${tline}` : 'A giant. Craft its summon beacon to face it.', found });
   }
   LORE.forEach((line, i) => {
     const found = (k.awards.n[loreKey(i)] ?? 0) > 0;

@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-16 run 62
+
+- Done this run: every boss has a boss-only accessory (scrap core, bloom seed, prism eye, ember wing, frost heart, null core); a kill rolls a bonus (50% trinket on the first kill, sure on a repeat, then 35% for a new craftable), marked by a loot beam in the trinket's colour with a bobbing gem (26l), a "Boss drop" toast and a longer sparkle (Terraria boss drops / Diablo loot beams). Gear can now carry leech.
+- Done too: the TRIP BANKED card fades once you are 20+ tiles from the pad.
+- Weakest graphics (trees): snowy canopies in 11-biome-frost are speckle noise with no crown shape; give canopies a 2-3 tone lobed silhouette with a lit top edge and a dark underside (Terraria/Core Keeper trees read at a glance).
+- Weakest UI (phones, 06-mobile-play): at the pad the portrait view is 55% sky; bias the camera so the player sits ~35% from the top on tall screens, since the game is underground.
+- Weakest progression: boss trinkets are only found by refighting; a codex "Trinkets 2/6" line on each boss card would give a visible collection goal.
+
 ## 2026-11-16 run 61
 
 - Done this run: field garages show on the map as green bolt pins (plan deep trips around charge points; finished run 60's drafted slice); the magnet ring / scout bot draw faint tethers with beads sliding into the suit from every drop they reel in, so the accessory reads in play (47d-magnet-pull).
@@ -32,11 +40,3 @@
 - Weakest progression: gear is still stats-only; P3 equipment slots (helmet/core/boots/module) with visible suit parts on the player would give loot a reason to exist (Terraria/Core Keeper armor sets).
 - Weakest retention: the dive and trip tallies vanish on reload; persist them in the save (small, needs SAVE_VERSION bump + fixture).
 - Weakest feel at the pad: banked items vanish from the pack instantly; let the pack icons fly from the bag slot into the stash crate on the card (reuse Flyers).
-
-## 2026-11-16 run 56
-
-- Done this run: beaming home is now a visible event (charging light column over the player, arrival pillar on the landing ring, deck dust, camera cut instead of a 100-tile pan; 13b/13c); legacy-size saves are offered a BIGGER WORLD.
-- Stale idea dropped: "surface strata" (run 55) already exists (strata.ts bands + topsoil); check the code before logging a graphics idea.
-- Weakest UI: toasts slide in from the left edge and clip ("at the pad" in 13c); on phones cap the column at two pills and fold the rest into a "+N" chip.
-- Weakest progression: the dive report still only shows on death; a lighter "dive banked" card on beam-home would pair with the new arrival beat (P4 follow-up).
-- Weakest audio: the arrival has no sound of its own (reuses the recall chime); a descending shimmer + soft thud would sell the slam.

@@ -969,7 +969,7 @@ export class Game {
 
   /** Codex screen rows (places, creatures, logs) from what this save knows. */
   get codexRows(): CodexRow[] {
-    return codexRows({ codex: this.save.codex, bosses: this.save.bosses, awards: this.save.awards, present: CREW_KINDS.filter((k) => this.hasNpc(k)) });
+    return codexRows({ codex: this.save.codex, bosses: this.save.bosses, awards: this.save.awards, present: CREW_KINDS.filter((k) => this.hasNpc(k)), owned: this.save.gear.owned });
   }
 
   /** Award progress (read-only view for the AWARDS page). */

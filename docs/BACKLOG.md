@@ -230,7 +230,7 @@ Money (ethical, no paywalls)
 - [x] Accessories in world chests: 10% of shallow chests rising to 30% deep hold an unowned accessory, worn at once if a socket is free, gold toast + ring + sparkle (run 58); feather-charm air jump wisps (run 58)
 - [x] Socket row on phones under the gear grid (run 59)
 - [x] Magnet pull tethers: drops the magnet ring / scout bot reel in draw faint tinted lines with beads sliding into the suit (run 61)
-- [ ] Follow-ups: boss bonus accessory roll and boss-only accessories
+- [x] Boss bonus accessory roll and boss-only accessories: 6 boss trinkets, 50% on the first kill, sure on a repeat, then 35% for a new craftable; loot beam + gem marks the drop; codex boss cards show the trinket (run 62)
 - [ ] Rarity and weapon modifiers; mod chips; set bonuses
 - [x] Layer 2 Circuit: tiles, ores, enemies, hazards, dark zones (done in P1.8; layers.ts)
 - [x] Boss 1 Junk Colossus with telegraphed attacks and arena (done in P1.8 + P1.10)

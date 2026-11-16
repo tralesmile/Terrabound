@@ -73,6 +73,15 @@ describe('codex screen data', () => {
     expect(codexCounts(rows).found).toBe(2);
   });
 
+  it('a beaten boss card says whether its trinket has dropped yet', () => {
+    const missing = codexRows({ ...blank(), bosses: ['golem'] }).find((r) => r.id === 'boss:golem');
+    expect(missing?.detail).toContain('trinket is still out there');
+    const got = codexRows({ ...blank(), bosses: ['golem'], owned: ['prism_eye'] }).find((r) => r.id === 'boss:golem');
+    expect(got?.detail).toContain('Trinket: Prism eye.');
+    const unknown = codexRows({ ...blank(), owned: ['prism_eye'] }).find((r) => r.id === 'boss:golem');
+    expect(unknown?.detail).not.toContain('Trinket');
+  });
+
   it('the game notes kills and logs from its own events, and they survive a save round trip', () => {
     const g = new Game(defaultSave(7));
     const emit = (e: unknown) => (g as unknown as { emit: (e: unknown) => void }).emit(e);
