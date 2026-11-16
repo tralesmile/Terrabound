@@ -33,3 +33,17 @@ export function chargeMotes(time: number, count: number): { dx: number; dy: numb
   }
   return out;
 }
+
+/**
+ * Dock cable from the bay light to a vehicle parked under the carport: `n + 1` points on a hanging curve
+ * (sag grows with span) and the 0-1 position of a green pulse that runs from the bay into the vehicle.
+ */
+export function dockCable(x0: number, y0: number, x1: number, y1: number, time: number, n: number): { pts: [number, number][]; pulse: number } {
+  const pts: [number, number][] = [];
+  const sag = Math.hypot(x1 - x0, y1 - y0) * 0.22;
+  for (let i = 0; i <= n; i++) {
+    const f = i / n;
+    pts.push([x0 + (x1 - x0) * f, y0 + (y1 - y0) * f + Math.sin(f * Math.PI) * sag]);
+  }
+  return { pts, pulse: (time * 0.7) % 1 };
+}

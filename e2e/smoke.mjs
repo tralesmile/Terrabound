@@ -1407,10 +1407,20 @@ try {
   await page.keyboard.up('KeyD');
   await page.waitForTimeout(150);
   await page.screenshot({ path: path.join(out, '22a-buggy-parked.png') });
+  check('the buggy parked under the carport hangs on a charge cable from the bay', await page.evaluate(() => window.__terrabound.renderer.dockShown));
   await page.keyboard.down('KeyV');
   await page.waitForTimeout(80);
   await page.keyboard.up('KeyV');
   await page.waitForTimeout(100);
+  // The buggy was deployed under the carport: sitting in it charges from the bay.
+  const seated = await page.evaluate(async () => {
+    const g = window.__terrabound.game;
+    g.battery = 30;
+    await new Promise((r) => setTimeout(r, 250));
+    return { riding: g.riding, bay: !!g.bayCharging, bat: g.battery, arcs: window.__terrabound.renderer.bayArcs };
+  });
+  await page.screenshot({ path: path.join(out, '22b-buggy-bay.png') });
+  check('the deployed buggy parks under the carport and charges while seated', seated.riding && seated.bay && seated.bat > 30, JSON.stringify(seated));
   const bx0 = await page.evaluate(() => window.__terrabound.game.body.x);
   const wd0 = await page.evaluate(() => window.__terrabound.renderer.wheelDist);
   await page.keyboard.down('KeyD');

@@ -39,7 +39,7 @@ import { BIOME_BOSSES, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SL
 import { BIOMES, type BiomeId } from './biomes';
 import { LAYERS, layerAt, openGates } from './layers';
 import { METEOR_RATE, weatherAt, weatherEnemy, type WeatherKind } from './weather';
-import { MAX_PART, VEHICLES, bayAt, bayCharge, defaultGarage, isVehicle, partCost, partsOf, vehicleStats, type PartId, type PartLevels, type VehicleId } from './garage';
+import { MAX_PART, VEHICLES, bayAt, bayCharge, defaultGarage, isVehicle, parkOffset, partCost, partsOf, vehicleStats, type PartId, type PartLevels, type VehicleId } from './garage';
 import { ACC_SLOTS, GEAR, airJumpSources, gearStats, sanitizeGear, toggleAccessory, type GearId, type GearSlot, type GearStats } from './gear';
 import { FOOD, bestHeal, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE } from './fishing';
 import { daylight } from './daynight';
@@ -709,8 +709,8 @@ export class Game {
     if (this.riding) this.riding = false;
     this.save.gear.equip.vehicle = id;
     this.gearCache = null;
-    // Just outside the carport frame (it spans 3 tiles each side), so jets can take off.
-    this.save.garage.parked = { id, x: at.x + 4.5, y: at.y + 1 };
+    // Ground vehicles under the carport roof (it spans 3 tiles each side), flyers just outside it.
+    this.save.garage.parked = { id, x: at.x + parkOffset(id), y: at.y + 1 };
     this.emit({ t: 'deploy', id });
     return true;
   }

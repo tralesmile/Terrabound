@@ -4,7 +4,8 @@
 
 - Done this run: field garages show on the map as green bolt pins (plan deep trips around charge points; finished run 60's drafted slice); the magnet ring / scout bot draw faint tethers with beads sliding into the suit from every drop they reel in, so the accessory reads in play (47d-magnet-pull).
 - Weakest graphics (underground): buried skulls and bones in 02-digging are flat white sprites at full brightness; tint them by depth/ambient so fossils sit in the dirt instead of on top of it.
-- Weakest gameplay feel (vehicles): carried, park the deployed buggy under the carport so the bay charges while seated.
+- Done too: ground vehicles deploy under the carport and hang on a dock cable; the bay charges you while seated.
+- Weakest gameplay feel (vehicles): the Sky Jet must still park outside; an open-roof "hangar" variant of the garage would let flyers dock too.
 - Weakest progression (loot): carried, boss bonus accessory roll with boss-only trinkets (Terraria boss drops).
 - Weakest UI: the TRIP BANKED card can still be on screen after you leave the pad and reach a new biome (11-biome-jungle); hide it once the player is more than ~20 tiles from the pad.
 

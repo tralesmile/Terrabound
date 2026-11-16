@@ -823,8 +823,10 @@ Owner: "Water looks bad. Pet looks bad. On hover the items should show what they
 
 **Done:** baseline green (907 tests, all e2e). Run 60 had no working shell and left a drafted slice on `wip/run60-charge-map`; applied it here. Field garages on the map (sim/garage `chargePoints`, ui/map `drawBoltPin`, legend "Charge bay"): every placed garage more than PAD_HALF+2 columns from the pad gets a green breathing bolt pin over its roof, cached per world version (13e-map-charge). Creative review: the magnet ring was a stat line only, and buried skulls/bones in 02-digging were flat near-white stickers. Magnet tethers (render/magnetfx `pulledDrops`/`pullBeads`/`magnetTint`, renderer `drawPullLines`, Game `wornGear`): when gear widens the magnet past the base 3 tiles, each drop being reeled in (max 12, none with a full pack) gets a faint line in the gear's colour (ring red, scout bot cyan) with beads sliding into the suit (47d-magnet-pull). Fossils (strata `halfBuried`): muted bone tones, a soft shadow and soil crumbs over the edges.
 
-**Numbers:** 915 unit tests (new: chargemap 2, magnetfx 6, strata fossil 1), e2e new checks: map charge pin, magnet tethers on/off. Bundle about 472 kB (166 kB gzip).
+**Numbers:** 917 unit tests (new: chargemap 2, magnetfx 6, strata fossil 1, garage park 1, bayfx cable 1), e2e new checks: map charge pin, magnet tethers on/off, dock cable, seated bay charge. The `wip/run60-charge-map` branch is applied and can be deleted (this run's sandbox refused the remote branch delete). Bundle about 472 kB (166 kB gzip).
 
-**Next:** park the deployed vehicle under the carport; boss bonus accessory roll; P1.9 plane with cargo; P3 rarity and weapon modifiers.
+Second slice: DEPLOY parks ground vehicles under the carport (garage `parkOffset`: 2.5 tiles right of the bay; the Sky Jet still waits outside at 4.5 so it can take off), so the bay charges you while seated; a parked vehicle under a bay hangs on a dark dock cable with a green pulse running in (bayfx `dockCable`, renderer `drawDockCable`; 22a/22b).
+
+**Next:** boss bonus accessory roll; P1.9 plane with cargo; P3 rarity and weapon modifiers.
 
 **Known issues:** the charge pin is small at the widest map zoom and can sit under the "you" marker when standing in the bay; tethers draw straight lines (drops arc slightly as they fly in).

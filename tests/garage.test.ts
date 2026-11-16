@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FIXED_DT, Game, MOUNT_RANGE, NO_CONTROLS, type Controls } from '../src/sim/game';
-import { VEHICLES, VEHICLE_IDS, partCost, sanitizeGarage, vehicleStats } from '../src/sim/garage';
+import { VEHICLES, VEHICLE_IDS, partCost, sanitizeGarage, vehicleStats, parkOffset } from '../src/sim/garage';
 import { SAVE_VERSION, defaultSave, parseSave, serializeSave } from '../src/sim/save';
 import { T } from '../src/sim/tiles';
 import { W } from '../src/sim/world';
@@ -57,8 +57,33 @@ describe('garage', () => {
     expect(g.buildVehicle('buggy')).toBe(true);
     expect(g.stash.metal).toBe(metal - (VEHICLES.buggy.cost.metal ?? 0));
     expect(g.ownsGear('buggy')).toBe(true);
-    expect(g.parkedVehicle()).toEqual({ id: 'buggy', x: at.x + 4.5, y: at.y + 1 });
+    expect(g.parkedVehicle()).toEqual({ id: 'buggy', x: at.x + parkOffset('buggy'), y: at.y + 1 });
     expect(g.buildVehicle('buggy')).toBe(false);
+  });
+
+  it('DEPLOY parks the vehicle under the carport roof, so the bay charges you while seated', () => {
+    const g = rich();
+    const at = withGarage(g);
+    g.interact();
+    expect(g.buildVehicle('buggy')).toBe(true);
+    g.interact();
+    const p = g.parkedVehicle();
+    expect(p).not.toBeNull();
+    // Roof spans at.x - 3 .. at.x + 3 (tile columns): the parked vehicle's centre is inside it.
+    expect(p!.x).toBeGreaterThan(at.x - 3);
+    expect(p!.x).toBeLessThan(at.x + 4);
+    // A flyer waits outside the roof (open sky above it) so it can take off.
+    expect(at.x + parkOffset('sky_jet')).toBeGreaterThan(at.x + 4);
+    expect(parkOffset('drill_tank')).toBe(parkOffset('buggy'));
+    expect(g.world.get(Math.floor(p!.x), at.y - 4)).toBe(T.METAL);
+    g.body.x = p!.x;
+    g.body.y = p!.y;
+    expect(g.toggleRide()).toBe(true);
+    g.battery = 20;
+    run(g, 1);
+    expect(g.riding).toBe(true);
+    expect(g.bayCharging).toEqual({ x: at.x, y: at.y });
+    expect(g.battery).toBeGreaterThan(20);
   });
 
   it('you must walk up to the parked vehicle to get in; getting out parks it there', () => {

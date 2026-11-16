@@ -124,7 +124,8 @@ World size and variety:
 - [x] Art for the garage, buggy and drill tank; e2e checks and screenshots
 - [x] Charging bay: a garage placed in the field charges the battery at 30/s under its roof (on foot or riding), green arc + rising motes, steady green lamp when full, toast + hum (run 59)
 - [x] Field garages show on the map as green bolt charge pins (run 61)
-- [ ] Follow-ups (scheduled runs may take these): plane variant with cargo; park the deployed vehicle under the carport so the bay charges while seated
+- [x] DEPLOY parks ground vehicles under the carport roof (flyers just outside); a parked vehicle hangs on a dock cable with a green pulse, and the bay charges you while seated (run 61)
+- [ ] Follow-ups (scheduled runs may take these): plane variant with cargo
 
 ## P1.8 Owner request 2026-11-11: "add all" (do these FIRST, top to bottom, before P2)
 

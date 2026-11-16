@@ -103,6 +103,14 @@ export function sanitizeGarage(v: unknown, owned: readonly GearId[], migrate: bo
   return out;
 }
 
+/**
+ * Where DEPLOY parks a vehicle: x offset from the bay tile. Ground vehicles stand on the tile two to its right,
+ * under the roof (the bay charges you while seated); flyers wait just outside the carport so they can take off.
+ */
+export function parkOffset(id: VehicleId): number {
+  return VEHICLES[id].flying ? 4.5 : 2.5;
+}
+
 /** Battery per second a garage bay charges you while you stand (or park) under its roof away from the pad. */
 export const BAY_CHARGE = 30;
 

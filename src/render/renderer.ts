@@ -5,7 +5,8 @@ import type { Game, Hook, Shot } from '../sim/game';
 import { petSwimPose, petWater, type PetWater } from './petfx';
 import { PET_ART, petPalette, petRows, type PetArtId } from './petart';
 import { coneCrater, lavafallSpan } from '../sim/structures';
-import { bayArc, chargeMotes } from './bayfx';
+import { bayArc, chargeMotes, dockCable } from './bayfx';
+import { bayAt } from '../sim/garage';
 import { magnetTint, pullBeads, pulledDrops } from './magnetfx';
 import { FALL_W, LAVA_BLOCK, SHIMMER_ROW, SHIMMER_ROWS, fallShade, lavaDepthShade, lavaShade, shimmerRuns, shimmerShift, fallEdges } from './lavafx';
 import { acidBubble, causticDapples, depthRamp, liquidFalling, splashDrops, streamGap, streamLanding, streamWidth, surfaceGlint, waveOffsets } from './liquidfx';
@@ -223,6 +224,8 @@ export class Renderer {
   scorchShown = 0;
   /** Magnet tethers drawn last frame and their tint (read by e2e). */
   pullShown = 0;
+  /** A dock cable was drawn to the parked vehicle last frame (read by e2e). */
+  dockShown = false;
   pullTint: string | null = null;
   /** Layer ambient strength last drawn on the player (0 = none). Debug/e2e. */
   ambientShown = 0;
@@ -410,6 +413,7 @@ export class Renderer {
     this.drawCones(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time, game.rumbleState());
     this.drawBeams(ctx, game, shakeX, shakeY, time);
     this.drawBayCharge(ctx, game, shakeX, shakeY, time);
+    this.drawDockCable(ctx, game, shakeX, shakeY, time);
 
     // Aim highlight and crack overlay.
     if (aim) {
@@ -1582,6 +1586,40 @@ export class Renderer {
       this.pullShown++;
     }
     ctx.restore();
+  }
+
+  /** A vehicle parked under a field carport hangs on a charge cable from the bay light, a green pulse running in. */
+  private drawDockCable(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
+    this.dockShown = false;
+    const p = game.riding ? null : game.parkedVehicle();
+    if (!p) return;
+    const bay = bayAt(game.world, p.x, p.y, T.GARAGE);
+    if (!bay) return;
+    const u = this.scale;
+    const lx = this.sx(bay.x, shakeX) + 13 * u;
+    const ly = this.sy(bay.y, shakeY) + 6 * u;
+    // Plug into the hull's near side, about a tile up from the wheels.
+    const side = p.x >= bay.x + 0.5 ? -1 : 1;
+    const vx = this.sx(p.x + side * 0.9, shakeX);
+    const vy = this.sy(p.y - 0.9, shakeY);
+    const { pts, pulse } = dockCable(lx, ly, vx, vy, time, 8);
+    ctx.save();
+    ctx.strokeStyle = '#1c2420';
+    ctx.lineWidth = Math.max(1, 1.5 * u);
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+    ctx.stroke();
+    const k = Math.min(pts.length - 2, Math.floor(pulse * (pts.length - 1)));
+    const f = pulse * (pts.length - 1) - k;
+    const qx = pts[k][0] + (pts[k + 1][0] - pts[k][0]) * f;
+    const qy = pts[k][1] + (pts[k + 1][1] - pts[k][1]) * f;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = 'rgba(110,255,130,0.9)';
+    ctx.fillRect(Math.round(qx - u), Math.round(qy - u), 2 * u, 2 * u);
+    ctx.fillStyle = 'rgba(110,255,130,0.5)';
+    ctx.fillRect(Math.round(vx - u), Math.round(vy - u), 2 * u, 2 * u);
+    ctx.restore();
+    this.dockShown = true;
   }
 
   private drawBayCharge(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
