@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { swingStyle } from '../src/render/swingfx';
+import { boltHalo, swingStyle } from '../src/render/swingfx';
 import { RARITY } from '../src/sim/rarity';
 
 describe('melee swing trail style', () => {
@@ -23,5 +23,19 @@ describe('melee swing trail style', () => {
   it('the common rarity colour is near white, not a disabled-looking grey', () => {
     const n = parseInt(RARITY.common.color.slice(1), 16);
     expect(Math.min((n >> 16) & 255, (n >> 8) & 255, n & 255)).toBeGreaterThan(220);
+  });
+});
+
+describe('player bolt halo', () => {
+  it('a plain gun glows in the bolt colour; rare and epic glow wider in the rarity colour', () => {
+    expect(boltHalo('#ffd24a', 'common', RARITY.common.color)).toEqual({ color: '#ffd24a', radius: 1.1 });
+    const r = boltHalo('#ffd24a', 'rare', RARITY.rare.color);
+    const e = boltHalo('#ffd24a', 'epic', RARITY.epic.color);
+    expect(r.color).toBe(RARITY.rare.color);
+    expect(e.color).toBe(RARITY.epic.color);
+    expect(e.radius).toBeGreaterThan(r.radius);
+    expect(r.radius).toBeGreaterThan(1.1);
+    // The halo appends a 2-digit alpha, so colours must be 7-char hex.
+    for (const c of [r.color, e.color]) expect(c).toMatch(/^#[0-9a-f]{6}$/i);
   });
 });

@@ -30,3 +30,12 @@ export function swingStyle(color: string, accent: string, rarity: Rarity, rarity
   layers.push({ color: accent, width: 1, alpha: 1, r: 0.99 });
   return { layers, sparkles: rarity === 'epic' ? 5 : rarity === 'rare' ? 3 : 0 };
 }
+
+/**
+ * Halo colour and size for a player bolt: the bolt's own colour for a plain gun, the rarity colour and a
+ * wider glow for a rare or epic ranged prefix (the shot shows the roll, like the swing trail does).
+ */
+export function boltHalo(boltColor: string, rarity: Rarity, rarityColor: string): { color: string; radius: number } {
+  if (rarity === 'common') return { color: boltColor, radius: 1.1 };
+  return { color: rarityColor, radius: rarity === 'epic' ? 1.6 : 1.35 };
+}

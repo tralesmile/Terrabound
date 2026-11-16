@@ -491,10 +491,28 @@ try {
     g.facing = 1;
     g.enemies = [{ id: 2, kind: 'crawler', x: g.body.x + 6, y: g.body.y - 0.01, vx: 0, vy: 0, hp: 24, dir: 1, iframes: 0, age: 0, phase: 0 }];
   });
+  // An epic pistol's bolts glow wider in the epic colour.
+  await page.evaluate(() => {
+    const { game: g, renderer } = window.__terrabound;
+    g['save'].gear.prefix[g.equipped('ranged')] = 'overclocked';
+    g['gearCache'] = null;
+    renderer.boltHaloShown = null;
+  });
   await page.mouse.move(900, 400);
   await page.mouse.down();
-  await page.waitForTimeout(500);
+  const halo = await page
+    .waitForFunction(() => window.__terrabound.renderer.boltHaloShown, null, { polling: 'raf', timeout: 2000 })
+    .then((h) => h.jsonValue())
+    .catch(() => null);
+  await page.screenshot({ path: path.join(out, '06e-epic-bolt.png') });
+  await page.waitForTimeout(300);
   await page.mouse.up();
+  check('an epic pistol fires bolts with a wider epic-colour halo', !!halo && halo.color === '#c070ff' && halo.radius > 1.1, JSON.stringify(halo));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g['save'].gear.prefix = {};
+    g['gearCache'] = null;
+  });
   check('pistol bolt fires', (await page.evaluate(() => window.__terrabound.game.battery)) > 0);
   await page.screenshot({ path: path.join(out, '06-pistol.png') });
   // Killing an enemy shatters it into sprite debris with a shock ring.

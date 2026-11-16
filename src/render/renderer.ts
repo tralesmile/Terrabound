@@ -85,7 +85,7 @@ import { scorchK } from './scorchfx';
 import { CONE_PUFFS, CRACK_VARIANTS, DRIFT_H, DRIFT_VARIANTS, conePuff, crackAt, crackPixels, driftPixels } from './ashfx';
 import { GRIME_VARIANTS, HANG_H, HANG_VARIANTS, RCRACK_VARIANTS, grimeAt, grimePixels, SOOT_VARIANTS, hangAt, hangKind, hangPixels, ruinCrackAt, ruinCrackPixels, sootAt, sootPixels } from './ruinfx';
 import { layerAt } from '../sim/layers';
-import { swingStyle, type SwingStyle } from './swingfx';
+import { boltHalo, swingStyle, type SwingStyle } from './swingfx';
 import { heldArt, type HeldArt } from './heldfx';
 import { RARITY, rarityOf } from '../sim/rarity';
 import { ambientColor, layerAmbient, litRemap, type Ambient } from './ambient';
@@ -1104,6 +1104,9 @@ export class Renderer {
     ctx.fillRect(0, 0, this.w, this.h);
   }
 
+  /** Halo of the last player bolt drawn (e2e). */
+  boltHaloShown: { color: string; radius: number } | null = null;
+
   /** Held weapon art for the e2e: icon id and rim colour drawn last frame. */
   heldShown: HeldArt | null = null;
 
@@ -1119,15 +1122,21 @@ export class Renderer {
     const scale = this.scale;
     const ts = TS * scale;
     ctx.globalCompositeOperation = 'lighter';
+    const rid = game.equipped('ranged');
+    const rar = rarityOf(rid ? game.prefixOf(rid) : undefined);
+    this.boltHaloShown = null;
     for (const sh of game.shots) {
       if (sh.bomb) continue;
       const gx = this.sx(sh.x, shakeX);
       const gy = this.sy(sh.y, shakeY);
-      const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, ts * 1.1);
-      g.addColorStop(0, boltColor(sh, game.gear.ranged) + '5a');
-      g.addColorStop(1, boltColor(sh, game.gear.ranged) + '00');
+      const halo = boltHalo(boltColor(sh, game.gear.ranged), rar, RARITY[rar].color);
+      this.boltHaloShown = halo;
+      const rr = ts * halo.radius;
+      const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, rr);
+      g.addColorStop(0, halo.color + '5a');
+      g.addColorStop(1, halo.color + '00');
       ctx.fillStyle = g;
-      ctx.fillRect(gx - ts * 1.1, gy - ts * 1.1, ts * 2.2, ts * 2.2);
+      ctx.fillRect(gx - rr, gy - rr, rr * 2, rr * 2);
     }
     ctx.globalCompositeOperation = 'source-over';
     for (const sh of game.shots) {
