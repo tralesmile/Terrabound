@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SAVE_VERSION, defaultSave, parseSave, serializeSave } from '../src/sim/save';
 import { Game } from '../src/sim/game';
-import { LEGACY_WORLD, WORLD_H, WORLD_W } from '../src/sim/worldsize';
+import { LEGACY_WORLD, WORLD_H, WORLD_W, biggerWorldPitch, isLegacySize } from '../src/sim/worldsize';
 import { B, bandScale, biomeLayout } from '../src/sim/biomes';
 
 describe('world size', () => {
@@ -62,5 +62,30 @@ describe('world size', () => {
     };
     expect(run(biomeLayout(5, 2800))).toBeGreaterThanOrEqual(300);
     expect(run(biomeLayout(5, 1400))).toBeLessThanOrEqual(280);
+  });
+
+  it('legacy worlds get a clear pitch for a bigger world; current worlds get none', () => {
+    expect(isLegacySize(LEGACY_WORLD)).toBe(true);
+    expect(isLegacySize({ w: WORLD_W, h: WORLD_H })).toBe(false);
+    expect(biggerWorldPitch({ w: WORLD_W, h: WORLD_H })).toBeNull();
+    const pitch = biggerWorldPitch(LEGACY_WORLD) ?? '';
+    expect(pitch).toContain('2x as wide');
+    expect(pitch).toContain('stash, base and upgrades');
+  });
+
+  it('a legacy-world game offers the bigger world and NEW WORLD (at the pad) moves it to the current size', () => {
+    const old = JSON.parse(serializeSave(defaultSave())) as Record<string, unknown>;
+    old.v = 27;
+    delete old.worldSize;
+    old.world = { tiles: '', walls: '', fog: '', chests: '', saplings: '' };
+    const g = new Game(parseSave(JSON.stringify(old)));
+    expect(g.legacyWorld).toBe(true);
+    expect(g.worldSize).toEqual({ w: 1400, h: 420 });
+    g.body.x = g.world.padX + 0.5;
+    g.body.y = g.world.padY;
+    expect(g.newDive()).toBe(true);
+    expect(g.legacyWorld).toBe(false);
+    expect(g.world.w).toBe(WORLD_W);
+    expect(parseSave(serializeSave(g.toSave())).worldSize).toEqual({ w: WORLD_W, h: WORLD_H });
   });
 });

@@ -62,6 +62,7 @@ import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explor
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
 import { BASE_HALF, BASE_ROWS, captureBase, captureWalls, stampBase, stampWalls } from './base';
 import { PAD_HALF, SPAWN_LIGHT_MAX, W, WORLD_H, WORLD_W, World, generateWorld } from './world';
+import { isLegacySize } from './worldsize';
 
 export const GRAVITY = 42;
 /** Auto-step: share of walking speed kept after climbing a ledge, and how fast the drawn body catches up (tiles/s). */
@@ -820,6 +821,16 @@ export class Game {
     if (this.save.records[0]?.code === code) return this.save.records[0];
     const r = this.save.records.find((k) => k.code === code);
     return r ?? startAttempt(this.save.records, code);
+  }
+
+  /** This world is smaller than new worlds (a pre-v28 save): the workshop offers a bigger one. */
+  get legacyWorld(): boolean {
+    return isLegacySize(this.save.worldSize);
+  }
+
+  /** Size of the world in play (from the save; new worlds take the current size). */
+  get worldSize(): { w: number; h: number } {
+    return { ...this.save.worldSize };
   }
 
   get seedCode(): string {

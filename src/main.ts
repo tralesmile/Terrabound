@@ -25,6 +25,7 @@ import { Renderer } from './render/renderer';
 import { ENEMY_ART_UNIT, ENEMY_LOOKS, ENEMY_W, TILE_COLORS, drawGallery, enemyFrame, spriteDebris } from './render/sprites';
 import { FIXED_DT, Game, NO_CONTROLS, TOOLS, type GameEvent, type Tool } from './sim/game';
 import { parseSave, serializeSave } from './sim/save';
+import { WORLD_H, WORLD_W, biggerWorldPitch } from './sim/worldsize';
 import { ITEMS, T, type ItemId } from './sim/tiles';
 import { codexEntry } from './sim/explore';
 import { GEAR } from './sim/gear';
@@ -77,6 +78,8 @@ function boot(): void {
     const parts = [`${away.rust} rust`, `${away.scrap} scrap`, `${away.metal} metal`, `${away.wire} wire`, `${away.crystal} crystal`].filter((x) => !x.startsWith('0 '));
     ui.toast(`While you were away (${h > 0 ? h + ' h ' : ''}${m} min): ${parts.join(', ')}`, '#7dffb0', 6);
   }
+  const pitch = biggerWorldPitch(game.worldSize);
+  if (pitch) ui.toast(pitch, '#9ff6a0', 7);
   if (game.offlineRipe > 0) ui.toast(`Your farm grew while you were away: ${game.offlineRipe} crop${game.offlineRipe === 1 ? ' is' : 's are'} ripe`, '#ffe36a', 6);
   const fx = new Fx();
   const tileDwell = new TileDwell();
@@ -298,7 +301,7 @@ function boot(): void {
         // Abandoning a world you have explored is a big step: ask for a second tap within 3 s.
         if (ui.newWorldArmed <= 0) {
           ui.newWorldArmed = 3;
-          ui.toast('Tap again to abandon this world for a new one', '#ff9a3c');
+          ui.toast(game.legacyWorld ? `Tap again for a new ${WORLD_W} x ${WORLD_H} world (your stash, base and upgrades come along)` : 'Tap again to abandon this world for a new one', '#ff9a3c');
         } else if (game.newDive()) {
           ui.newWorldArmed = 0;
           ui.shopOpen = false;

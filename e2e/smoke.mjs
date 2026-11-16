@@ -310,6 +310,19 @@ try {
   await page.waitForTimeout(300);
   check('B opens the workshop at the base', await page.evaluate(() => window.__terrabound.ui.shopOpen));
   await page.screenshot({ path: path.join(out, '03-shop.png') });
+  // Legacy-size worlds (pre-v28 saves): the world button offers a BIGGER WORLD and the footer says the size.
+  const worldBtn = await page.evaluate(async () => {
+    const { game, ui } = window.__terrabound;
+    const now = ui.worldBtnLabel;
+    const keep = game.save.worldSize;
+    game.save.worldSize = { w: 1400, h: 420 };
+    await new Promise((r) => setTimeout(r, 120));
+    const legacy = ui.worldBtnLabel;
+    game.save.worldSize = keep;
+    await new Promise((r) => setTimeout(r, 120));
+    return { now, legacy, back: ui.worldBtnLabel };
+  });
+  check('the workshop offers a BIGGER WORLD on a legacy-size world, NEW WORLD otherwise', worldBtn.now === 'NEW WORLD' && worldBtn.legacy === 'BIGGER WORLD' && worldBtn.back === 'NEW WORLD', JSON.stringify(worldBtn));
   await page.evaluate(() => window.__terrabound.act({ k: 'buy', id: 'battery' }));
   check('buying an upgrade raises max battery', (await page.evaluate(() => window.__terrabound.game.derived.maxBattery)) === 300);
   await page.keyboard.press('Escape');
