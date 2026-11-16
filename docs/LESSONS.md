@@ -273,3 +273,8 @@
 - **A run without a shell can still save its work:** run 60 drafted the whole slice (code as patch text + a test) on a `wip/` branch with apply steps; this run applied it in minutes. Guard: when tools fail mid-run, push a `wip/runNN-*` branch with a `docs/wip/*.md` apply recipe; the next run checks `git branch -r | grep wip/` at start, applies, then deletes the branch.
 - Small fix to the draft: its pad-distance test used `x + 0.5` on both sides (a no-op); keep geometry predicates in the plainest form so test comments match the code.
 - **A run-60 comment held a rule the code did not enforce:** "just outside the carport, so jets can take off". Moving the parking spot broke the Sky Jet take-off e2e. Guard: the rule is now code (`parkOffset` by `flying`) with a unit test; when a comment explains a magic number, read it before changing the number.
+
+## 2026-11-16 run 62
+
+- **Editing files while a gate runs poisons it.** The baseline `npm run check` ran while I edited sources (it passed against a half-edited tree), and my first `npm run ship` failed because I added a codex test and code mid-gate: vitest loaded the new test with the old module. Guard: once `npm run ship` (or a baseline check) starts, touch only docs/ until it exits; start the next slice after. The ship script already refuses uncommitted tracked changes at start, but not changes made during the run.
+- **Retro (run 62):** the whole gate is ~10 minutes; batch two small slices per ship and write docs while it runs.

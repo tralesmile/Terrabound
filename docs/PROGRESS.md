@@ -830,3 +830,13 @@ Second slice: DEPLOY parks ground vehicles under the carport (garage `parkOffset
 **Next:** boss bonus accessory roll; P1.9 plane with cargo; P3 rarity and weapon modifiers.
 
 **Known issues:** the charge pin is small at the widest map zoom and can sit under the "you" marker when standing in the bay; tethers draw straight lines (drops arc slightly as they fly in).
+
+## 2026-11-16 Scheduled run 62
+
+**Done:** baseline green (918 tests, all e2e). Creative review: a boss kill gave a trophy once and then only resources, so refights had no jackpot; snowy tree canopies read as speckle noise; the phone pad view is mostly sky. Boss trinkets (P3 follow-up): 6 boss-only accessories (scrap core, bloom seed, prism eye, ember wing, frost heart, null core; `BossDef.trinket`), loot `bossBonus`: 50% for the boss's trinket on the first kill, sure on any repeat kill until owned, then 35% for a new craftable accessory; granted like chest finds (`grantAccessory`, worn if a socket is free, `gearfound` with `boss`). A loot beam in the trinket colour with a bobbing gem stands 3.2 s over the drop (beamfx `lootBeam`/`hexRgb`, renderer `lootBeamAt`/`drawLootGem`, `drawBeam` now takes a tint), "Boss drop" toast, a longer sparkle tail (26l-boss-loot-beam). Gear can carry `leech` (bloom seed), stacking with the leech chip. Codex boss cards say whether the trinket has dropped. The TRIP BANKED card fades once the player is 20+ tiles from the pad (bankcard `bankCardAge`).
+
+**Numbers:** 926 unit tests (new: bosstrinket 6, tripcard 1, codex 1), 269 e2e checks green (new: boss loot beam, trip card leaves). Bundle 478 kB (166 kB gzip). Two ships (the first failed: see LESSONS).
+
+**Next:** P3 rarity and weapon modifiers; tree canopy art pass (IDEAS); phone camera bias on tall screens; P1.9 plane with cargo.
+
+**Known issues:** the loot beam gem can sit on top of the boss's resource drops; the trinket roll salt is the fight length in frames, so the same fight replayed gives the same roll (deterministic by design).
