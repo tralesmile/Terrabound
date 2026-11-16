@@ -2079,6 +2079,22 @@ try {
   const blockHeld = await page.evaluate(() => window.__terrabound.ui.tipShown);
   await page.mouse.up({ button: 'right' });
   check('resting the mouse on a block names it with its dig time; quiet at first and while a button is held', blockEarly === '' && blockTip.length > 0 && blockHeld === '', JSON.stringify({ blockEarly, blockTip, blockHeld, blockPos }));
+  // A block hidden behind the hotbar gap between two cells never pops a tooltip over the bar.
+  const gapAt = await page.evaluate(() => {
+    const { ui, game: g, renderer: r } = window.__terrabound;
+    const cells = ui.rects.filter((q) => q.a.k === 'settool').sort((a, b) => a.x - b.x);
+    if (cells.length < 2) return null;
+    const x = (cells[0].x + cells[0].w + cells[1].x) / 2;
+    const y = cells[0].y + cells[0].h / 2;
+    const t = r.screenToTile(x * devicePixelRatio, y * devicePixelRatio);
+    g.world.set(t.x, t.y, 2);
+    g.fog.reveal(t.x, t.y, 2);
+    return { x, y, box: ui.barBox };
+  });
+  if (gapAt) await page.mouse.move(gapAt.x, gapAt.y);
+  await page.waitForTimeout(800);
+  const gapTip = await page.evaluate(() => window.__terrabound.ui.tipShown);
+  check('no block tooltip shows through the gaps of the hotbar', !!gapAt && gapAt.box && gapTip === '', JSON.stringify({ gapAt, gapTip }));
   // Grappling hook: tool 5, click a ceiling, swing.
   const hookAt = await page.evaluate(() => {
     const g = window.__terrabound.game;

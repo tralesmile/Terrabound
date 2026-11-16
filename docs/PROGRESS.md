@@ -902,6 +902,6 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 
 **Numbers:** 981 unit tests (new: swing sweep 3, setfx 3), e2e new check: full-set aura on/off; swing check now also asserts the smear span. Bundle 499.9 kB raw (173.3 kB gzip).
 
-**Next:** Boss 2 Logic Warden; melee hit-stop (IDEAS); stuck block tooltip over the hotbar after closing the inventory; a set for the core plate and trophy weapons.
+**Next:** Boss 2 Logic Warden; melee hit-stop (IDEAS); a set for the core plate and trophy weapons.
 
-**Known issues:** the stale `origin/wip/run60-charge-map` branch is already applied but could not be deleted (the session's permissions refused a remote branch delete); ignore it. Block tooltip stays over the hotbar in 18d/18e.
+**Known issues:** the stale `origin/wip/run60-charge-map` branch is already applied but could not be deleted (the session's permissions refused a remote branch delete); ignore it. Block tooltip over the hotbar fixed in a second slice: world tips never show inside the hotbar strip (ui `barBox`/`inBox`, e2e check "no block tooltip shows through the gaps of the hotbar"); 982 unit tests after it.

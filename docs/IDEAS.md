@@ -3,7 +3,7 @@
 ## 2026-11-16 run 69
 
 - Done this run: the swing is a filled crescent smear from the shoulder over the whole sweep, thick at the blade (05c; Terraria/Core Keeper slashes read as one arc, ours was a dash floating ahead); a full armour set breathes an aura in the set colour with rising motes (18e).
-- Weakest UI: a block tooltip ("Metal plate ... Dig 0.9 s") stays stuck over the hotbar after the inventory closes (18d, 18e); clear hover tips on screen change.
+- Weakest UI (fixed this run): a block tooltip showed through the gaps between hotbar cells (18d, 18e); world tips now stay off the bar strip.
 - Weakest gameplay feel (combat): the swing has no hit-stop; a 40 ms freeze on a melee hit (Hollow Knight, Dead Cells) would make blows land.
 - Weakest progression: Boss 2 Logic Warden is still the first big open gameplay item; the Circuit layer has no boss of its own.
 - Weakest performance: e2e ~5 min; split long boss checks into a second file to run in parallel (carried).

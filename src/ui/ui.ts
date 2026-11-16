@@ -43,6 +43,11 @@ import { goalCardHeight, goalCardLayout, hudAnchors } from './hudlayout';
 import { GHOST_AFTER, GHOST_FADE, extraLine, ghostText, mergeTarget, toastColumn, toastGhost, toastParts, toastSlide, wrapText, type ToastKind } from './toastfx';
 
 /** Base UI unit in canvas px for a screen size, times the settings-screen UI scale. */
+/** Is (x, y) inside the box (edges included)? A null box holds nothing. */
+export function inBox(b: { x: number; y: number; w: number; h: number } | null, x: number, y: number): boolean {
+  return !!b && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+}
+
 export function uiUnit(w: number, h: number, scale = 1): number {
   const base = Math.max(11, Math.min(20, Math.round(Math.min(w, h) / 26)));
   return Math.round(base * scale);
@@ -386,6 +391,8 @@ export class UI {
   private tipCovers: { x: number; y: number; w: number; h: number; at: number }[] = [];
   /** Tooltip for the world thing under the mouse (an item lying on the ground; set by main each frame). */
   worldTip: ItemTip | null = null;
+  /** The hotbar strip drawn last frame (null off the play screen); world tips never show over it. */
+  barBox: { x: number; y: number; w: number; h: number } | null = null;
   /** Title of the item tooltip shown last frame (e2e). */
   tipShown = '';
 
@@ -405,7 +412,7 @@ export class UI {
       tip = itemTip(r.id, r.count, this.weaponPrefix(r.id), this.curGame?.loadout);
       break;
     }
-    if (!tip && this.worldTip && !this.blocks(this.hover.x, this.hover.y)) tip = this.worldTip;
+    if (!tip && this.worldTip && !this.blocks(this.hover.x, this.hover.y) && !inBox(this.barBox, this.hover.x, this.hover.y)) tip = this.worldTip;
     if (!tip) return;
     this.tipShown = tip.title;
     const u = uiUnit(w, h, this.uiScale);
@@ -1751,6 +1758,9 @@ export class UI {
     // Bag button (inventory) at the end of the bar.
     this.cell(ctx, sx + gap, sy, slot, 'chest', null, false, { k: 'inv' });
     this.slotPos.set('inv', { x: sx + gap, y: sy, s: slot });
+    // The whole bar strip (cells, the gaps between them and the held-tool label above): world tips stay off it.
+    const barX0 = (w - total) / 2;
+    this.barBox = { x: barX0, y: sy - u * 1.3, w: sx + gap + slot - barX0, h: slot + u * 1.3 };
     this.text(ctx, this.touch ? 'BAG' : 'I', sx + gap + slot / 2, sy - u * 0.3, Math.round(u * 0.7), '#c9d0e4', 'center');
     this.drawBarPress(ctx);
     this.drawFlyers(ctx, slot);

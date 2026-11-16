@@ -316,3 +316,4 @@
 - **Deleting a remote branch is refused in scheduled runs** (permission classifier). Guard: the run-63 "delete the wip branch after applying" step is replaced by: note in PROGRESS that it is applied (`git branch -r --contains` + grep the feature) and leave it.
 - **`equipGear` toggles** a worn piece off; e2e that "re-equips" to restore can take it off instead. Read `g.loadout` first and restore by toggling back only what changed.
 - **Retro (run 69):** two visual slices verified with a 150 s partial e2e (early check) and one full e2e before the single ship; zoomed PIL crops of the screenshot made the art judgement quick.
+- **"debris is in the air right after a break" flaked once in a full e2e** (caught false, live 0) and passed on the re-run; per the run-68 rule, re-run a timing failure alone before chasing it. If it flakes again, widen its wait window.
