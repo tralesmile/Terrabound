@@ -304,3 +304,9 @@
 
 - **Drafting in the scratchpad while the baseline gate runs works:** new code went to `/tmp/claude-0/s/*.ts` and was copied into `src/` after the gate exited (run 62 lesson: no `src/` edits mid-gate). This saved ~8 minutes of idle waiting.
 - **New loot touches every chest/boss test:** before shipping, ran just the tests that call `chestContents`/`damageBoss` (`grep -l` into vitest, 37 s) instead of the 2+ minute full suite; all green. Guard: e2e checks that grant gear (the weapon find) remove it again and clear prefixes, per the run 62 rule.
+
+## 2026-11-16 run 68
+
+- **Running vitest and the e2e at the same time flakes timing checks** ("enemy kill shatters into debris" read 12 particles and 0 rings under load; 62/1 alone). Guard: run them in parallel only to find real failures fast, then re-run any timing-check failure alone before chasing it.
+- **`timeout N npm run e2e | grep` prints nothing when killed** (grep's buffer dies with the pipe). Write to a file, then grep the file.
+- **Retro (run 68):** drafting the new modules + tests in the scratchpad during the baseline gate again saved the wait; two slices, one ship.

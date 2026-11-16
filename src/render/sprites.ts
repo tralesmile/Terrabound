@@ -3,7 +3,8 @@ import { PET_ART, petPalette, petRows, type PetArtId } from './petart';
 import { hash2 } from '../sim/rng';
 import { T, TILES } from '../sim/tiles';
 import type { EnemyKind } from '../sim/enemies';
-import { drawIcon } from './icons';
+import { ICON, drawIcon, iconDef } from './icons';
+import { outlinePixels } from './heldfx';
 import { charRemap, emberAt, hurtRemap } from './scorchfx';
 import { ambientRemap, litRemap, type Ambient } from './ambient';
 import { drawBossArt } from './bossart';
@@ -1047,8 +1048,10 @@ export interface PlayerPose {
   tier?: number;
   /** Visible gear: upgrade levels change helmet, visor, backpack, battery light and boots. */
   gear?: PlayerGear;
-  /** Tool shown in the hand. */
+  /** Tool shown in the hand (a gear id draws that weapon in its own colours). */
   held?: string;
+  /** Rarity rim around the held weapon (rare/epic prefix). */
+  heldRim?: { color: string; alpha: number };
   /** Crafted armor colours (main, accent) that override the upgrade-tier look. */
   wear?: { head?: [string, string]; body?: [string, string]; feet?: [string, string] };
   /** Landing squash scale about the feet (1, 1 = none). */
@@ -1146,8 +1149,25 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, 
     const hs = s * 0.75;
     const hx = flip ? ox + (PLAYER_W - 12) * s - 12 * hs + 3 * s : ox + 11 * s - 2 * s;
     const hy = oy + (8 + (bobOf(pose) ? 1 : 0)) * s;
+    if (pose.heldRim) {
+      ctx.save();
+      ctx.globalAlpha = pose.heldRim.alpha;
+      ctx.fillStyle = pose.heldRim.color;
+      for (const p of heldOutline(pose.held)) {
+        const cx = flip ? ICON - 1 - p.c : p.c;
+        ctx.fillRect(Math.round(hx + cx * hs), Math.round(hy + p.r * hs), Math.ceil(hs), Math.ceil(hs));
+      }
+      ctx.restore();
+    }
     drawIcon(ctx, pose.held, hx, hy, hs, flip);
   }
+}
+
+const outlineCache = new Map<string, { c: number; r: number }[]>();
+function heldOutline(id: string): { c: number; r: number }[] {
+  let o = outlineCache.get(id);
+  if (!o) outlineCache.set(id, (o = outlinePixels(iconDef(id).rows, ICON)));
+  return o;
 }
 
 /** Belt row (art row) and the columns accessory gems sit in, front to back. */

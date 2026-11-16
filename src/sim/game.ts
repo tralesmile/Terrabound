@@ -40,7 +40,8 @@ import { BIOMES, type BiomeId } from './biomes';
 import { LAYERS, layerAt, openGates } from './layers';
 import { METEOR_RATE, weatherAt, weatherEnemy, type WeatherKind } from './weather';
 import { MAX_PART, VEHICLES, bayAt, bayCharge, cargoLoad, cargoOf, defaultGarage, isVehicle, parkOffset, partCost, partsOf, vehicleStats, type PartId, type PartLevels, type VehicleId } from './garage';
-import { ACC_SLOTS, GEAR, airJumpSources, gearStats, sanitizeGear, toggleAccessory, type GearId, type GearSlot, type GearStats } from './gear';
+import { activeTierKeys, setStates, type SetId, type SetState } from './sets';
+import { ACC_SLOTS, GEAR, airJumpSources, gearStats, sanitizeGear, toggleAccessory, type GearId, type GearSlot, type GearStats, type Loadout } from './gear';
 import { FOOD, bestHeal, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE } from './fishing';
 import { daylight } from './daynight';
 import { awaySeconds, simulateOffline, OFFLINE_MIN, type OfflineResult } from './offline';
@@ -171,6 +172,8 @@ export type GameEvent =
   | { t: 'weaponfound'; id: GearId; prefix: PrefixId; x: number; y: number; boss: boolean }
   /** All accessory sockets are full: take one off first. */
   | { t: 'accfull'; id: GearId }
+  /** An armor set tier switched on (sets.ts). */
+  | { t: 'setbonus'; id: SetId; n: number }
   /** `over`: items carried past the suit pack once out of a cargo vehicle (they stay; pickups pause). */
   | { t: 'dismount'; over: number }
   | { t: 'hook'; x: number; y: number }
@@ -587,6 +590,16 @@ export class Game {
     return out.concat(this.save.gear.acc);
   }
 
+  /** The slot loadout (read-only copy; set bonuses and tooltips read it). */
+  get loadout(): Loadout {
+    return { ...this.save.gear.equip };
+  }
+
+  /** Armor sets with at least one piece worn, and which tiers are on. */
+  get sets(): SetState[] {
+    return setStates(this.save.gear.equip);
+  }
+
   /** Is this gear worn right now (its slot, or an accessory socket)? */
   isWorn(id: GearId): boolean {
     return GEAR[id].slot === 'acc' ? this.save.gear.acc.includes(id) : this.save.gear.equip[GEAR[id].slot] === id;
@@ -635,6 +648,7 @@ export class Game {
   equipGear(id: GearId): boolean {
     if (!this.ownsGear(id)) return false;
     const slot = GEAR[id].slot;
+    const tiersBefore = activeTierKeys(this.save.gear.equip);
     if (slot === 'acc') {
       const next = toggleAccessory(this.save.gear.acc, id);
       if (!next) {
@@ -647,6 +661,11 @@ export class Game {
     if (slot === 'vehicle' && !this.save.gear.equip.vehicle) this.riding = false;
     this.gearCache = null;
     this.hp = Math.min(this.hp, this.derived.maxHp);
+    for (const k of activeTierKeys(this.save.gear.equip)) {
+      if (tiersBefore.includes(k)) continue;
+      const [sid, n] = k.split(':');
+      this.emit({ t: 'setbonus', id: sid as SetId, n: Number(n) });
+    }
     return true;
   }
 

@@ -1,3 +1,4 @@
+import { SETS } from './sim/sets';
 import { PREFIXES, RARITY, prefixedName } from './sim/rarity';
 import { breakDebris, breakStyle } from './render/breakfx';
 import { hitSparkSpec } from './render/hitspark';
@@ -627,6 +628,15 @@ function boot(): void {
         fx.burst(e.x + 0.5, e.y + 0.3, rc.color, 18, 4);
         break;
       }
+      case 'setbonus':
+        {
+          const d = SETS[e.id];
+          const tier = d.tiers.find((t) => t.n === e.n);
+          ui.toast(`Set bonus: ${d.name} ${e.n}/${d.pieces.length} - ${tier?.desc ?? ''}`, d.color, 3);
+          fx.burst(game.body.x, game.body.y - 1, d.color, 22, 5);
+          fx.ring(game.body.x, game.body.y - 1, 1.8, d.color, 0.45);
+        }
+        break;
       case 'accfull':
         ui.toast(`Accessory sockets full: take one off to wear ${GEAR[e.id].name}`, '#ff9a3c', 2.5);
         break;

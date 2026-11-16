@@ -427,6 +427,28 @@ try {
   await page.screenshot({ path: path.join(out, '05c-epic-swing.png') });
   await page.mouse.up();
   check('an epic blade swings a glowing purple trail with sparkles', !!epicSwing && epicSwing.sparkles === 5 && epicSwing.layers === 3, JSON.stringify(epicSwing));
+  // Held weapon: the hand shows the equipped weapon in its own colours with an epic rim (was a generic cyan blade).
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    if (!g.ownsGear('plasma_axe')) g['save'].gear.owned.push('plasma_axe');
+    g.equipGear('plasma_axe');
+    g['save'].gear.prefix.plasma_axe = 'godly';
+    g['gearCache'] = null;
+  });
+  await page.waitForTimeout(250);
+  const held = await page.evaluate(() => {
+    const { game: g, renderer: r } = window.__terrabound;
+    const h = r.heldShown;
+    return { icon: h?.icon, rim: h?.rim, alpha: h?.rimAlpha, px: Math.round(r.sx(g.body.x, 0)), py: Math.round(r.sy(g.body.y, 0)) };
+  });
+  await page.screenshot({ path: path.join(out, '05d-held-weapon.png'), clip: { x: Math.max(0, held.px - 120), y: Math.max(0, held.py - 140), width: 240, height: 180 } });
+  check('the hand holds the equipped weapon (plasma axe) with an epic rarity rim', held.icon === 'plasma_axe' && held.rim === '#c070ff' && held.alpha > 0.15, JSON.stringify(held));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.equipGear('energy_blade');
+    g['save'].gear.owned = g['save'].gear.owned.filter((id) => id !== 'plasma_axe');
+    delete g['save'].gear.prefix.plasma_axe;
+  });
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     g['save'].gear.prefix = {};
@@ -1093,6 +1115,24 @@ try {
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     for (const id of [...g.accessories]) g.equipGear(id);
+  });
+  // Armor set: wearing two Pathfinder pieces switches the 2-piece bonus on (toast) and the inventory names the set.
+  const setRes = await page.evaluate(async () => {
+    const { game: g, ui } = window.__terrabound;
+    ui.toasts = [];
+    for (const id of ['scout_helm', 'spring_boots']) if (!g.ownsGear(id)) g['save'].gear.owned.push(id);
+    const light0 = g.gear.light;
+    g.equipGear('scout_helm');
+    g.equipGear('spring_boots');
+    await new Promise((r) => setTimeout(r, 300));
+    return { lines: [...ui.setLinesShown], toast: ui.toasts.map((t) => t.text).join(' | '), light: g.gear.light - light0, drain: g.gear.drainMul };
+  });
+  await page.screenshot({ path: path.join(out, '18d-set-bonus.png') });
+  check('two Pathfinder pieces switch the set bonus on with a toast and a SET line', setRes.lines[0]?.startsWith('Pathfinder 2/3') && setRes.toast.includes('Set bonus: Pathfinder') && setRes.drain < 1 && setRes.light === 3, JSON.stringify(setRes));
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.equipGear('scout_helm');
+    g.equipGear('spring_boots');
   });
   // A lucky world chest holds an accessory: the first look grants it (worn) with a gold toast.
   await page.keyboard.press('KeyI');

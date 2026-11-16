@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-16 run 68
+
+- Done this run: the hand shows the equipped weapon in its colours with a rarity rim (05d; Terraria shows the held item, Core Keeper the rarity glow); armour sets with 2/3-piece bonuses (Terraria set bonuses give a reason to collect a theme).
+- Weakest graphics (character): a full set looks like any other loadout; a faint set-colour aura or visor tint when a set is complete.
+- Weakest gameplay feel (combat): the swing arc is still short and sits ahead of the hand (carried from run 67).
+- Weakest UI: a found weapon has no NEW marker on the inventory button (carried).
+- Weakest performance: the bundle is 498 kB raw (174 kB gzip, budget 500 kB gzip), fine, but the e2e suite takes ~5 minutes; split the long boss checks into a second file that can run in parallel.
+
 ## 2026-11-16 run 67
 
 - Done this run: chests and boss refights drop weapons already rolled (Terraria/Diablo: an epic drop is a moment, refights now have a jackpot that ends at epic); the melee swing trail is drawn in the weapon's own colours with a rarity glow and sparkles (05c), so a good roll shows on every swing.
@@ -65,11 +73,3 @@
 - Weakest UI (phones): the narrow inventory has no socket row; fold the 6 upgrade-level lines into one compact strip to make room.
 - Done too: mid-air jumps had no effect at all; now a kick ring in the gear's colour, a down-puff and (feather charm) green wisps, plus a lighter chirp (47c).
 - Weakest graphics (character): accessories show only as 1 px belt gems; a magnet ring could draw faint pull lines to loot it is reeling in.
-
-## 2026-11-16 run 57
-
-- Done this run: banking shows a TRIP BANKED card above the bar with the trip's highlights (13d); beam-home arrival has its own shimmer + thud; zap crests tink on insulator pads; arena floor scan cached.
-- Checked, not a bug: the clipped toast in 13c is the 0.18 s slide-in caught mid-frame (drop the run 56 "toasts clip" note).
-- Weakest progression: gear is still stats-only; P3 equipment slots (helmet/core/boots/module) with visible suit parts on the player would give loot a reason to exist (Terraria/Core Keeper armor sets).
-- Weakest retention: the dive and trip tallies vanish on reload; persist them in the save (small, needs SAVE_VERSION bump + fixture).
-- Weakest feel at the pad: banked items vanish from the pack instantly; let the pack icons fly from the bag slot into the stash crate on the card (reuse Flyers).

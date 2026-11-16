@@ -8,7 +8,8 @@ import { BOSSES, bossForBeacon } from '../sim/bosses';
 import { FOOD } from '../sim/fishing';
 import { LAYERS } from '../sim/layers';
 import type { Tool } from '../sim/game';
-import { GEAR, type GearId } from '../sim/gear';
+import { GEAR, type GearId, type Loadout } from '../sim/gear';
+import { SETS, setLine, setOf } from '../sim/sets';
 import { ITEMS, PLACEABLE, type ItemId } from '../sim/tiles';
 
 export interface ItemTip {
@@ -47,7 +48,7 @@ export function itemUse(id: ItemId): string {
 }
 
 /** Tooltip for an item, tool or gear id; `count` adds "x N" to the title. */
-export function itemTip(id: ItemId | Tool | GearId, count?: number | null, prefix?: PrefixId): ItemTip {
+export function itemTip(id: ItemId | Tool | GearId, count?: number | null, prefix?: PrefixId, equip?: Loadout): ItemTip {
   const n = count && count > 1 ? `  x${count}` : '';
   if (isTool(id)) return TOOL_TIPS[id];
   if (isGear(id) && !(id in ITEMS)) {
@@ -55,6 +56,11 @@ export function itemTip(id: ItemId | Tool | GearId, count?: number | null, prefi
     if (prefix && PREFIXES[prefix]) {
       const p = PREFIXES[prefix];
       return { title: prefixedName(g.name, prefix) + n, lines: [g.desc, `${RARITY[p.rarity].name}: ${p.desc}`], color: RARITY[p.rarity].color };
+    }
+    const set = setOf(id);
+    if (set) {
+      const worn = equip ? SETS[set].pieces.filter((p) => Object.values(equip).includes(p)).length : 0;
+      return { title: g.name + n, lines: [g.desc, `Set: ${setLine(set, worn)}`], color: '#9ff6a0' };
     }
     return { title: g.name + n, lines: [g.desc], color: '#9ff6a0' };
   }

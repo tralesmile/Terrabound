@@ -4,6 +4,7 @@
  */
 import type { Inventory } from './tiles';
 import { sanitizePrefixes, type PrefixId } from './rarity';
+import { setMods } from './sets';
 
 export type GearSlot = 'melee' | 'ranged' | 'head' | 'body' | 'feet' | 'back' | 'vehicle' | 'pet' | 'acc';
 /** One item each. Accessories ('acc') are not here: up to ACC_SLOTS of them are worn at once (GearSave.acc). */
@@ -211,6 +212,15 @@ export function gearStats(equip: Loadout, acc: readonly GearId[] = []): GearStat
     if (m.ranged) s.ranged = m.ranged;
     if (m.rangedDmg !== undefined) s.rangedDmg = m.rangedDmg;
     if (m.rangedCd !== undefined) s.rangedCd = m.rangedCd;
+  }
+  // Armor set bonuses (sets.ts): 2- and 3-piece tiers stack on top of the pieces' own stats.
+  for (const m of setMods(equip)) {
+    if (m.armor) s.armor += m.armor;
+    if (m.digMul) s.digMul *= m.digMul;
+    if (m.light) s.light += m.light;
+    if (m.maxHp) s.maxHp += m.maxHp;
+    if (m.drainMul) s.drainMul *= m.drainMul;
+    if (m.airJumps) s.airJumps += m.airJumps;
   }
   s.armor = Math.min(0.6, s.armor);
   return s;

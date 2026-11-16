@@ -241,6 +241,11 @@ export class Sfx {
         [440, 554, 659, 880, 1109].slice(0, n).forEach((f, i) => this.tone(f, 0.14, 'triangle', 0.09, undefined, 0.1 + i * 0.07));
         break;
       }
+      case 'setbonus':
+        // Two-note click of armour plates locking, then a bright major chord (one more note for a 3-piece tier).
+        this.tone(330, 0.06, 'square', 0.08, 220);
+        [523, 659, 784, 1047].slice(0, e.n + 1).forEach((f, i) => this.tone(f, 0.16, 'triangle', 0.08, undefined, 0.08 + i * 0.06));
+        break;
       case 'smelt':
         if (this.ok('smelt', 400)) this.tone(196, 0.12, 'triangle', 0.07, 392);
         break;

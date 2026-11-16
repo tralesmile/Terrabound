@@ -13,6 +13,8 @@ import { MAP_ZOOMS, MapView } from './map';
 import { FLY_TIME, Flyers, flyerPos, pulseAmount } from './flyers';
 import { safeFrame, type Insets } from './safearea';
 import { itemTip, itemUse, type ItemTip } from './itemtip';
+import { SETS, setLine } from '../sim/sets';
+import { heldArt } from '../render/heldfx';
 import { hudButtons, hudGridPos, type HudButton, hoverLabel, type LabelRect } from './hudbuttons';
 import { drawHudGlyph } from './hudglyphs';
 import { ICON, drawIcon } from '../render/icons';
@@ -400,7 +402,7 @@ export class UI {
       if (!inside(r)) continue;
       // A panel drawn after this cell, over the mouse, hides it.
       if (this.tipCovers.some((c) => c.at > i && inside(c))) break;
-      tip = itemTip(r.id, r.count, this.weaponPrefix(r.id));
+      tip = itemTip(r.id, r.count, this.weaponPrefix(r.id), this.curGame?.loadout);
       break;
     }
     if (!tip && this.worldTip && !this.blocks(this.hover.x, this.hover.y)) tip = this.worldTip;
@@ -937,6 +939,11 @@ export class UI {
   /** Game of the frame being drawn (cells look up weapon prefixes for their rarity rim). */
   private curGame: Game | null = null;
 
+  /** The blade and pistol slots show the equipped weapon (its colours and rarity rim); other tools draw themselves. */
+  private toolIcon(game: Game, tool: Tool): Tool | GearId {
+    return heldArt(tool, game.equipped('melee'), game.equipped('ranged'), (id) => game.prefixOf(id), 0).icon as Tool | GearId;
+  }
+
   /** Prefix of an owned weapon id (rarity rim, tooltip name); undefined for anything else. */
   private weaponPrefix(id: ItemId | Tool | GearId): PrefixId | undefined {
     const g = this.curGame;
@@ -1257,6 +1264,8 @@ export class UI {
     this.giftsShown++;
   }
 
+  /** Armor set lines the inventory drew last frame (e2e). */
+  setLinesShown: string[] = [];
   /** Award cards that drew a gift row last frame (e2e). */
   giftsShown = 0;
 
@@ -1345,7 +1354,7 @@ export class UI {
       return id ? [GEAR[id].color, GEAR[id].accent] : undefined;
     };
     const paint = game.paint;
-    drawPlayer(ctx, fx, fy, scale, { facing: 1, walking: false, t: time, airborne: false, tier: game.upgrades.armor ?? 0, gear: playerGear(game), held: game.tool, wear: { head: wearOf('head'), body: wearOf('body'), feet: wearOf('feet') }, trinkets: game.accessories.map((id) => GEAR[id].color), paint: paint ? [paint.c1, paint.c2] : undefined, helm: game.helmPaint ? [game.helmPaint.c1, game.helmPaint.c2] : undefined });
+    drawPlayer(ctx, fx, fy, scale, { facing: 1, walking: false, t: time, airborne: false, tier: game.upgrades.armor ?? 0, gear: playerGear(game), held: this.toolIcon(game, game.tool), wear: { head: wearOf('head'), body: wearOf('body'), feet: wearOf('feet') }, trinkets: game.accessories.map((id) => GEAR[id].color), paint: paint ? [paint.c1, paint.c2] : undefined, helm: game.helmPaint ? [game.helmPaint.c1, game.helmPaint.c2] : undefined });
     // Paints: earned from gold awards; SUIT / HELM / RIDE each cycle default -> each earned paint.
     const earned = unlockedPaints(game.awards).length;
     const pbw = narrow ? cw * 0.5 : Math.min(cw - u * 1.6, u * 11);
@@ -1394,7 +1403,7 @@ export class UI {
     this.text(ctx, TOOL_SLOTS.find((t) => t.tool === game.tool)?.label ?? '', rx + rw, ry + u * 0.6, Math.round(u * 0.75), '#36e0e8', 'right', rw * 0.36);
     ry += u * 1.2;
     const cs = Math.min(u * 3.4, (rw - u * 1.5) / 6);
-    TOOL_SLOTS.forEach((t, i) => this.cell(ctx, rx + i * (cs + u * 0.4), ry, cs, t.tool, null, game.tool === t.tool, { k: 'settool', t: t.tool }));
+    TOOL_SLOTS.forEach((t, i) => this.cell(ctx, rx + i * (cs + u * 0.4), ry, cs, this.toolIcon(game, t.tool), null, game.tool === t.tool, { k: 'settool', t: t.tool }));
     ry += cs + u * 1.2;
     const total = invTotal(game.carried);
     this.text(ctx, `PACK  ${total}/${game.derived.packCap}`, rx, ry, Math.round(u * 0.8), total >= game.derived.packCap ? '#ff9a3c' : '#8a90a2');
@@ -1417,6 +1426,14 @@ export class UI {
     const worn = [...GEAR_SLOTS.map((sl) => game.equipped(sl)).filter((x): x is GearId => !!x), ...game.accessories].map((x) => GEAR[x].name);
     this.text(ctx, `Wearing: ${worn.join(', ')}`, rx, ry, Math.round(u * 0.66), '#9ff6a0', 'left', rw);
     ry += u * 1.1;
+    // Armor sets: the best two in progress, in the set colour when a tier is on, grey while collecting.
+    const sets = [...game.sets].sort((a, b) => b.worn - a.worn).slice(0, 2);
+    this.setLinesShown = sets.map((st) => setLine(st.id, st.worn));
+    sets.forEach((st, i) => {
+      const on = st.active.length > 0;
+      this.text(ctx, `${on ? 'SET ' : ''}${this.setLinesShown[i]}`, rx, ry - u * 0.1, Math.round(u * 0.66), on ? SETS[st.id].color : '#6c7388', 'left', rw);
+      ry += u * 0.95;
+    });
     // Selected item: name, what it does, actions.
     const sel = this.invSel && (game.carried[this.invSel] ?? 0) > 0 ? this.invSel : null;
     if (sel) {
@@ -1699,7 +1716,7 @@ export class UI {
     let sx = (w - total) / 2;
     const sy = h - slot - u * 2.2;
     TOOL_SLOTS.forEach((ts, i) => {
-      this.cell(ctx, sx, sy, slot, ts.tool, null, game.tool === ts.tool, { k: 'settool', t: ts.tool });
+      this.cell(ctx, sx, sy, slot, this.toolIcon(game, ts.tool), null, game.tool === ts.tool, { k: 'settool', t: ts.tool });
       if (!this.touch) this.text(ctx, ts.key, sx + 4, sy + slot * 0.28, Math.round(slot * 0.22), '#8a90a2');
       // A fitted mod chip shows as a small glowing chip in the weapon slot's corner.
       const chip = ts.tool === 'blade' ? game.fittedMod('melee') : ts.tool === 'pistol' ? game.fittedMod('ranged') : undefined;

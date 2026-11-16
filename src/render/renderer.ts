@@ -86,6 +86,7 @@ import { CONE_PUFFS, CRACK_VARIANTS, DRIFT_H, DRIFT_VARIANTS, conePuff, crackAt,
 import { GRIME_VARIANTS, HANG_H, HANG_VARIANTS, RCRACK_VARIANTS, grimeAt, grimePixels, SOOT_VARIANTS, hangAt, hangKind, hangPixels, ruinCrackAt, ruinCrackPixels, sootAt, sootPixels } from './ruinfx';
 import { layerAt } from '../sim/layers';
 import { swingStyle, type SwingStyle } from './swingfx';
+import { heldArt, type HeldArt } from './heldfx';
 import { RARITY, rarityOf } from '../sim/rarity';
 import { ambientColor, layerAmbient, litRemap, type Ambient } from './ambient';
 
@@ -872,7 +873,7 @@ export class Renderer {
       swing: game.swing > 0,
       tier: game.upgrades.armor ?? 0,
       gear: playerGear(game),
-      held: game.tool,
+      ...this.heldPose(game, time),
       scorch: (this.scorchShown = scorchK(game.scorch)),
       squash: fx.hurtLeft > 0 ? hurtSquash(fx.hurtLeft) : squashScale(fx.squashLeft, fx.squashPower),
     });
@@ -1101,6 +1102,16 @@ export class Renderer {
     g.addColorStop(1, `rgba(200,20,30,${a.toFixed(3)})`);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, this.w, this.h);
+  }
+
+  /** Held weapon art for the e2e: icon id and rim colour drawn last frame. */
+  heldShown: HeldArt | null = null;
+
+  /** The equipped weapon in the hand, rimmed in its rarity colour (rare/epic). */
+  private heldPose(game: Game, time: number): { held: string; heldRim?: { color: string; alpha: number } } {
+    const h = heldArt(game.tool, game.equipped('melee'), game.equipped('ranged'), (id) => game.prefixOf(id), time);
+    this.heldShown = h;
+    return { held: h.icon, heldRim: h.rim ? { color: h.rim, alpha: h.rimAlpha } : undefined };
   }
 
   /** Player bolts: additive glow, then the tracer itself (bombs are plain shells). */

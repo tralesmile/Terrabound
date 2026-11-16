@@ -236,7 +236,9 @@ Money (ethical, no paywalls)
 - [x] Rarity and weapon modifiers: 13 prefixes (common/rare/epic, odds 60/30/10 shown), REFORGE on the Workshop gear tab for a visible price, rarity rim + gem on weapon cells, prefixed names in tips (save v30) (run 66); mod chips existed (Gunsmith)
 - [x] Rolled weapon drops: 6-20% of chests (by depth) hold an unowned craftable weapon with a prefix; boss refights hone the trophy weapon with a rare-or-better prefix until it is epic; rarity toast + loot beam (run 67)
 - [x] Swing trail in the weapon's colours with a rarity glow and sparkles for rare/epic; common rarity is near-white (run 67)
-- [ ] Follow-ups: set bonuses (2-3 piece armor sets); held blade/gun sprite glow in the rarity colour; ranged bolts tinted by rarity
+- [x] Armor set bonuses: Pathfinder (scout helm, spring boots, glider), Deep Miner (miner helm, reactor suit, jetpack), Vanguard (plate vest, dash boots), Hollow Regalia (crown, frost core); 2/3-piece tiers stack on the pieces, "Set bonus" toast + ring + chime, SET line in the inventory, set line in gear tips (no save change) (run 68)
+- [x] Held weapon art: the hand and the blade/pistol tool slots show the equipped weapon in its own colours with a rarity rim (epic pulses) (run 68)
+- [ ] Follow-ups: ranged bolts tinted by rarity; a set for the deep-layer core plate and the boss trophy weapons; a faint set-colour aura on the suit when a full set is worn
 - [x] Layer 2 Circuit: tiles, ores, enemies, hazards, dark zones (done in P1.8; layers.ts)
 - [x] Boss 1 Junk Colossus with telegraphed attacks and arena (done in P1.8 + P1.10)
 - [ ] Boss 2 Logic Warden; unlock flow between layers
