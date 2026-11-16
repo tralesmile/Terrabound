@@ -189,6 +189,8 @@ export class UI {
   invSel: ItemId | null = null;
   /** Equipment sockets drawn last frame (e2e reads them). */
   lastDoll: DollRect[] = [];
+  /** Centre alert drawn last frame (battery low or charging), for e2e. */
+  alertLine = '';
   /** Inventory screen page: items or the AWARDS list. */
   invPage: 'items' | 'awards' | 'codex' = 'items';
   /** CODEX page: which section is listed and its first row (paged like AWARDS). */
@@ -1727,7 +1729,16 @@ export class UI {
     for (let i = this.toasts.length - 1; i >= 0; i--) ty += this.drawToast(ctx, this.toasts[i], tl.x, ty, tl.maxW, u) + u * 0.35;
 
     // Contextual warnings and first-minute hints.
-    if (low && !game.isAtBase() && Math.floor(time * 2.5) % 2 === 0) this.text(ctx, 'BATTERY LOW - RETURN TO THE PAD', w / 2, h * 0.2, Math.round(u * 1.2), '#ff9a3c', 'center', w - u * 2);
+    // Under a field garage the battery is filling: say so instead of telling the player to go home.
+    const maxBat = game.derived.maxBattery;
+    this.alertLine = '';
+    if (game.bayCharging && game.battery < maxBat - 0.01) {
+      this.alertLine = `CHARGING  ${Math.floor((game.battery / maxBat) * 100)}%`;
+      this.text(ctx, this.alertLine, w / 2, h * 0.2, Math.round(u * 1.1), '#9ff6a0', 'center', w - u * 2);
+    } else if (low && !game.isAtBase() && Math.floor(time * 2.5) % 2 === 0) {
+      this.alertLine = 'BATTERY LOW - RETURN TO THE PAD';
+      this.text(ctx, this.alertLine, w / 2, h * 0.2, Math.round(u * 1.2), '#ff9a3c', 'center', w - u * 2);
+    }
     const auto = game.stats.playTime >= 40 ? game.hintAutomation(this.touch) : null;
     if (auto) this.text(ctx, auto, w / 2, h - u * 0.7, Math.round(u * 0.75), '#7dffb0', 'center', w - u * 2);
     if (game.stats.playTime < 40) {

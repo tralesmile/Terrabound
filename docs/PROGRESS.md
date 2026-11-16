@@ -807,3 +807,14 @@ Owner: "Water looks bad. Pet looks bad. On hover the items should show what they
 **Next:** socket row on phones; boss bonus accessory roll; sky-island rich chests could carry an accessory too (they are pre-filled at worldgen, so they skip the roll); P1.11 lava profiling; P1.9 follow-ups (plane with cargo, charge station); P3 rarity and weapon modifiers.
 
 **Known issues:** phones show accessories only in the "Wearing" line and the grid highlight; socket icons are small (about 33 px cells at 1280 x 720); dive and trip tallies still live in memory.
+
+## 2026-11-16 Scheduled run 59
+
+**Done:** baseline green (899 tests, all e2e). Creative review: the phone inventory had half a screen of empty space under the gear grid while the socket row was "desktop only"; a garage was only useful for building vehicles, and the old lava frame-time note was stale. Phone socket row (ui `drawDoll` now returns its height; narrow layout draws it under the gear grid, 51e). Charging bay (P1.9 follow-up; sim/garage `bayAt`/`bayCharge`/`BAY_CHARGE`, Game `stepBay`/`bayCharging`, event `baycharge`): under a field garage's carport (3 tiles each side, roof to floor) the battery fills at 30/s on foot or riding; the pad is excluded. Render (render/bayfx `bayArc`/`chargeMotes`, renderer `drawBayCharge`): a flickering green arc from the bay's control light to the suit with white end sparks and rising "+" motes; a steady green lamp glow when full. UI: "CHARGING NN%" in green replaces the blinking "BATTERY LOW - RETURN TO THE PAD" under a bay; toast + rising two-note hum when you step in with a low battery (21c-bay-charge). Lava profiling closed with numbers (lava 9.1 ms vs plain 8.7 ms).
+
+**Numbers:** about 907 unit tests (new: baycharge 5, bayfx 3), e2e new checks: phone socket row, bay charge arc + CHARGING line, full lamp. Bundle about 470 kB (165 kB gzip).
+
+**Next:** field garages on the map as charge points; deploy the vehicle under the carport; boss bonus accessory roll; P1.9 plane with cargo; P3 rarity and weapon modifiers.
+
+**Known issues:** the bay charges anyone standing in the carport even when the carport frame was dug away (it keys on the bay tile only); the parked vehicle sits just outside the carport, so riding up to it does not charge until you drive in.
+

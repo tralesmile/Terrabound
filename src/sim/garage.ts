@@ -102,3 +102,32 @@ export function sanitizeGarage(v: unknown, owned: readonly GearId[], migrate: bo
   }
   return out;
 }
+
+/** Battery per second a garage bay charges you while you stand (or park) under its roof away from the pad. */
+export const BAY_CHARGE = 30;
+
+/** Minimal world view for bay lookups (keeps this module free of the World class). */
+export interface BayWorld {
+  get(x: number, y: number): number;
+}
+
+/**
+ * The garage bay whose carport covers a body with feet at (x, y), or null. The carport spans 3 tiles each
+ * side of the bay tile and from the roof (bay row - 4) down to the floor under the bay (bay row + 1).
+ * `garageTile` is the T.GARAGE id (passed in so this file need not import the tile table).
+ */
+export function bayAt(world: BayWorld, x: number, y: number, garageTile: number): { x: number; y: number } | null {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  for (let gy = Math.floor(y) - 1; gy <= Math.floor(y) + 3; gy++)
+    for (let gx = Math.floor(x) - 4; gx <= Math.floor(x) + 4; gx++) {
+      if (world.get(gx, gy) !== garageTile) continue;
+      if (Math.abs(x - (gx + 0.5)) <= 3.5 && y >= gy - 3 && y <= gy + 1.05) return { x: gx, y: gy };
+    }
+  return null;
+}
+
+/** Battery after charging for `dt` seconds in a bay, capped at `max` (never lowers a battery above max). */
+export function bayCharge(battery: number, max: number, dt: number): number {
+  if (battery >= max) return battery;
+  return Math.min(max, battery + BAY_CHARGE * Math.max(0, dt));
+}

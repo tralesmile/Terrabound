@@ -39,7 +39,7 @@ import { BIOME_BOSSES, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SL
 import { BIOMES, type BiomeId } from './biomes';
 import { LAYERS, layerAt, openGates } from './layers';
 import { METEOR_RATE, weatherAt, weatherEnemy, type WeatherKind } from './weather';
-import { MAX_PART, VEHICLES, defaultGarage, isVehicle, partCost, partsOf, vehicleStats, type PartId, type PartLevels, type VehicleId } from './garage';
+import { MAX_PART, VEHICLES, bayAt, bayCharge, defaultGarage, isVehicle, partCost, partsOf, vehicleStats, type PartId, type PartLevels, type VehicleId } from './garage';
 import { ACC_SLOTS, GEAR, airJumpSources, gearStats, sanitizeGear, toggleAccessory, type GearId, type GearSlot, type GearStats } from './gear';
 import { FOOD, bestHeal, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE } from './fishing';
 import { daylight } from './daynight';
@@ -206,6 +206,8 @@ export type GameEvent =
   | { t: 'step' }
   | { t: 'land'; speed: number }
   | { t: 'lowbattery' }
+  /** Started charging under a garage bay's roof away from the pad (once per visit). */
+  | { t: 'baycharge'; x: number; y: number }
   | { t: 'upgrade'; id: string }
   | { t: 'craft'; id: string }
   | { t: 'smelt'; made: number }
@@ -409,6 +411,8 @@ export class Game {
   private digTick = 0;
   private fullCd = 0;
   private lowWarned = false;
+  /** The garage bay charging the battery this step (null when not under a field garage; render + e2e). */
+  bayCharging: { x: number; y: number } | null = null;
   private wasGround = true;
 
   constructor(save: SaveData = defaultSave()) {
@@ -863,6 +867,19 @@ export class Game {
 
   get seedCode(): string {
     return encodeSeed(this.diveSeed());
+  }
+
+  /**
+   * A garage placed out in the world is a forward outpost: under its roof the battery charges at
+   * BAY_CHARGE per second (faster than any drain), on foot or in a vehicle. The pad already refills.
+   */
+  private stepBay(dt: number, max: number): void {
+    const bay = this.isAtBase() || this.hp <= 0 ? null : bayAt(this.world, this.body.x, this.body.y, T.GARAGE);
+    if (bay && !this.bayCharging) this.emit({ t: 'baycharge', x: bay.x, y: bay.y });
+    this.bayCharging = bay;
+    if (!bay) return;
+    this.battery = bayCharge(this.battery, max, dt);
+    if (this.battery > max * 0.2) this.lowWarned = false;
   }
 
   isAtBase(): boolean {
@@ -1821,6 +1838,7 @@ export class Game {
       }
       if (this.battery === 0) this.hp -= 8 * dt;
     }
+    this.stepBay(dt, d.maxBattery);
     if (this.hp <= 0) this.die();
   }
 

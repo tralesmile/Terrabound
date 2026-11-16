@@ -1376,12 +1376,12 @@ try {
     await page.waitForTimeout(250);
     const charge = await page.evaluate(() => {
       const { game, renderer } = window.__terrabound;
-      return { bay: game.bayCharging, bat: game.battery, arcs: renderer.bayArcs };
+      return { bay: game.bayCharging, bat: game.battery, arcs: renderer.bayArcs, alert: window.__terrabound.ui.alertLine };
     });
     await page.screenshot({ path: path.join(out, '21c-bay-charge.png') });
     await page.waitForTimeout(400);
     const later = await page.evaluate(() => window.__terrabound.game.battery);
-    check('standing under a field garage charges the battery with a green arc to the suit', !!charge.bay && charge.arcs >= 2 && charge.bat > 30 && later > charge.bat, JSON.stringify({ ...charge, later }));
+    check('standing under a field garage charges the battery with a green arc to the suit', !!charge.bay && charge.arcs >= 2 && charge.bat > 30 && later > charge.bat && charge.alert.startsWith('CHARGING'), JSON.stringify({ ...charge, later }));
     await page.evaluate(() => { const g = window.__terrabound.game; g.battery = g.derived.maxBattery; });
     await page.waitForTimeout(150);
     const full = await page.evaluate(() => ({ full: window.__terrabound.renderer.bayFull, arcs: window.__terrabound.renderer.bayArcs }));

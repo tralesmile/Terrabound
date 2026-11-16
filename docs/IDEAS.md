@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-16 run 59
+
+- Done this run: a field garage is a charging bay (battery fills at 30/s under its roof, crackling green arc from the bay light to the suit, "+" motes, steady green lamp when full, CHARGING % replaces the "return to the pad" nag) so a garage becomes a Dome Keeper-style forward outpost (21c-bay-charge); the phone inventory shows the accessory socket row (51e).
+- Weakest progression (outposts): the map does not mark field garages; a green bolt pin would let players plan deep trips around their charge points.
+- Weakest gameplay feel (vehicles): the parked buggy sits just outside the carport; parking under the roof (deploy into the bay) would make the bay read as a garage and charge you while seated.
+- Checked, stale: lava scene cost (9.1 vs 8.7 ms plain); the old 11 ms note is gone after the shimmer/memo fixes.
+- Weakest progression (loot): accessories still only come from chests and the workshop; a boss bonus roll with boss-only trinkets (carried).
+
 ## 2026-11-16 run 58
 
 - Done this run: 3 accessory sockets with 7 craftable trinkets (magnet ring, vital heart, lamp shard, power coil, grip gloves, aegis charm, feather charm); a WORN / ACCESSORIES socket row fills the dead space under the character in the inventory (18c); worn trinkets glint as gems on the belt.
@@ -38,11 +46,3 @@
 - Weakest UI: toasts still stack 3-4 deep at depth (awards fold, but the column covers a quarter of a phone screen); cap the column at two pills on phones and fold the rest into a "+2" chip.
 - Weakest progression: the dive report still only shows on death; a lighter "dive banked" card on beam-home (carried, P4 follow-up).
 - Weakest finale play: a non-conducting safe platform node in the Hollow AI arena (carried, BACKLOG P1.10 follow-up).
-
-## 2026-11-13 run 53
-
-- Done this run: the Hollow AI's phase 2 now electrifies its floor circuit: a charging pool flickers under the boss (0.9 s), then a white-hot crest with zigzag arcs rolls out both ways; standing on the floor as it passes hurts, a jump dodges it (28f). Every boss answers hits in its own material sound (clank, thump, crystal ping, ember hiss, ice crack, glitch).
-- Weakest finale play (next): zaps share the floor with volleys; a "safe island" (a raised platform node that never conducts) would add positioning, Terraria Moon Lord style.
-- Weakest graphics: the new liquid strip on the surface pond reads as glitter noise at 1x (02-digging); owner's interactive session owns liquids, so note only.
-- Weakest progression: the dive report still only shows on death; a lighter "dive banked" card on beam-home (carried, P4 follow-up).
-- Weakest UI: Core-layer toasts and the boss title can crowd the top band on small phones (carried; a 360x640 boss screenshot check is cheap).

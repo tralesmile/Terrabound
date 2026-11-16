@@ -85,7 +85,7 @@ World size and variety:
 - [x] Bigger world: 2800 x 480 for new worlds (old saves keep 1400 x 420), 1.5x wider biome bands, worldgen 1.7x faster (noiseGrid)
 - [x] Hover tooltips for world blocks and machines (0.5 s dwell, dig time + drop), splash where a stream lands in a pool (run 54)
 - [x] "Start a bigger world" offer for legacy saves: load toast, BIGGER WORLD workshop button, size in the footer (run 56)
-- [ ] Follow-ups (scheduled runs may take these): lava scene renders ~11 ms vs 7.5 ms plain in headless (profile the lavafall rows)
+- [x] Lava scene profiling: re-measured run 59, lava 9.1 ms vs 8.7 ms plain (median of 3 alternations) after the shimmer snapshot and floor memo fixes; no hotspot left (the e2e probe still guards it)
 
 ## P1.10 Owner request 2026-11-12: better driving and swimming graphics, lava (done 2026-11-12)
 
@@ -122,7 +122,8 @@ World size and variety:
 - [x] Parts per vehicle: engine (speed), armor (damage taken), battery (drain); 3 levels each
 - [x] Vehicles are parked world objects: DEPLOY from the garage, walk up and press V to enter, leaving parks it; save migration parks owned vehicles at the pad
 - [x] Art for the garage, buggy and drill tank; e2e checks and screenshots
-- [ ] Follow-ups (scheduled runs may take these): plane variant with cargo, fuel/charge station at the garage (pilot seated inside buggy and drill tank done run 34; vehicle paints done run 35)
+- [x] Charging bay: a garage placed in the field charges the battery at 30/s under its roof (on foot or riding), green arc + rising motes, steady green lamp when full, toast + hum (run 59)
+- [ ] Follow-ups (scheduled runs may take these): plane variant with cargo; show the field garage on the map as a charge point
 
 ## P1.8 Owner request 2026-11-11: "add all" (do these FIRST, top to bottom, before P2)
 
@@ -225,7 +226,8 @@ Money (ethical, no paywalls)
 
 - [x] Equipment slots: head/body/feet/back/pet existed; 3 accessory sockets with 7 craftable accessories (stats stack), WORN + ACCESSORIES socket row under the character in the inventory (tap to take off), gems on the belt in the world (save v29) (run 58)
 - [x] Accessories in world chests: 10% of shallow chests rising to 30% deep hold an unowned accessory, worn at once if a socket is free, gold toast + ring + sparkle (run 58); feather-charm air jump wisps (run 58)
-- [ ] Follow-ups: socket row on phones (narrow inventory has no room; shows only the "Wearing" line); boss bonus accessory roll and boss-only accessories; magnet ring pull lines
+- [x] Socket row on phones under the gear grid (run 59)
+- [ ] Follow-ups: boss bonus accessory roll and boss-only accessories; magnet ring pull lines
 - [ ] Rarity and weapon modifiers; mod chips; set bonuses
 - [x] Layer 2 Circuit: tiles, ores, enemies, hazards, dark zones (done in P1.8; layers.ts)
 - [x] Boss 1 Junk Colossus with telegraphed attacks and arena (done in P1.8 + P1.10)

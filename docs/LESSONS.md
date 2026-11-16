@@ -259,3 +259,11 @@
 - **`npm run build 2>&1 | grep 'index-.*js'` hid a failed build** (tsc error in a test: `g.save` is private), so the e2e ran against the old dist and a new check failed for no visible reason. Guard: after a build, confirm the new code is in dist (`grep -c <new event name> dist/assets/*.js`) or run the build unfiltered; tests must use public API (`toSave()`), not `save`.
 - **Retro (run 58):** two slices, two ships. Most time went to two e2e false failures (a loose colour class, a jump pressed mid-fall) and one stale dist. Measuring the real pixels in the PNG with PIL found the colour cause in a minute; do that first next time.
 - **The eruption check failed twice in the ship gate but passed in a standalone e2e (same code):** it waited for bombs to be falling, then counted bombs drawn; from a tall cone 3 of 4 arcs were still above the view (drawn 1). Guard: the wait also requires `renderer.bombsShown >= 2` (timeout 8 s). When a check flips between gate and standalone, the wait condition is missing the thing the check counts.
+
+## 2026-11-16 run 59
+
+- **An event fired by the setup step is gone before the assertion.** The bay test drained events after placing the garage, but the place step itself stood the player under the new roof and emitted `baycharge`, so the "once per visit" check saw 0. Guard: when a fixture helper can trigger the event under test, count events from before the helper, not after.
+- **New status must override the old nag, not sit beside it.** The first bay screenshot showed "BATTERY LOW - RETURN TO THE PAD" over a charging player. Guard: the centre alert is one slot (`ui.alertLine`), the e2e asserts it reads CHARGING under a bay.
+- **Stale backlog notes:** the lava 11 ms note had been fixed two runs earlier. Read the latest probe line in the baseline log (`grep "frame-time probe"`) before profiling.
+- **Retro (run 59):** whole `vitest run` now takes over 2 minutes; run it in the background (or let the ship gate do it) instead of a foreground call that times out.
+

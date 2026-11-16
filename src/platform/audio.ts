@@ -381,6 +381,11 @@ export class Sfx {
         this.tone(330, 0.6, 'sawtooth', 0.2, 55);
         this.noise(0.4, 0.3);
         break;
+      case 'baycharge':
+        // Rising two-note hum: plugged in.
+        this.tone(330, 0.12, 'triangle', 0.08, 520);
+        this.tone(520, 0.16, 'triangle', 0.07, 780, 0.1);
+        break;
       case 'lowbattery':
         this.tone(880, 0.1, 'square', 0.1);
         this.tone(880, 0.1, 'square', 0.1, undefined, 0.18);

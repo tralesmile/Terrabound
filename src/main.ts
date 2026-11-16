@@ -577,6 +577,9 @@ function boot(): void {
       case 'lowbattery':
         ui.toast('Battery low!', '#ff9a3c');
         break;
+      case 'baycharge':
+        if (game.battery < game.derived.maxBattery - 1) ui.toast('Charging at the garage bay', '#9ff6a0');
+        break;
       case 'upgrade':
         ui.toast('Upgrade installed', '#36e0e8');
         break;

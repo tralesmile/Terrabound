@@ -5,6 +5,7 @@ import type { Game, Hook, Shot } from '../sim/game';
 import { petSwimPose, petWater, type PetWater } from './petfx';
 import { PET_ART, petPalette, petRows, type PetArtId } from './petart';
 import { coneCrater, lavafallSpan } from '../sim/structures';
+import { bayArc, chargeMotes } from './bayfx';
 import { FALL_W, LAVA_BLOCK, SHIMMER_ROW, SHIMMER_ROWS, fallShade, lavaDepthShade, lavaShade, shimmerRuns, shimmerShift, fallEdges } from './lavafx';
 import { acidBubble, causticDapples, depthRamp, liquidFalling, splashDrops, streamGap, streamLanding, streamWidth, surfaceGlint, waveOffsets } from './liquidfx';
 import { cropAt, isCropTile, isWatered } from '../sim/farming';
@@ -404,6 +405,7 @@ export class Renderer {
     this.boingClock = time;
     this.drawCones(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time, game.rumbleState());
     this.drawBeams(ctx, game, shakeX, shakeY, time);
+    this.drawBayCharge(ctx, game, shakeX, shakeY, time);
 
     // Aim highlight and crack overlay.
     if (aim) {
@@ -1532,6 +1534,61 @@ export class Renderer {
       if (shape.alpha <= 0) this.arrival = null;
       else this.drawBeam(ctx, this.arrival.x, this.arrival.y, shape, shakeX, shakeY, time);
     }
+  }
+
+  /** Charge arcs drawn last frame and whether the bay showed its full lamp (e2e). */
+  bayArcs = 0;
+  bayFull = false;
+
+  /**
+   * Garage bay charging: a crackling green arc from the bay's control light to the suit while the
+   * battery fills, "+" motes rising off the player; once full, the bay's light turns steady green.
+   */
+  private drawBayCharge(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
+    this.bayArcs = 0;
+    this.bayFull = false;
+    const bay = game.bayCharging;
+    if (!bay) return;
+    const u = this.scale;
+    const ts = TS * u;
+    const lx = this.sx(bay.x, shakeX) + 13 * u;
+    const ly = this.sy(bay.y, shakeY) + 6 * u;
+    const full = game.battery >= game.derived.maxBattery - 0.01;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    if (full) {
+      this.bayFull = true;
+      const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, ts * 0.8);
+      g.addColorStop(0, `rgba(120,255,140,${(0.55 + 0.15 * Math.sin(time * 3)).toFixed(3)})`);
+      g.addColorStop(1, 'rgba(120,255,140,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(lx - ts, ly - ts, ts * 2, ts * 2);
+      ctx.restore();
+      return;
+    }
+    const px = this.sx(game.body.x, shakeX);
+    const py = this.sy(game.body.y - 1.1, shakeY);
+    // Two strands: a wide faint glow and a bright core, plus a white spark at each end.
+    const pts = bayArc(lx, ly, px, py, time, 9, 3 * u);
+    for (const [w, col] of [[4 * u, 'rgba(90,255,120,0.28)'], [Math.max(1, u), 'rgba(210,255,200,0.95)']] as const) {
+      ctx.strokeStyle = col;
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      pts.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+      ctx.stroke();
+      this.bayArcs++;
+    }
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(lx - u, ly - u, 2 * u, 2 * u);
+    ctx.fillRect(px - u, py - u, 2 * u, 2 * u);
+    for (const m of chargeMotes(time, 4)) {
+      ctx.fillStyle = `rgba(140,255,150,${m.a.toFixed(3)})`;
+      const mx = Math.round(px + m.dx * ts);
+      const my = Math.round(this.sy(game.body.y + m.dy - 1, shakeY));
+      ctx.fillRect(mx - u, my, 3 * u, u);
+      ctx.fillRect(mx, my - u, u, 3 * u);
+    }
+    ctx.restore();
   }
 
   private drawBeam(ctx: CanvasRenderingContext2D, x: number, y: number, s: BeamShape, shakeX: number, shakeY: number, time: number): void {
