@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { boltHalo, swingStyle } from '../src/render/swingfx';
+import { boltHalo, crescent, SWING_SPAN, SWING_TAIL, swingStyle, swingSweep } from '../src/render/swingfx';
 import { RARITY } from '../src/sim/rarity';
 
 describe('melee swing trail style', () => {
@@ -37,5 +37,44 @@ describe('player bolt halo', () => {
     expect(r.radius).toBeGreaterThan(1.1);
     // The halo appends a 2-digit alpha, so colours must be 7-char hex.
     for (const c of [r.color, e.color]) expect(c).toMatch(/^#[0-9a-f]{6}$/i);
+  });
+});
+
+describe('swing smear sweep', () => {
+  it('sweeps over the head from up-ahead to down-ahead, the tail growing from the start', () => {
+    const a = swingSweep(0, 1);
+    expect(a.head).toBeCloseTo(a.tail);
+    const mid = swingSweep(0.5, 1);
+    expect(mid.head - mid.tail).toBeCloseTo(SWING_SPAN / 2);
+    const end = swingSweep(1, 1);
+    expect(end.head - end.tail).toBeCloseTo(SWING_TAIL);
+    expect(end.head - a.head).toBeCloseTo(SWING_SPAN);
+    // Starts above the horizon ahead (negative y) and ends below it, always in front (cos > 0).
+    expect(Math.sin(a.head)).toBeLessThan(0);
+    expect(Math.sin(end.head)).toBeGreaterThan(0);
+    for (const s of [a, mid, end]) expect(Math.cos(s.head)).toBeGreaterThan(0);
+  });
+
+  it('facing left mirrors the sweep across the vertical', () => {
+    for (const k of [0, 0.3, 1]) {
+      const r = swingSweep(k, 1);
+      const l = swingSweep(k, -1);
+      expect(Math.cos(l.head)).toBeCloseTo(-Math.cos(r.head));
+      expect(Math.sin(l.head)).toBeCloseTo(Math.sin(r.head));
+    }
+    expect(swingSweep(2, 1)).toEqual(swingSweep(1, 1));
+  });
+
+  it('the crescent is thick at the blade and tapers to a point at the tail', () => {
+    const sw = swingSweep(0.8, 1);
+    const n = 10;
+    const pts = crescent(0, 0, sw, 50, 12, n);
+    expect(pts.length).toBe(2 * 2 * (n + 1));
+    const r = (i: number) => Math.hypot(pts[2 * i], pts[2 * i + 1]);
+    // outer edge all at 50
+    for (let i = 0; i <= n; i++) expect(r(i)).toBeCloseTo(50);
+    // inner edge runs head -> tail: first inner point (head) is 12 in, last (tail) is on the rim
+    expect(r(n + 1)).toBeCloseTo(38);
+    expect(r(2 * n + 1)).toBeCloseTo(50);
   });
 });

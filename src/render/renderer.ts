@@ -85,7 +85,7 @@ import { scorchK } from './scorchfx';
 import { CONE_PUFFS, CRACK_VARIANTS, DRIFT_H, DRIFT_VARIANTS, conePuff, crackAt, crackPixels, driftPixels } from './ashfx';
 import { GRIME_VARIANTS, HANG_H, HANG_VARIANTS, RCRACK_VARIANTS, grimeAt, grimePixels, SOOT_VARIANTS, hangAt, hangKind, hangPixels, ruinCrackAt, ruinCrackPixels, sootAt, sootPixels } from './ruinfx';
 import { layerAt } from '../sim/layers';
-import { boltHalo, swingStyle, type SwingStyle } from './swingfx';
+import { boltHalo, crescent, swingStyle, swingSweep, type SwingStyle, type SwingSweep } from './swingfx';
 import { heldArt, type HeldArt } from './heldfx';
 import { RARITY, rarityOf } from '../sim/rarity';
 import { ambientColor, layerAmbient, litRemap, type Ambient } from './ambient';
@@ -236,6 +236,8 @@ export class Renderer {
   ambientShown = 0;
   /** e2e: the style of the last melee swing trail drawn (weapon colour + rarity glow). */
   swingShown: SwingStyle | null = null;
+  /** e2e: the swept angles of the last swing smear drawn. */
+  swingSweepShown: SwingSweep | null = null;
   /** Debug/e2e switch: draw the player, enemies, pets and NPCs without the layer ambient. */
   noAmbient = false;
   /** Sprites (enemies, pet, NPCs) drawn with a layer ambient this frame. Debug/e2e. */
@@ -567,26 +569,31 @@ export class Renderer {
       const rar = rarityOf(wid ? game.prefixOf(wid) : undefined);
       const st = swingStyle(wg?.color ?? '#78ffff', wg?.accent ?? '#e8ffff', rar, RARITY[rar].color);
       this.swingShown = st;
-      const a0 = game.facing > 0 ? -1.2 + k * 2.2 : Math.PI + 1.2 - k * 2.2;
-      const R = 2 * ts * 0.9;
+      // A filled crescent smear: thick at the blade, tapering back along the swept path to where the
+      // swing began, so it reads as one slash from the shoulder rather than a dash in front of the suit.
+      const sw = swingSweep(k, game.facing);
+      this.swingSweepShown = sw;
+      const R = 1.7 * ts;
       const cy = py - 12 * scale;
+      const fade = Math.min(1, (1 - k) * 2.5);
       ctx.save();
-      ctx.lineCap = 'round';
       for (const l of st.layers) {
-        ctx.globalAlpha = l.alpha * (1 - k);
-        ctx.strokeStyle = l.color;
-        ctx.lineWidth = scale * l.width;
+        ctx.globalAlpha = l.alpha * fade;
+        ctx.fillStyle = l.color;
+        const pts = crescent(px, cy, sw, R * l.r, scale * l.width * 2.2);
         ctx.beginPath();
-        ctx.arc(px, cy, R * l.r, a0 - 0.5, a0 + 0.1);
-        ctx.stroke();
+        ctx.moveTo(pts[0], pts[1]);
+        for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+        ctx.closePath();
+        ctx.fill();
       }
       if (st.sparkles > 0) {
         ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = RARITY[rar].color;
         for (let i = 0; i < st.sparkles; i++) {
-          const a = a0 - 0.5 + (0.6 * (i + 0.5)) / st.sparkles;
+          const a = sw.tail + ((sw.head - sw.tail) * (i + 0.5)) / st.sparkles;
           const tw = 0.5 + 0.5 * Math.sin(time * 40 + i * 2.1);
-          ctx.globalAlpha = (1 - k) * tw;
+          ctx.globalAlpha = fade * tw;
           const sz = scale * (1 + tw);
           ctx.fillRect(px + Math.cos(a) * R * 1.08 - sz / 2, cy + Math.sin(a) * R * 1.08 - sz / 2, sz, sz);
         }

@@ -420,13 +420,14 @@ try {
     .waitForFunction(() => {
       const { game, renderer } = window.__terrabound;
       const s = renderer.swingShown;
-      return game.swing > 0.08 && s && s.sparkles > 0 ? { sparkles: s.sparkles, glow: s.layers[0].color, layers: s.layers.length } : null;
+      const sw = renderer.swingSweepShown;
+      return game.swing > 0.06 && game.swing < 0.11 && s && s.sparkles > 0 && sw ? { sparkles: s.sparkles, glow: s.layers[0].color, layers: s.layers.length, span: Math.abs(sw.head - sw.tail) } : null;
     }, null, { polling: 'raf', timeout: 3000 })
     .then((h) => h.jsonValue())
     .catch(() => null);
   await page.screenshot({ path: path.join(out, '05c-epic-swing.png') });
   await page.mouse.up();
-  check('an epic blade swings a glowing purple trail with sparkles', !!epicSwing && epicSwing.sparkles === 5 && epicSwing.layers === 3, JSON.stringify(epicSwing));
+  check('an epic blade swings a glowing purple crescent smear with sparkles', !!epicSwing && epicSwing.sparkles === 5 && epicSwing.layers === 3 && epicSwing.span > 0.8, JSON.stringify(epicSwing));
   // Held weapon: the hand shows the equipped weapon in its own colours with an epic rim (was a generic cyan blade).
   await page.evaluate(() => {
     const g = window.__terrabound.game;
