@@ -317,3 +317,9 @@
 - **`equipGear` toggles** a worn piece off; e2e that "re-equips" to restore can take it off instead. Read `g.loadout` first and restore by toggling back only what changed.
 - **Retro (run 69):** two visual slices verified with a 150 s partial e2e (early check) and one full e2e before the single ship; zoomed PIL crops of the screenshot made the art judgement quick.
 - **"debris is in the air right after a break" flaked once in a full e2e** (caught false, live 0) and passed on the re-run; per the run-68 rule, re-run a timing failure alone before chasing it. If it flakes again, widen its wait window.
+
+## 2026-11-16 run 70
+
+- **A carried idea was already done:** run 69's IDEAS asked for melee hit-stop, which has existed for many runs (`HITSTOP`). Guard: `grep` for the mechanic before carrying or building an idea; noted in IDEAS.
+- **Hard-coded content counts in checks break when content grows** (share test "Bosses 0/5", e2e "Trinkets n/6"). Guard: the e2e codex check now reads `tk.total` and asserts it equals the boss count; new count-bearing checks should derive from the table (`BOSS_IDS.length`), not a literal.
+- **Retro (run 70):** new modules drafted in the scratchpad during the baseline gate (run 67 lesson) again saved ~8 minutes; e2e is built from `dist`, so `src/` edits are safe once the gate has passed its build step.

@@ -24,7 +24,7 @@ import { FOOD, bestHeal, healCount } from '../sim/fishing';
 import { ACC_SLOTS, GEAR, GEAR_IDS, GEAR_SLOTS, type GearId } from '../sim/gear';
 import { DOLL_SLOTS, dollLayout, type DollRect } from './dollslots';
 import { BOSSES, GATE_BOSSES, bossForBeacon } from '../sim/bosses';
-import { PHASE_NOTCH, bossBarSlot, newChip, stepChip, type BossSlot, type ChipState } from './bossbar';
+import { PHASE_NOTCH, barColors, bossBarSlot, newChip, stepChip, type BossSlot, type ChipState } from './bossbar';
 import { LAYERS } from '../sim/layers';
 import { MAX_PART, PART_IDS, VEHICLES, VEHICLE_IDS, partCost, vehicleStats, type PartId, type VehicleId } from '../sim/garage';
 import { WEATHER } from '../sim/weather';
@@ -890,17 +890,19 @@ export class UI {
     const x = slot.x;
     const y = slot.y;
     const bh = slot.h;
+    const enraged = hp <= PHASE_NOTCH;
+    const cols = barColors(d.accent, d.eye, enraged);
+    this.bossBarFill = cols.fill;
     ctx.fillStyle = 'rgba(0,0,0,0.7)';
     ctx.fillRect(x - 2, y - 2, bw + 4, bh + 4);
-    ctx.fillStyle = '#5a1a1a';
+    ctx.fillStyle = cols.back;
     ctx.fillRect(x, y, bw, bh);
     const chip = this.bossChip.chip;
     if (chip > hp) {
       ctx.fillStyle = '#ffe9c8';
       ctx.fillRect(x + bw * hp, y, bw * (chip - hp), bh);
     }
-    const enraged = hp <= PHASE_NOTCH;
-    ctx.fillStyle = enraged ? '#ff5a2a' : '#ff9a3c';
+    ctx.fillStyle = cols.fill;
     ctx.fillRect(x, y, bw * hp, bh);
     ctx.fillStyle = 'rgba(255,255,255,0.18)';
     ctx.fillRect(x, y, bw * hp, Math.max(1, bh * 0.25));
@@ -915,6 +917,8 @@ export class UI {
   }
   /** Boss bar placement worked out by the HUD this frame (it moves the toast column when it drops lower). */
   private bossSlot: BossSlot | null = null;
+  /** Fill colour the boss bar was drawn in last frame (e2e). */
+  bossBarFill = '';
   /** Boss bar with its title on screen this frame (e2e), or null. */
   bossRect: { x: number; y: number; w: number; h: number } | null = null;
 

@@ -2297,7 +2297,10 @@ try {
       const row = ctx.getImageData(0, Math.round(q.y), c.width, 2).data;
       let lit = 0;
       for (let i = 0; i < row.length; i += 4) if (row[i + 1] > 200 && row[i] > 120) lit++;
-      return { green, lit, beams: renderer.gridBeams };
+      const ui = window.__terrabound.ui;
+      const r = ui.bossRect;
+      const px = r ? ctx.getImageData(Math.round(r.x + 12), Math.round(r.y + r.h - 6), 1, 1).data : [0, 0, 0];
+      return { green, lit, beams: renderer.gridBeams, bar: ui.bossBarFill, barPx: [px[0], px[1], px[2]] };
     }, { attack, at });
     const wardenRest = await wardenLook(null, 0);
     await page.screenshot({ path: path.join(out, '26f-warden.png') });
@@ -2307,6 +2310,7 @@ try {
     await page.screenshot({ path: path.join(out, '26h-warden-grid.png') });
     await holdBoss(null);
     check('Logic Warden is drawn as a green-lit circuit monolith', wardenRest.green > 30 && wardenRest.beams === 0, JSON.stringify(wardenRest));
+    check('the boss bar fills in the boss accent (green for the Warden)', wardenRest.bar === '#5aff9a' && wardenRest.barPx[1] > 200 && wardenRest.barPx[0] < 150, JSON.stringify({ bar: wardenRest.bar, px: wardenRest.barPx }));
     check('Logic Warden grid telegraphs guide lines, then fires bright beams across the arena', wardenWarn.beams >= 8 && wardenFire.beams >= 8 && wardenFire.lit > wardenWarn.lit * 2 && wardenFire.lit > wardenRest.lit + 40, JSON.stringify({ wardenWarn, wardenFire }));
     // Hollow AI art pass: a battered plate shell round the core; plates break off (with debris) and
     // glowing seams and cracks show as its health drops.

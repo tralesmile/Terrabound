@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BOSSES, makeBoss, phase } from '../src/sim/bosses';
-import { CHIP_DRAIN, CHIP_HOLD, PHASE_NOTCH, newChip, stepChip } from '../src/ui/bossbar';
+import { BOSSES, BOSS_IDS, makeBoss, phase } from '../src/sim/bosses';
+import { CHIP_DRAIN, CHIP_HOLD, PHASE_NOTCH, barColors, luma, mixHex, newChip, stepChip } from '../src/ui/bossbar';
 
 const run = (s: ReturnType<typeof newChip>, hp: number, secs: number, dt = 1 / 60) => {
   let t = 0;
@@ -82,5 +82,23 @@ describe('boss bar placement', () => {
     expect(s.w).toBe(223);
     // Title room above the bar, under the HUD stack.
     expect(s.y).toBeCloseTo(80 + u * 1.45);
+  });
+});
+
+describe('boss bar colours', () => {
+  it('fill in the boss accent, readable against the pale chip, redder when enraged', () => {
+    expect(mixHex('#000000', '#ffffff', 0.5)).toBe('#808080');
+    expect(barColors(BOSSES.warden.accent, BOSSES.warden.eye, false).fill).toBe(BOSSES.warden.accent);
+    // Frost Titan's accent is near-white: its bar uses the cyan eye instead.
+    expect(barColors(BOSSES.titan.accent, BOSSES.titan.eye, false).fill).toBe(BOSSES.titan.eye);
+    for (const id of BOSS_IDS) {
+      const d = BOSSES[id];
+      const calm = barColors(d.accent, d.eye, false);
+      const mad = barColors(d.accent, d.eye, true);
+      expect(luma(calm.fill)).toBeLessThan(0.86);
+      expect(luma(calm.back)).toBeLessThan(luma(calm.fill));
+      expect(parseInt(mad.fill.slice(1, 3), 16)).toBeGreaterThanOrEqual(parseInt(calm.fill.slice(1, 3), 16));
+      expect(mad.fill).not.toBe(calm.fill);
+    }
   });
 });

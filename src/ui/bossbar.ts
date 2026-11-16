@@ -63,3 +63,36 @@ export function bossBarSlot(o: { w: number; u: number; gapL: number; gapR: numbe
   }
   return { x: o.lowL, y: o.hudLow + u * 1.45, w: Math.max(u * 6, o.lowR - o.lowL), h, below: true };
 }
+
+function rgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1, 7), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function hex(c: [number, number, number]): string {
+  return '#' + c.map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0')).join('');
+}
+
+/** Mix two #rrggbb colours (k = 0 gives a, 1 gives b). Pure. */
+export function mixHex(a: string, b: string, k: number): string {
+  const x = rgb(a);
+  const y = rgb(b);
+  return hex([x[0] + (y[0] - x[0]) * k, x[1] + (y[1] - x[1]) * k, x[2] + (y[2] - x[2]) * k]);
+}
+
+/** Relative luminance (0..1) of a #rrggbb colour. Pure. */
+export function luma(c: string): number {
+  const [r, g, b] = rgb(c);
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+}
+
+/**
+ * Boss bar colours in the boss's own accent, so each fight reads as its own (green Warden, pink Hollow AI).
+ * A near-white accent would vanish against the pale damage chip, so those bosses use their eye colour;
+ * phase 2 pushes the fill toward angry red. Pure.
+ */
+export function barColors(accent: string, eye: string, enraged: boolean): { fill: string; back: string } {
+  const base = luma(accent) > 0.85 ? eye : accent;
+  const fill = enraged ? mixHex(base, '#ff3a3a', 0.45) : base;
+  return { fill, back: mixHex(base, '#000000', 0.72) };
+}

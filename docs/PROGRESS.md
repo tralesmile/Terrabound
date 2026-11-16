@@ -905,3 +905,13 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** Boss 2 Logic Warden; melee hit-stop (IDEAS); a set for the core plate and trophy weapons.
 
 **Known issues:** the stale `origin/wip/run60-charge-map` branch is already applied but could not be deleted (the session's permissions refused a remote branch delete); ignore it. Block tooltip over the hotbar fixed in a second slice: world tips never show inside the hotbar strip (ui `barBox`/`inBox`, e2e check "no block tooltip shows through the gaps of the hotbar"); 982 unit tests after it.
+
+## 2026-11-16 Scheduled run 70
+
+**Done:** baseline green (982 tests, 284 e2e checks). Creative review: the Circuit layer had no boss (first open gameplay item in P3) and every boss bar was the same orange. Boss 2 Logic Warden (sim/bosses `warden`, sim/lasergrid `gridColumns`/`gridHits`/`safeLane`, render/wardenart `drawWardenBoss`/`squarePath`/`nodePositions`, render/gridfx `gridLook`/`drawGridBeams`/`beamFloor`, renderer `gridBeams`): a flying circuit monolith (chamfered slab, green traces with data pulses, visor eye that tracks you, blinking antenna, four logic nodes on a square orbit). New `grid` attack: 0.95 s of crawling dashed guide lines, then white-hot beams across the arena that stop on the floor; lanes between are safe, swap sides each cast, gap 5 tiles (3.6 in phase 2), 16 damage; events `gridfire`/`gridhit` with sound and a toast. Logic key recipe (12 gold circuit, 12 copper wire, 8 crystal), summon in the Circuit layer or deeper. Trophy Logic repeater (rail, 18 dmg, 0.22 s), trinket Logic chip (+20% dig, battery x0.85). Unlock flow: `GATE_BOSSES` (biome bosses + Warden) open the gates via `gateBossesBeaten`; victory and share cards count x/6. Boss bars fill in the boss accent (ui/bossbar `barColors`; near-white accents use the eye colour; redder when enraged). No save change (boss/gear ids are filtered lists).
+
+**Numbers:** 994 unit tests (new: warden 12, bar colours 1; share test now expects Bosses 0/6), e2e new checks: Warden art, grid telegraph then beams, accent boss bar (26f/26g/26h); codex trinket footer check now reads the total (7). Bundle about 507 kB raw (177 kB gzip).
+
+**Next:** Warden follow-ups (phase-2 twist, Circuit arena floor art, music motif); a Circuit armour set; strata bands keyed on the current ground top (IDEAS); dive stats on the share card.
+
+**Known issues:** the e2e Warden checks re-skin the held Colossus (it keeps the Colossus arena); the warden's beams pass through walls above the floor (by design: "logic" beams, only the floor stops them).
