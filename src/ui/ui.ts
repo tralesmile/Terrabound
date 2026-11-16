@@ -1234,11 +1234,11 @@ export class UI {
   }
 
   /** Equipment sockets under the character: worn slots, then accessory sockets. Tap a worn item to take it off. */
-  private drawDoll(ctx: CanvasRenderingContext2D, game: Game, x: number, y: number, w: number, bottom: number, u: number): void {
+  private drawDoll(ctx: CanvasRenderingContext2D, game: Game, x: number, y: number, w: number, bottom: number, u: number): number {
     const rects = dollLayout(x, y + u * 0.9, w, u * 2.6);
     const size = rects[0].size;
     this.lastDoll = [];
-    if (y + u * 0.9 + size > bottom) return;
+    if (y + u * 0.9 + size > bottom) return 0;
     this.lastDoll = rects;
     const acc = game.accessories;
     this.text(ctx, 'WORN', x, y + u * 0.4, Math.round(u * 0.62), '#8a90a2', 'left');
@@ -1258,6 +1258,7 @@ export class UI {
       ctx.strokeRect(r.x + 1, r.y + 1, r.size - 2, r.size - 2);
       this.text(ctx, r.label, r.x + r.size / 2, r.y + r.size * 0.6, Math.max(7, Math.round(r.size * 0.22)), '#4a5068', 'center', r.size - 2);
     }
+    return u * 0.9 + size;
   }
 
   private drawInventory(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, time: number): void {
@@ -1371,6 +1372,9 @@ export class UI {
     const gcols = Math.max(1, Math.floor((rw + 4) / (gs + 4)));
     owned.forEach((id, i) => this.cell(ctx, rx + (i % gcols) * (gs + 4), ry + Math.floor(i / gcols) * (gs + 4), gs, id, null, game.isWorn(id), { k: 'equip', id }));
     ry += Math.ceil(owned.length / gcols) * (gs + 4) + u * 0.6;
+    // Phones: the socket row sits under the gear grid (the stacked character card has no room for it).
+    const dollH = narrow ? this.drawDoll(ctx, game, rx, ry - u * 0.2, rw, py + ph - u * 6, u) : 0;
+    if (dollH > 0) ry += dollH + u * 0.4;
     const worn = [...GEAR_SLOTS.map((sl) => game.equipped(sl)).filter((x): x is GearId => !!x), ...game.accessories].map((x) => GEAR[x].name);
     this.text(ctx, `Wearing: ${worn.join(', ')}`, rx, ry, Math.round(u * 0.66), '#9ff6a0', 'left', rw);
     ry += u * 1.1;

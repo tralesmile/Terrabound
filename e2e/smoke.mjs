@@ -1363,6 +1363,33 @@ try {
   await page.screenshot({ path: path.join(out, '21b-garage-built.png') });
   await page.keyboard.press('Escape');
   await page.waitForTimeout(100);
+  // A field garage is a charging bay: under its roof the battery fills, with a green arc to the suit.
+  const bayAt = placedBay.found;
+  if (bayAt) {
+    await page.evaluate(({ x, y }) => {
+      const g = window.__terrabound.game;
+      g.body.x = x - 1.5;
+      g.body.y = y + 1;
+      g.body.vx = g.body.vy = 0;
+      g.battery = 30;
+    }, bayAt);
+    await page.waitForTimeout(250);
+    const charge = await page.evaluate(() => {
+      const { game, renderer } = window.__terrabound;
+      return { bay: game.bayCharging, bat: game.battery, arcs: renderer.bayArcs };
+    });
+    await page.screenshot({ path: path.join(out, '21c-bay-charge.png') });
+    await page.waitForTimeout(400);
+    const later = await page.evaluate(() => window.__terrabound.game.battery);
+    check('standing under a field garage charges the battery with a green arc to the suit', !!charge.bay && charge.arcs >= 2 && charge.bat > 30 && later > charge.bat, JSON.stringify({ ...charge, later }));
+    await page.evaluate(() => { const g = window.__terrabound.game; g.battery = g.derived.maxBattery; });
+    await page.waitForTimeout(150);
+    const full = await page.evaluate(() => ({ full: window.__terrabound.renderer.bayFull, arcs: window.__terrabound.renderer.bayArcs }));
+    check('a full battery under the bay shows a steady green lamp instead of the arc', full.full && full.arcs === 0, JSON.stringify(full));
+    // Back to where the walk to the parked buggy starts.
+    await page.evaluate(({ x, y }) => { const g = window.__terrabound.game; g.body.x = x + 0.5 - 2; g.body.y = y + 1; g.body.vx = g.body.vy = 0; }, bayAt);
+    await page.waitForTimeout(100);
+  }
   // Walk right to the parked buggy, then ride it.
   await page.keyboard.down('KeyD');
   for (let i = 0; i < 40; i++) {
@@ -4042,9 +4069,28 @@ try {
   await page.screenshot({ path: path.join(out, '51h-mobile-log-reader.png') });
   check('the log reader fits a phone', mReader && mrFit.open === 0 && mrFit.inside && mrFit.n >= 5, JSON.stringify(mrFit));
   await page.evaluate(() => { window.__terrabound.ui.logOpen = null; });
-  await page.evaluate(() => { window.__terrabound.ui.invPage = 'items'; });
+  await page.evaluate(() => {
+    const { ui, game } = window.__terrabound;
+    ui.invPage = 'items';
+    // Wear one accessory so the phone socket row shows a filled socket next to empty ones.
+    if (!game.ownsGear('magnet_ring')) game.save.gear.owned.push('magnet_ring');
+    if (!game.accessories.includes('magnet_ring')) game.equipGear('magnet_ring');
+  });
   await page.waitForTimeout(200);
   await page.screenshot({ path: path.join(out, '51e-mobile-inventory.png') });
+  const mDoll = await page.evaluate(() => {
+    const { ui, game } = window.__terrabound;
+    const c = document.getElementById('game');
+    const W = c.clientWidth, H = c.clientHeight;
+    const d = ui.lastDoll;
+    const inside = d.every((r) => r.x >= 0 && r.y >= 0 && r.x + r.size <= W + 1 && r.y + r.size <= H + 1);
+    // Sockets must not sit on top of the gear grid or the tool row above them.
+    const others = ui.rects.filter((r) => (r.a.k === 'equip' || r.a.k === 'settool') && !d.some((q) => q.x === r.x && q.y === r.y));
+    const clash = d.some((q) => others.some((r) => q.x < r.x + r.w && r.x < q.x + q.size && q.y < r.y + r.h && r.y < q.y + q.size));
+    const filled = d.filter((q) => 'acc' in q.key && ui.rects.some((r) => r.a.k === 'equip' && r.x === q.x && r.y === q.y)).length;
+    return { n: d.length, inside, clash, filled, size: d[0]?.size ?? 0, worn: [...game.accessories] };
+  });
+  check('phones show the WORN + ACCESSORIES socket row in the inventory, clear of the gear grid', mDoll.n === 8 && mDoll.inside && !mDoll.clash && mDoll.filled >= 1 && mDoll.size >= 24, JSON.stringify(mDoll));
   const mHead = await page.evaluate(() => {
     const { ui } = window.__terrabound;
     const hdr = ui.rects.filter((r) => (r.a.k === 'awards' || r.a.k === 'codex' || r.a.k === 'inv'));
