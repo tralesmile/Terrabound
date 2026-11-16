@@ -1576,8 +1576,9 @@ try {
     // Shoot while the bombs come down (past the top of their arcs), with their landing marks glowing.
     await page.waitForFunction((c) => {
       const g = window.__terrabound.game;
-      return g.lavaBombs.length >= 2 && g.lavaBombs.every((b) => b.vy > 0) && g.lavaBombs.some((b) => b.y > c.cy - 2);
-    }, coneAt, { timeout: 5000 }).catch(() => {});
+      // Also wait until two are on screen: from a tall cone the arcs top out above the view (run 58 flake: drawn 1).
+      return g.lavaBombs.length >= 2 && g.lavaBombs.every((b) => b.vy > 0) && g.lavaBombs.some((b) => b.y > c.cy - 2) && window.__terrabound.renderer.bombsShown >= 2;
+    }, coneAt, { timeout: 8000 }).catch(() => {});
     const bombs = await page.evaluate(() => ({ flying: window.__terrabound.game.lavaBombs.length, drawn: window.__terrabound.renderer.bombsShown, marks: window.__terrabound.renderer.marksShown, rumble: window.__terrabound.game.rumble }));
     check('the eruption lobs glowing lava bombs with landing marks on the ground', bombs.flying >= 2 && bombs.drawn >= 2 && bombs.marks >= 2 && bombs.rumble === null, JSON.stringify(bombs));
     await page.screenshot({ path: path.join(out, '22k-cone-erupt.png') });
