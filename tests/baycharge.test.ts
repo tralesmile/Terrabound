@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FIXED_DT, Game, NO_CONTROLS, type Controls } from '../src/sim/game';
-import { BAY_CHARGE, bayAt, bayCharge } from '../src/sim/garage';
+import { APRON_FROM, APRON_TO, BAY_CHARGE, bayAt, bayCharge, onApron } from '../src/sim/garage';
 import { defaultSave } from '../src/sim/save';
 import { T } from '../src/sim/tiles';
 
@@ -41,6 +41,22 @@ describe('garage bay charging', () => {
     expect(bayAt(w, 10.5, 16.5, 68)).toBeNull(); // above the roof line
     expect(bayAt(w, 10.5, 22, 68)).toBeNull(); // below the floor
     expect(bayAt(w, NaN, 21, 68)).toBeNull();
+  });
+
+  it('the apron right of the carport counts only for flyers, from 2 tiles above the floor down to it', () => {
+    const tiles = new Map<string, number>([['10,20', 68]]);
+    const w = { get: (x: number, y: number) => tiles.get(`${x},${y}`) ?? 0 };
+    // Bay centre x 10.5: the roof ends at 14.0 (3.5 right); the apron runs to 10.5 + APRON_TO + 0.5 = 17.0.
+    expect(APRON_FROM).toBe(4);
+    expect(bayAt(w, 15.0, 21, 68)).toBeNull();
+    expect(bayAt(w, 15.0, 21, 68, true)).toEqual({ x: 10, y: 20 });
+    expect(bayAt(w, 10.5 + APRON_TO + 0.5, 21, 68, true)).toEqual({ x: 10, y: 20 });
+    expect(bayAt(w, 10.5 + APRON_TO + 0.6, 21, 68, true)).toBeNull();
+    expect(bayAt(w, 15.0, 19, 68, true)).toEqual({ x: 10, y: 20 }); // hovering 2 tiles up
+    expect(bayAt(w, 15.0, 18.9, 68, true)).toBeNull();
+    expect(bayAt(w, 6.0, 21, 68, true)).toBeNull(); // no apron on the left side
+    expect(onApron(3.5, 1)).toBe(false);
+    expect(onApron(3.6, 1)).toBe(true);
   });
 
   it('bayCharge fills at BAY_CHARGE per second up to the cap and never lowers a full battery', () => {

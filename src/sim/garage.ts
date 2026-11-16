@@ -108,7 +108,8 @@ export function sanitizeGarage(v: unknown, owned: readonly GearId[], migrate: bo
 
 /**
  * Where DEPLOY parks a vehicle: x offset from the bay tile. Ground vehicles stand on the tile two to its right,
- * under the roof (the bay charges you while seated); flyers wait just outside the carport so they can take off.
+ * under the roof (the bay charges you while seated); flyers wait on the open apron just outside the carport, so they
+ * can take off and still charge there (see `bayAt` with `flying`).
  */
 export function parkOffset(id: VehicleId): number {
   return VEHICLES[id].flying ? 4.5 : 2.5;
@@ -136,19 +137,32 @@ export interface BayWorld {
   get(x: number, y: number): number;
 }
 
+/** Columns right of the bay tile where the open apron (flyer landing strip) starts and ends, inclusive. */
+export const APRON_FROM = 4;
+export const APRON_TO = 6;
+
 /**
  * The garage bay whose carport covers a body with feet at (x, y), or null. The carport spans 3 tiles each
  * side of the bay tile and from the roof (bay row - 4) down to the floor under the bay (bay row + 1).
+ * With `flying`, the open apron right of the carport (columns APRON_FROM..APRON_TO, from 2 tiles above the
+ * floor down to it) counts too: flyers cannot fit under the roof, so they dock and charge on the apron.
  * `garageTile` is the T.GARAGE id (passed in so this file need not import the tile table).
  */
-export function bayAt(world: BayWorld, x: number, y: number, garageTile: number): { x: number; y: number } | null {
+export function bayAt(world: BayWorld, x: number, y: number, garageTile: number, flying = false): { x: number; y: number } | null {
   if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
   for (let gy = Math.floor(y) - 1; gy <= Math.floor(y) + 3; gy++)
-    for (let gx = Math.floor(x) - 4; gx <= Math.floor(x) + 4; gx++) {
+    for (let gx = Math.floor(x) - APRON_TO - 1; gx <= Math.floor(x) + 4; gx++) {
       if (world.get(gx, gy) !== garageTile) continue;
-      if (Math.abs(x - (gx + 0.5)) <= 3.5 && y >= gy - 3 && y <= gy + 1.05) return { x: gx, y: gy };
+      const off = x - (gx + 0.5);
+      if (Math.abs(off) <= 3.5 && y >= gy - 3 && y <= gy + 1.05) return { x: gx, y: gy };
+      if (flying && onApron(off, y - gy)) return { x: gx, y: gy };
     }
   return null;
+}
+
+/** Whether a body `off` columns right of the bay centre with feet `dy` rows below the bay row is on its apron. */
+export function onApron(off: number, dy: number): boolean {
+  return off > 3.5 && off <= APRON_TO + 0.5 && dy >= -1 && dy <= 1.05;
 }
 
 /** Minimal world view for charge-point lookups: placed tiles (index -> tile), width and pad column. */

@@ -5,8 +5,8 @@ import type { Game, Hook, Shot } from '../sim/game';
 import { petSwimPose, petWater, type PetWater } from './petfx';
 import { PET_ART, petPalette, petRows, type PetArtId } from './petart';
 import { coneCrater, lavafallSpan } from '../sim/structures';
-import { bayArc, chargeMotes, dockCable } from './bayfx';
-import { bayAt } from '../sim/garage';
+import { apronLights, bayArc, chargeMotes, dockCable } from './bayfx';
+import { APRON_FROM, APRON_TO, VEHICLES as GARAGE_VEHICLES, bayAt } from '../sim/garage';
 import { magnetTint, pullBeads, pulledDrops } from './magnetfx';
 import { FALL_W, LAVA_BLOCK, SHIMMER_ROW, SHIMMER_ROWS, fallShade, lavaDepthShade, lavaShade, shimmerRuns, shimmerShift, fallEdges } from './lavafx';
 import { acidBubble, causticDapples, depthRamp, liquidFalling, splashDrops, streamGap, streamLanding, streamWidth, surfaceGlint, waveOffsets } from './liquidfx';
@@ -73,7 +73,7 @@ import { safePads } from '../sim/arenazap';
 import { boltTrail, drawBossMuzzle, drawBossTelegraph, drawSummonTelegraph } from './bosstele';
 import { ACT_INFO } from '../sim/drones';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, isCeilingSlope, leafMask, nextSink, slopeSink, SLOPE_CR, SLOPE_R, slopeBottom, slopeShape, slopeTop } from './autotile';
-import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape } from './decor';
+import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape, trunkKind } from './decor';
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
@@ -406,6 +406,8 @@ export class Renderer {
     for (const tu of game.turrets) this.turretAim.set(tu.y * world.w + tu.x, tu.aim);
     this.batteryFill = game.power.cap > 0 ? game.power.charge / game.power.cap : 0;
     this.cropWet = (x, y) => game.cropWatered(x, y);
+    this.apronGame = game;
+    this.apronDocked = false;
     this.drawDynamic(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
     this.drawLavafalls(ctx, world, x0, y0, x1, y1, shakeX, shakeY, time);
     this.drawBoings(ctx, game, shakeX, shakeY, Math.min(0.1, Math.max(0, time - this.boingClock)));
@@ -1258,7 +1260,9 @@ export class Renderer {
           const m = leafMask(get, tx, ty) & ~(2 | 8);
           ctx.drawImage(this.decor.leaves, (m * LEAF_VARIANTS + (v2 % LEAF_VARIANTS)) * TS, bio * TS, TS, TS, dx, dy, ts, ts);
         }
-        ctx.drawImage(this.decor.trunks, (v2 % 2) * TS, bio * TS, TS, TS, dx, dy, ts, ts);
+        const below = get(tx, ty + 1);
+        const kind = trunkKind(v2, below !== T.TRUNK && isBlock(below), get(tx, ty - 1) === T.TRUNK, below === T.TRUNK, get(tx - 1, ty) === T.AIR, get(tx + 1, ty) === T.AIR, hash2(tx, ty, 23));
+        ctx.drawImage(this.decor.trunks, kind * TS, bio * TS, TS, TS, dx, dy, ts, ts);
       }
       else if (t === T.LEAVES) {
         const m = leafMask(get, tx, ty);
@@ -1632,12 +1636,68 @@ export class Renderer {
     ctx.restore();
   }
 
+  private apronGame: Game | null = null;
+  /** Apron strips drawn this frame (e2e). */
+  apronShown = 0;
+  /** Apron lights drawn in the steady "docked" glow this frame (e2e). */
+  apronDocked = false;
+
+  /**
+   * The open apron right of a garage carport: a hazard-striped landing strip on the floor where flyers park
+   * and charge (they cannot fit under the roof), with edge lights that chase outward like a runway, or hold
+   * a steady green while a flyer charges there. Drawn only over floor columns with open air above.
+   */
+  private drawApron(ctx: CanvasRenderingContext2D, world: Game['world'], gx: number, gy: number, shakeX: number, shakeY: number, ts: number, time: number): void {
+    const u = ts / 16;
+    const fy = gy + 1;
+    const docked = !!this.apronGame?.bayCharging && this.apronGame.bayCharging.x === gx && this.apronGame.bayCharging.y === gy && !!this.apronGame.vstats?.flying;
+    const lights = apronLights(time, APRON_TO - APRON_FROM + 1, docked);
+    let drawn = 0;
+    for (let c = APRON_FROM; c <= APRON_TO; c++) {
+      const cx = gx + c;
+      if (!world.isSolid(cx, fy) || world.get(cx, gy) !== T.AIR) continue;
+      const x = this.sx(cx, shakeX);
+      const y = this.sy(fy, shakeY);
+      ctx.fillStyle = '#20242c';
+      ctx.fillRect(x, y, ts, 3 * u);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, ts, 3 * u);
+      ctx.clip();
+      ctx.fillStyle = '#e8b43d';
+      for (let k = -1; k < 4; k++) {
+        const sx = x + k * 4 * u;
+        for (let r = 0; r < 3; r++) ctx.fillRect(sx + r * u, y + r * u, 2 * u, u);
+      }
+      ctx.restore();
+      // Edge light at the column's outer end: a tiny post with a lamp.
+      const b = lights[c - APRON_FROM];
+      const lx = x + 12 * u;
+      ctx.fillStyle = '#3a4356';
+      ctx.fillRect(lx, y - 2 * u, u, 2 * u);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = docked ? `rgba(110,255,130,${b.toFixed(3)})` : `rgba(255,200,90,${b.toFixed(3)})`;
+      ctx.fillRect(lx - u, y - 4 * u, 3 * u, 2 * u);
+      if (b > 0.5) {
+        ctx.fillStyle = docked ? 'rgba(110,255,130,0.18)' : 'rgba(255,200,90,0.18)';
+        ctx.fillRect(lx - 3 * u, y - 6 * u, 7 * u, 6 * u);
+      }
+      ctx.restore();
+      drawn++;
+    }
+    if (drawn) {
+      this.apronShown++;
+      if (docked) this.apronDocked = true;
+    }
+  }
+
   /** A vehicle parked under a field carport hangs on a charge cable from the bay light, a green pulse running in. */
   private drawDockCable(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
     this.dockShown = false;
     const p = game.riding ? null : game.parkedVehicle();
     if (!p) return;
-    const bay = bayAt(game.world, p.x, p.y, T.GARAGE);
+    const bay = bayAt(game.world, p.x, p.y, T.GARAGE, GARAGE_VEHICLES[p.id].flying);
     if (!bay) return;
     const u = this.scale;
     const lx = this.sx(bay.x, shakeX) + 13 * u;
@@ -1863,10 +1923,12 @@ export class Renderer {
     this.splashes.length = 0;
     this.lavaShown = 0;
     this.shimmerCells.length = 0;
+    this.apronShown = 0;
     for (let ty = Math.max(0, y0); ty <= Math.min(world.h - 1, y1); ty++) {
       for (let tx = Math.max(0, x0); tx <= Math.min(world.w - 1, x1); tx++) {
         const t = world.tiles[ty * world.w + tx];
-        if (t === T.TORCH) this.drawTorch(ctx, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time + tx);
+        if (t === T.GARAGE) this.drawApron(ctx, world, tx, ty, shakeX, shakeY, ts, time);
+        else if (t === T.TORCH) this.drawTorch(ctx, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time + tx);
         else if (t === T.PAD) this.drawPadLight(ctx, world, tx, ty, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time);
         else if (t === T.SPRINKLER || isCropTile(t)) this.drawFarmTile(ctx, world, t, tx, ty, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time);
         else if (t === T.WINDOW) this.drawWindow(ctx, world, tx, ty, this.sx(tx, shakeX), this.sy(ty, shakeY), ts, time);

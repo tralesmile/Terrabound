@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FIXED_DT, Game, MOUNT_RANGE, NO_CONTROLS, type Controls } from '../src/sim/game';
-import { VEHICLES, VEHICLE_IDS, partCost, sanitizeGarage, vehicleStats, parkOffset } from '../src/sim/garage';
+import { bayAt, onApron, parkOffset, partCost, sanitizeGarage, VEHICLE_IDS, VEHICLES, vehicleStats } from '../src/sim/garage';
 import { SAVE_VERSION, defaultSave, parseSave, serializeSave } from '../src/sim/save';
 import { T } from '../src/sim/tiles';
 import { W } from '../src/sim/world';
@@ -78,6 +78,29 @@ describe('garage', () => {
     expect(g.world.get(Math.floor(p!.x), at.y - 4)).toBe(T.METAL);
     g.body.x = p!.x;
     g.body.y = p!.y;
+    expect(g.toggleRide()).toBe(true);
+    g.battery = 20;
+    run(g, 1);
+    expect(g.riding).toBe(true);
+    expect(g.bayCharging).toEqual({ x: at.x, y: at.y });
+    expect(g.battery).toBeGreaterThan(20);
+  });
+
+  it('a flyer docks on the open apron beside the carport and the bay charges it there (on foot it does not)', () => {
+    const g = rich();
+    const at = withGarage(g);
+    g.interact();
+    expect(g.buildVehicle('sky_jet')).toBe(true);
+    const p = g.parkedVehicle()!;
+    // Parked outside the roof (off = 4.0 from the bay centre at at.x + 0.5) on the apron floor (feet at at.y + 1).
+    expect(onApron(p.x - (at.x + 0.5), p.y - at.y)).toBe(true);
+    expect(bayAt(g.world, p.x, p.y, T.GARAGE, true)).toEqual({ x: at.x, y: at.y });
+    expect(bayAt(g.world, p.x, p.y, T.GARAGE, false)).toBeNull();
+    g.body.x = p.x;
+    g.body.y = p.y;
+    g.body.vx = g.body.vy = 0;
+    run(g, 0.2);
+    expect(g.bayCharging).toBeNull(); // on foot the apron is just floor
     expect(g.toggleRide()).toBe(true);
     g.battery = 20;
     run(g, 1);

@@ -1555,6 +1555,33 @@ try {
     return { cap: g.derived.packCap, riding: g.riding };
   });
   check('getting out of the Cargo Lifter returns to the suit pack', !out2.riding && out2.cap === lifter.foot, JSON.stringify(out2));
+  // Open apron: flyers cannot fit under the carport, so they dock on the striped strip beside it and charge there.
+  const apron = await page.evaluate(async () => {
+    const { game: g, renderer } = window.__terrabound;
+    const w = g.world;
+    const gx = w.padX + 60;
+    const ground = w.surface[gx];
+    for (let x = gx - 8; x <= gx + 12; x++) {
+      for (let y = ground - 9; y < ground; y++) w.set(x, y, 0);
+      w.set(x, ground, 1);
+    }
+    w.set(gx, ground - 1, 68);
+    for (let x = gx - 3; x <= gx + 3; x++) w.set(x, ground - 5, 2);
+    g.enemies = [];
+    g.body.x = gx + 4.5;
+    g.body.y = ground;
+    g.body.vx = g.body.vy = 0;
+    g.save.garage.parked = { id: 'cargo_lifter', x: g.body.x, y: g.body.y };
+    await new Promise((r) => setTimeout(r, 200));
+    const idle = { shown: renderer.apronShown, docked: renderer.apronDocked, bay: !!g.bayCharging };
+    g.toggleRide();
+    g.battery = 30;
+    await new Promise((r) => setTimeout(r, 350));
+    return { idle, riding: g.vehicle, bay: g.bayCharging, gx, bat: g.battery, docked: renderer.apronDocked, shown: renderer.apronShown, arcs: renderer.bayArcs };
+  });
+  await page.screenshot({ path: path.join(out, '22m-apron-dock.png') });
+  check('a flyer docks on the striped apron beside the carport and charges there (on foot it does not)', apron.idle.shown >= 1 && !apron.idle.docked && !apron.idle.bay && apron.riding === 'cargo_lifter' && apron.bay?.x === apron.gx && apron.docked && apron.bat > 30, JSON.stringify(apron));
+  await page.evaluate(() => { const g = window.__terrabound.game; if (g.riding) g.toggleRide(); });
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     if (g.riding) g.toggleRide();

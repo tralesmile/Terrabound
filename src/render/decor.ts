@@ -141,17 +141,76 @@ export function leafPixels(biome: number, v: number, mask: number): Px {
   return out;
 }
 
-/** Trunk: a 6 px bark column with grain; antenna-metal in the wastes. */
-export function trunkPixels(biome: number, v: number): Px {
+/** Trunk atlas columns: two plain bark variants, then the root flare and the left / right branch stubs. */
+export const TRUNK_ROOT = 2;
+export const TRUNK_BRANCH_L = 3;
+export const TRUNK_BRANCH_R = 4;
+export const TRUNK_COLS = 5;
+
+/**
+ * Trunk: a 6 px bark column with grain; antenna-metal in the wastes. `kind` (an atlas column) picks a plain
+ * variant (0, 1), the root flare for the tile standing on the ground (TRUNK_ROOT), or a branch stub with a
+ * small leaf tuft poking out to one side (TRUNK_BRANCH_L / _R). Pure.
+ */
+export function trunkPixels(biome: number, v: number, kind = v): Px {
   const f = FOLIAGE[biome] ?? FOLIAGE[B.JUNGLE];
   const px = blank();
   const put = setter(px);
+  const bark = (x: number, y: number, l: number, r: number): string =>
+    x <= l + 1 ? f.trunk : x >= r - 1 ? f.trunkDark : hash2(x, y + v * 16, 41) > 0.7 ? f.trunkDark : f.trunk;
   for (let y = 0; y < TS; y++) {
     put(4, y, OUT);
     put(11, y, OUT);
-    for (let x = 5; x <= 10; x++) put(x, y, x <= 6 ? f.trunk : x >= 9 ? f.trunkDark : hash2(x, y + v * 16, 41) > 0.7 ? f.trunkDark : f.trunk);
+    for (let x = 5; x <= 10; x++) put(x, y, bark(x, y, 5, 10));
   }
-  if (biome === B.WASTES) {
+  const metal = biome === B.WASTES;
+  if (kind === TRUNK_ROOT) {
+    if (metal) {
+      // A bolted footplate.
+      for (let y = 12; y < TS; y++) for (let x = 1; x <= 14; x++) put(x, y, x === 1 || x === 14 || y === 12 ? OUT : y === 13 ? '#8e98b0' : '#5d6a80');
+      put(3, 14, '#c9d4e8');
+      put(12, 14, '#c9d4e8');
+    } else {
+      // The base flares into roots that grip the ground, with dark crevices between them.
+      for (let y = 10; y < TS; y++) {
+        const sp = y - 9;
+        const l = Math.max(0, 5 - sp);
+        const r = Math.min(TS - 1, 10 + sp);
+        for (let x = l; x <= r; x++) put(x, y, bark(x, y, l, r));
+        if (l > 0) put(l - 1, y, OUT);
+        if (r < TS - 1) put(r + 1, y, OUT);
+      }
+      // Three roots: outlined gaps split the flare at the ground line.
+      for (const x of [3, 12]) for (let y = 12; y < TS; y++) put(x, y, f.trunkDark);
+      for (const x of [3, 12]) put(x, 15, OUT);
+      put(2, 14, f.trunk);
+      put(13, 14, f.trunkDark);
+      put(7, 15, f.trunkDark);
+      put(8, 14, f.trunkDark);
+    }
+  } else if (kind === TRUNK_BRANCH_L || kind === TRUNK_BRANCH_R) {
+    const dir = kind === TRUNK_BRANCH_R ? 1 : -1;
+    const at = (x: number): number => (dir > 0 ? x : TS - 1 - x);
+    // A short limb angling up and out, ending in a small leaf tuft (a lit cable arm in the wastes).
+    for (let x = 11; x <= 14; x++) {
+      const y = 8 - (x - 11);
+      put(at(x), y - 1, OUT);
+      put(at(x), y, metal ? '#8e98b0' : f.trunk);
+      put(at(x), y + 1, metal ? '#5d6a80' : f.trunkDark);
+      put(at(x), y + 2, OUT);
+    }
+    if (metal) {
+      put(at(15), 3, '#36e0e8');
+      put(at(15), 4, '#36e0e8');
+    } else {
+      const tuft: [number, number, string][] = [
+        [13, 2, f.light], [14, 2, f.light], [12, 3, f.base], [13, 3, f.light], [14, 3, f.base], [15, 3, f.base],
+        [12, 4, f.base], [15, 4, f.dark], [15, 2, f.base], [14, 1, f.base],
+      ];
+      for (const [x, y, c] of tuft) put(at(x), y, c);
+    }
+  }
+  if (metal) {
     // Rivet bands and a cable.
     for (let x = 5; x <= 10; x++) put(x, 4 + v * 4, '#8e98b0');
     put(7, 10, '#36e0e8');
@@ -161,6 +220,20 @@ export function trunkPixels(biome: number, v: number): Px {
     put(8 + (v % 2), 7 + v * 3, f.trunkDark);
   }
   return px;
+}
+
+/**
+ * Which trunk atlas column a trunk tile uses: the root flare where it stands on solid ground, a branch stub
+ * on about a third of mid-trunk tiles (trunk above and below) toward an open side picked by `h` (0..1),
+ * otherwise plain variant `v % 2`. Pure.
+ */
+export function trunkKind(v: number, groundBelow: boolean, trunkAbove: boolean, trunkBelow: boolean, airLeft: boolean, airRight: boolean, h: number): number {
+  if (groundBelow) return TRUNK_ROOT;
+  if (trunkAbove && trunkBelow && h < 0.36) {
+    const right = h < 0.18;
+    if (right ? airRight : airLeft) return right ? TRUNK_BRANCH_R : TRUNK_BRANCH_L;
+  }
+  return v % 2;
 }
 
 /** Small plants per biome, four variants; row CAVE_ROW is cave mushrooms. */
@@ -298,7 +371,7 @@ export interface DecorAtlas {
 export function buildDecor(): DecorAtlas {
   const rows = BIOME_IDS.length;
   const leaves = makeCanvas(TS * MASKS * LEAF_VARIANTS, TS * rows);
-  const trunks = makeCanvas(TS * 2, TS * rows);
+  const trunks = makeCanvas(TS * TRUNK_COLS, TS * rows);
   const plants = makeCanvas(TS * PLANT_VARIANTS, TS * (rows + 1));
   const chest = makeCanvas(TS, TS);
   const snow = makeCanvas(TS * 4, SNOW_H);
@@ -309,7 +382,7 @@ export function buildDecor(): DecorAtlas {
   const sc = snow.getContext('2d');
   for (const b of BIOME_IDS) {
     if (lc) for (let m = 0; m < MASKS; m++) for (let v = 0; v < LEAF_VARIANTS; v++) paint(lc, leafPixels(b, v, m), (m * LEAF_VARIANTS + v) * TS, b * TS);
-    if (tc) for (let v = 0; v < 2; v++) paint(tc, trunkPixels(b, v), v * TS, b * TS);
+    if (tc) for (let k = 0; k < TRUNK_COLS; k++) paint(tc, trunkPixels(b, k % 2, k), k * TS, b * TS);
   }
   if (pc) for (let r = 0; r <= rows; r++) for (let v = 0; v < PLANT_VARIANTS; v++) paint(pc, plantPixels(r, v), v * TS, r * TS);
   if (cc) paint(cc, chestPixels(), 0, 0);

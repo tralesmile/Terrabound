@@ -47,3 +47,19 @@ export function dockCable(x0: number, y0: number, x1: number, y1: number, time: 
   }
   return { pts, pulse: (time * 0.7) % 1 };
 }
+
+/**
+ * Apron edge lights: `n` landing lights along the strip chase outward from the carport (a runway sweep),
+ * each 0..1 bright. When `docked` (a flyer is charging there) they hold a steady soft glow instead.
+ */
+export function apronLights(time: number, n: number, docked: boolean): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    if (docked) out.push(0.75 + 0.1 * Math.sin(time * 3));
+    else {
+      const ph = (time * 1.2 - i / n + 10) % 1;
+      out.push(ph < 0.3 ? 1 - ph / 0.3 : 0.15);
+    }
+  }
+  return out;
+}

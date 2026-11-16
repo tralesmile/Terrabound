@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bayArc, chargeMotes, dockCable } from '../src/render/bayfx';
+import { apronLights, bayArc, chargeMotes, dockCable } from '../src/render/bayfx';
 
 describe('garage bay charge effects', () => {
   it('the arc starts and ends exactly at its endpoints and flickers between frames', () => {
@@ -37,5 +37,20 @@ describe('garage bay charge effects', () => {
     expect(pts[4][1]).toBeCloseTo(22);
     expect(pulse).toBeGreaterThanOrEqual(0);
     expect(pulse).toBeLessThan(1);
+  });
+});
+
+describe('apron lights', () => {
+  it('chase outward (one bright light at a time) and hold a steady glow when a flyer is docked', () => {
+    const l = apronLights(0.1, 3, false);
+    expect(l).toHaveLength(3);
+    expect(l.filter((b) => b > 0.5).length).toBeLessThanOrEqual(1);
+    for (const b of l) expect(b).toBeGreaterThanOrEqual(0.15);
+    // The bright light moves to the next column a third of a cycle later.
+    const at = (t: number) => apronLights(t, 3, false).indexOf(Math.max(...apronLights(t, 3, false)));
+    expect(at(0.01)).not.toBe(at(0.01 + 1 / 3.6));
+    const d = apronLights(1.3, 3, true);
+    expect(new Set(d.map((b) => b.toFixed(6))).size).toBe(1);
+    for (const b of d) expect(b).toBeGreaterThan(0.6);
   });
 });

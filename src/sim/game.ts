@@ -891,7 +891,7 @@ export class Game {
    * BAY_CHARGE per second (faster than any drain), on foot or in a vehicle. The pad already refills.
    */
   private stepBay(dt: number, max: number): void {
-    const bay = this.isAtBase() || this.hp <= 0 ? null : bayAt(this.world, this.body.x, this.body.y, T.GARAGE);
+    const bay = this.isAtBase() || this.hp <= 0 ? null : bayAt(this.world, this.body.x, this.body.y, T.GARAGE, this.vstats?.flying ?? false);
     if (bay && !this.bayCharging) this.emit({ t: 'baycharge', x: bay.x, y: bay.y });
     this.bayCharging = bay;
     if (!bay) return;
