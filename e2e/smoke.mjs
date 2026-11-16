@@ -2302,6 +2302,8 @@ try {
       const px = r ? ctx.getImageData(Math.round(r.x + 12), Math.round(r.y + r.h - 6), 1, 1).data : [0, 0, 0];
       return { green, lit, beams: renderer.gridBeams, bar: ui.bossBarFill, barPx: [px[0], px[1], px[2]] };
     }, { attack, at });
+    // The Warden flies: remember where the held walker stood and put the boss back afterwards.
+    await page.evaluate(() => { const b = window.__terrabound.game.boss; window.__wardenHome = { x: b.x, y: b.y }; });
     const wardenRest = await wardenLook(null, 0);
     await page.screenshot({ path: path.join(out, '26f-warden.png') });
     const wardenWarn = await wardenLook('grid', -0.3);
@@ -2309,6 +2311,7 @@ try {
     const wardenFire = await wardenLook('grid', 0.1);
     await page.screenshot({ path: path.join(out, '26h-warden-grid.png') });
     await holdBoss(null);
+    await page.evaluate(() => { const b = window.__terrabound.game.boss; b.x = window.__wardenHome.x; b.y = window.__wardenHome.y; b.vy = 0; });
     check('Logic Warden is drawn as a green-lit circuit monolith', wardenRest.green > 30 && wardenRest.beams === 0, JSON.stringify(wardenRest));
     check('the boss bar fills in the boss accent (green for the Warden)', wardenRest.bar === '#5aff9a' && wardenRest.barPx[1] > 200 && wardenRest.barPx[0] < 150, JSON.stringify({ bar: wardenRest.bar, px: wardenRest.barPx }));
     check('Logic Warden grid telegraphs guide lines, then fires bright beams across the arena', wardenWarn.beams >= 8 && wardenFire.beams >= 8 && wardenFire.lit > wardenWarn.lit * 2 && wardenFire.lit > wardenRest.lit + 40, JSON.stringify({ wardenWarn, wardenFire }));
@@ -2326,9 +2329,16 @@ try {
       const r = Math.round(1.5 * ts);
       const d = document.querySelector('canvas').getContext('2d').getImageData(Math.round(p.x) - r, Math.round(p.y) - r, 2 * r, 2 * r).data;
       let pink = 0;
+      // The boss bar is drawn in the accent too: leave out any pixel under it (the boss can hover up into it).
+      const bar = window.__terrabound.ui.bossRect;
+      const x0 = Math.round(p.x) - r;
+      const y0 = Math.round(p.y) - r;
       for (let i = 0; i < d.length; i += 4) {
         const q = i / 4;
-        const dist = Math.hypot((q % (2 * r)) - r, Math.floor(q / (2 * r)) - r);
+        const qx = q % (2 * r);
+        const qy = Math.floor(q / (2 * r));
+        if (bar && x0 + qx >= bar.x && x0 + qx < bar.x + bar.w && y0 + qy >= bar.y && y0 + qy < bar.y + bar.h) continue;
+        const dist = Math.hypot(qx - r, qy - r);
         if (dist > 0.88 * ts && dist < 1.5 * ts && d[i] > 200 && d[i + 1] < 170 && d[i + 2] > 200) pink++;
       }
       return { pink, debris: fx.particles.filter((q) => q.color === renderer.shellDebris).length, breaks: renderer.shellBreaks, left: renderer.shellLeft };
