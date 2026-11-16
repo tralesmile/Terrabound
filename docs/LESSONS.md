@@ -240,3 +240,8 @@
 - **An e2e that moves the player during a boss fight must restore the boss too, not only the player and camera.** Run 55: standing the player on a pad for ~1 s let the flying Hollow AI drift toward it; restoring only the player (then also the camera) still broke the next pixel check (charge lane) because the boss was in a new spot. Guard: the pad test saves and restores player, camera and boss position, then waits for the camera to settle.
 - **A boss withdraws when the player is at base (`isAtBase`).** A boss made at the pad in an e2e probe vanishes on the next step. Teleport ~70 tiles from the pad first.
 - **Overlapping runs took the same BACKLOG item (phone boss bar) in the same hour; one run's work was thrown away.** Guard: `git fetch && git log HEAD..origin/dev` before starting each slice (not only at the start of the run), and pick a different item if another run's commit touches it.
+
+- **A teleport needs a camera cut.** The arrival pillar was drawn but off screen: the camera eased 90+ tiles after the recall, so the first e2e found 0 beam pixels at the pad. Guard: `beamArrive` resets the camera snap, and the e2e samples beam pixels at the player right after `isAtBase()`.
+- **Check the code before logging an idea as missing.** Run 55 listed "surface strata" as the weakest graphics; strata.ts already draws bands and topsoil. Guard: grep src/render for the idea's noun before writing it into IDEAS.md.
+- **Retro (run 56):** two slices, one combined gate; e2e alone (~4 min) after each slice, the full ship gate once at the end.
+

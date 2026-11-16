@@ -84,7 +84,8 @@ World size and variety:
 - [x] Hover tooltips for item cells everywhere and for items on the ground
 - [x] Bigger world: 2800 x 480 for new worlds (old saves keep 1400 x 420), 1.5x wider biome bands, worldgen 1.7x faster (noiseGrid)
 - [x] Hover tooltips for world blocks and machines (0.5 s dwell, dig time + drop), splash where a stream lands in a pool (run 54)
-- [ ] Follow-ups (scheduled runs may take these): a "start a bigger world" prompt for legacy saves; lava scene renders ~11 ms vs 7.5 ms plain in headless (profile the lavafall rows)
+- [x] "Start a bigger world" offer for legacy saves: load toast, BIGGER WORLD workshop button, size in the footer (run 56)
+- [ ] Follow-ups (scheduled runs may take these): lava scene renders ~11 ms vs 7.5 ms plain in headless (profile the lavafall rows)
 
 ## P1.10 Owner request 2026-11-12: better driving and swimming graphics, lava (done 2026-11-12)
 
@@ -111,6 +112,7 @@ World size and variety:
 - [x] Hollow AI phase-2 floor zaps (charging pool telegraph, white-hot crest rolling out both ways, jump to dodge); per-boss hit sounds (run 53)
 - [x] Landing pad deck art (steel plates, hazard ends, landing ring, chasing runway lights); boss bar drops under the HUD on small phones (run 54)
 - [x] Hollow AI arena insulator pads (two teal pads that never conduct zaps; the crest fizzles at their edge); block tooltips quiet in boss fights and raids (run 55)
+- [x] Beam-home juice: a teal column gathers over the player while recall charges; an arrival pillar slams onto the landing ring with deck dust, camera cuts to the pad (run 56)
 - [ ] Follow-ups (scheduled runs may take these): a short "tink" sound where a crest dies at a pad; cache the arena floor scan per boss
 
 ## P1.9 Owner request 2026-11-12: garage and buildable vehicles (done 2026-11-12)

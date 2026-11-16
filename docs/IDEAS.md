@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-16 run 56
+
+- Done this run: beaming home is now a visible event (charging light column over the player, arrival pillar on the landing ring, deck dust, camera cut instead of a 100-tile pan; 13b/13c); legacy-size saves are offered a BIGGER WORLD.
+- Stale idea dropped: "surface strata" (run 55) already exists (strata.ts bands + topsoil); check the code before logging a graphics idea.
+- Weakest UI: toasts slide in from the left edge and clip ("at the pad" in 13c); on phones cap the column at two pills and fold the rest into a "+N" chip.
+- Weakest progression: the dive report still only shows on death; a lighter "dive banked" card on beam-home would pair with the new arrival beat (P4 follow-up).
+- Weakest audio: the arrival has no sound of its own (reuses the recall chime); a descending shimmer + soft thud would sell the slam.
+
 ## 2026-11-13 run 55
 
 - Done this run: two teal insulator pads in the Hollow AI arena never conduct the phase-2 floor zaps (the crest fizzles in teal arcs at their edge), so the finale has a positioning answer besides jumping (28h-safe-pad); block tooltips stay quiet in boss fights and raids (a "Rust" tip sat on screen mid-fight in 28f).
@@ -31,10 +39,3 @@
 - Weakest progression: the dive report still only shows on death; a lighter "dive banked" card on beam-home (carried).
 - Weakest UI: Core-layer toasts and the boss title can crowd the top band on small phones (carried; check 06-mobile with a boss up).
 
-## 2026-11-13 run 51
-
-- Done this run: boss bolts leave a fading accent trail (26j); the Hollow AI wears a battered plate shell that breaks off with debris, exposing glowing seams and core cracks as it loses health (28b/28c); the boss bar got a lagging damage chip and a phase notch (28d).
-- Weakest UI: the Core-layer HUD toasts and boss title overlap the top band on small phones; check 06-mobile with a boss up.
-- Weakest boss arena: the Hollow AI fights over a plain Core floor; a pulsing circuit ring on the floor that turns red in phase 2 would sell the finale.
-- Weakest progression: the dive report still only shows on death; a lighter "dive banked" card on beam-home (carried).
-- Weakest controls: digit keys 6-0 still not remappable (carried).

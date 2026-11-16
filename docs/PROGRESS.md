@@ -776,3 +776,14 @@ Owner: "Water looks bad. Pet looks bad. On hover the items should show what they
 **Next:** a "dive banked" card on beam-home (P4 follow-up); a "start a bigger world" prompt for legacy saves; P1.9 follow-ups (plane with cargo, charge station); cache the arena floor scan.
 
 **Known issues:** pads are flat floor plates (render only), not raised blocks; the arena floor is still rescanned every frame; dive tally lives in memory; the dive card shows only on death.
+
+## 2026-11-16 Scheduled run 56
+
+**Done:** baseline green (870 tests). Creative review: recall was a HUD fill and a puff; arriving at the pad was a teleport pop followed by a long camera pan, so the pad never got its arrival beat. Beam home (src/render/beamfx.ts `chargeBeam`/`arrivalBeam`/`beamMotes`, renderer `drawBeams`/`beamArrive`): a teal light column with rising motes gathers over the player and its ground ring tightens as the 2.5 s recall charges; on arrival a 18-tile pillar slams onto the landing ring and narrows/fades over 0.75 s while the ring rolls out, dust kicks both ways along the deck, a small shake, and the camera cuts to the pad (13b-beam-charge, 13c-beam-arrive). Legacy-size worlds (pre-v28 saves, 1400 x 420): a load toast pitches the 2800 x 480 size, the workshop world button reads BIGGER WORLD in green, the confirm toast says stash/base/upgrades come along, the footer shows the small width (worldsize `isLegacySize`/`biggerWorldPitch`, Game `legacyWorld`/`worldSize`).
+
+**Numbers:** 878 unit tests (new: beamfx 3, worldsize 2), e2e new checks: charge column, arrival pillar, pillar fades, BIGGER WORLD label. Bundle 457.3 kB (159.1 kB gzip).
+
+**Next:** a lighter "dive banked" card on beam-home (P4 follow-up); arrival sound; toast column cap on phones; profile the lava scene; P1.9 follow-ups (plane with cargo, charge station).
+
+**Known issues:** the legacy pitch toast shows on every load until the player starts a bigger world (by design, no nag timer; persist a "seen" flag if it annoys); the arena floor is still rescanned every frame; dive tally lives in memory; the dive card shows only on death.
+
