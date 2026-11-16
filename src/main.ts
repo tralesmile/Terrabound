@@ -546,7 +546,7 @@ function boot(): void {
         fx.land(game.body.x, game.body.y, e.speed, groundColor());
         break;
       case 'bank':
-        ui.toast(`Banked ${e.total} items`, '#9ff6a0');
+        ui.showBank(e.trip);
         saveNow();
         break;
       case 'goal': {

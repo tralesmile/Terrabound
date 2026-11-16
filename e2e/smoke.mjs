@@ -3624,6 +3624,14 @@ try {
   check('M closes the map', !(await page.evaluate(() => window.__terrabound.ui.mapOpen)));
   await page.waitForTimeout(200);
   check('beam home is offered on the surface', await page.evaluate(() => window.__terrabound.game.canRecall()));
+  // A trip worth banking: loot in the pack and a few tallies since the last bank.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.carried = { ...g.carried, iron_scrap: 14, crystal: 3 };
+    g.tripDeep = Math.max(g.tripDeep, 48);
+    g.dive.mined += 37;
+    g.dive.kills += 2;
+  });
   await page.keyboard.press('KeyR');
   // Charging column: a teal beam gathers over the player while recall runs (sample beside the head).
   const beamCyan = () => {
@@ -3651,6 +3659,18 @@ try {
   check('R beams the player home from the surface', await page.evaluate(() => window.__terrabound.game.isAtBase()));
   await page.waitForTimeout(900);
   check('the arrival pillar fades out', (await page.evaluate(() => window.__terrabound.renderer.lastBeam)) === 0);
+  // Trip banked card: banking on arrival shows a light card above the bar with the trip's highlights.
+  const tripCard = await page.evaluate(() => {
+    const { ui } = window.__terrabound;
+    const r = ui.bankCardRect;
+    const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+    return r ? { y: Math.round(r.y), h: Math.round(r.h), chips: r.chips, alpha: r.alpha, banked: ui.bankCard.trip.banked, onToast: ui.toastRects.some((t) => hit(r, t)), bottom: r.y + r.h, vh: innerHeight } : null;
+  });
+  await page.screenshot({ path: path.join(out, '13d-trip-banked.png') });
+  check('banking at the pad shows a trip card with the loot count and highlights above the bar', !!tripCard && tripCard.banked >= 17 && tripCard.alpha > 0.9 && tripCard.chips.includes('48 m deep') && tripCard.chips.some((c) => c.endsWith('mined')) && !tripCard.onToast && tripCard.bottom < tripCard.vh * 0.9, JSON.stringify(tripCard));
+  await page.evaluate(() => { window.__terrabound.ui.bankCard.age = 99; });
+  await page.waitForTimeout(150);
+  check('the trip card goes away when its time is up', await page.evaluate(() => window.__terrabound.ui.bankCardRect === null && window.__terrabound.ui.bankCard === null));
   check('codex records discoveries', (await page.evaluate(() => window.__terrabound.game.codex.length)) >= 2);
 
   // Day/night: the sky darkens at night and the moon is out.

@@ -1,7 +1,7 @@
 import { activePaint, nextPaint, type PaintDef, type PaintSlot } from './paints';
 import { CREW_KINDS, codexRows, loreKey, noteCodexEvent, type CodexRow } from './codex';
 import { currentGoal, FTUE_STEPS, goalIndex } from './ftue';
-import { foldDive, newDive, type DiveReport } from './divereport';
+import { foldDive, newDive, tripSince, type DiveReport, type TripReport } from './divereport';
 import { awardGift, checkAwards, countEvent, newAwards, noteMax, sanitizeAwards, type Awards, type Tier } from './achievements';
 import { stepPref, type PrefKey, type Prefs } from './settings';
 import { DEFAULT_KEYS, rebind, type BindId, type KeyMap } from './keys';
@@ -192,7 +192,7 @@ export type GameEvent =
   | { t: 'rumble'; x: number; y: number }
   | { t: 'erupt'; x: number; y: number }
   | { t: 'bombhit'; x: number; y: number }
-  | { t: 'bank'; total: number }
+  | { t: 'bank'; total: number; trip: TripReport }
   | { t: 'death'; lost: number; medic: boolean; report: DiveReport }
   | { t: 'jump' }
   | { t: 'pad'; x: number; y: number }
@@ -302,6 +302,10 @@ export class Game {
   runDeepest = 0;
   /** This dive's tally (in memory; reset with each new world). */
   dive: DiveReport = newDive();
+  /** The dive tally at the last bank (the trip card shows the difference). */
+  tripStart: DiveReport = newDive();
+  /** Deepest point (m) since the last bank. */
+  tripDeep = 0;
   events: GameEvent[] = [];
   /** Explored map for this dive. */
   fog!: FogMap;
@@ -975,6 +979,8 @@ export class Game {
     this.save.runs += 1;
     this.save.worldSeed = worldSeed;
     this.dive = newDive();
+    this.tripStart = newDive();
+    this.tripDeep = 0;
     // A new world gets the current (larger) size, whatever size the last one was.
     this.save.worldSize = { w: WORLD_W, h: WORLD_H };
     this.world = generateWorld(this.diveSeed(), WORLD_W, WORLD_H);
@@ -1001,7 +1007,10 @@ export class Game {
     }
     if (total > 0) {
       this.save.stats.banked += total;
-      this.emit({ t: 'bank', total });
+      const trip = tripSince(this.dive, this.tripStart, this.tripDeep, total);
+      this.emit({ t: 'bank', total, trip });
+      this.tripStart = { ...this.dive };
+      this.tripDeep = 0;
       const rec = this.worldRecord();
       if (rec && noteLoot(rec, total)) this.emit({ t: 'record', beat: 'loot', value: rec.loot, code: rec.code });
       reactNpcs(this.npcs, 'wave');
@@ -1624,6 +1633,7 @@ export class Game {
     this.wasGround = b.onGround;
 
     this.runDeepest = Math.max(this.runDeepest, this.depth);
+    this.tripDeep = Math.max(this.tripDeep, this.depth);
     this.dive.depth = this.runDeepest;
     if (noteMax(this.save.awards, 'depth', this.runDeepest)) this.awardCheck();
     const rec = this.worldRecord();

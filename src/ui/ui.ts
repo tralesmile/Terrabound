@@ -1,4 +1,5 @@
-import { diveTitle, reportRows, type DiveReport } from '../sim/divereport';
+import { diveTitle, reportRows, tripChips, type DiveReport, type TripReport } from '../sim/divereport';
+import { BANK_CARD_LIFE, bankCardFade, bankCardLayout } from './bankcard';
 import { PAINTS, PAINT_SLOTS, unlockedPaints, type PaintSlot } from '../sim/paints';
 import { codexCounts, logParts, readLogs, stepLog, type CodexSection } from '../sim/codex';
 import { AWARDS, awardGift, awardProgress } from '../sim/achievements';
@@ -261,6 +262,32 @@ export class UI {
   /** Hotbar slot rects by key (placeable item id, or 'inv' for the bag), refreshed each HUD frame. */
   private slotPos = new Map<string, { x: number; y: number; s: number }>();
 
+  /** Trip banked card (light, non-modal) shown above the bar after banking at the pad. */
+  bankCard: { trip: TripReport; age: number } | null = null;
+  /** Where the trip card was drawn last frame (e2e checks), null when hidden. */
+  bankCardRect: { x: number; y: number; w: number; h: number; chips: string[]; alpha: number } | null = null;
+
+  /** Show (or refresh) the trip card; banking again while it is up adds to the same trip. */
+  showBank(trip: TripReport): void {
+    const c = this.bankCard;
+    if (c && c.age < BANK_CARD_LIFE - 0.8) {
+      const t = c.trip;
+      c.trip = {
+        banked: t.banked + trip.banked,
+        depth: Math.max(t.depth, trip.depth),
+        mined: t.mined + trip.mined,
+        kills: t.kills + trip.kills,
+        chests: t.chests + trip.chests,
+        discoveries: t.discoveries + trip.discoveries,
+        bosses: t.bosses + trip.bosses,
+        time: t.time + trip.time,
+      };
+      c.age = Math.min(c.age, 0.3);
+      return;
+    }
+    this.bankCard = { trip, age: 0 };
+  }
+
   toast(text: string, color = '#ffffff', life = 2.4, group?: string): void {
     // The same message twice in a row refreshes the existing line instead of stacking.
     const same = this.toasts.find((t) => t.text === text);
@@ -289,6 +316,10 @@ export class UI {
       t.age += dt;
     }
     this.toasts = this.toasts.filter((t) => t.life > 0);
+    if (this.bankCard) {
+      this.bankCard.age += dt;
+      if (this.bankCard.age >= BANK_CARD_LIFE) this.bankCard = null;
+    }
     this.flyers.update(dt, (i) => (this.slotPos.has(i) ? i : 'inv'));
   }
 
@@ -708,6 +739,64 @@ export class UI {
     const d = game.drones.find((f) => f.key === bay.key);
     const now = d ? `Now: ${ACT_INFO[d.act].name}${d.mode === 'dock' ? ' (docked)' : ''}` : 'Now: docked';
     this.text(ctx, `${now}. Otherwise it does its role.`, px + u, y + u * 0.4, Math.round(u * 0.72), '#7dff9a', 'left', pw - u * 2);
+  }
+
+  /** Trip banked card: green head with the item count, then chips for the trip's highlights. */
+  private drawBankCard(ctx: CanvasRenderingContext2D, w: number, u: number, barTop: number, time: number): void {
+    this.bankCardRect = null;
+    const c = this.bankCard;
+    if (!c || this.dive) return;
+    const f = bankCardFade(c.age);
+    if (f.alpha <= 0) return;
+    const head = `TRIP BANKED  +${c.trip.banked}`;
+    const chips = tripChips(c.trip, 4);
+    const hs = Math.round(u * 1.05);
+    const cs = Math.round(u * 0.72);
+    ctx.font = `bold ${hs}px ${FONT}`;
+    const headW = ctx.measureText(head).width + u * 2.2;
+    ctx.font = `bold ${cs}px ${FONT}`;
+    const L = bankCardLayout(w, u, barTop, headW, chips.map((s) => ctx.measureText(s).width), f.slide);
+    ctx.save();
+    ctx.globalAlpha = f.alpha;
+    ctx.fillStyle = 'rgba(10,20,22,0.9)';
+    ctx.fillRect(L.x, L.y, L.w, L.h);
+    // Green rim with a shine sweeping across once as the card lands.
+    ctx.fillStyle = '#5ff08a';
+    ctx.fillRect(L.x, L.y, L.w, Math.max(2, u * 0.18));
+    ctx.fillRect(L.x, L.y + L.h - 2, L.w, 2);
+    const sweep = Math.min(1, c.age / 0.9);
+    if (sweep < 1) {
+      const gx = L.x + L.w * sweep;
+      const g = ctx.createLinearGradient(gx - u * 3, 0, gx, 0);
+      g.addColorStop(0, 'rgba(160,255,190,0)');
+      g.addColorStop(1, 'rgba(160,255,190,0.22)');
+      ctx.fillStyle = g;
+      ctx.fillRect(Math.max(L.x, gx - u * 3), L.y, Math.min(u * 3, gx - L.x), L.h);
+    }
+    // A small stash-crate glyph left of the head, bobbing once.
+    const textW = headW - u * 2.2;
+    const tx = w / 2 + u * 0.7;
+    const bob = Math.sin(Math.min(1, c.age / 0.5) * Math.PI) * u * 0.25;
+    const bz = u * 0.9;
+    const bx = tx - textW / 2 - u * 1.5;
+    const by = L.headY - bz * 0.85 - bob;
+    ctx.fillStyle = '#7a5a2a';
+    ctx.fillRect(bx, by, bz, bz);
+    ctx.fillStyle = '#ffcf4a';
+    ctx.fillRect(bx, by + bz * 0.38, bz, Math.max(1, bz * 0.18));
+    ctx.fillStyle = '#36e0e8';
+    ctx.fillRect(bx + bz * 0.4, by + bz * 0.3, bz * 0.2, bz * 0.34);
+    const pulse = 0.85 + Math.sin(time * 6) * 0.15;
+    this.text(ctx, head, tx, L.headY, hs, `rgba(127,255,154,${pulse.toFixed(2)})`, 'center');
+    chips.forEach((s, i) => {
+      const b = L.chips[i];
+      if (!b) return;
+      ctx.fillStyle = i === 0 && c.trip.bosses > 0 ? '#5a3a10' : '#1c2f3a';
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+      this.text(ctx, s, b.x + b.w / 2, b.y + b.h * 0.7, cs, i === 0 && c.trip.bosses > 0 ? '#ffd23a' : '#d8f4ff', 'center', b.w - 4);
+    });
+    ctx.restore();
+    this.bankCardRect = { x: L.x, y: L.y, w: L.w, h: L.h, chips, alpha: f.alpha };
   }
 
   /** The dive report card shown after the signal is lost (null when closed). */
@@ -1577,6 +1666,7 @@ export class UI {
     // What is held, above the bar.
     const heldName = TOOL_SLOTS.find((t) => t.tool === game.tool)?.label ?? '';
     this.text(ctx, game.tool === 'rod' && game.fishing ? (game.fishing.bite > 0 ? 'BITE! Click now!' : 'Waiting for a bite...') : heldName, w / 2, sy - u * 0.5, Math.round(u * 0.85), game.fishing && game.fishing.bite > 0 ? '#ffcf4a' : '#c9d0e4', 'center');
+    this.drawBankCard(ctx, w, u, sy - u * 1.5, time);
 
     // Toasts: newest on top, left-aligned under the HUD text.
     const tl = toastColumn(u, x, anc.rightLimit, hudLow);

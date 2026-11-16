@@ -339,7 +339,11 @@ export class Sfx {
         this.tone(220, 1.2, 'sine', 0.08, 880);
         break;
       case 'recall':
-        [880, 660, 1320].forEach((f, i) => this.tone(f, 0.12, 'sine', 0.12, undefined, i * 0.06));
+        // Arrival: a shimmer falling down the beam, then a soft thud as the pillar lands on the ring.
+        [1760, 1480, 1175, 988].forEach((f, i) => this.tone(f, 0.16, 'sine', 0.07, f * 0.84, i * 0.05));
+        this.tone(2640, 0.3, 'triangle', 0.025, 1320, 0.02);
+        this.tone(110, 0.28, 'sine', 0.16, 48, 0.2);
+        this.tone(220, 0.12, 'triangle', 0.05, 110, 0.2);
         break;
       case 'goal':
         [659, 880].forEach((f, i) => this.tone(f, 0.1, 'triangle', 0.08, undefined, i * 0.08));
