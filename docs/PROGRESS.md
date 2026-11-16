@@ -875,3 +875,13 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** set bonuses; weapon drops with rolled prefixes from chests and boss refights; Boss 2 Logic Warden; dive stats on the share card.
 
 **Known issues:** the common rarity colour is a pale grey that can read as "disabled" next to plain white names; the e2e resets the pistol prefix through private fields (`g['save']`) after the reforge check.
+
+## 2026-11-16 Scheduled run 67
+
+**Done:** baseline green (956 tests, all e2e). Creative review: every melee swing drew the same cyan arc whatever the weapon or its prefix, and prefixes only came from paying for reforges. Rolled weapon drops (loot `CHEST_WEAPONS`/`weaponChance`/`chestWeapon`/`bossWeapon`/`rarityRank`, Game `grantWeapon`, event `weaponfound`): a chest with no accessory holds an unowned craftable weapon 6% near the surface rising to 20% deep, already rolled at the printed 60/30/10 odds; a boss refight hones its trophy weapon with a rare (75%) or epic (25%) prefix, only when it beats the current one, so refights stop paying out at epic. Found weapons are owned but not auto-equipped; toast in the rarity colour, loot beam, ring, a chime with one note per rarity step. Swing trail (render/swingfx `swingStyle`, renderer `swingShown`): the arc uses the weapon's colour + accent core; rare/epic add a wider rarity glow and 3/5 sparkles (05c-epic-swing). Common rarity colour is near-white #e8ecf4 (was a grey that read as disabled).
+
+**Numbers:** 965 unit tests (new: weaponloot 6, swingfx 3), e2e new checks: epic swing trail, rolled weapon find toast + beam. Bundle about 494 kB (173 kB gzip).
+
+**Next:** set bonuses; held weapon sprite in the equipped weapon's colour (IDEAS); Boss 2 Logic Warden; dive stats on the share card.
+
+**Known issues:** the swing arc is short and sits ahead of the hand; a found weapon has no "NEW" marker on the inventory button.

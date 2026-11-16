@@ -299,3 +299,8 @@
 - **Debris in the dig screenshot was already gone** (02-digging is taken 1.5 s into a hold, particles live ~0.7 s). Guard: the new 02b check waits on `fx.breaks` with `polling: 'raf'` and shoots 60 ms after the break; for any short-lived effect, wait on a counter, not a fixed delay.
 - **Rolled gear changes later e2e checks** (run 62 lesson again): a Bouncy/Piercing pistol would change bolt checks. Guard: the reforge check clears the prefix right after its screenshot.
 - **Retro (run 66):** two slices, one ship; a partial `timeout 100 npm run e2e` run reached the new early checks in under 2 minutes, which is a fast way to iterate on checks near the top of smoke.mjs.
+
+## 2026-11-16 run 67
+
+- **Drafting in the scratchpad while the baseline gate runs works:** new code went to `/tmp/claude-0/s/*.ts` and was copied into `src/` after the gate exited (run 62 lesson: no `src/` edits mid-gate). This saved ~8 minutes of idle waiting.
+- **New loot touches every chest/boss test:** before shipping, ran just the tests that call `chestContents`/`damageBoss` (`grep -l` into vitest, 37 s) instead of the 2+ minute full suite; all green. Guard: e2e checks that grant gear (the weapon find) remove it again and clear prefixes, per the run 62 rule.
