@@ -85,6 +85,7 @@ import { scorchK } from './scorchfx';
 import { CONE_PUFFS, CRACK_VARIANTS, DRIFT_H, DRIFT_VARIANTS, conePuff, crackAt, crackPixels, driftPixels } from './ashfx';
 import { GRIME_VARIANTS, HANG_H, HANG_VARIANTS, RCRACK_VARIANTS, grimeAt, grimePixels, SOOT_VARIANTS, hangAt, hangKind, hangPixels, ruinCrackAt, ruinCrackPixels, sootAt, sootPixels } from './ruinfx';
 import { layerAt } from '../sim/layers';
+import { setAura, type SetAura } from './setfx';
 import { boltHalo, crescent, swingStyle, swingSweep, type SwingStyle, type SwingSweep } from './swingfx';
 import { heldArt, type HeldArt } from './heldfx';
 import { RARITY, rarityOf } from '../sim/rarity';
@@ -238,6 +239,8 @@ export class Renderer {
   swingShown: SwingStyle | null = null;
   /** e2e: the swept angles of the last swing smear drawn. */
   swingSweepShown: SwingSweep | null = null;
+  /** e2e: the colour of the full-set aura drawn this frame (null when no set is complete). */
+  setAuraShown: string | null = null;
   /** Debug/e2e switch: draw the player, enemies, pets and NPCs without the layer ambient. */
   noAmbient = false;
   /** Sprites (enemies, pet, NPCs) drawn with a layer ambient this frame. Debug/e2e. */
@@ -862,6 +865,10 @@ export class Renderer {
     }
     const ambient = this.noAmbient ? null : layerAmbient(layerAt(b.y - game.world.padY));
     this.ambientShown = ambient?.k ?? 0;
+    // Full armour set: a faint breathing glow in the set colour and motes rising from the boots.
+    const aura = game.riding ? null : setAura(game.sets, time);
+    this.setAuraShown = aura?.color ?? null;
+    if (aura) this.drawSetAura(ctx, px, py, scale, aura);
     drawPlayer(ctx, px, py + (seated ? 2 * scale : 0), scale, {
       ambient,
       swim: swimming ? { moving: swimMoving } : undefined,
@@ -1099,6 +1106,27 @@ export class Renderer {
   }
 
   /** Red screen-edge vignette: flashes on a hit, beats slowly while HP is low. */
+  private drawSetAura(ctx: CanvasRenderingContext2D, px: number, py: number, scale: number, aura: SetAura): void {
+    const cy = py - 11 * scale;
+    const r = 15 * scale;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const grad = ctx.createRadialGradient(px, cy, r * 0.2, px, cy, r);
+    grad.addColorStop(0, aura.color + '00');
+    grad.addColorStop(0.55, aura.color + Math.round(aura.alpha * 255).toString(16).padStart(2, '0'));
+    grad.addColorStop(1, aura.color + '00');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(px, cy, r * 0.75, r, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = aura.color;
+    for (const m of aura.motes) {
+      ctx.globalAlpha = m.a * 0.85;
+      ctx.fillRect(Math.round(px + m.dx * scale - scale / 2), Math.round(py - m.dy * scale - scale / 2), scale, scale);
+    }
+    ctx.restore();
+  }
+
   private drawHurt(ctx: CanvasRenderingContext2D, game: Game, fx: Fx, time: number): void {
     const a = softFlash(hurtVignette(fx.hurtLeft, fx.hurtPower, game.hp / Math.max(1, game.derived.maxHp), time), this.reduceFlash);
     this.lastHurtAlpha = a;

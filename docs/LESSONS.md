@@ -310,3 +310,9 @@
 - **Running vitest and the e2e at the same time flakes timing checks** ("enemy kill shatters into debris" read 12 particles and 0 rings under load; 62/1 alone). Guard: run them in parallel only to find real failures fast, then re-run any timing-check failure alone before chasing it.
 - **`timeout N npm run e2e | grep` prints nothing when killed** (grep's buffer dies with the pipe). Write to a file, then grep the file.
 - **Retro (run 68):** drafting the new modules + tests in the scratchpad during the baseline gate again saved the wait; two slices, one ship.
+
+## 2026-11-16 run 69
+
+- **Deleting a remote branch is refused in scheduled runs** (permission classifier). Guard: the run-63 "delete the wip branch after applying" step is replaced by: note in PROGRESS that it is applied (`git branch -r --contains` + grep the feature) and leave it.
+- **`equipGear` toggles** a worn piece off; e2e that "re-equips" to restore can take it off instead. Read `g.loadout` first and restore by toggling back only what changed.
+- **Retro (run 69):** two visual slices verified with a 150 s partial e2e (early check) and one full e2e before the single ship; zoomed PIL crops of the screenshot made the art judgement quick.

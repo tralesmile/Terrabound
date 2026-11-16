@@ -239,7 +239,9 @@ Money (ethical, no paywalls)
 - [x] Armor set bonuses: Pathfinder (scout helm, spring boots, glider), Deep Miner (miner helm, reactor suit, jetpack), Vanguard (plate vest, dash boots), Hollow Regalia (crown, frost core); 2/3-piece tiers stack on the pieces, "Set bonus" toast + ring + chime, SET line in the inventory, set line in gear tips (no save change) (run 68)
 - [x] Held weapon art: the hand and the blade/pistol tool slots show the equipped weapon in its own colours with a rarity rim (epic pulses) (run 68)
 - [x] Rare/epic ranged prefixes glow their bolts wider in the rarity colour (run 68)
-- [ ] Follow-ups: a set for the deep-layer core plate and the boss trophy weapons; a faint set-colour aura on the suit when a full set is worn
+- [x] Full-set aura: a breathing glow in the set colour and motes rising from the boots when every piece of a set is worn (run 69)
+- [x] Melee swing is a tapered crescent smear over the full 140-degree sweep from the shoulder (run 69)
+- [ ] Follow-ups: a set for the deep-layer core plate and the boss trophy weapons
 - [x] Layer 2 Circuit: tiles, ores, enemies, hazards, dark zones (done in P1.8; layers.ts)
 - [x] Boss 1 Junk Colossus with telegraphed attacks and arena (done in P1.8 + P1.10)
 - [ ] Boss 2 Logic Warden; unlock flow between layers

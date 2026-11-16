@@ -1148,6 +1148,33 @@ try {
   });
   await page.screenshot({ path: path.join(out, '18d-set-bonus.png') });
   check('two Pathfinder pieces switch the set bonus on with a toast and a SET line', setRes.lines[0]?.startsWith('Pathfinder 2/3') && setRes.toast.includes('Set bonus: Pathfinder') && setRes.drain < 1 && setRes.light === 3, JSON.stringify(setRes));
+  // The full Pathfinder set (add the glider) draws a breathing green aura with rising motes on the suit.
+  await page.keyboard.press('KeyI');
+  await page.waitForTimeout(150);
+  const hadBack = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const prev = g.loadout.back ?? null;
+    if (!g.ownsGear('glider')) g['save'].gear.owned.push('glider');
+    g.equipGear('glider');
+    window.__terrabound.renderer.setAuraShown = null;
+    return prev;
+  });
+  const aura = await page
+    .waitForFunction(() => window.__terrabound.renderer.setAuraShown, null, { polling: 'raf', timeout: 3000 })
+    .then((h) => h.jsonValue())
+    .catch(() => null);
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: path.join(out, '18e-set-aura.png') });
+  const auraOff = await page.evaluate(async (prev) => {
+    const g = window.__terrabound.game;
+    g.equipGear('glider');
+    if (prev) g.equipGear(prev);
+    await new Promise((r) => setTimeout(r, 150));
+    return window.__terrabound.renderer.setAuraShown;
+  }, hadBack);
+  check('a full Pathfinder set glows a green aura on the suit; taking a piece off ends it', aura === '#7dffb0' && auraOff === null, JSON.stringify({ aura, auraOff }));
+  await page.keyboard.press('KeyI');
+  await page.waitForTimeout(150);
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     g.equipGear('scout_helm');

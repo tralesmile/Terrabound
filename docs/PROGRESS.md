@@ -895,3 +895,13 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** a set aura on the suit; Boss 2 Logic Warden; dive stats on the share card.
 
 **Known issues:** the set toast is hidden behind the open inventory when you equip from there (the SET line shows it instead); "enemy kill shatters into debris" fails when vitest runs at the same time as the e2e (CPU load; passes alone).
+
+## 2026-11-16 Scheduled run 69
+
+**Done:** baseline green (975 tests, all e2e). Creative review: the swing was a short dash ahead of the suit (05c, carried twice in IDEAS) and a full set looked like any loadout. Crescent swing (render/swingfx `swingSweep`/`crescent`/`SWING_SPAN` 2.4 rad/`SWING_TAIL` 1.7 rad, renderer `swingSweepShown`): a filled smear from the shoulder, thick at the blade, tapering back to where the swing began; rarity glow/accent layers keep their colours (05c-epic-swing). Full-set aura (render/setfx `setAura`, renderer `drawSetAura`/`setAuraShown`): every piece of a set worn gives a breathing glow (alpha 0.12-0.28) in the set colour and 4 motes rising from the boots, not while riding (18e-set-aura). No save change.
+
+**Numbers:** 981 unit tests (new: swing sweep 3, setfx 3), e2e new check: full-set aura on/off; swing check now also asserts the smear span. Bundle 499.9 kB raw (173.3 kB gzip).
+
+**Next:** Boss 2 Logic Warden; melee hit-stop (IDEAS); stuck block tooltip over the hotbar after closing the inventory; a set for the core plate and trophy weapons.
+
+**Known issues:** the stale `origin/wip/run60-charge-map` branch is already applied but could not be deleted (the session's permissions refused a remote branch delete); ignore it. Block tooltip stays over the hotbar in 18d/18e.
