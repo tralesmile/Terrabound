@@ -835,7 +835,7 @@ Second slice: DEPLOY parks ground vehicles under the carport (garage `parkOffset
 
 **Done:** baseline green (918 tests, all e2e). Creative review: a boss kill gave a trophy once and then only resources, so refights had no jackpot; snowy tree canopies read as speckle noise; the phone pad view is mostly sky. Boss trinkets (P3 follow-up): 6 boss-only accessories (scrap core, bloom seed, prism eye, ember wing, frost heart, null core; `BossDef.trinket`), loot `bossBonus`: 50% for the boss's trinket on the first kill, sure on any repeat kill until owned, then 35% for a new craftable accessory; granted like chest finds (`grantAccessory`, worn if a socket is free, `gearfound` with `boss`). A loot beam in the trinket colour with a bobbing gem stands 3.2 s over the drop (beamfx `lootBeam`/`hexRgb`, renderer `lootBeamAt`/`drawLootGem`, `drawBeam` now takes a tint), "Boss drop" toast, a longer sparkle tail (26l-boss-loot-beam). Gear can carry `leech` (bloom seed), stacking with the leech chip. Codex boss cards say whether the trinket has dropped. The TRIP BANKED card fades once the player is 20+ tiles from the pad (bankcard `bankCardAge`).
 
-**Numbers:** 926 unit tests (new: bosstrinket 6, tripcard 1, codex 1), 269 e2e checks green (new: boss loot beam, trip card leaves). Bundle 478 kB (166 kB gzip). Two ships (the first failed: see LESSONS).
+**Numbers:** 926 unit tests (new: bosstrinket 6, tripcard 1, codex 1), 269 e2e checks green (new: boss loot beam, trip card leaves). Bundle 478 kB (166 kB gzip). Four ship attempts, two failed (a mid-gate edit, then a boss trinket leaking into the magnet check; see LESSONS).
 
 **Next:** P3 rarity and weapon modifiers; tree canopy art pass (IDEAS); phone camera bias on tall screens; P1.9 plane with cargo.
 

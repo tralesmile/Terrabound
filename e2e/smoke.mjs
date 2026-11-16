@@ -2619,6 +2619,9 @@ try {
     // Magnet ring: drops it reels in get faint red tethers to the suit; none without the ring.
     const pullOff = await page.evaluate(async () => {
       const { game: g, renderer } = window.__terrabound;
+      // Start bare: a boss trinket (null core, magnet 8) may have dropped and been worn earlier in the run.
+      window.__accBefore = [...g.accessories];
+      for (const id of window.__accBefore) g.equipGear(id);
       for (let i = 0; i < 4; i++) g.drops.push({ item: 'crystal', n: 1, x: g.body.x + 4 + (i % 2) * 0.6, y: g.body.y - 1 - (i >> 1), vx: 0, vy: 0, age: 0, noPick: 0 });
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
       return renderer.pullShown;
@@ -2635,7 +2638,11 @@ try {
     const pull = await page.evaluate(() => ({ n: window.__terrabound.renderer.pullShown, tint: window.__terrabound.renderer.pullTint }));
     await page.screenshot({ path: path.join(out, '47d-magnet-pull.png') });
     check('a magnet ring draws red tethers to the loot it reels in (none without it)', pullOff === 0 && pull.n >= 2 && pull.tint === '#ff5a5a', JSON.stringify({ pullOff, ...pull }));
-    await page.evaluate(() => { const g = window.__terrabound.game; if (g.isWorn('magnet_ring')) g.equipGear('magnet_ring'); });
+    await page.evaluate(() => {
+      const g = window.__terrabound.game;
+      if (g.isWorn('magnet_ring')) g.equipGear('magnet_ring');
+      for (const id of window.__accBefore ?? []) if (!g.isWorn(id)) g.equipGear(id);
+    });
     await page.waitForTimeout(600);
     await page.evaluate(() => window.__terrabound.act({ k: 'resetkeys' }));
     check('RESET KEYS restores W for jump', (await page.evaluate(() => window.__terrabound.game.keys.jump)) === 'KeyW');
