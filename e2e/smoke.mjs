@@ -1386,6 +1386,14 @@ try {
     await page.waitForTimeout(150);
     const full = await page.evaluate(() => ({ full: window.__terrabound.renderer.bayFull, arcs: window.__terrabound.renderer.bayArcs }));
     check('a full battery under the bay shows a steady green lamp instead of the arc', full.full && full.arcs === 0, JSON.stringify(full));
+    // The map marks the field garage as a charge point (green bolt pin over the bay).
+    await page.keyboard.press('KeyM');
+    await page.waitForTimeout(300);
+    const pin = await page.evaluate(() => ({ open: window.__terrabound.ui.mapOpen, shown: window.__terrabound.ui.mapView.chargeShown }));
+    await page.screenshot({ path: path.join(out, '13e-map-charge.png') });
+    check('the map shows a green bolt pin on the field garage', pin.open && pin.shown >= 1, JSON.stringify(pin));
+    await page.keyboard.press('KeyM');
+    await page.waitForTimeout(200);
     // Back to where the walk to the parked buggy starts.
     await page.evaluate(({ x, y }) => { const g = window.__terrabound.game; g.body.x = x + 0.5 - 2; g.body.y = y + 1; g.body.vx = g.body.vy = 0; }, bayAt);
     await page.waitForTimeout(100);
@@ -2580,6 +2588,26 @@ try {
     await page.screenshot({ path: path.join(out, '47c-air-jump.png') });
     check('a feather charm air jump kicks a green ring and feather wisps', aj.n === aj0 + 1 && aj.wisps >= 3 && aj.rings >= 1, JSON.stringify({ aj0, ...aj }));
     await page.evaluate(() => { const g = window.__terrabound.game; if (g.isWorn('feather_charm')) g.equipGear('feather_charm'); });
+    // Magnet ring: drops it reels in get faint red tethers to the suit; none without the ring.
+    const pullOff = await page.evaluate(async () => {
+      const { game: g, renderer } = window.__terrabound;
+      for (let i = 0; i < 4; i++) g.drops.push({ item: 'crystal', n: 1, x: g.body.x + 4 + (i % 2) * 0.6, y: g.body.y - 1 - (i >> 1), vx: 0, vy: 0, age: 0, noPick: 0 });
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      return renderer.pullShown;
+    });
+    await page.waitForTimeout(900);
+    await page.evaluate(() => {
+      const g = window.__terrabound.game;
+      if (!g.ownsGear('magnet_ring')) g.save.gear.owned.push('magnet_ring');
+      if (!g.isWorn('magnet_ring')) g.equipGear('magnet_ring');
+      g.drops.length = 0;
+      for (let i = 0; i < 4; i++) g.drops.push({ item: 'crystal', n: 1, x: g.body.x + 5 + (i % 2) * 0.6, y: g.body.y - 1.5 - (i >> 1), vx: 0, vy: 0, age: 0, noPick: 0 });
+    });
+    await page.waitForFunction(() => window.__terrabound.renderer.pullShown >= 2, null, { timeout: 2000, polling: 'raf' }).catch(() => {});
+    const pull = await page.evaluate(() => ({ n: window.__terrabound.renderer.pullShown, tint: window.__terrabound.renderer.pullTint }));
+    await page.screenshot({ path: path.join(out, '47d-magnet-pull.png') });
+    check('a magnet ring draws red tethers to the loot it reels in (none without it)', pullOff === 0 && pull.n >= 2 && pull.tint === '#ff5a5a', JSON.stringify({ pullOff, ...pull }));
+    await page.evaluate(() => { const g = window.__terrabound.game; if (g.isWorn('magnet_ring')) g.equipGear('magnet_ring'); });
     await page.waitForTimeout(600);
     await page.evaluate(() => window.__terrabound.act({ k: 'resetkeys' }));
     check('RESET KEYS restores W for jump', (await page.evaluate(() => window.__terrabound.game.keys.jump)) === 'KeyW');

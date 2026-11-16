@@ -568,6 +568,13 @@ export class Game {
     return this.save.gear.acc;
   }
 
+  /** Everything worn right now: the slot loadout, then the accessory sockets. */
+  get wornGear(): GearId[] {
+    const out: GearId[] = [];
+    for (const id of Object.values(this.save.gear.equip)) if (id) out.push(id);
+    return out.concat(this.save.gear.acc);
+  }
+
   /** Is this gear worn right now (its slot, or an accessory socket)? */
   isWorn(id: GearId): boolean {
     return GEAR[id].slot === 'acc' ? this.save.gear.acc.includes(id) : this.save.gear.equip[GEAR[id].slot] === id;

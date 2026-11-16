@@ -9,6 +9,8 @@ import { RAID_ENTRY } from '../sim/raids';
 import { BIOMES, type BiomeId } from '../sim/biomes';
 import { T, TILES } from '../sim/tiles';
 import { TILE_COLORS } from '../render/sprites';
+import { chargePoints } from '../sim/garage';
+import { PAD_HALF } from '../sim/world';
 import { SKY } from '../render/decor';
 
 const AIR_DEEP: [number, number, number] = [36, 30, 46];
@@ -36,9 +38,37 @@ export function cellColor(game: Game, cx: number, cy: number): string {
   return TILE_COLORS[t] ?? '#555';
 }
 
+export const CHARGE_PIN = '#5cff7a';
+
+/** A charge-point pin: dark disc, green ring that breathes, white-green lightning bolt, stem down to the bay. */
+function drawBoltPin(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, time: number): void {
+  ctx.fillStyle = CHARGE_PIN;
+  ctx.fillRect(cx - Math.max(0.5, r * 0.08), cy + r, Math.max(1, r * 0.16), r * 0.6);
+  ctx.fillStyle = 'rgba(10,24,14,0.92)';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = CHARGE_PIN;
+  ctx.lineWidth = Math.max(1, r * 0.22);
+  ctx.globalAlpha = 0.75 + 0.25 * Math.sin(time * 4);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#d8ffe0';
+  ctx.beginPath();
+  ctx.moveTo(cx + r * 0.15, cy - r * 0.7);
+  ctx.lineTo(cx - r * 0.4, cy + r * 0.1);
+  ctx.lineTo(cx - r * 0.02, cy + r * 0.1);
+  ctx.lineTo(cx - r * 0.15, cy + r * 0.7);
+  ctx.lineTo(cx + r * 0.4, cy - r * 0.1);
+  ctx.lineTo(cx + r * 0.02, cy - r * 0.1);
+  ctx.closePath();
+  ctx.fill();
+}
+
 const LEGEND: [string, string][] = [
   ['You', '#ffffff'],
   ['Pad', '#36e0e8'],
+  ['Charge bay', CHARGE_PIN],
   ['Chest', '#ffcf4a'],
   ['Ruins / ships', '#ffcf4a'],
   ['Vaults / geodes', '#c08cff'],
@@ -53,6 +83,10 @@ export class MapView {
   private canvas: HTMLCanvasElement | null = null;
   private key = '';
   private chests: { x: number; y: number }[] = [];
+  private charge: { x: number; y: number }[] = [];
+  private chargeVer = -1;
+  /** Charge pins drawn last frame (read by e2e). */
+  chargeShown = 0;
   /** Zoom level index into MAP_ZOOMS. */
   zoom = 2;
   /** Pan offset in tiles from the player (0,0 = centred on the player). */
@@ -174,6 +208,20 @@ export class MapView {
       ctx.beginPath();
       ctx.arc(toX(c.x + 0.5), toY(c.y + 0.5), pr, 0, Math.PI * 2);
       ctx.fill();
+    }
+    // Field garages: green bolt pins, so deep trips can be planned around charge points.
+    if (this.chargeVer !== world.version) {
+      this.charge = chargePoints(world, T.GARAGE, PAD_HALF + 2);
+      this.chargeVer = world.version;
+    }
+    this.chargeShown = 0;
+    const br = Math.max(5, u * 0.5);
+    for (const c of this.charge) {
+      const bx = toX(c.x + 0.5);
+      const by = toY(c.y - 1.5) - br;
+      if (bx < x - br || bx > x + w + br || by < y - br * 2 || by > y + h + br) continue;
+      drawBoltPin(ctx, bx, by, br, time);
+      this.chargeShown++;
     }
     // Biome names along the top.
     ctx.font = `bold ${Math.round(u * 0.7)}px ui-monospace, Menlo, Consolas, monospace`;

@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-16 run 61
+
+- Done this run: field garages show on the map as green bolt pins (plan deep trips around charge points; finished run 60's drafted slice); the magnet ring / scout bot draw faint tethers with beads sliding into the suit from every drop they reel in, so the accessory reads in play (47d-magnet-pull).
+- Weakest graphics (underground): buried skulls and bones in 02-digging are flat white sprites at full brightness; tint them by depth/ambient so fossils sit in the dirt instead of on top of it.
+- Weakest gameplay feel (vehicles): carried, park the deployed buggy under the carport so the bay charges while seated.
+- Weakest progression (loot): carried, boss bonus accessory roll with boss-only trinkets (Terraria boss drops).
+- Weakest UI: the TRIP BANKED card can still be on screen after you leave the pad and reach a new biome (11-biome-jungle); hide it once the player is more than ~20 tiles from the pad.
+
 ## 2026-11-16 run 59
 
 - Done this run: a field garage is a charging bay (battery fills at 30/s under its roof, crackling green arc from the bay light to the suit, "+" motes, steady green lamp when full, CHARGING % replaces the "return to the pad" nag) so a garage becomes a Dome Keeper-style forward outpost (21c-bay-charge); the phone inventory shows the accessory socket row (51e).
@@ -31,18 +39,3 @@
 - Weakest UI: toasts slide in from the left edge and clip ("at the pad" in 13c); on phones cap the column at two pills and fold the rest into a "+N" chip.
 - Weakest progression: the dive report still only shows on death; a lighter "dive banked" card on beam-home would pair with the new arrival beat (P4 follow-up).
 - Weakest audio: the arrival has no sound of its own (reuses the recall chime); a descending shimmer + soft thud would sell the slam.
-
-## 2026-11-13 run 55
-
-- Done this run: two teal insulator pads in the Hollow AI arena never conduct the phase-2 floor zaps (the crest fizzles in teal arcs at their edge), so the finale has a positioning answer besides jumping (28h-safe-pad); block tooltips stay quiet in boss fights and raids (a "Rust" tip sat on screen mid-fight in 28f).
-- Weakest graphics: surface dirt under the grass is one flat brown speckle for 6+ tiles (02-digging); a few buried pebble clusters and a darker band every ~8 rows would read as strata (Terraria/Core Keeper layered soil).
-- Weakest performance: the arena floor is rescanned every frame (56+ columns x 20 rows); cache per boss and refresh on world edits.
-- Process: two overlapping runs both took the phone boss-bar item this hour; claim an item in BACKLOG (CLAIMED + time) in a first tiny docs commit before building anything bigger than an hour.
-
-## 2026-11-13 run 54
-
-- Done this run: the landing pad is a real deck now (steel plates, hazard chevrons, landing ring, runway lights that chase toward the centre); blocks and machines name themselves under a resting mouse with dig time; streams splash into pools; the boss bar drops under the HUD on small phones (28g).
-- Weakest first impression: the pad is the first thing a player sees; a short landing beam / dust puff when the player beams home onto the ring would make returning feel like an arrival (Dome Keeper's return-to-dome beat).
-- Weakest UI: toasts still stack 3-4 deep at depth (awards fold, but the column covers a quarter of a phone screen); cap the column at two pills on phones and fold the rest into a "+2" chip.
-- Weakest progression: the dive report still only shows on death; a lighter "dive banked" card on beam-home (carried, P4 follow-up).
-- Weakest finale play: a non-conducting safe platform node in the Hollow AI arena (carried, BACKLOG P1.10 follow-up).

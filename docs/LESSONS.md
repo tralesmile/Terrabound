@@ -267,3 +267,8 @@
 - **Stale backlog notes:** the lava 11 ms note had been fixed two runs earlier. Read the latest probe line in the baseline log (`grep "frame-time probe"`) before profiling.
 - **Retro (run 59):** whole `vitest run` now takes over 2 minutes; run it in the background (or let the ship gate do it) instead of a foreground call that times out.
 
+
+## 2026-11-16 run 61
+
+- **A run without a shell can still save its work:** run 60 drafted the whole slice (code as patch text + a test) on a `wip/` branch with apply steps; this run applied it in minutes. Guard: when tools fail mid-run, push a `wip/runNN-*` branch with a `docs/wip/*.md` apply recipe; the next run checks `git branch -r | grep wip/` at start, applies, then deletes the branch.
+- Small fix to the draft: its pad-distance test used `x + 0.5` on both sides (a no-op); keep geometry predicates in the plainest form so test comments match the code.

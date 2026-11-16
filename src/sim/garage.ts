@@ -126,6 +126,28 @@ export function bayAt(world: BayWorld, x: number, y: number, garageTile: number)
   return null;
 }
 
+/** Minimal world view for charge-point lookups: placed tiles (index -> tile), width and pad column. */
+export interface ChargeWorld {
+  readonly w: number;
+  readonly padX: number;
+  readonly edits: ReadonlyMap<number, number>;
+}
+
+/**
+ * Field garages (charge points) for the map: every placed garage bay more than `padReach` columns from the pad
+ * (bays at the pad add nothing, the pad charges anyway). Sorted by column so the map draws them stably.
+ */
+export function chargePoints(world: ChargeWorld, garageTile: number, padReach: number): { x: number; y: number }[] {
+  const out: { x: number; y: number }[] = [];
+  for (const [i, t] of world.edits) {
+    if (t !== garageTile) continue;
+    const x = i % world.w;
+    if (Math.abs(x - world.padX) <= padReach) continue;
+    out.push({ x, y: Math.floor(i / world.w) });
+  }
+  return out.sort((a, b) => a.x - b.x || a.y - b.y);
+}
+
 /** Battery after charging for `dt` seconds in a bay, capped at `max` (never lowers a battery above max). */
 export function bayCharge(battery: number, max: number, dt: number): number {
   if (battery >= max) return battery;

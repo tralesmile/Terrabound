@@ -818,3 +818,13 @@ Owner: "Water looks bad. Pet looks bad. On hover the items should show what they
 
 **Known issues:** the bay charges anyone standing in the carport even when the carport frame was dug away (it keys on the bay tile only); the parked vehicle sits just outside the carport, so riding up to it does not charge until you drive in.
 
+
+## 2026-11-16 Scheduled run 61
+
+**Done:** baseline green (907 tests, all e2e). Run 60 had no working shell and left a drafted slice on `wip/run60-charge-map`; applied it here. Field garages on the map (sim/garage `chargePoints`, ui/map `drawBoltPin`, legend "Charge bay"): every placed garage more than PAD_HALF+2 columns from the pad gets a green breathing bolt pin over its roof, cached per world version (13e-map-charge). Creative review: the magnet ring was a stat line only, and buried skulls/bones in 02-digging were flat near-white stickers. Magnet tethers (render/magnetfx `pulledDrops`/`pullBeads`/`magnetTint`, renderer `drawPullLines`, Game `wornGear`): when gear widens the magnet past the base 3 tiles, each drop being reeled in (max 12, none with a full pack) gets a faint line in the gear's colour (ring red, scout bot cyan) with beads sliding into the suit (47d-magnet-pull). Fossils (strata `halfBuried`): muted bone tones, a soft shadow and soil crumbs over the edges.
+
+**Numbers:** 915 unit tests (new: chargemap 2, magnetfx 6, strata fossil 1), e2e new checks: map charge pin, magnet tethers on/off. Bundle about 472 kB (166 kB gzip).
+
+**Next:** park the deployed vehicle under the carport; boss bonus accessory roll; P1.9 plane with cargo; P3 rarity and weapon modifiers.
+
+**Known issues:** the charge pin is small at the widest map zoom and can sit under the "you" marker when standing in the bay; tethers draw straight lines (drops arc slightly as they fly in).

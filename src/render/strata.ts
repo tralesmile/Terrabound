@@ -82,6 +82,16 @@ export function buriedDecal(tx: number, ty: number, depth: number): DecalKind | 
 
 type R = [number, number, number, number, string];
 
+/** Shadow under a fossil and soil crumbs on top, so bones sit in the dirt instead of on it. */
+export const FOSSIL_SHADOW = 'rgba(26,14,8,0.5)';
+export const FOSSIL_CRUMB = 'rgba(92,62,42,0.9)';
+
+/** Wraps a fossil: a soft shadow 1/16 down-right first, the bone, then soil crumbs over its edges. */
+function halfBuried(bone: R[], crumbs: [number, number, number, number][]): R[] {
+  const shadow: R[] = bone.filter((b) => b[4] !== '#2a1e18').map(([x, y, w, h]) => [x + 1, y + 1, w, h, FOSSIL_SHADOW]);
+  return [...shadow, ...bone, ...crumbs.map(([x, y, w, h]) => [x, y, w, h, FOSSIL_CRUMB] as R)];
+}
+
 /** Rect lists in 16ths of a tile; second arg flips horizontally for variety. */
 export function decalRects(kind: DecalKind, flip: boolean): R[] {
   const r: R[] = (() => {
@@ -89,11 +99,11 @@ export function decalRects(kind: DecalKind, flip: boolean): R[] {
       case 'pebbles':
         return [[3, 9, 2, 2, '#8a6a58'], [3, 9, 1, 1, '#b8968a'], [8, 5, 3, 2, '#7a5a4a'], [8, 5, 1, 1, '#a8867a'], [11, 11, 2, 2, '#6a4a3a']];
       case 'bone':
-        return [[3, 7, 10, 2, '#d8ccb0'], [2, 6, 2, 2, '#e8dcc0'], [2, 8, 2, 2, '#e8dcc0'], [12, 6, 2, 2, '#e8dcc0'], [12, 8, 2, 2, '#e8dcc0'], [4, 9, 8, 1, '#9a8c70']];
+        return halfBuried([[3, 7, 10, 2, '#b8a888'], [2, 6, 2, 2, '#c8b898'], [2, 8, 2, 2, '#c8b898'], [12, 6, 2, 2, '#c8b898'], [12, 8, 2, 2, '#c8b898'], [4, 9, 8, 1, '#857858'], [3, 7, 10, 1, '#d4c6a6']], [[6, 7, 2, 1], [10, 8, 1, 1]]);
       case 'pipe':
         return [[0, 6, 11, 4, '#5a6274'], [0, 6, 11, 1, '#8a94a8'], [0, 9, 11, 1, '#343a46'], [10, 5, 3, 6, '#6a7286'], [10, 5, 3, 1, '#a0aabc'], [3, 7, 2, 2, '#b8683a']];
       case 'skull':
-        return [[4, 4, 8, 6, '#e0d4b8'], [5, 10, 6, 2, '#d0c4a8'], [5, 6, 2, 2, '#2a1e18'], [9, 6, 2, 2, '#2a1e18'], [7, 9, 2, 1, '#2a1e18'], [5, 12, 1, 1, '#2a1e18'], [7, 12, 1, 1, '#2a1e18'], [9, 12, 1, 1, '#2a1e18']];
+        return halfBuried([[4, 4, 8, 6, '#bfb294'], [5, 10, 6, 2, '#ab9f82'], [4, 4, 8, 1, '#d8cbab'], [4, 4, 1, 5, '#cdbf9f'], [5, 6, 2, 2, '#2a1e18'], [9, 6, 2, 2, '#2a1e18'], [7, 9, 2, 1, '#2a1e18'], [5, 12, 1, 1, '#2a1e18'], [7, 12, 1, 1, '#2a1e18'], [9, 12, 1, 1, '#2a1e18']], [[10, 4, 2, 1], [11, 8, 1, 2], [4, 9, 2, 1]]);
     }
   })();
   return flip ? r.map(([x, y, w, h, c]) => [16 - x - w, y, w, h, c] as R) : r;

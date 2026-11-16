@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buriedDecal, decalRects, hasStrata, STRATA_DEPTH, strataShade, strataWobble } from '../src/render/strata';
+import { FOSSIL_CRUMB, FOSSIL_SHADOW, buriedDecal, decalRects, hasStrata, STRATA_DEPTH, strataShade, strataWobble } from '../src/render/strata';
 import { T } from '../src/sim/tiles';
 
 describe('soil strata (render, pure)', () => {
@@ -55,6 +55,17 @@ describe('soil strata (render, pure)', () => {
     expect(n / total).toBeGreaterThan(0.01);
     expect(n / total).toBeLessThan(0.08);
     expect(kinds.size).toBe(4);
+  });
+
+  it('fossils sit in the dirt: a shadow first, the bone, then soil crumbs on top', () => {
+    for (const k of ['bone', 'skull'] as const) {
+      const r = decalRects(k, false);
+      expect(r[0][4]).toBe(FOSSIL_SHADOW);
+      expect(r[r.length - 1][4]).toBe(FOSSIL_CRUMB);
+      // No glaring near-white bone pixels (the old bones read as stickers at full light).
+      for (const [, , , , c] of r) if (c.startsWith('#')) expect(parseInt(c.slice(1, 3), 16)).toBeLessThan(0xdd);
+    }
+    expect(decalRects('pipe', false).some((q) => q[4] === FOSSIL_SHADOW)).toBe(false);
   });
 
   it('decal rects stay inside the tile, flipped or not', () => {

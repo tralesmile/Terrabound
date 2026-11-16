@@ -6,6 +6,7 @@ import { petSwimPose, petWater, type PetWater } from './petfx';
 import { PET_ART, petPalette, petRows, type PetArtId } from './petart';
 import { coneCrater, lavafallSpan } from '../sim/structures';
 import { bayArc, chargeMotes } from './bayfx';
+import { magnetTint, pullBeads, pulledDrops } from './magnetfx';
 import { FALL_W, LAVA_BLOCK, SHIMMER_ROW, SHIMMER_ROWS, fallShade, lavaDepthShade, lavaShade, shimmerRuns, shimmerShift, fallEdges } from './lavafx';
 import { acidBubble, causticDapples, depthRamp, liquidFalling, splashDrops, streamGap, streamLanding, streamWidth, surfaceGlint, waveOffsets } from './liquidfx';
 import { cropAt, isCropTile, isWatered } from '../sim/farming';
@@ -18,7 +19,7 @@ import { REACH } from '../sim/game';
 import { onLadder, stepEase } from '../sim/physics';
 import { ENEMIES } from '../sim/enemies';
 import { hash2 } from '../sim/rng';
-import { T, TILES } from '../sim/tiles';
+import { T, TILES, invTotal } from '../sim/tiles';
 import { isLiquid, levelAt as liquidLevel } from '../sim/liquids';
 import { W } from '../sim/world';
 import { BODY_H } from '../sim/physics';
@@ -220,6 +221,9 @@ export class Renderer {
   camY = 0;
   /** Last frame's player char strength 0..1 after lava contact (read by e2e). */
   scorchShown = 0;
+  /** Magnet tethers drawn last frame and their tint (read by e2e). */
+  pullShown = 0;
+  pullTint: string | null = null;
   /** Layer ambient strength last drawn on the player (0 = none). Debug/e2e. */
   ambientShown = 0;
   /** Debug/e2e switch: draw the player, enemies, pets and NPCs without the layer ambient. */
@@ -847,6 +851,7 @@ export class Renderer {
     }
     if (veh) ctx.restore();
 
+    this.drawPullLines(ctx, game, shakeX, shakeY, time);
     // Items on the ground: bobbing icons with a soft glow so they read as pickups.
     for (const d of game.drops) {
       const isz = ICON * scale * 0.7;
@@ -1544,6 +1549,41 @@ export class Renderer {
    * Garage bay charging: a crackling green arc from the bay's control light to the suit while the
    * battery fills, "+" motes rising off the player; once full, the bay's light turns steady green.
    */
+  /** Magnet tethers: a faint line in the magnet gear's colour from each drop being reeled in, beads sliding in. */
+  private drawPullLines(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
+    this.pullShown = 0;
+    const b = game.body;
+    const full = invTotal(game.carried) >= game.derived.packCap;
+    const pulled = pulledDrops(game.drops, b.x, b.y, game.gear.magnet, full);
+    this.pullTint = pulled.length ? magnetTint(game.wornGear) : null;
+    if (!pulled.length || !this.pullTint) return;
+    const scale = this.scale;
+    const tx = this.sx(b.x, shakeX);
+    const ty = this.sy(b.y - 0.8, shakeY);
+    ctx.save();
+    ctx.strokeStyle = this.pullTint;
+    ctx.fillStyle = this.pullTint;
+    ctx.lineWidth = Math.max(1, scale * 0.6);
+    for (const { i, k } of pulled) {
+      const d = game.drops[i];
+      // Start at the icon's centre (icons draw above the drop's feet).
+      const sx0 = this.sx(d.x, shakeX);
+      const sy0 = this.sy(d.y, shakeY) - ICON * scale * 0.35 - scale * 2;
+      ctx.globalAlpha = 0.18 + 0.4 * k;
+      ctx.beginPath();
+      ctx.moveTo(sx0, sy0);
+      ctx.lineTo(tx, ty);
+      ctx.stroke();
+      ctx.globalAlpha = 0.5 + 0.5 * k;
+      const r = Math.max(1, scale * 0.9);
+      for (const f of pullBeads(time, 3, i)) {
+        ctx.fillRect(Math.round(sx0 + (tx - sx0) * f - r), Math.round(sy0 + (ty - sy0) * f - r), r * 2, r * 2);
+      }
+      this.pullShown++;
+    }
+    ctx.restore();
+  }
+
   private drawBayCharge(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
     this.bayArcs = 0;
     this.bayFull = false;

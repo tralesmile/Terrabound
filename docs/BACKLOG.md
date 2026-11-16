@@ -123,7 +123,8 @@ World size and variety:
 - [x] Vehicles are parked world objects: DEPLOY from the garage, walk up and press V to enter, leaving parks it; save migration parks owned vehicles at the pad
 - [x] Art for the garage, buggy and drill tank; e2e checks and screenshots
 - [x] Charging bay: a garage placed in the field charges the battery at 30/s under its roof (on foot or riding), green arc + rising motes, steady green lamp when full, toast + hum (run 59)
-- [ ] Follow-ups (scheduled runs may take these): plane variant with cargo; show the field garage on the map as a charge point
+- [x] Field garages show on the map as green bolt charge pins (run 61)
+- [ ] Follow-ups (scheduled runs may take these): plane variant with cargo; park the deployed vehicle under the carport so the bay charges while seated
 
 ## P1.8 Owner request 2026-11-11: "add all" (do these FIRST, top to bottom, before P2)
 
@@ -227,7 +228,8 @@ Money (ethical, no paywalls)
 - [x] Equipment slots: head/body/feet/back/pet existed; 3 accessory sockets with 7 craftable accessories (stats stack), WORN + ACCESSORIES socket row under the character in the inventory (tap to take off), gems on the belt in the world (save v29) (run 58)
 - [x] Accessories in world chests: 10% of shallow chests rising to 30% deep hold an unowned accessory, worn at once if a socket is free, gold toast + ring + sparkle (run 58); feather-charm air jump wisps (run 58)
 - [x] Socket row on phones under the gear grid (run 59)
-- [ ] Follow-ups: boss bonus accessory roll and boss-only accessories; magnet ring pull lines
+- [x] Magnet pull tethers: drops the magnet ring / scout bot reel in draw faint tinted lines with beads sliding into the suit (run 61)
+- [ ] Follow-ups: boss bonus accessory roll and boss-only accessories
 - [ ] Rarity and weapon modifiers; mod chips; set bonuses
 - [x] Layer 2 Circuit: tiles, ores, enemies, hazards, dark zones (done in P1.8; layers.ts)
 - [x] Boss 1 Junk Colossus with telegraphed attacks and arena (done in P1.8 + P1.10)
