@@ -697,21 +697,21 @@ export class Renderer {
       ctx.translate(-px, -py);
     };
     let hullOver: { clipY: number; floorY: number; draw: () => void } | null = null;
-    if (veh === 'hoverbike' || veh === 'sky_jet' || veh === 'buggy' || veh === 'drill_tank') {
+    if (veh === 'hoverbike' || veh === 'sky_jet' || veh === 'cargo_lifter' || veh === 'buggy' || veh === 'drill_tank') {
       const vd = VEHICLES[veh];
       if (veh === 'hoverbike') {
         // Soft hover field on the ground under the pads.
         ctx.fillStyle = 'rgba(54,224,232,0.22)';
         ctx.fillRect(px - 11 * scale, py + 2 * scale, 22 * scale, 2 * scale);
       }
-      const bob = veh === 'sky_jet' ? Math.round(Math.sin(time * 5)) * 0.5 : 0;
+      const bob = veh === 'sky_jet' || veh === 'cargo_lifter' ? Math.round(Math.sin(time * 5)) * 0.5 : 0;
       const ground = veh === 'buggy' || veh === 'drill_tank';
       // Wheels and treads turn with the distance rolled, so they match the ground speed.
       if (ground) this.wheelDist += Math.abs(b.vx) * dtFrame;
       const moving = wheelSpinTime(this.wheelDist);
       // Ground vehicles are drawn larger so the pilot sits inside, not on top of a toy.
       const vs = ground ? scale * VEHICLE_ART_SCALE : scale;
-      const drawVeh = (): void => drawRows(ctx, vehicleRows(veh, ground ? moving : time, game.jetting), px - (vd.w / 2) * vs, py - (vd.top - bob) * vs, vs, game.facing < 0, vd.w, undefined, rideRemap(veh));
+      const drawVeh = (): void => drawRows(ctx, vehicleRows(veh, ground ? moving : time, game.jetting, game.cargoFill), px - (vd.w / 2) * vs, py - (vd.top - bob) * vs, vs, game.facing < 0, vd.w, undefined, rideRemap(veh));
       ctx.save();
       vehXf();
       drawVeh();
@@ -808,7 +808,7 @@ export class Renderer {
     this.swimAngle += (target - this.swimAngle) * Math.min(1, dtFrame * 8);
     if (!swimming) this.swimAngle = 0;
     const tread = swimming && !swimMoving ? Math.round(Math.sin(time * 3)) * scale : 0;
-    const seated = veh === 'hoverbike' || veh === 'sky_jet';
+    const seated = veh === 'hoverbike' || veh === 'sky_jet' || veh === 'cargo_lifter';
     if (swimming) {
       this.drawSwimRipples(ctx, game, shakeX, shakeY, time, swimMoving);
       ctx.save();

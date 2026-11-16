@@ -75,6 +75,7 @@ export type GearId =
   | 'glider'
   | 'hoverbike'
   | 'sky_jet'
+  | 'cargo_lifter'
   | 'buggy'
   | 'drill_tank'
   | 'junk_hammer'
@@ -148,6 +149,7 @@ export const GEAR: Record<GearId, GearDef> = {
   frost_heart: { name: 'Frost heart', slot: 'acc', desc: 'Titan trinket: 12% armor, +20 health', cost: {}, mod: { armor: 0.12, maxHp: 20 }, bossOnly: true, color: '#e6f6ff', accent: '#36e0e8' },
   null_core: { name: 'Null core', slot: 'acc', desc: 'Hollow AI trinket: battery lasts 30% longer, pulls loot from 8 tiles', cost: {}, mod: { drainMul: 0.7, magnet: 8 }, bossOnly: true, color: '#ff5aff', accent: '#ffffff' },
   sky_jet: { name: 'Sky Jet', slot: 'vehicle', desc: 'Garage: a small plane, fly anywhere (uses battery)', cost: { metal: 20, copper_wire: 12, crystal: 8 }, mod: {}, garage: true, color: '#5aa6ff', accent: '#ffffff' },
+  cargo_lifter: { name: 'Cargo Lifter', slot: 'vehicle', desc: 'Garage: a heavy plane with a +30 cargo hold (uses battery)', cost: { metal: 26, iron_scrap: 12, copper_wire: 14, crystal: 10 }, mod: {}, garage: true, color: '#f0b43c', accent: '#ffffff' },
 };
 
 export const GEAR_IDS = Object.keys(GEAR) as GearId[];

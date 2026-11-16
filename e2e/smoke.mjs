@@ -1518,6 +1518,42 @@ try {
       check('the drill tank hull sits in front of the pilot', tuck.tucked && tuck.rgb[1] > tuck.rgb[0] && tuck.rgb[1] > tuck.rgb[2], JSON.stringify(tuck));
     }
   }
+  // Cargo Lifter: a heavy plane whose hold adds pack space; crates show in the hull as it fills past the suit pack.
+  const lifter = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    if (g.riding) g.toggleRide();
+    if (!g.ownsGear('cargo_lifter')) g.save.gear.owned.push('cargo_lifter');
+    const foot = g.derived.packCap;
+    const x = g.world.padX + 40;
+    g.body.x = x + 0.5;
+    g.body.y = g.world.surface[x] - 6;
+    g.body.vx = g.body.vy = 0;
+    g.enemies = [];
+    g.save.garage.parked = { id: 'cargo_lifter', x: g.body.x, y: g.body.y };
+    g.toggleRide();
+    g.carried = { metal: foot + 16 };
+    return { v: g.vehicle, foot, cap: g.derived.packCap, fill: g.cargoFill };
+  });
+  await page.waitForTimeout(500);
+  const crates = await page.evaluate(() => {
+    const { game, renderer } = window.__terrabound;
+    const c = document.getElementById('game');
+    const p = renderer.worldToScreen(game.body.x, game.body.y);
+    const s = renderer.scale;
+    const d = c.getContext('2d').getImageData(Math.round(p.x - 24 * s), Math.round(p.y - 4 * s), Math.round(48 * s), Math.round(8 * s)).data;
+    let n = 0;
+    for (let i = 0; i < d.length; i += 4) if ((Math.abs(d[i] - 217) < 12 && Math.abs(d[i + 1] - 102) < 12 && Math.abs(d[i + 2] - 58) < 12) || (Math.abs(d[i] - 240) < 12 && Math.abs(d[i + 1] - 160) < 12 && Math.abs(d[i + 2] - 112) < 12)) n++;
+    return n;
+  });
+  await page.screenshot({ path: path.join(out, '22l-cargo-lifter.png') });
+  check('the Cargo Lifter adds a 30 hold while riding and shows crates as it fills', lifter.v === 'cargo_lifter' && lifter.cap === lifter.foot + 30 && lifter.fill > 0.5 && crates > 40, JSON.stringify({ ...lifter, crates }));
+  const out2 = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.carried = {};
+    g.toggleRide();
+    return { cap: g.derived.packCap, riding: g.riding };
+  });
+  check('getting out of the Cargo Lifter returns to the suit pack', !out2.riding && out2.cap === lifter.foot, JSON.stringify(out2));
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     if (g.riding) g.toggleRide();

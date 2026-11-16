@@ -5,8 +5,8 @@
 import type { GearId } from './gear';
 import type { Inventory } from './tiles';
 
-export type VehicleId = 'buggy' | 'hoverbike' | 'drill_tank' | 'sky_jet';
-export const VEHICLE_IDS: VehicleId[] = ['buggy', 'hoverbike', 'drill_tank', 'sky_jet'];
+export type VehicleId = 'buggy' | 'hoverbike' | 'drill_tank' | 'sky_jet' | 'cargo_lifter';
+export const VEHICLE_IDS: VehicleId[] = ['buggy', 'hoverbike', 'drill_tank', 'sky_jet', 'cargo_lifter'];
 
 export type PartId = 'engine' | 'armor' | 'battery';
 export const PART_IDS: PartId[] = ['engine', 'armor', 'battery'];
@@ -28,6 +28,8 @@ export interface VehicleDef {
   drill: boolean;
   /** No fall damage while riding. */
   soft: boolean;
+  /** Extra pack space while riding (a cargo hold); 0 for most vehicles. */
+  cargo?: number;
 }
 
 export const VEHICLES: Record<VehicleId, VehicleDef> = {
@@ -35,6 +37,7 @@ export const VEHICLES: Record<VehicleId, VehicleDef> = {
   hoverbike: { name: 'Hoverbike', desc: 'Light and quick, high jumps, no fall damage', cost: { metal: 14, copper_wire: 8, crystal: 4 }, speed: 1.9, jump: 1.25, flying: false, drain: 0.5, ram: 0, drill: false, soft: true },
   drill_tank: { name: 'Drill tank', desc: 'Slow, armored, digs through blocks as it drives', cost: { metal: 18, iron_scrap: 14, copper_wire: 8, crystal: 4 }, speed: 1.25, jump: 0.9, flying: false, drain: 1.2, ram: 10, drill: true, soft: true },
   sky_jet: { name: 'Sky Jet', desc: 'A small plane: fly anywhere, jump climbs, S dives', cost: { metal: 20, copper_wire: 12, crystal: 8 }, speed: 2.2, jump: 1, flying: true, drain: 4.8, ram: 0, drill: false, soft: true },
+  cargo_lifter: { name: 'Cargo Lifter', desc: 'Heavy plane: slower, a +30 cargo hold while you fly it', cost: { metal: 26, iron_scrap: 12, copper_wire: 14, crystal: 10 }, speed: 1.7, jump: 1, flying: true, drain: 3.6, ram: 0, drill: false, soft: true, cargo: 30 },
 };
 
 export const PARTS: Record<PartId, { name: string; desc: string }> = {
@@ -109,6 +112,20 @@ export function sanitizeGarage(v: unknown, owned: readonly GearId[], migrate: bo
  */
 export function parkOffset(id: VehicleId): number {
   return VEHICLES[id].flying ? 4.5 : 2.5;
+}
+
+/** Extra pack space the ridden vehicle gives (0 on foot or without a hold). Pure. */
+export function cargoOf(id: string | null | undefined): number {
+  return id && isVehicle(id) ? VEHICLES[id].cargo ?? 0 : 0;
+}
+
+/**
+ * How full the cargo hold is, 0..1: only what is carried beyond the suit's own pack counts, so the
+ * crates in the hull light up as you dig past your normal pack size. Pure.
+ */
+export function cargoLoad(carried: number, packCap: number, cargo: number): number {
+  if (cargo <= 0) return 0;
+  return Math.max(0, Math.min(1, (carried - packCap) / cargo));
 }
 
 /** Battery per second a garage bay charges you while you stand (or park) under its roof away from the pad. */

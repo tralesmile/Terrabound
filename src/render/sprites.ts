@@ -776,6 +776,23 @@ const SKY_JET = [
   '        ooAAAAAAAAAAAAAoo',
   '          ooooooooooooo',
 ];
+/** Cargo Lifter: a longer, heavier plane with a belly hold of four crate bays (L = empty bay). */
+const CARGO_LIFTER = [
+  '  oo',
+  '  oAo',
+  '  oaAo             oooooo',
+  '  oaaAo          ooVVVVwVoo',
+  '  oaaaAooooooooooVVVVVVVVVoooo',
+  ' oonnnnnnnnnnnnnnnnnnnnnnnnnnnnnoo',
+  'oLaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaoo',
+  'oLaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaawwo',
+  ' ooAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoo',
+  '   ooAAAAoLLLLoLLLLoLLLLoLLLLoAAoo',
+  '     oooAoLLLLoLLLLoLLLLoLLLLoAo',
+  '        ooooooooooooooooooooooo',
+];
+/** Columns where each crate bay starts in the hold rows (9 and 10) of CARGO_LIFTER. */
+export const CARGO_BAYS = [10, 15, 20, 25];
 const HOVERBIKE = [
   '                    oo',
   '                   oLo',
@@ -831,10 +848,11 @@ const DRILL_TANK = [
   ' oooooooooooooooooo',
 ];
 
-export type VehicleSpriteId = 'hoverbike' | 'sky_jet' | 'buggy' | 'drill_tank';
+export type VehicleSpriteId = 'hoverbike' | 'sky_jet' | 'buggy' | 'drill_tank' | 'cargo_lifter';
 export const VEHICLES: Record<VehicleSpriteId, { w: number; top: number }> = {
   hoverbike: { w: 26, top: 6 },
   sky_jet: { w: 37, top: 13 },
+  cargo_lifter: { w: 40, top: 13 },
   buggy: { w: 27, top: 13 },
   drill_tank: { w: 26, top: 11 },
 };
@@ -842,10 +860,11 @@ export const VEHICLES: Record<VehicleSpriteId, { w: number; top: number }> = {
 export const VEHICLE_REMAP: Partial<Record<VehicleSpriteId, Record<string, string>>> = {
   buggy: { a: '#e85a3a', A: '#a8361f', L: '#c9d0e4', n: '#2b2f3a' },
   drill_tank: { a: '#7a8a5a', A: '#4e5a38', L: '#d6dde8', n: '#2b2f3a' },
+  cargo_lifter: { a: '#f0b43c', A: '#a8701c', n: '#ffe2a0', L: '#3a3f4c' },
 };
 
 /** Hull colour chars per vehicle: the hoverbike's body uses s/S, the others a/A. */
-const HULL_CHARS: Record<VehicleSpriteId, [string, string]> = { hoverbike: ['s', 'S'], sky_jet: ['a', 'A'], buggy: ['a', 'A'], drill_tank: ['a', 'A'] };
+const HULL_CHARS: Record<VehicleSpriteId, [string, string]> = { hoverbike: ['s', 'S'], sky_jet: ['a', 'A'], cargo_lifter: ['a', 'A'], buggy: ['a', 'A'], drill_tank: ['a', 'A'] };
 
 /** Colour remap for a vehicle, with an earned hull paint (main, shade) over its own colours. Pure. */
 export function vehicleRemap(id: VehicleSpriteId, paint?: readonly [string, string]): Record<string, string> | undefined {
@@ -859,7 +878,7 @@ export function vehicleRemap(id: VehicleSpriteId, paint?: readonly [string, stri
  * Rows for a vehicle at time t: hover pads pulse, the jet's exhaust flickers (longer when boosting).
  * Flame columns sit left of the tail so they flip with the vehicle. Pure.
  */
-export function vehicleRows(id: VehicleSpriteId, t: number, boost: boolean): string[] {
+export function vehicleRows(id: VehicleSpriteId, t: number, boost: boolean, load = 0): string[] {
   const f = Math.floor(Math.max(0, t) * 20);
   if (id === 'buggy') {
     const wh = f % 2 ? WHEEL_A : WHEEL_B;
@@ -884,9 +903,23 @@ export function vehicleRows(id: VehicleSpriteId, t: number, boost: boolean): str
   // the long flame frames.
   const flame = boost ? JET_FLAME[1 + (f % 2)] : JET_FLAME[0];
   const flick = boost || f % 2 === 0;
-  return SKY_JET.map((r, i) => {
+  return (id === 'cargo_lifter' ? cargoHold(load) : SKY_JET).map((r, i) => {
     const fl = i === 6 && flick ? flame[0] : i === 7 && flick ? flame[1] : '';
     return fl.slice(-3).padStart(3) + r;
+  });
+}
+
+/** The Cargo Lifter with its hold filled: bay k shows a crate once the load passes k/4. Pure. */
+export function cargoHold(load: number): string[] {
+  const full = Math.max(0, Math.min(CARGO_BAYS.length, Math.ceil(load * CARGO_BAYS.length - 1e-9)));
+  return CARGO_LIFTER.map((r, i) => {
+    if (i !== 9 && i !== 10) return r;
+    let row = r;
+    for (let k = 0; k < full; k++) {
+      const c = CARGO_BAYS[k];
+      row = row.slice(0, c) + (i === 9 ? 'cddc' : 'CccC') + row.slice(c + 4);
+    }
+    return row;
   });
 }
 

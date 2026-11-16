@@ -419,7 +419,7 @@ export class Fx {
       return;
     }
     this.vehAcc += dt;
-    const every = kind === 'sky_jet' ? 0.04 : 0.06;
+    const every = kind === 'sky_jet' || kind === 'cargo_lifter' ? 0.04 : 0.06;
     while (this.vehAcc >= every && this.particles.length < MAX_PARTICLES - 4) {
       this.vehAcc -= every;
       const back = -Math.sign(vx || facing);
@@ -445,7 +445,7 @@ export class Fx {
         }
       } else if (kind === 'hoverbike') {
         this.particles.push({ x: x + (Math.random() - 0.5) * 1.2, y: y + 0.1, vx: back * 1.2, vy: 0.6 + Math.random(), life: 0.35, max: 0.35, color: '#7ff6ff', size: 2, g: 0, drag: 2 });
-      } else if (kind === 'sky_jet') {
+      } else if (kind === 'sky_jet' || kind === 'cargo_lifter') {
         this.particles.push({ x: x + back * 1.5, y: y - 0.55, vx: back * 0.6, vy: (Math.random() - 0.5) * 0.4, life: 0.5, max: 0.5, color: 'rgba(235,242,255,0.8)', size: 3, g: 0, drag: 3 });
       }
     }

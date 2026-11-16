@@ -942,7 +942,7 @@ export function iconDef(id: ItemId | Tool | string): IconDef {
     const pal = { a: g.color, b: g.accent, c: '#5d6a80', d: '#2b3a4a', h: '#e8a33d', r: '#ff5a5a' };
     const base = g.slot === 'melee' ? ICONS.blade : g.slot === 'ranged' ? ICONS.pistol : null;
     if (base) return { pal: { ...base.pal, a: g.color, b: g.accent }, rows: base.rows };
-    const shape = id === 'jetpack' ? 'pack' : id === 'glider' ? 'wings' : id === 'sky_jet' ? 'jet' : SLOT_SHAPE[g.slot] ?? 'pack';
+    const shape = id === 'jetpack' ? 'pack' : id === 'glider' ? 'wings' : id === 'sky_jet' || id === 'cargo_lifter' ? 'jet' : SLOT_SHAPE[g.slot] ?? 'pack';
     return { pal, rows: SHAPES[shape] };
   }
   if (id.startsWith('beacon_')) {

@@ -1578,7 +1578,7 @@ export class UI {
       this.text(ctx, this.touch ? 'HEAL' : 'H', hx + 4, u + hs * 0.3, Math.round(hs * 0.24), lowHp ? '#ff8a8a' : '#9ff6a0');
     }
     const carried = invTotal(game.carried);
-    const depthLine = `Depth ${Math.floor(game.depth)}m ${game.depth > 2 ? `(${LAYERS[game.layer].name})` : ''}  Pack ${carried}/${d.packCap}`;
+    const depthLine = `Depth ${Math.floor(game.depth)}m ${game.depth > 2 ? `(${LAYERS[game.layer].name})` : ''}  Pack ${carried}/${d.packCap}${game.vstats?.cargo ? ' (hold)' : ''}`;
     const depthMax = anc.rightLimit - x - u * 0.5;
     this.text(ctx, depthLine, x, y, Math.round(u * 0.95), carried >= d.packCap ? '#ff9a3c' : '#ffffff', 'left', depthMax);
     // Right edge of the status block (bars, heal slot, depth line) for the boss bar placement.

@@ -39,7 +39,7 @@ import { BIOME_BOSSES, BOSS_IDS, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, 
 import { BIOMES, type BiomeId } from './biomes';
 import { LAYERS, layerAt, openGates } from './layers';
 import { METEOR_RATE, weatherAt, weatherEnemy, type WeatherKind } from './weather';
-import { MAX_PART, VEHICLES, bayAt, bayCharge, defaultGarage, isVehicle, parkOffset, partCost, partsOf, vehicleStats, type PartId, type PartLevels, type VehicleId } from './garage';
+import { MAX_PART, VEHICLES, bayAt, bayCharge, cargoLoad, cargoOf, defaultGarage, isVehicle, parkOffset, partCost, partsOf, vehicleStats, type PartId, type PartLevels, type VehicleId } from './garage';
 import { ACC_SLOTS, GEAR, airJumpSources, gearStats, sanitizeGear, toggleAccessory, type GearId, type GearSlot, type GearStats } from './gear';
 import { FOOD, bestHeal, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE } from './fishing';
 import { daylight } from './daynight';
@@ -158,7 +158,7 @@ export type GameEvent =
   | { t: 'nosoil' }
   | { t: 'nomount' }
   | { t: 'craftgear'; id: GearId }
-  | { t: 'mount' }
+  | { t: 'mount'; cargo: number }
   | { t: 'garage' }
   | { t: 'deploy'; id: VehicleId }
   | { t: 'part'; id: VehicleId; part: PartId; level: number }
@@ -167,7 +167,8 @@ export type GameEvent =
   | { t: 'gearfound'; id: GearId; x: number; y: number; worn: boolean; boss?: boolean }
   /** All accessory sockets are full: take one off first. */
   | { t: 'accfull'; id: GearId }
-  | { t: 'dismount' }
+  /** `over`: items carried past the suit pack once out of a cargo vehicle (they stay; pickups pause). */
+  | { t: 'dismount'; over: number }
   | { t: 'hook'; x: number; y: number }
   | { t: 'unhook' }
   | { t: 'dash' }
@@ -489,7 +490,10 @@ export class Game {
   get derived(): Derived {
     const d = derive(this.upgrades);
     const g = this.gear;
-    return applyResearch({ ...d, maxHp: d.maxHp + g.maxHp, digPower: d.digPower * g.digMul, lampRadius: d.lampRadius + g.light }, this.save.research);
+    const r = applyResearch({ ...d, maxHp: d.maxHp + g.maxHp, digPower: d.digPower * g.digMul, lampRadius: d.lampRadius + g.light }, this.save.research);
+    // A cargo hold adds pack space only while you ride the vehicle.
+    const cargo = cargoOf(this.vehicle);
+    return cargo > 0 ? { ...r, packCap: r.packCap + cargo } : r;
   }
 
   /** Prerequisite perks still missing before `id` can be studied. */
@@ -624,7 +628,7 @@ export class Game {
       const id = this.save.gear.equip.vehicle;
       this.riding = false;
       if (id && isVehicle(id)) g.parked = { id, x: b.x, y: b.y };
-      this.emit({ t: 'dismount' });
+      this.emit({ t: 'dismount', over: Math.max(0, invTotal(this.carried) - this.derived.packCap) });
       return true;
     }
     const p = this.parkedVehicle();
@@ -642,7 +646,7 @@ export class Game {
     this.riding = true;
     this.hook = null;
     b.x = p.x;
-    this.emit({ t: 'mount' });
+    this.emit({ t: 'mount', cargo: cargoOf(p.id) });
     return true;
   }
 
@@ -665,6 +669,12 @@ export class Game {
   get vstats(): ReturnType<typeof vehicleStats> | null {
     const v = this.vehicle;
     return v && isVehicle(v) ? vehicleStats(v, partsOf(this.save.garage, v)) : null;
+  }
+
+  /** How full the ridden vehicle's cargo hold is, 0..1 (crates light up in the hull). */
+  get cargoFill(): number {
+    const cargo = cargoOf(this.vehicle);
+    return cargoLoad(invTotal(this.carried), this.derived.packCap - cargo, cargo);
   }
 
   /** A garage bay within reach (E). */
@@ -1589,7 +1599,7 @@ export class Game {
       this.emit({ t: 'pad', x: pad.x, y: pad.y });
     }
     // Releasing jump cuts a normal jump short; a pad launch keeps its height.
-    if (!c.jump && b.vy < -6 && !this.hook && veh !== 'sky_jet' && !this.padLaunch) b.vy = -6;
+    if (!c.jump && b.vy < -6 && !this.hook && !vst?.flying && !this.padLaunch) b.vy = -6;
     this.prevJump = c.jump;
 
     // Swimming once the body's middle is under the liquid's surface (cells hold levels, liquids.ts).
@@ -1611,7 +1621,7 @@ export class Game {
     if (wasLiquid && !this.inLiquid && c.jump && b.vy < 0) b.vy = -LEAP_V;
     this.jetting = false;
     this.gliding = false;
-    if (veh === 'sky_jet') {
+    if (vst?.flying) {
       // Flying: jump climbs, down dives, otherwise a gentle sink. Battery powers it away from the pad.
       const target = c.jump ? -10 : c.down ? 12 : 1.5;
       b.vy += (target - b.vy) * Math.min(1, 6 * dt);
@@ -1662,7 +1672,7 @@ export class Game {
     const blocked = moveX(this.world, b, b.vx * dt);
     this.stepLift = Math.max(0, this.stepLift - dt * STEP_EASE);
     // Walking into a one-tile ledge climbs it (no jump needed for every bump in the ground).
-    if (blocked && grounded && c.moveX !== 0 && Math.sign(c.moveX) === Math.sign(walkVx) && !this.inLiquid && !this.hook && veh !== 'sky_jet' && b.vy >= 0 && stepUp(this.world, b, walkVx)) {
+    if (blocked && grounded && c.moveX !== 0 && Math.sign(c.moveX) === Math.sign(walkVx) && !this.inLiquid && !this.hook && !vst?.flying && b.vy >= 0 && stepUp(this.world, b, walkVx)) {
       b.vx = walkVx * STEP_KEEP;
       this.stepLift = Math.min(1, this.stepLift + 1);
       this.emit({ t: 'step' });

@@ -756,7 +756,10 @@ function boot(): void {
         fx.burst(game.body.x, game.body.y - 1, '#ffcf4a', 24, 6);
         break;
       case 'mount':
-        ui.toast('Riding (V to get off)', '#36e0e8', 1.4);
+        ui.toast(e.cargo > 0 ? `Riding: cargo hold +${e.cargo} (V to get off)` : 'Riding (V to get off)', '#36e0e8', 1.4);
+        break;
+      case 'dismount':
+        if (e.over > 0) ui.toast(`Pack over by ${e.over}: fly the hold home to bank it`, '#f0b43c', 2.4, 'cargo');
         break;
       case 'boom':
         fx.burst(e.x, e.y, '#ff9a3c', 30, 9);
