@@ -16,6 +16,8 @@ interface Foliage {
   accent: string;
   trunk: string;
   trunkDark: string;
+  /** Lobe highlight when `light` is not a leaf colour (frost: light is snow). */
+  lobe?: string;
 }
 
 export const FOLIAGE: Record<number, Foliage> = {
@@ -23,12 +25,12 @@ export const FOLIAGE: Record<number, Foliage> = {
   [B.JUNGLE]: { base: '#3f8f3a', light: '#6cc04a', dark: '#285c2a', accent: '#ff7ab8', trunk: '#6b4a2e', trunkDark: '#47301d' },
   [B.CRYSTAL]: { base: '#8a5fd6', light: '#d8b8ff', dark: '#5a3a9a', accent: '#8ff4ff', trunk: '#7a6a9a', trunkDark: '#4f4470' },
   [B.ASH]: { base: '#5a4a40', light: '#7a6656', dark: '#3a2e28', accent: '#ff8a3c', trunk: '#2f2725', trunkDark: '#1b1514' },
-  [B.FROST]: { base: '#2f6b5e', light: '#e6f6ff', dark: '#1f4a42', accent: '#bfe8ff', trunk: '#5a4330', trunkDark: '#3a2a1e' },
+  [B.FROST]: { base: '#2f6b5e', light: '#e6f6ff', dark: '#1f4a42', accent: '#bfe8ff', trunk: '#5a4330', trunkDark: '#3a2a1e', lobe: '#4f9a84' },
 };
 /** Row used for underground growth (glowing mushrooms). */
 export const CAVE_ROW = 5;
 export const PLANT_VARIANTS = 4;
-export const LEAF_VARIANTS = 2;
+export const LEAF_VARIANTS = 4;
 
 const OUT = '#14181f';
 
@@ -42,25 +44,50 @@ function setter(px: Px): (x: number, y: number, c: string) => void {
   };
 }
 
-/** Leaves: speckled clusters; exposed sides (mask bits) get rounded, outlined edges. */
+/**
+ * Leaf lobes for one tile: up to 2-3 round puffs fully inside the tile (so tiles never seam), each lit on its
+ * upper-left crescent and shaded on its lower-right one, so a canopy reads as clumps of leaves, not speckle.
+ * Pure; returns [cx, cy, r] per lobe.
+ */
+export function leafLobes(biome: number, v: number): [number, number, number][] {
+  const out: [number, number, number][] = [];
+  const n = 2 + (v % 2);
+  for (let i = 0; i < n; i++) {
+    const r = (n === 2 ? 4 : 3) + Math.floor(hash2(i, v, 61 + biome) * 2);
+    const cx = r + 1 + Math.floor(hash2(v, i, 67 + biome) * (TS - 2 * r - 2));
+    const cy = r + 1 + Math.floor(hash2(i + 5, v, 71 + biome) * (TS - 2 * r - 2));
+    out.push([cx, cy, r]);
+  }
+  return out;
+}
+
+/** Leaves: lobed clumps (lit tops, shaded undersides); exposed sides (mask bits) get rounded, outlined edges. */
 export function leafPixels(biome: number, v: number, mask: number): Px {
   const f = FOLIAGE[biome] ?? FOLIAGE[B.JUNGLE];
+  const lobe = f.lobe ?? f.light;
   const px: Px = new Array(TS * TS).fill(f.base);
   const put = setter(px);
+  // Sparse fine grain only (dense speckle read as noise).
   for (let y = 0; y < TS; y++)
     for (let x = 0; x < TS; x++) {
       const h = hash2(x + v * 19, y, 777 + biome);
-      if (h > 0.8) put(x, y, f.light);
-      else if (h < 0.16) put(x, y, f.dark);
+      if (h > 0.95) put(x, y, lobe);
+      else if (h < 0.07) put(x, y, f.dark);
     }
-  // Leaf clusters: small light arcs over dark undersides.
-  for (let i = 0; i < 5; i++) {
-    const cx = 2 + Math.floor(hash2(i, v, 31 + biome) * 12);
-    const cy = 2 + Math.floor(hash2(v, i, 37 + biome) * 12);
-    put(cx, cy, f.light);
-    put(cx + 1, cy, f.light);
-    put(cx - 1, cy + 1, f.dark);
-    put(cx + 2, cy + 1, f.dark);
+  for (const [cx, cy, r] of leafLobes(biome, v)) {
+    for (let y = cy - r; y <= cy + r; y++)
+      for (let x = cx - r; x <= cx + r; x++) {
+        const d = Math.hypot(x - cx, y - cy);
+        if (d > r + 0.2) continue;
+        // Light from the upper left: the far crescent is shadow, a rim near the top-left is lit.
+        const lit = Math.hypot(x - (cx - 1.2), y - (cy - 1.2));
+        const shade = Math.hypot(x - (cx + 1.2), y - (cy + 1.2));
+        if (d > r - 1.4 && shade > lit + 0.5) put(x, y, f.dark);
+        else if (d > r - 1.6 && lit > shade + 0.5) put(x, y, mixHex(f.base, lobe, 0.7));
+        else if (lit < r - 1.2) put(x, y, lit < 1.5 ? lobe : mixHex(f.base, lobe, 0.35));
+      }
+    // Frost: a fleck of snow settles on each lobe's crown.
+    if (biome === B.FROST) for (let dx = -1; dx <= 1; dx++) put(cx + dx - 1, cy - r + 1 + (dx === 0 ? 0 : 1), '#e6f6ff');
   }
   if (biome === B.JUNGLE || biome === B.WASTES || biome === B.CRYSTAL) {
     // Fruit / glowing pods / sparkles.
@@ -104,9 +131,12 @@ export function leafPixels(biome: number, v: number, mask: number): Px {
         continue;
       }
       const rim = !inside(x, y - 1) || !inside(x + 1, y) || !inside(x, y + 1) || !inside(x - 1, y);
+      const top = !inside(x, y - 2) || (biome === B.FROST && !inside(x, y - 3) && hash2(x, v, 913) > 0.45);
       if (rim) out[y * TS + x] = OUT;
-      else if (!inside(x, y - 2) || !inside(x - 2, y)) out[y * TS + x] = biome === B.FROST && !inside(x, y - 2) ? '#f4fbff' : f.light;
+      else if (biome === B.FROST && top) out[y * TS + x] = '#f4fbff';
+      else if (top || !inside(x - 2, y)) out[y * TS + x] = lobe;
       else if (!inside(x, y + 2) || !inside(x + 2, y)) out[y * TS + x] = f.dark;
+      else if (so && y >= TS - 5) out[y * TS + x] = mixHex(out[y * TS + x] ?? f.base, f.dark, 0.5);
     }
   return out;
 }
