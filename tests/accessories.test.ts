@@ -4,6 +4,8 @@ import { SAVE_VERSION, defaultSave, parseSave, serializeSave } from '../src/sim/
 import { ACC_SLOTS, BASE_STATS, GEAR, GEAR_IDS, GEAR_SLOTS, gearStats, sanitizeGear, toggleAccessory, type GearId } from '../src/sim/gear';
 import { trinketPixels, BELT_ROW, PLAYER_W } from '../src/render/sprites';
 import { DOLL_SLOTS, dollLayout } from '../src/ui/dollslots';
+import { CHEST_ACCESSORIES, accessoryChance, chestAccessory } from '../src/sim/loot';
+import { T } from '../src/sim/tiles';
 
 const ACCS = GEAR_IDS.filter((id) => GEAR[id].slot === 'acc');
 
@@ -120,5 +122,63 @@ describe('accessory visuals', () => {
     const g5 = rects[5].x - (rects[4].x + rects[4].size);
     expect(g5).toBeGreaterThan(g1);
     expect(rects.slice(5).every((r) => 'acc' in r.key)).toBe(true);
+  });
+});
+
+describe('accessories found in chests', () => {
+  it('about 10% of shallow chests and up to 30% of deep ones hold an accessory, never an owned one', () => {
+    expect(accessoryChance(0)).toBeCloseTo(0.1);
+    expect(accessoryChance(-20)).toBeCloseTo(0.1);
+    expect(accessoryChance(1000)).toBeCloseTo(0.3);
+    let shallow = 0;
+    let deep = 0;
+    for (let i = 0; i < 2000; i++) {
+      if (chestAccessory(7, 100 + i * 3, 50, 0, [])) shallow++;
+      if (chestAccessory(7, 100 + i * 3, 300, 200, [])) deep++;
+    }
+    expect(shallow / 2000).toBeGreaterThan(0.06);
+    expect(shallow / 2000).toBeLessThan(0.14);
+    expect(deep).toBeGreaterThan(shallow * 2);
+    for (let i = 0; i < 300; i++) {
+      const got = chestAccessory(9, i * 5, 80, 100, ['vital_heart', 'feather_charm']);
+      expect(got === null || (got !== 'vital_heart' && got !== 'feather_charm')).toBe(true);
+    }
+    expect(chestAccessory(9, 10, 80, 100, CHEST_ACCESSORIES)).toBeNull();
+    expect(chestAccessory(3, 44, 91, 50, [])).toBe(chestAccessory(3, 44, 91, 50, []));
+  });
+
+  it('the first look into a lucky chest grants and wears the accessory once', () => {
+    const g = new Game(defaultSave());
+    const w = g.world;
+    let spot: { x: number; y: number } | null = null;
+    for (let x = 20; x < w.w - 20 && !spot; x++) {
+      const y = w.padY + 30;
+      if (chestAccessory(w.seed, x, y, y - w.padY, g.toSave().gear.owned)) spot = { x, y };
+    }
+    expect(spot).not.toBeNull();
+    const { x, y } = spot!;
+    w.set(x, y, T.CHEST);
+    w.chests.delete(y * w.w + x);
+    g.drainEvents();
+    expect(g.openChestAt(x, y)).toBe(true);
+    const found = g.drainEvents().find((e) => e.t === 'gearfound');
+    expect(found && found.t === 'gearfound' && found.worn).toBe(true);
+    const id = found && found.t === 'gearfound' ? found.id : null;
+    expect(id && g.ownsGear(id) && g.isWorn(id)).toBe(true);
+    g.chestOpen = null;
+    g.openChestAt(x, y);
+    expect(g.drainEvents().some((e) => e.t === 'gearfound')).toBe(false);
+    expect(g.toSave().gear.owned.filter((o) => o === id).length).toBe(1);
+  });
+
+  it('a placed storage chest never rolls an accessory', () => {
+    const g = new Game(defaultSave());
+    const w = g.world;
+    for (let x = 20; x < 400; x++) {
+      const y = w.padY + 30;
+      w.chests.set(y * w.w + x, {});
+      g.chestContents(x, y);
+    }
+    expect(g.toSave().gear.owned.some((id) => GEAR[id].slot === 'acc')).toBe(false);
   });
 });

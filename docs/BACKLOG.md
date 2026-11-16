@@ -224,7 +224,8 @@ Money (ethical, no paywalls)
 ## P3 Gear and layers (M3)
 
 - [x] Equipment slots: head/body/feet/back/pet existed; 3 accessory sockets with 7 craftable accessories (stats stack), WORN + ACCESSORIES socket row under the character in the inventory (tap to take off), gems on the belt in the world (save v29) (run 58)
-- [ ] Follow-ups: socket row on phones (narrow inventory has no room; shows only the "Wearing" line); accessories as rare chest/boss loot (Terraria-style accessory hunting) instead of only crafting; per-accessory effects you can see (feather wisps on the extra jump, magnet ring pull lines)
+- [x] Accessories in world chests: 10% of shallow chests rising to 30% deep hold an unowned accessory, worn at once if a socket is free, gold toast + ring + sparkle (run 58); feather-charm air jump wisps (run 58)
+- [ ] Follow-ups: socket row on phones (narrow inventory has no room; shows only the "Wearing" line); boss bonus accessory roll and boss-only accessories; magnet ring pull lines
 - [ ] Rarity and weapon modifiers; mod chips; set bonuses
 - [x] Layer 2 Circuit: tiles, ores, enemies, hazards, dark zones (done in P1.8; layers.ts)
 - [x] Boss 1 Junk Colossus with telegraphed attacks and arena (done in P1.8 + P1.10)

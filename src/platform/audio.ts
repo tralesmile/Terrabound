@@ -182,6 +182,12 @@ export class Sfx {
       case 'jump':
         this.tone(300, 0.12, 'square', 0.06, 560);
         break;
+      case 'gearfound':
+        // Treasure sparkle: three quick rising notes.
+        this.tone(660, 0.12, 'triangle', 0.08, 880);
+        this.tone(880, 0.12, 'triangle', 0.07, 1175, 0.08);
+        this.tone(1175, 0.2, 'sine', 0.06, 1568, 0.16);
+        break;
       case 'airjump':
         // Lighter and higher than a ground jump, with a soft airy chirp on top.
         this.tone(420, 0.1, 'square', 0.05, 760);

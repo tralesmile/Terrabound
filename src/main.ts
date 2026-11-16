@@ -600,6 +600,13 @@ function boot(): void {
         fx.airJump(e.x, e.y, g?.color ?? '#9aa3b8', g?.accent ?? '#e8eef8', e.by === 'feather_charm');
         break;
       }
+      case 'gearfound': {
+        const g = GEAR[e.id];
+        ui.toast(`Found ${g.name}! ${e.worn ? 'Worn on your belt' : 'Sockets full: swap it in from the inventory'}`, '#ffd23a', 3.5);
+        fx.ring(e.x + 0.5, e.y + 0.5, 1.4, g.color, 0.5);
+        fx.burst(e.x + 0.5, e.y + 0.3, g.color, 14, 4);
+        break;
+      }
       case 'accfull':
         ui.toast(`Accessory sockets full: take one off to wear ${GEAR[e.id].name}`, '#ff9a3c', 2.5);
         break;

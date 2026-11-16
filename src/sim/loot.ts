@@ -1,6 +1,7 @@
 /** Chest loot: deterministic from the world seed and chest position. Free, visible, never paid. */
 import { hash2 } from './rng';
 import type { Inventory, ItemId } from './tiles';
+import { GEAR_IDS, GEAR, type GearId } from './gear';
 
 interface LootRow {
   item: ItemId;
@@ -30,4 +31,23 @@ export function chestLoot(seed: number, x: number, y: number, depth: number): In
   });
   if (Object.keys(inv).length === 0) inv.iron_scrap = 3;
   return inv;
+}
+
+/** Accessories that can turn up in world chests (all of them: they are also craftable, so finding one saves the cost). */
+export const CHEST_ACCESSORIES: GearId[] = GEAR_IDS.filter((id) => GEAR[id].slot === 'acc' && !GEAR[id].bossOnly);
+
+/** Chance that a world chest holds an accessory: 10% near the surface, rising with depth to 30%. */
+export function accessoryChance(depth: number): number {
+  return Math.min(0.3, 0.1 + Math.max(0, depth) / 400);
+}
+
+/**
+ * The accessory found in a world chest the first time it is opened, or null. Deterministic from the seed and
+ * chest position; never one the player already owns (so a find is always new). Pure.
+ */
+export function chestAccessory(seed: number, x: number, y: number, depth: number, owned: readonly GearId[]): GearId | null {
+  if (hash2(x * 13 + 5, y * 3 + 1, seed ^ 0xacc5) >= accessoryChance(depth)) return null;
+  const pool = CHEST_ACCESSORIES.filter((id) => !owned.includes(id));
+  if (pool.length === 0) return null;
+  return pool[Math.floor(hash2(y + 17, x + 3, seed ^ 0x7a1e) * pool.length) % pool.length];
 }

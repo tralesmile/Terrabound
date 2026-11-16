@@ -30,7 +30,7 @@ import {
 } from './tiles';
 import { UPGRADES, derive, upgradeById, type Derived, type Levels } from './upgrades';
 import { recipeById } from './recipes';
-import { chestLoot } from './loot';
+import { chestAccessory, chestLoot } from './loot';
 import { SOIL_TILES, growTime, inLavafall, stepSaplings, type Structure } from './structures';
 import { ERUPT, bombHits, coneLive, craterOf, launchMarked, nearestCone, nextGap, stepBomb, type LavaBomb } from './eruptions';
 import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
@@ -40,7 +40,7 @@ import { BIOMES, type BiomeId } from './biomes';
 import { LAYERS, layerAt, openGates } from './layers';
 import { METEOR_RATE, weatherAt, weatherEnemy, type WeatherKind } from './weather';
 import { MAX_PART, VEHICLES, defaultGarage, isVehicle, partCost, partsOf, vehicleStats, type PartId, type PartLevels, type VehicleId } from './garage';
-import { GEAR, airJumpSources, gearStats, sanitizeGear, toggleAccessory, type GearId, type GearSlot, type GearStats } from './gear';
+import { ACC_SLOTS, GEAR, airJumpSources, gearStats, sanitizeGear, toggleAccessory, type GearId, type GearSlot, type GearStats } from './gear';
 import { FOOD, bestHeal, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE } from './fishing';
 import { daylight } from './daynight';
 import { awaySeconds, simulateOffline, OFFLINE_MIN, type OfflineResult } from './offline';
@@ -163,6 +163,8 @@ export type GameEvent =
   | { t: 'deploy'; id: VehicleId }
   | { t: 'part'; id: VehicleId; part: PartId; level: number }
   | { t: 'novehicle'; reason: string }
+  /** An accessory found in a chest (tile x, y); `worn` when it went straight into a free socket. */
+  | { t: 'gearfound'; id: GearId; x: number; y: number; worn: boolean }
   /** All accessory sockets are full: take one off first. */
   | { t: 'accfull'; id: GearId }
   | { t: 'dismount' }
@@ -2313,8 +2315,22 @@ export class Game {
     if (!inv) {
       inv = chestLoot(this.world.seed, tx, ty, ty - this.world.padY);
       this.world.chests.set(i, inv);
+      this.findAccessory(tx, ty);
     }
     return inv;
+  }
+
+  /** First look into a world chest: maybe an accessory (owned forever, worn at once if a socket is free). */
+  private findAccessory(tx: number, ty: number): void {
+    const id = chestAccessory(this.world.seed, tx, ty, ty - this.world.padY, this.save.gear.owned);
+    if (!id) return;
+    this.save.gear.owned.push(id);
+    const worn = this.save.gear.acc.length < ACC_SLOTS;
+    if (worn) {
+      this.save.gear.acc = [...this.save.gear.acc, id];
+      this.gearCache = null;
+    }
+    this.emit({ t: 'gearfound', id, x: tx, y: ty, worn });
   }
 
   openChestAt(tx: number, ty: number): boolean {

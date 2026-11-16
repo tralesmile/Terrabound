@@ -981,6 +981,8 @@ try {
   await page.evaluate(() => {
     const g = window.__terrabound.game;
     for (const id of ['vital_heart', 'lamp_shard', 'feather_charm']) if (!g.ownsGear(id)) g.save.gear.owned.push(id);
+    // A chest opened earlier may have found (and worn) an accessory: start from empty sockets.
+    for (const id of [...g.accessories]) g.equipGear(id);
   });
   await page.waitForTimeout(120);
   for (const id of ['vital_heart', 'lamp_shard', 'feather_charm']) {
@@ -1012,6 +1014,43 @@ try {
     const g = window.__terrabound.game;
     for (const id of [...g.accessories]) g.equipGear(id);
   });
+  // A lucky world chest holds an accessory: the first look grants it (worn) with a gold toast.
+  await page.keyboard.press('KeyI');
+  await page.waitForTimeout(150);
+  const found = await page.evaluate(async (ruin) => {
+    const { game: g } = window.__terrabound;
+    const w = g.world;
+    if (!ruin) return { err: 'no ruin chest' };
+    const CHEST = w.get(ruin.x, ruin.y);
+    const y = Math.floor(g.body.y) - 1;
+    let hit = null;
+    for (let dx = 2; dx < 600 && !hit; dx++) {
+      const x = Math.floor(g.body.x) + (dx % 2 ? dx : -dx);
+      if (w.get(x, y) !== 0 || w.chests.has(y * w.w + x)) continue;
+      w.set(x, y, CHEST);
+      const before = g.events.length;
+      g.openChestAt(x, y);
+      g.chestOpen = null;
+      const e = g.events.slice(before).find((q) => q.t === 'gearfound');
+      if (e) hit = { x, y, id: e.id, worn: e.worn };
+      else {
+        w.set(x, y, 0);
+        w.chests.delete(y * w.w + x);
+      }
+    }
+    await new Promise((r) => setTimeout(r, 250));
+    const toast = window.__terrabound.ui.toasts.find((t) => t.text.startsWith('Found '));
+    return { hit, toast: toast ? toast.text : null, worn: hit ? g.isWorn(hit.id) : false };
+  }, chestAt);
+  await page.screenshot({ path: path.join(out, '12b-chest-accessory.png') });
+  check('a lucky chest holds an accessory: owned, worn and announced', !!found.hit && found.worn && !!found.toast, JSON.stringify(found));
+  await page.evaluate((hit) => {
+    const { game: g } = window.__terrabound;
+    for (const id of [...g.accessories]) g.equipGear(id);
+    if (hit) { g.world.set(hit.x, hit.y, 0); g.world.chests.delete(hit.y * g.world.w + hit.x); }
+  }, found.hit);
+  await page.keyboard.press('KeyI');
+  await page.waitForTimeout(150);
   // Build bar: select a placeable in the pack and move it left with the < button; the bar order is saved.
   await page.evaluate(() => {
     const g = window.__terrabound.game;
