@@ -797,3 +797,13 @@ Owner: "Water looks bad. Pet looks bad. On hover the items should show what they
 **Next:** P3 equipment slots (gear as equippable items) is the first open BACKLOG item; lava scene profiling (P1.11 follow-up); P1.9 follow-ups (plane with cargo, charge station); dive stats on the share card; persist the dive tally.
 
 **Known issues:** the trip tally lives in memory like the dive tally (a reload mid-trip restarts it); the arena floor memo key uses floor(boss y), so a bobbing boss may rescan a few times; dive card on death only shows the full report.
+
+## 2026-11-16 Scheduled run 58
+
+**Done:** baseline green (886 tests, 256 e2e). Creative review: the inventory's character panel had dead space under the upgrade lines and gear was a flat list; gear had no Terraria-style accessories; a mid-air jump (spring boots) had no effect at all. Accessories (P3 equipment slots): `acc` gear slot, 3 sockets (`ACC_SLOTS`, `GearSave.acc`, save v29 with a v28 fixture test), 7 craftable accessories in the workshop GEAR tab (magnet ring, vital heart, lamp shard, power coil, grip gloves, aegis charm, feather charm; stats stack with the loadout); tapping one wears it in the first free socket, a fourth is refused with an `accfull` toast. Inventory (desktop): a WORN / ACCESSORIES 3/3 socket row under the character (src/ui/dollslots.ts), tap a worn socket to take it off (18c-accessories). Worn accessories glint as gems on the belt in the world and in the preview (sprites `trinketPixels`). Air jumps: new `airjump` event names the gear that gave it (`airJumpSources`), with a flat kick ring in the gear's colour, a down-puff, green feather wisps for the feather charm and a lighter chirp (47c-air-jump).
+
+**Numbers:** 896 unit tests (new: accessories 9, gear air-jump source 1), e2e new checks: sockets fill and take off, feather air jump ring + wisps. Bundle 467 kB (164.1 kB gzip). Fixed two fragile e2e checks (lane red class, see LESSONS).
+
+**Next:** accessories as rare chest/boss loot; socket row on phones; P1.11 lava profiling; P1.9 follow-ups (plane with cargo, charge station); P3 rarity and weapon modifiers.
+
+**Known issues:** phones show accessories only in the "Wearing" line and the grid highlight; socket icons are small (about 33 px cells at 1280 x 720); dive and trip tallies still live in memory.

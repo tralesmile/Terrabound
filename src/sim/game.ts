@@ -40,7 +40,7 @@ import { BIOMES, type BiomeId } from './biomes';
 import { LAYERS, layerAt, openGates } from './layers';
 import { METEOR_RATE, weatherAt, weatherEnemy, type WeatherKind } from './weather';
 import { MAX_PART, VEHICLES, defaultGarage, isVehicle, partCost, partsOf, vehicleStats, type PartId, type PartLevels, type VehicleId } from './garage';
-import { GEAR, gearStats, sanitizeGear, type GearId, type GearSlot, type GearStats } from './gear';
+import { GEAR, airJumpSources, gearStats, sanitizeGear, toggleAccessory, type GearId, type GearSlot, type GearStats } from './gear';
 import { FOOD, bestHeal, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE } from './fishing';
 import { daylight } from './daynight';
 import { awaySeconds, simulateOffline, OFFLINE_MIN, type OfflineResult } from './offline';
@@ -163,6 +163,8 @@ export type GameEvent =
   | { t: 'deploy'; id: VehicleId }
   | { t: 'part'; id: VehicleId; part: PartId; level: number }
   | { t: 'novehicle'; reason: string }
+  /** All accessory sockets are full: take one off first. */
+  | { t: 'accfull'; id: GearId }
   | { t: 'dismount' }
   | { t: 'hook'; x: number; y: number }
   | { t: 'unhook' }
@@ -196,6 +198,8 @@ export type GameEvent =
   | { t: 'bank'; total: number; trip: TripReport }
   | { t: 'death'; lost: number; medic: boolean; report: DiveReport }
   | { t: 'jump' }
+  /** A mid-air jump at the feet (x, y); `by` is the gear that gave it (spring boots, feather charm). */
+  | { t: 'airjump'; x: number; y: number; by: GearId | null }
   | { t: 'pad'; x: number; y: number }
   | { t: 'step' }
   | { t: 'land'; speed: number }
@@ -511,7 +515,7 @@ export class Game {
 
   /** Combined stats of the equipped gear (cached until the loadout changes). */
   get gear(): GearStats {
-    if (!this.gearCache) this.gearCache = applyMods(gearStats(this.save.gear.equip), this.save.mods.fit);
+    if (!this.gearCache) this.gearCache = applyMods(gearStats(this.save.gear.equip, this.save.gear.acc), this.save.mods.fit);
     return this.gearCache;
   }
 
@@ -553,6 +557,16 @@ export class Game {
     return this.save.gear.equip[slot];
   }
 
+  /** Worn accessories in socket order (at most ACC_SLOTS). */
+  get accessories(): readonly GearId[] {
+    return this.save.gear.acc;
+  }
+
+  /** Is this gear worn right now (its slot, or an accessory socket)? */
+  isWorn(id: GearId): boolean {
+    return GEAR[id].slot === 'acc' ? this.save.gear.acc.includes(id) : this.save.gear.equip[GEAR[id].slot] === id;
+  }
+
   canCraftGear(id: GearId): boolean {
     return !GEAR[id].bossOnly && !GEAR[id].garage && !this.ownsGear(id) && this.isAtBase() && canAfford(this.stash, GEAR[id].cost);
   }
@@ -571,7 +585,14 @@ export class Game {
   equipGear(id: GearId): boolean {
     if (!this.ownsGear(id)) return false;
     const slot = GEAR[id].slot;
-    if (this.save.gear.equip[slot] === id && slot !== 'melee' && slot !== 'ranged') delete this.save.gear.equip[slot];
+    if (slot === 'acc') {
+      const next = toggleAccessory(this.save.gear.acc, id);
+      if (!next) {
+        this.emit({ t: 'accfull', id });
+        return false;
+      }
+      this.save.gear.acc = next;
+    } else if (this.save.gear.equip[slot] === id && slot !== 'melee' && slot !== 'ranged') delete this.save.gear.equip[slot];
     else this.save.gear.equip[slot] = id;
     if (slot === 'vehicle' && !this.save.gear.equip.vehicle) this.riding = false;
     this.gearCache = null;
@@ -1529,7 +1550,8 @@ export class Game {
       this.airJumpsLeft--;
       b.vy = -JUMP_V * 0.9;
       this.jumpBuf = 0;
-      this.emit({ t: 'jump' });
+      const src = airJumpSources(this.save.gear.equip, this.save.gear.acc);
+      this.emit({ t: 'airjump', x: b.x, y: b.y, by: src[src.length - 1 - this.airJumpsLeft] ?? null });
     }
     // Jump pad under the feet (not while holding down, so a pad can be stood on to build): launch.
     const pad = grounded && !c.down && !this.riding && b.vy >= 0 ? padUnder(this.world, b.x, b.y) : null;
@@ -2709,7 +2731,7 @@ export class Game {
       stats: { ...this.save.stats },
       settings: { ...this.save.settings },
       codex: [...this.save.codex],
-      gear: { owned: [...this.save.gear.owned], equip: { ...this.save.gear.equip } },
+      gear: { owned: [...this.save.gear.owned], equip: { ...this.save.gear.equip }, acc: [...this.save.gear.acc] },
       bosses: [...this.save.bosses],
       drones: { ...this.save.drones },
       research: [...this.save.research],

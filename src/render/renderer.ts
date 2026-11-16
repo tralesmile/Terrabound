@@ -814,6 +814,7 @@ export class Renderer {
       swim: swimming ? { moving: swimMoving } : undefined,
       seated,
       wear: { head: eq('head'), body: eq('body'), feet: eq('feet') },
+      trinkets: game.accessories.map((id) => GEAR[id].color),
       paint: paint ? [paint.c1, paint.c2] : undefined,
       helm: helmPaint ? [helmPaint.c1, helmPaint.c2] : undefined,
       facing: game.facing,

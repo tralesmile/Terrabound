@@ -2,7 +2,7 @@ import type { SaveData } from '../src/sim/save';
 import { describe, expect, it } from 'vitest';
 import { FIXED_DT, Game, NO_CONTROLS, type Controls } from '../src/sim/game';
 import { SAVE_VERSION, defaultSave, parseSave, serializeSave } from '../src/sim/save';
-import { GEAR, GEAR_IDS, STARTER_GEAR, gearStats, sanitizeGear } from '../src/sim/gear';
+import { GEAR, GEAR_IDS, STARTER_GEAR, airJumpSources, gearStats, sanitizeGear } from '../src/sim/gear';
 import { T } from '../src/sim/tiles';
 import { makeEnemy } from '../src/sim/enemies';
 
@@ -130,6 +130,24 @@ describe('abilities', () => {
     const g = rich();
     g.craftGear('spring_boots');
     expect(peak(g)).toBeGreaterThan(plain + 1.5);
+  });
+
+  it('each mid-air jump names the gear that gave it (boots first, then the feather charm)', () => {
+    expect(airJumpSources({ feet: 'spring_boots' }, ['vital_heart', 'feather_charm'])).toEqual(['spring_boots', 'feather_charm']);
+    expect(airJumpSources({}, [])).toEqual([]);
+    const g = rich();
+    g.craftGear('spring_boots');
+    g.craftGear('feather_charm');
+    sky(g);
+    g.drainEvents();
+    run(g, 0.05, { jump: true });
+    run(g, 0.2);
+    run(g, 0.05, { jump: true });
+    run(g, 0.05);
+    run(g, 0.05, { jump: true });
+    run(g, 0.05);
+    const air = g.drainEvents().filter((e) => e.t === 'airjump');
+    expect(air.map((e) => (e.t === 'airjump' ? e.by : null))).toEqual(['spring_boots', 'feather_charm']);
   });
 
   it('dash boots burst forward', () => {

@@ -516,6 +516,29 @@ export class Fx {
     this.tracers.push({ x, y, tx, ty, color, life, max: life });
   }
 
+  /** Mid-air jumps shown (e2e reads this). */
+  airJumps = 0;
+
+  /**
+   * Mid-air jump at the feet: a flat kick ring in the gear's colour, a puff pushed down and out, and for
+   * a feather charm a few feather wisps that drift down slowly (so the player sees which item fired).
+   */
+  airJump(x: number, y: number, color: string, accent: string, feathers: boolean): void {
+    this.airJumps++;
+    this.ring(x, y, 0.9, color, 0.28);
+    this.rings[this.rings.length - 1].flat = 0.3;
+    for (let i = 0; i < 8 && this.particles.length < MAX_PARTICLES; i++) {
+      const dir = i % 2 ? 1 : -1;
+      const life = 0.25 + Math.random() * 0.2;
+      this.particles.push({ x: x + dir * 0.2, y, vx: dir * (1.5 + Math.random() * 2.5), vy: 1 + Math.random() * 2, life, max: life, color: i < 4 ? accent : '#e8eef8', size: 2, g: -2, drag: 4 });
+    }
+    if (!feathers) return;
+    for (let i = 0; i < 4 && this.particles.length < MAX_PARTICLES; i++) {
+      const life = 0.8 + Math.random() * 0.4;
+      this.particles.push({ x: x + (Math.random() - 0.5) * 0.8, y: y - 0.2, vx: (Math.random() - 0.5) * 1.5, vy: 0.5 + Math.random(), life, max: life, color, size: 2, g: 1.2, drag: 1.5 });
+    }
+  }
+
   ring(x: number, y: number, r: number, color: string, life = 0.3): void {
     if (this.rings.length >= MAX_RINGS) this.rings.shift();
     this.rings.push({ x, y, r, color, life, max: life });

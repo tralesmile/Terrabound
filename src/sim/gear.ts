@@ -4,8 +4,11 @@
  */
 import type { Inventory } from './tiles';
 
-export type GearSlot = 'melee' | 'ranged' | 'head' | 'body' | 'feet' | 'back' | 'vehicle' | 'pet';
+export type GearSlot = 'melee' | 'ranged' | 'head' | 'body' | 'feet' | 'back' | 'vehicle' | 'pet' | 'acc';
+/** One item each. Accessories ('acc') are not here: up to ACC_SLOTS of them are worn at once (GearSave.acc). */
 export const GEAR_SLOTS: GearSlot[] = ['melee', 'ranged', 'head', 'body', 'feet', 'back', 'vehicle', 'pet'];
+/** Accessory sockets (trinkets on the belt, Terraria-style accessories). */
+export const ACC_SLOTS = 3;
 
 export type RangedKind = 'pulse' | 'rail' | 'scatter' | 'bomb';
 
@@ -84,7 +87,14 @@ export type GearId =
   | 'core_plate'
   | 'scout_bot'
   | 'glow_moth'
-  | 'spark_pup';
+  | 'spark_pup'
+  | 'magnet_ring'
+  | 'vital_heart'
+  | 'lamp_shard'
+  | 'power_coil'
+  | 'grip_gloves'
+  | 'aegis_charm'
+  | 'feather_charm';
 
 export const GEAR: Record<GearId, GearDef> = {
   energy_blade: { name: 'Energy blade', slot: 'melee', desc: 'Quick arc, 12 damage', cost: {}, mod: {}, color: '#36e0e8', accent: '#c8ffff' },
@@ -116,6 +126,14 @@ export const GEAR: Record<GearId, GearDef> = {
   scout_bot: { name: 'Scout bot', slot: 'pet', desc: 'Pet: pulls in loot from 7 tiles, +1 light', cost: { metal: 6, copper_wire: 6, crystal: 2 }, mod: { magnet: 7, light: 1 }, color: '#9aa3b8', accent: '#36e0e8' },
   glow_moth: { name: 'Glow moth', slot: 'pet', desc: 'Pet: lights the way (+4 light)', cost: { biomass: 12, crystal: 3 }, mod: { light: 4 }, color: '#c8ffd8', accent: '#7dffb0' },
   spark_pup: { name: 'Spark pup', slot: 'pet', desc: 'Pet: zaps enemies near you (6 damage)', cost: { iron_scrap: 10, copper_wire: 8, crystal: 3 }, mod: { petZap: 6 }, color: '#ffcf4a', accent: '#ff9a3c' },
+  // Accessories: small, stackable perks; three worn at once on the belt.
+  magnet_ring: { name: 'Magnet ring', slot: 'acc', desc: 'Accessory: pulls in loot from 6 tiles', cost: { iron_scrap: 6, copper_wire: 4 }, mod: { magnet: 6 }, color: '#ff5a5a', accent: '#d6dde8' },
+  vital_heart: { name: 'Vital heart', slot: 'acc', desc: 'Accessory: +15 health', cost: { biomass: 8, crystal: 2 }, mod: { maxHp: 15 }, color: '#ff7ab8', accent: '#ffd0e0' },
+  lamp_shard: { name: 'Lamp shard', slot: 'acc', desc: 'Accessory: +2 light radius', cost: { crystal: 3, copper_wire: 2 }, mod: { light: 2 }, color: '#ffe27a', accent: '#ffffff' },
+  power_coil: { name: 'Power coil', slot: 'acc', desc: 'Accessory: battery lasts 15% longer', cost: { copper_wire: 8, metal: 3 }, mod: { drainMul: 0.85 }, color: '#36e0e8', accent: '#c8ffff' },
+  grip_gloves: { name: 'Grip gloves', slot: 'acc', desc: 'Accessory: +15% dig speed', cost: { iron_scrap: 8, biomass: 4 }, mod: { digMul: 1.15 }, color: '#e8a33d', accent: '#ffd8a8' },
+  aegis_charm: { name: 'Aegis charm', slot: 'acc', desc: 'Accessory: 8% armor', cost: { metal: 6, crystal: 2 }, mod: { armor: 0.08 }, color: '#8e98b0', accent: '#e6f6ff' },
+  feather_charm: { name: 'Feather charm', slot: 'acc', desc: 'Accessory: one extra jump in the air', cost: { biomass: 6, crystal: 4, copper_wire: 4 }, mod: { airJumps: 1 }, color: '#7dffb0', accent: '#ffffff' },
   sky_jet: { name: 'Sky Jet', slot: 'vehicle', desc: 'Garage: a small plane, fly anywhere (uses battery)', cost: { metal: 20, copper_wire: 12, crystal: 8 }, mod: {}, garage: true, color: '#5aa6ff', accent: '#ffffff' },
 };
 
@@ -148,12 +166,16 @@ export const BASE_STATS: GearStats = {
   leech: 0,
 };
 
-/** Combine the equipped gear into one stat block. */
-export function gearStats(equip: Loadout): GearStats {
+/** Combine the equipped gear and worn accessories into one stat block. */
+export function gearStats(equip: Loadout, acc: readonly GearId[] = []): GearStats {
   const s: GearStats = { ...BASE_STATS };
+  const worn: GearId[] = [];
   for (const slot of GEAR_SLOTS) {
     const id = equip[slot];
-    if (!id) continue;
+    if (id) worn.push(id);
+  }
+  for (const id of acc.slice(0, ACC_SLOTS)) if (GEAR[id]?.slot === 'acc') worn.push(id);
+  for (const id of worn) {
     const m = GEAR[id].mod;
     if (m.armor) s.armor += m.armor;
     if (m.digMul) s.digMul *= m.digMul;
@@ -180,10 +202,35 @@ export function gearStats(equip: Loadout): GearStats {
 export interface GearSave {
   owned: GearId[];
   equip: Loadout;
+  /** v29: worn accessories, in socket order (at most ACC_SLOTS, owned, unique). */
+  acc: GearId[];
 }
 
 export function defaultGear(): GearSave {
-  return { owned: [...STARTER_GEAR], equip: { melee: 'energy_blade', ranged: 'pulse_pistol' } };
+  return { owned: [...STARTER_GEAR], equip: { melee: 'energy_blade', ranged: 'pulse_pistol' }, acc: [] };
+}
+
+/**
+ * Which gear gives each mid-air jump, in the order they are spent (slots first, then accessories),
+ * so the effect can show the item that fired. Pure.
+ */
+export function airJumpSources(equip: Loadout, acc: readonly GearId[] = []): GearId[] {
+  const out: GearId[] = [];
+  const ids = [...GEAR_SLOTS.map((sl) => equip[sl]), ...acc.slice(0, ACC_SLOTS)];
+  for (const id of ids) if (id) for (let i = 0; i < (GEAR[id].mod.airJumps ?? 0); i++) out.push(id);
+  return out;
+}
+
+export const isAccessory = (id: GearId): boolean => GEAR[id].slot === 'acc';
+
+/**
+ * Toggle an accessory in the sockets: worn -> taken off; otherwise it goes in the first free socket.
+ * Returns the new list, or null when all sockets are full (the caller tells the player). Pure.
+ */
+export function toggleAccessory(acc: readonly GearId[], id: GearId): GearId[] | null {
+  if (acc.includes(id)) return acc.filter((x) => x !== id);
+  if (acc.length >= ACC_SLOTS) return null;
+  return [...acc, id];
 }
 
 /** Never throws: unknown ids dropped, starters always owned, equipped items must be owned and in their slot. */
@@ -197,6 +244,12 @@ export function sanitizeGear(v: unknown): GearSave {
       const id = (r.equip as Record<string, unknown>)[slot];
       if (typeof id === 'string' && id in GEAR && GEAR[id as GearId].slot === slot && out.owned.includes(id as GearId)) out.equip[slot] = id as GearId;
       else if (id === null) delete out.equip[slot];
+    }
+  }
+  if (Array.isArray(r.acc)) {
+    for (const id of r.acc) {
+      if (out.acc.length >= ACC_SLOTS) break;
+      if (typeof id === 'string' && id in GEAR && GEAR[id as GearId].slot === 'acc' && out.owned.includes(id as GearId) && !out.acc.includes(id as GearId)) out.acc.push(id as GearId);
     }
   }
   return out;

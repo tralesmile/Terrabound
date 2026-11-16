@@ -18,7 +18,8 @@ import { ICON, drawIcon } from '../render/icons';
 import { TRADER_W, drawPlayer, drawRows, robotRows, type RobotKind } from '../render/sprites';
 import { ROBOT_LOOK, playerGear } from '../render/renderer';
 import { FOOD, bestHeal, healCount } from '../sim/fishing';
-import { GEAR, GEAR_IDS, GEAR_SLOTS, type GearId } from '../sim/gear';
+import { ACC_SLOTS, GEAR, GEAR_IDS, GEAR_SLOTS, type GearId } from '../sim/gear';
+import { DOLL_SLOTS, dollLayout, type DollRect } from './dollslots';
 import { BOSSES, bossForBeacon } from '../sim/bosses';
 import { PHASE_NOTCH, bossBarSlot, newChip, stepChip, type BossSlot, type ChipState } from './bossbar';
 import { LAYERS } from '../sim/layers';
@@ -186,6 +187,8 @@ export class UI {
   invOpen = false;
   /** Item highlighted in the inventory. */
   invSel: ItemId | null = null;
+  /** Equipment sockets drawn last frame (e2e reads them). */
+  lastDoll: DollRect[] = [];
   /** Inventory screen page: items or the AWARDS list. */
   invPage: 'items' | 'awards' | 'codex' = 'items';
   /** CODEX page: which section is listed and its first row (paged like AWARDS). */
@@ -924,7 +927,7 @@ export class UI {
   lastBarPressDrawn = 0;
 
   /** One item cell: dark slot, pixel icon, count in the corner, highlight when selected. */
-  private cell(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, id: ItemId | Tool | GearId, count: number | null, sel: boolean, a: UiAction | null, dim = false): void {
+  private cell(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, id: ItemId | Tool | GearId, count: number | null, sel: boolean, a: UiAction | null, dim = false, iconK = 0.72): void {
     ctx.fillStyle = sel ? 'rgba(54,224,232,0.18)' : 'rgba(10,12,20,0.75)';
     ctx.fillRect(x, y, size, size);
     ctx.strokeStyle = sel ? '#36e0e8' : '#3a4052';
@@ -933,7 +936,7 @@ export class UI {
     // Inner bevel so slots read as physical sockets.
     ctx.fillStyle = 'rgba(255,255,255,0.06)';
     ctx.fillRect(x + 3, y + 3, size - 6, 2);
-    const s = Math.max(1, Math.floor((size * 0.72) / ICON));
+    const s = Math.max(1, Math.floor((size * iconK) / ICON));
     ctx.globalAlpha = dim ? 0.35 : 1;
     drawIcon(ctx, id, x + (size - ICON * s) / 2, y + (size - ICON * s) / 2 - size * 0.04, s);
     ctx.globalAlpha = 1;
@@ -1230,6 +1233,33 @@ export class UI {
     ctx.fill();
   }
 
+  /** Equipment sockets under the character: worn slots, then accessory sockets. Tap a worn item to take it off. */
+  private drawDoll(ctx: CanvasRenderingContext2D, game: Game, x: number, y: number, w: number, bottom: number, u: number): void {
+    const rects = dollLayout(x, y + u * 0.9, w, u * 2.6);
+    const size = rects[0].size;
+    this.lastDoll = [];
+    if (y + u * 0.9 + size > bottom) return;
+    this.lastDoll = rects;
+    const acc = game.accessories;
+    this.text(ctx, 'WORN', x, y + u * 0.4, Math.round(u * 0.62), '#8a90a2', 'left');
+    const ax = rects[DOLL_SLOTS.length].x;
+    this.text(ctx, `ACCESSORIES ${acc.length}/${ACC_SLOTS}`, ax, y + u * 0.4, Math.round(u * 0.62), acc.length ? '#ffd23a' : '#8a90a2', 'left', x + w - ax);
+    for (const r of rects) {
+      const id = 'slot' in r.key ? game.equipped(r.key.slot) : acc[r.key.acc];
+      if (id) {
+        this.cell(ctx, r.x, r.y, r.size, id, null, true, { k: 'equip', id }, false, 0.8);
+        continue;
+      }
+      const isAcc = 'acc' in r.key;
+      ctx.fillStyle = 'rgba(10,12,20,0.6)';
+      ctx.fillRect(r.x, r.y, r.size, r.size);
+      ctx.strokeStyle = isAcc ? 'rgba(255,210,58,0.35)' : '#2a3040';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(r.x + 1, r.y + 1, r.size - 2, r.size - 2);
+      this.text(ctx, r.label, r.x + r.size / 2, r.y + r.size * 0.6, Math.max(7, Math.round(r.size * 0.22)), '#4a5068', 'center', r.size - 2);
+    }
+  }
+
   private drawInventory(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, time: number): void {
     const pw = Math.min(w - u, u * 46);
     // Phones stack the character above the pack, so the item details (and the build-bar row) need a taller panel.
@@ -1275,7 +1305,7 @@ export class UI {
       return id ? [GEAR[id].color, GEAR[id].accent] : undefined;
     };
     const paint = game.paint;
-    drawPlayer(ctx, fx, fy, scale, { facing: 1, walking: false, t: time, airborne: false, tier: game.upgrades.armor ?? 0, gear: playerGear(game), held: game.tool, wear: { head: wearOf('head'), body: wearOf('body'), feet: wearOf('feet') }, paint: paint ? [paint.c1, paint.c2] : undefined, helm: game.helmPaint ? [game.helmPaint.c1, game.helmPaint.c2] : undefined });
+    drawPlayer(ctx, fx, fy, scale, { facing: 1, walking: false, t: time, airborne: false, tier: game.upgrades.armor ?? 0, gear: playerGear(game), held: game.tool, wear: { head: wearOf('head'), body: wearOf('body'), feet: wearOf('feet') }, trinkets: game.accessories.map((id) => GEAR[id].color), paint: paint ? [paint.c1, paint.c2] : undefined, helm: game.helmPaint ? [game.helmPaint.c1, game.helmPaint.c2] : undefined });
     // Paints: earned from gold awards; SUIT / HELM / RIDE each cycle default -> each earned paint.
     const earned = unlockedPaints(game.awards).length;
     const pbw = narrow ? cw * 0.5 : Math.min(cw - u * 1.6, u * 11);
@@ -1314,6 +1344,7 @@ export class UI {
       this.text(ctx, `Lv ${lv}`, gx + (narrow ? cw * 0.38 : cw - u * 4.2), gy, Math.round(u * 0.75), lv > 0 ? '#9ff6a0' : '#5a6078');
       gy += u * (narrow ? 1.25 : 1.35);
     }
+    if (!narrow) this.drawDoll(ctx, game, cx + u * 0.8, gy - u * 0.2, cw - u * 1.6, cy + ch - u * 0.4, u);
     // Tools and pack.
     const rx = narrow ? px + u : cx + cw + u;
     const rw = narrow ? pw - u * 2 : pw - cw - u * 3;
@@ -1338,9 +1369,9 @@ export class UI {
     ry += u * 0.6;
     const gs = cs * 0.8;
     const gcols = Math.max(1, Math.floor((rw + 4) / (gs + 4)));
-    owned.forEach((id, i) => this.cell(ctx, rx + (i % gcols) * (gs + 4), ry + Math.floor(i / gcols) * (gs + 4), gs, id, null, game.equipped(GEAR[id].slot) === id, { k: 'equip', id }));
+    owned.forEach((id, i) => this.cell(ctx, rx + (i % gcols) * (gs + 4), ry + Math.floor(i / gcols) * (gs + 4), gs, id, null, game.isWorn(id), { k: 'equip', id }));
     ry += Math.ceil(owned.length / gcols) * (gs + 4) + u * 0.6;
-    const worn = GEAR_SLOTS.map((sl) => game.equipped(sl)).filter((x): x is GearId => !!x).map((x) => GEAR[x].name);
+    const worn = [...GEAR_SLOTS.map((sl) => game.equipped(sl)).filter((x): x is GearId => !!x), ...game.accessories].map((x) => GEAR[x].name);
     this.text(ctx, `Wearing: ${worn.join(', ')}`, rx, ry, Math.round(u * 0.66), '#9ff6a0', 'left', rw);
     ry += u * 1.1;
     // Selected item: name, what it does, actions.
@@ -2018,14 +2049,14 @@ export class UI {
     for (const id of this.shopTab === 'gear' ? GEAR_IDS.slice(this.shopScroll, this.shopScroll + vis) : []) {
       const gd = GEAR[id];
       const owned = game.ownsGear(id);
-      const worn = game.equipped(gd.slot) === id;
+      const worn = game.isWorn(id);
       const afford = !owned && !gd.bossOnly && ITEM_IDS.every((k) => (game.stash[k] ?? 0) >= (gd.cost[k] ?? 0));
       ctx.fillStyle = worn ? 'rgba(54,224,232,0.12)' : 'rgba(255,255,255,0.05)';
       ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
       const isz = rowH - u * 0.8;
       this.cell(ctx, px + u * 0.8, ry + u * 0.25, isz, id, null, worn, null);
       const tx2 = px + u * 1.4 + isz;
-      this.text(ctx, `${gd.name}  [${gd.slot}]`, tx2, ry + rowH * 0.3, Math.round(u * 0.9), '#fff', 'left', pw - isz - u * 9);
+      this.text(ctx, `${gd.name}  [${gd.slot === 'acc' ? 'accessory' : gd.slot}]`, tx2, ry + rowH * 0.3, Math.round(u * 0.9), '#fff', 'left', pw - isz - u * 9);
       this.text(ctx, owned || gd.bossOnly ? gd.desc : `${gd.desc}  Cost: ${costText(gd.cost)}`, tx2, ry + rowH * 0.68, Math.round(u * 0.66), owned ? '#9aa3b8' : afford ? '#9ff6a0' : '#ff8a8a', 'left', pw - isz - u * 9);
       const bw = u * 5.5;
       if (owned) this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, worn ? 'WORN' : 'EQUIP', { k: 'equip', id }, u * 0.85, { color: worn ? '#2a6a3a' : '#1f6f78' });

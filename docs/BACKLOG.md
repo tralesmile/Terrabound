@@ -74,7 +74,7 @@ World size and variety:
 - [x] Ice fishing in the Frozen Spires (frozen ponds, icefin) and jump pads (a way up to sky islands) (run 45); crops and farming done earlier (farming.ts)
 - [x] Arrangeable build bar: < / > in the inventory with a bar preview strip, order saved (save v27) (run 47)
 - [x] Keys 6-0 and - pick arranged bar slots 1-6 (key hints on the slots); touch long-press on a bar slot opens its item actions (run 48)
-- [ ] Follow-ups: gear/armor as real equippable items (P3 equipment slots)
+- [x] Follow-ups: gear/armor as real equippable items (P3 equipment slots; accessories run 58)
 
 ## P1.11 Owner feedback 2026-11-13 (done 2026-11-13)
 
@@ -223,7 +223,8 @@ Money (ethical, no paywalls)
 
 ## P3 Gear and layers (M3)
 
-- [ ] Equipment slots (helmet, core, boots, module, 3 accessories) with stats and UI
+- [x] Equipment slots: head/body/feet/back/pet existed; 3 accessory sockets with 7 craftable accessories (stats stack), WORN + ACCESSORIES socket row under the character in the inventory (tap to take off), gems on the belt in the world (save v29) (run 58)
+- [ ] Follow-ups: socket row on phones (narrow inventory has no room; shows only the "Wearing" line); accessories as rare chest/boss loot (Terraria-style accessory hunting) instead of only crafting; per-accessory effects you can see (feather wisps on the extra jump, magnet ring pull lines)
 - [ ] Rarity and weapon modifiers; mod chips; set bonuses
 - [x] Layer 2 Circuit: tiles, ores, enemies, hazards, dark zones (done in P1.8; layers.ts)
 - [x] Boss 1 Junk Colossus with telegraphed attacks and arena (done in P1.8 + P1.10)

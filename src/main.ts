@@ -595,6 +595,14 @@ function boot(): void {
       case 'novehicle':
         ui.toast(e.reason, '#ff9a3c', 2);
         break;
+      case 'airjump': {
+        const g = e.by ? GEAR[e.by] : null;
+        fx.airJump(e.x, e.y, g?.color ?? '#9aa3b8', g?.accent ?? '#e8eef8', e.by === 'feather_charm');
+        break;
+      }
+      case 'accfull':
+        ui.toast(`Accessory sockets full: take one off to wear ${GEAR[e.id].name}`, '#ff9a3c', 2.5);
+        break;
       case 'eat':
         ui.toast(`Ate ${ITEMS[e.item].name}`, '#9ff6a0');
         fx.burst(game.body.x, game.body.y - 1.2, '#9ff6a0', 10, 3);

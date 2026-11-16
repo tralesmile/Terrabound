@@ -1010,6 +1010,8 @@ export interface PlayerPose {
   seated?: boolean;
   /** Charred by lava, 0..1: colours darken toward soot and embers flicker on the suit. */
   scorch?: number;
+  /** Worn accessories' gem colours, set into the belt (at most 3). */
+  trinkets?: string[];
 }
 
 export interface PlayerGear {
@@ -1084,6 +1086,7 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, 
   // Hurt flash tints the suit red (shape and shading stay readable) instead of a flat white silhouette.
   drawRows(ctx, rows, ox, oy, s, flip, PLAYER_W, undefined, pose.hurt ? hurtRemap(PAL, remap) : ambientRemap(PAL, k > 0 ? charRemap(PAL, remap, k) : remap, pose.ambient ?? null));
   if (k > 0) drawEmbers(ctx, rows, ox, oy, s, flip, Math.floor(pose.t * 10), k);
+  if (pose.trinkets?.length && !pose.hurt) drawTrinkets(ctx, pose.trinkets, ox, oy, s, flip, bob, pose.t);
   if (pose.swim && !pose.hurt) drawStrokeArm(ctx, ox, oy, s, flip, pose.t, pose.swim.moving, remap.s ?? SUIT_TIERS[0][0]);
   // Held tool at the front hand (art col ~11, row ~10), drawn at 3/4 scale.
   if (pose.held && !pose.hurt && !pose.climbing && !pose.swim) {
@@ -1092,6 +1095,34 @@ export function drawPlayer(ctx: CanvasRenderingContext2D, x: number, y: number, 
     const hy = oy + (8 + (bobOf(pose) ? 1 : 0)) * s;
     drawIcon(ctx, pose.held, hx, hy, hs, flip);
   }
+}
+
+/** Belt row (art row) and the columns accessory gems sit in, front to back. */
+export const BELT_ROW = 13;
+const TRINKET_COLS = [9, 7, 5];
+
+/** Art-pixel positions of the worn accessory gems on the belt (mirrored when facing left). */
+export function trinketPixels(n: number, bob: number, flip: boolean): { c: number; r: number }[] {
+  return TRINKET_COLS.slice(0, Math.min(n, TRINKET_COLS.length)).map((c) => ({ c: flip ? PLAYER_W - 1 - c : c, r: BELT_ROW + bob }));
+}
+
+/** Accessory gems: a coloured stud per worn accessory with a soft halo and a glint that walks along them. */
+function drawTrinkets(ctx: CanvasRenderingContext2D, cols: string[], ox: number, oy: number, s: number, flip: boolean, bob: number, t: number): void {
+  const px = trinketPixels(cols.length, bob, flip);
+  px.forEach((p, i) => {
+    const x = Math.round(ox + p.c * s);
+    const y = Math.round(oy + p.r * s);
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = cols[i];
+    ctx.fillRect(x - Math.round(s * 0.5), y - Math.round(s * 0.5), Math.ceil(s * 2), Math.ceil(s * 2));
+    ctx.globalAlpha = 1;
+    ctx.fillRect(x, y, Math.ceil(s), Math.ceil(s));
+    // Glint: one gem at a time flashes white for a moment.
+    if (Math.floor(t * 1.5) % (px.length + 2) === i && (t * 1.5) % 1 < 0.35) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x, y, Math.ceil(s / 2), Math.ceil(s / 2));
+    }
+  });
 }
 
 /** Swim stroke: the front arm sweeps from reaching ahead over the head back to the hip. */

@@ -250,3 +250,9 @@
 
 - A unit test for a pure edge function had a wrong hand-computed distance (pad edge 92 is 8 tiles from 100, not 9). Guard: when a test asserts geometry, derive the expected numbers from the same constants in a comment line before writing the expectation.
 - A screenshot showing a clipped toast was an animation caught mid-slide, not a layout bug. Before logging a visual bug from a single frame, check whether the element is animating (age/slide) at capture time.
+
+## 2026-11-16 run 58
+
+- **Loose colour classes match the scenery.** The Vine Queen lane check counted "red" as r>180, g<140, b<120; the dusk sky through a gap in the ruin wall is (216,105,81) and passes, so when the boss ended a little further from the wall (my extra e2e steps shifted timing) idle had 3700 "reds" and the translucent lane even lowered the count. Guard: the check counts chevron red only (g < 90, measured from the screenshot). Before writing a colour check, sample the real pixels of the mark and of the background in the PNG (PIL getpixel) and set thresholds between them. My first theory (time of day) was wrong: pinning `game.time` changed nothing, the sky is dusk-red there at any hour.
+- **An e2e that presses jump right after another jump must wait for `onGround`.** Air jumps refill only on the ground, so my feather-charm presses landed mid-fall and fired nothing (n 0). Guard: waitForFunction(onGround) before the sequence.
+- **Old tests hard-coded the current SAVE_VERSION** (`expect(s.v).toBe(28)` in hotbar and paints tests), so every save bump breaks unrelated tests. Guard: those now compare against `SAVE_VERSION`; write new fixture tests the same way.

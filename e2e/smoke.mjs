@@ -977,6 +977,41 @@ try {
   if (eatBtn) await page.mouse.click(eatBtn.x + eatBtn.w / 2, eatBtn.y + eatBtn.h / 2);
   const ate = await page.evaluate(() => ({ hp: window.__terrabound.game.hp, fish: window.__terrabound.game.carried.fish }));
   check('selecting a fish in the inventory and pressing EAT heals', ate.hp > 40 && ate.fish === 1, JSON.stringify(ate));
+  // Accessories: owned trinkets in the GEAR grid go into the belt sockets under the character when tapped.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    for (const id of ['vital_heart', 'lamp_shard', 'feather_charm']) if (!g.ownsGear(id)) g.save.gear.owned.push(id);
+  });
+  await page.waitForTimeout(120);
+  for (const id of ['vital_heart', 'lamp_shard', 'feather_charm']) {
+    const c = await page.evaluate((gid) => window.__terrabound.ui.rects.find((r) => r.a.k === 'equip' && r.a.id === gid), id);
+    if (c) await page.mouse.click(c.x + c.w / 2, c.y + c.h / 2);
+    await page.waitForTimeout(80);
+  }
+  await page.waitForTimeout(150);
+  const doll = await page.evaluate(() => {
+    const { ui, game } = window.__terrabound;
+    const acc = ui.lastDoll.filter((r) => 'acc' in r.key);
+    const filled = acc.filter((r) => ui.rects.some((q) => q.a.k === 'equip' && q.x === r.x && q.y === r.y)).length;
+    return { sockets: ui.lastDoll.length, acc: acc.length, filled, worn: [...game.accessories], airJumps: game.gear.airJumps, maxHp: game.derived.maxHp };
+  });
+  check('tapping accessories wears them in the three belt sockets under the character', doll.sockets === 8 && doll.acc === 3 && doll.filled === 3 && doll.worn.length === 3 && doll.airJumps >= 1, JSON.stringify(doll));
+  await page.screenshot({ path: path.join(out, '18c-accessories.png') });
+  // Tapping a worn socket takes that accessory off.
+  const sock = await page.evaluate(() => {
+    const ui = window.__terrabound.ui;
+    const r = ui.lastDoll.find((d) => 'acc' in d.key && d.key.acc === 1);
+    return r ? { x: r.x + r.size / 2, y: r.y + r.size / 2 } : null;
+  });
+  if (sock) await page.mouse.click(sock.x, sock.y);
+  await page.waitForTimeout(120);
+  const accAfter = await page.evaluate(() => [...window.__terrabound.game.accessories]);
+  check('tapping a worn accessory socket takes it off', accAfter.length === 2 && !accAfter.includes('lamp_shard'), JSON.stringify(accAfter));
+  // Leave the belt empty so later pixel checks on the player are unchanged.
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    for (const id of [...g.accessories]) g.equipGear(id);
+  });
   // Build bar: select a placeable in the pack and move it left with the < button; the bar order is saved.
   await page.evaluate(() => {
     const g = window.__terrabound.game;
@@ -2080,7 +2115,9 @@ try {
     await page.waitForTimeout(350);
     const teleWarn = await teleSample();
     await page.screenshot({ path: path.join(out, '26f-boss-charge.png') });
-    check('a charge wind-up paints a red chevron lane toward where the dash ends', reds(teleWarn.ahead) > reds(teleIdle.ahead) + 30 && pxDiff(teleIdle.ahead, teleWarn.ahead) > 40, JSON.stringify({ idle: reds(teleIdle.ahead), warn: reds(teleWarn.ahead), diff: pxDiff(teleIdle.ahead, teleWarn.ahead) }));
+    // Chevron red only (g < 90): the dusk sky through a ruin wall is (216,105,81) and passes the looser reds() (run 58).
+    const laneReds = (a) => { let n = 0; for (let i = 0; i < a.length; i += 4) if (a[i] > 190 && a[i + 1] < 90 && a[i + 2] < 100) n++; return n; };
+    check('a charge wind-up paints a red chevron lane toward where the dash ends', laneReds(teleWarn.ahead) > laneReds(teleIdle.ahead) + 30 && pxDiff(teleIdle.ahead, teleWarn.ahead) > 40, JSON.stringify({ idle: laneReds(teleIdle.ahead), warn: laneReds(teleWarn.ahead), diff: pxDiff(teleIdle.ahead, teleWarn.ahead) }));
     await page.evaluate(() => { const b = window.__terrabound.game.boss; window.__preDash = { x: b.x, y: b.y, f: b.facing }; });
     await holdAt('charge', 0.3);
     await page.waitForTimeout(80);
@@ -2452,6 +2489,30 @@ try {
     const y1 = await page.evaluate(() => window.__terrabound.game.body.y);
     await page.keyboard.up('KeyK');
     check('the rebound jump key lifts the player', y1 < y0 - 0.3, JSON.stringify({ y0, y1 }));
+    // Feather charm: a second press in the air jumps again with a kick ring and green feather wisps.
+    await page.evaluate(() => {
+      const g = window.__terrabound.game;
+      if (!g.ownsGear('feather_charm')) g.save.gear.owned.push('feather_charm');
+      if (!g.isWorn('feather_charm')) g.equipGear('feather_charm');
+    });
+    // Land first: the rebound-key jump above is still in the air, and air jumps refill only on the ground.
+    await page.waitForFunction(() => window.__terrabound.game.body.onGround, null, { timeout: 3000 }).catch(() => {});
+    await page.waitForTimeout(150);
+    const aj0 = await page.evaluate(() => window.__terrabound.fx.airJumps);
+    await page.keyboard.down('KeyK');
+    await page.waitForTimeout(120);
+    await page.keyboard.up('KeyK');
+    await page.waitForTimeout(90);
+    await page.keyboard.down('KeyK');
+    await page.waitForTimeout(60);
+    await page.keyboard.up('KeyK');
+    const aj = await page.evaluate(() => {
+      const { fx } = window.__terrabound;
+      return { n: fx.airJumps, wisps: fx.particles.filter((p) => p.color === '#7dffb0').length, rings: fx.rings.filter((r) => r.color === '#7dffb0').length };
+    });
+    await page.screenshot({ path: path.join(out, '47c-air-jump.png') });
+    check('a feather charm air jump kicks a green ring and feather wisps', aj.n === aj0 + 1 && aj.wisps >= 3 && aj.rings >= 1, JSON.stringify({ aj0, ...aj }));
+    await page.evaluate(() => { const g = window.__terrabound.game; if (g.isWorn('feather_charm')) g.equipGear('feather_charm'); });
     await page.waitForTimeout(600);
     await page.evaluate(() => window.__terrabound.act({ k: 'resetkeys' }));
     check('RESET KEYS restores W for jump', (await page.evaluate(() => window.__terrabound.game.keys.jump)) === 'KeyW');

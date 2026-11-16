@@ -927,9 +927,11 @@ const SHAPES: Record<string, string[]> = {
   chip: ['            ', '   h h h h  ', '  oooooooo  ', ' hoddddddoh ', '  odaaaado  ', ' hodabbadoh ', '  odabaado  ', ' hodaaaadoh ', '  oddddddo  ', '  oooooooo  ', '   h h h h  ', '            '],
   // Research flask: a glass neck, a round body filled with the perk's colour, a bubble and a glint.
   flask: ['    oooo    ', '    obbo    ', '    obbo    ', '   oobboo   ', '  obbbbbbo  ', ' obaaaaaabo ', ' obaahaaabo ', ' obaaaaaaho ', ' obaaaaaabo ', '  oaaaaaao  ', '   oooooo   ', '            '],
+  // Accessory charm: a bright gem (a) set in a metal ring (c) on a short chain, with a glint (w).
+  charm: ['    c  c    ', '     cc     ', '    oooo    ', '  oobbbboo  ', ' oobaaaaboo ', ' obaawaaabo ', ' obaaaaaabo ', ' obaaaaaabo ', ' oobaaaaboo ', '  oobbbboo  ', '    oooo    ', '            '],
   hook: ['            ', '   oooo     ', '  obbbbo    ', ' obo  obo   ', ' obo   oo   ', ' obo        ', '  obo   oo  ', '   obooobo  ', '    obbbo   ', '     ooo  a ', '         a  ', '        a   '],
 };
-const SLOT_SHAPE: Record<string, string> = { head: 'helm', body: 'vest', feet: 'boot', vehicle: 'bike', pet: 'pet' };
+const SLOT_SHAPE: Record<string, string> = { head: 'helm', body: 'vest', feet: 'boot', vehicle: 'bike', pet: 'pet', acc: 'charm' };
 
 const FALLBACK: IconDef = { pal: { a: '#9aa3b8' }, rows: ['', '  oooooooo', '  oaaaaaao', '  oaaaaaao', '  oaaaaaao', '  oaaaaaao', '  oaaaaaao', '  oooooooo'] };
 
