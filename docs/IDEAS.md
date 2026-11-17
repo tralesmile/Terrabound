@@ -1,5 +1,10 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-17 run 73
+
+- Done: Circuit Core set pays off the Warden/Circuit materials (Terraria-style themed set).
+- Weakest progression: trophy weapons have no set; weakest UI: no NEW dot for found weapons (carried).
+
 ## 2026-11-17 run 72
 
 - Done this run: boss telegraphs are rising tones (pitch climbs to the hit, grid sweeps widest) so a hop can be timed by ear; the Warden arena floor glows with the circuit trace like the Hollow AI's.

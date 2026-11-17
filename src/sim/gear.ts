@@ -89,6 +89,8 @@ export type GearId =
   | 'ai_crown'
   | 'plasma_saber'
   | 'core_plate'
+  | 'circuit_visor'
+  | 'trace_boots'
   | 'scout_bot'
   | 'glow_moth'
   | 'spark_pup'
@@ -134,6 +136,8 @@ export const GEAR: Record<GearId, GearDef> = {
   frost_core: { name: 'Frost core armor', slot: 'body', desc: 'Titan trophy: 35% armor, +40 health', cost: {}, mod: { armor: 0.35, maxHp: 40 }, bossOnly: true, color: '#e6f6ff', accent: '#36e0e8' },
   ai_crown: { name: 'Crown of the Hollow', slot: 'head', desc: 'Final trophy: 20% armor, +4 light, +50% dig speed', cost: {}, mod: { armor: 0.2, light: 4, digMul: 1.5 }, bossOnly: true, color: '#ff5aff', accent: '#ffffff' },
   plasma_saber: { name: 'Plasma saber', slot: 'melee', desc: 'Deep-layer blade: 40 damage, 3 tile reach', cost: { plasma: 8, circuit: 6, metal: 10 }, mod: { meleeDmg: 40, meleeRange: 3, meleeCd: 0.3 }, color: '#ff5a8a', accent: '#ffd0e0' },
+  circuit_visor: { name: 'Circuit visor', slot: 'head', desc: 'Circuit-layer helm: 10% armor, +3 light, +20% dig speed', cost: { circuit: 8, copper_wire: 6, crystal: 4 }, mod: { armor: 0.1, light: 3, digMul: 1.2 }, color: '#1f4a3a', accent: '#5aff9a' },
+  trace_boots: { name: 'Trace boots', slot: 'feet', desc: 'Circuit-layer boots: 10% armor, +15 health', cost: { circuit: 6, copper_wire: 6, metal: 6 }, mod: { armor: 0.1, maxHp: 15 }, color: '#1f4a3a', accent: '#5aff9a' },
   core_plate: { name: 'Core plate', slot: 'body', desc: 'Deep-layer armor: 40% armor, +50 health', cost: { core_shard: 8, plasma: 6, metal: 20 }, mod: { armor: 0.4, maxHp: 50 }, color: '#5a2a7a', accent: '#ff5aff' },
   scout_bot: { name: 'Scout bot', slot: 'pet', desc: 'Pet: pulls in loot from 7 tiles, +1 light', cost: { metal: 6, copper_wire: 6, crystal: 2 }, mod: { magnet: 7, light: 1 }, color: '#9aa3b8', accent: '#36e0e8' },
   glow_moth: { name: 'Glow moth', slot: 'pet', desc: 'Pet: lights the way (+4 light)', cost: { biomass: 12, crystal: 3 }, mod: { light: 4 }, color: '#c8ffd8', accent: '#7dffb0' },

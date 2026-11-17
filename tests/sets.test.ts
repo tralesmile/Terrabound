@@ -77,3 +77,14 @@ describe('armor set bonuses', () => {
     expect(g.gear.airJumps).toBe(1);
   });
 });
+
+describe('Circuit Core set', () => {
+  it('pairs the visor with the core plate; the full set stacks the tiers', () => {
+    const two = gearStats({ head: 'circuit_visor', body: 'core_plate' });
+    const none = gearStats({ head: 'circuit_visor' });
+    expect(two.digMul).toBeGreaterThan(none.digMul);
+    const three = gearStats({ head: 'circuit_visor', body: 'core_plate', feet: 'trace_boots' });
+    expect(three.maxHp).toBeGreaterThan(two.maxHp + 25);
+    expect(setStates({ head: 'circuit_visor', body: 'core_plate', feet: 'trace_boots' })[0].active.length).toBe(2);
+  });
+});

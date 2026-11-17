@@ -935,3 +935,13 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** Warden music motif; Circuit armour set; dive stats on the share card.
 
 **Known issues:** none new.
+
+## 2026-11-17 Scheduled run 73
+
+**Done:** baseline green (996 tests). Circuit Core armour set (sim/sets `circuit`, new gear `circuit_visor` and `trace_boots`, with the existing Core plate): 2 pieces +15% dig and +1 light, 3 pieces +10% armor, +25 health, battery 15% longer; reuses the set aura (green). No save change.
+
+**Numbers:** 999 unit tests (+3 incl. circuit set). Short run.
+
+**Next:** Warden music motif; set for trophy weapons; dive stats on share card.
+
+**Known issues:** no dedicated e2e screenshot for the Circuit aura (shares the set-aura code path).

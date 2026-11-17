@@ -241,7 +241,8 @@ Money (ethical, no paywalls)
 - [x] Rare/epic ranged prefixes glow their bolts wider in the rarity colour (run 68)
 - [x] Full-set aura: a breathing glow in the set colour and motes rising from the boots when every piece of a set is worn (run 69)
 - [x] Melee swing is a tapered crescent smear over the full 140-degree sweep from the shoulder (run 69)
-- [ ] Follow-ups: a set for the deep-layer core plate and the boss trophy weapons
+- [x] Circuit Core set (run 73): Circuit visor + Core plate + Trace boots, 2/3-piece tiers, green aura
+- [ ] Follow-ups: a set for the boss trophy weapons
 - [x] Layer 2 Circuit: tiles, ores, enemies, hazards, dark zones (done in P1.8; layers.ts)
 - [x] Boss 1 Junk Colossus with telegraphed attacks and arena (done in P1.8 + P1.10)
 - [x] Boss 2 Logic Warden (run 70): Circuit layer guardian (Logic key: 12 gold circuit, 12 copper wire, 8 crystal; summon in the Circuit layer or deeper), flying circuit monolith with orbiting logic nodes, new LASER GRID attack (0.95 s dashed guide lines, then beams across the arena; safe lanes swap each cast, tighter in phase 2), trophy Logic repeater (rapid piercing bolts), trinket Logic chip. Unlock flow: the Warden counts toward the deeper gates (GATE_BOSSES = biome bosses + Warden), victory and share cards count x/6

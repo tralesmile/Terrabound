@@ -5,7 +5,7 @@
  */
 import type { GearId, GearStats, Loadout } from './gear';
 
-export type SetId = 'pathfinder' | 'deep_miner' | 'vanguard' | 'hollow';
+export type SetId = 'pathfinder' | 'deep_miner' | 'vanguard' | 'hollow' | 'circuit';
 
 /** Stats a set tier can add (all additive or multiplicative, so tiers stack). */
 export type SetMod = Partial<Pick<GearStats, 'armor' | 'digMul' | 'light' | 'maxHp' | 'drainMul' | 'airJumps'>>;
@@ -48,6 +48,15 @@ export const SETS: Record<SetId, SetDef> = {
     pieces: ['plate_vest', 'dash_boots'],
     tiers: [{ n: 2, mod: { armor: 0.1, maxHp: 15 }, desc: '10% armor, +15 health' }],
     color: '#ff5a5a',
+  },
+  circuit: {
+    name: 'Circuit Core',
+    pieces: ['circuit_visor', 'core_plate', 'trace_boots'],
+    tiers: [
+      { n: 2, mod: { digMul: 1.15, light: 1 }, desc: '+15% dig speed, +1 light' },
+      { n: 3, mod: { armor: 0.1, drainMul: 0.85, maxHp: 25 }, desc: '10% armor, +25 health, battery lasts 15% longer' },
+    ],
+    color: '#5aff9a',
   },
   hollow: {
     name: 'Hollow Regalia',
