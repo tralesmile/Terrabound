@@ -194,6 +194,10 @@ export function stashLine(stash: Inventory): ItemId[] {
 export class UI {
   mapOpen = false;
   invOpen = false;
+  /** Gear ids owned when last looked at; anything owned beyond it gets a NEW dot on the bag (session only). */
+  private seenGear: Set<string> | null = null;
+  /** True while found gear has not been looked at in the inventory. */
+  newGear = false;
   /** Item highlighted in the inventory. */
   invSel: ItemId | null = null;
   /** Equipment sockets drawn last frame (e2e reads them). */
@@ -337,6 +341,18 @@ export class UI {
       if (this.bankCard.age >= BANK_CARD_LIFE) this.bankCard = null;
     }
     this.flyers.update(dt, (i) => (this.slotPos.has(i) ? i : 'inv'));
+  }
+
+  /** Flag gear found since the inventory was last open; opening the inventory clears it. */
+  private trackNewGear(game: Game): void {
+    const owned = game.ownedGearIds();
+    if (!this.seenGear) this.seenGear = new Set(owned);
+    if (this.invOpen) {
+      for (const id of owned) this.seenGear.add(id);
+      this.newGear = false;
+    } else {
+      this.newGear = owned.some((id) => !this.seenGear!.has(id));
+    }
   }
 
   /** A picked-up item's icon arcs from (x, y) in CSS px into its hotbar slot or the bag. */
@@ -531,6 +547,7 @@ export class UI {
 
   private drawFrame(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, time: number): void {
     this.rects = [];
+    this.trackNewGear(game);
     const u = uiUnit(w, h, this.uiScale);
     if (this.settingsOpen) {
       if (this.screen === 'title') this.drawTitle(ctx, game, w, h, u, time);
@@ -1762,6 +1779,17 @@ export class UI {
     // Bag button (inventory) at the end of the bar.
     this.cell(ctx, sx + gap, sy, slot, 'chest', null, false, { k: 'inv' });
     this.slotPos.set('inv', { x: sx + gap, y: sy, s: slot });
+    if (this.newGear) {
+      const pulse = 0.75 + 0.25 * Math.sin(time * 5);
+      ctx.fillStyle = '#0d0f18';
+      ctx.beginPath();
+      ctx.arc(sx + gap + slot - slot * 0.12, sy + slot * 0.12, slot * 0.17, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = `rgba(255,207,74,${pulse})`;
+      ctx.beginPath();
+      ctx.arc(sx + gap + slot - slot * 0.12, sy + slot * 0.12, slot * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+    }
     // The whole bar strip (cells, the gaps between them and the held-tool label above): world tips stay off it.
     const barX0 = (w - total) / 2;
     this.barBox = { x: barX0, y: sy - u * 1.3, w: sx + gap + slot - barX0, h: slot + u * 1.3 };

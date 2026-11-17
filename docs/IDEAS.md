@@ -1,5 +1,11 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-17 run 74
+
+- Done: NEW dot on the bag for unseen gear (Terraria/Core Keeper highlight new items).
+- Weakest UI: no per-item NEW marker inside the inventory grid (next step after the bag dot).
+- Weakest progression: trophy weapons have no set (sets are armor-only; design trophy bonuses).
+
 ## 2026-11-17 run 73
 
 - Done: Circuit Core set pays off the Warden/Circuit materials (Terraria-style themed set).

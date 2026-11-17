@@ -573,6 +573,11 @@ export class Game {
     return true;
   }
 
+  /** Every owned gear id (read-only view for the UI). */
+  ownedGearIds(): readonly GearId[] {
+    return this.save.gear.owned;
+  }
+
   ownsGear(id: GearId): boolean {
     return this.save.gear.owned.includes(id);
   }

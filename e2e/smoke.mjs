@@ -260,7 +260,9 @@ try {
   // Catch the debris in flight: dig the next tile down and screenshot as soon as it breaks.
   {
     const n0 = brk.n;
-    const pos2 = await tileToCss(page, target.tx, target.ty + 1);
+    await page.waitForTimeout(500); // let the player settle into the hole so the camera is still
+    const feet = await page.evaluate(() => ({ tx: Math.floor(window.__terrabound.game.body.x), ty: Math.floor(window.__terrabound.game.body.y) }));
+    const pos2 = await tileToCss(page, feet.tx, feet.ty + 1); // feet rest on the top of the tile below
     await page.mouse.move(pos2.x, pos2.y);
     await page.mouse.down();
     const caught = await page.waitForFunction((n) => window.__terrabound.fx.breaks > n, n0, { polling: 'raf', timeout: 10000 }).then(() => true, () => false);
@@ -1087,6 +1089,23 @@ try {
     g.carried.fish = 2;
     g.hp = 40;
   });
+  // A found weapon puts a NEW dot on the bag until the inventory is opened.
+  const hadHammer = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const had = g.ownsGear('junk_hammer');
+    if (!had) g.save.gear.owned.push('junk_hammer');
+    return had;
+  });
+  await page.waitForTimeout(300);
+  const dotOn = await page.evaluate(() => window.__terrabound.ui.newGear);
+  await page.screenshot({ path: path.join(out, '18a-new-gear-dot.png') });
+  await page.keyboard.press('KeyI');
+  await page.waitForTimeout(300);
+  const dotOff = await page.evaluate(() => window.__terrabound.ui.newGear);
+  check('found gear lights a NEW dot on the bag until the inventory is opened', (hadHammer || dotOn) && !dotOff, JSON.stringify({ hadHammer, dotOn, dotOff }));
+  if (!hadHammer) await page.evaluate(() => { const o = window.__terrabound.game.save.gear.owned; o.splice(o.indexOf('junk_hammer'), 1); });
+  await page.keyboard.press('KeyI');
+  await page.waitForTimeout(150);
   await page.keyboard.press('KeyI');
   await page.waitForTimeout(250);
   check('I opens the inventory', await page.evaluate(() => window.__terrabound.ui.invOpen));

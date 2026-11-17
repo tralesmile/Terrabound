@@ -945,3 +945,13 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** Warden music motif; set for trophy weapons; dive stats on share card.
 
 **Known issues:** no dedicated e2e screenshot for the Circuit aura (shares the set-aura code path).
+
+## 2026-11-17 Scheduled run 74
+
+**Done:** baseline gate flaked on "debris is in the air" (4th time); root cause found: the e2e aimed at a tile from a stale camera after falling into the hole. It now re-aims from the settled feet (and waits up to 10 s). New: gold NEW dot on the bag button when gear (found weapon, buy) is owned that was not seen yet; opening the inventory clears it (ui `trackNewGear`/`newGear`, game `ownedGearIds`; e2e 18a screenshot + check). No save change.
+
+**Numbers:** 1000 unit tests (+1), e2e +1 check.
+
+**Next:** Warden music motif; trophy-weapon set design; dive stats on the share card.
+
+**Known issues:** the dot is session-only (a reload forgets what was seen, so nothing is flagged after reload).
