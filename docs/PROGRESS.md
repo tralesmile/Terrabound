@@ -965,3 +965,13 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** Warden music motif; trophy-weapon set design; persist seen-gear; dive stats on the share card.
 
 **Known issues:** the NEW markers are session-only.
+
+## 2026-11-17 Scheduled run 76
+
+**Done:** baseline green. Seen-gear ids now persist across reloads (side key `terrabound.seen` in localStorage, `ui/seengear` parse/serialise, never throws; no SAVE_VERSION change since it is UI-only), so NEW dots no longer vanish or re-flag after a reload.
+
+**Numbers:** 1002 unit tests (+2). Short run.
+
+**Next:** Warden music motif; trophy-weapon set design; dive stats on the share card.
+
+**Known issues:** seen-gear is per-browser, not per-save slot (a NEW WORLD keeps old ids marked seen).

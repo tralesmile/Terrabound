@@ -28,6 +28,8 @@ import { PHASE_NOTCH, barColors, bossBarSlot, newChip, stepChip, type BossSlot, 
 import { LAYERS } from '../sim/layers';
 import { MAX_PART, PART_IDS, VEHICLES, VEHICLE_IDS, partCost, vehicleStats, type PartId, type VehicleId } from '../sim/garage';
 import { WEATHER } from '../sim/weather';
+import { parseSeen, serializeSeen } from './seengear';
+import { loadSeenRaw, saveSeenRaw } from '../platform/storage';
 import { CODEX, LORE, RECALL_TIME } from '../sim/explore';
 import { ITEM_IDS, ITEMS, PLACEABLE, visiblePlaceables, BAR_SLOT_KEYS, invCount, invTotal, type Inventory, type ItemId } from '../sim/tiles';
 import { UPGRADES } from '../sim/upgrades';
@@ -348,12 +350,21 @@ export class UI {
   /** Flag gear found since the inventory was last open; opening the inventory clears it. */
   private trackNewGear(game: Game): void {
     const owned = game.ownedGearIds();
-    if (!this.seenGear) this.seenGear = new Set(owned);
+    if (!this.seenGear) {
+      // A stored list lets NEW dots survive a reload; without one, everything owned counts as seen.
+      this.seenGear = parseSeen(loadSeenRaw()) ?? new Set(owned);
+      saveSeenRaw(serializeSeen(this.seenGear));
+    }
     if (this.invOpen) {
+      let changed = false;
       for (const id of owned) {
-        if (!this.seenGear.has(id)) this.freshGear.add(id);
+        if (!this.seenGear.has(id)) {
+          this.freshGear.add(id);
+          changed = true;
+        }
         this.seenGear.add(id);
       }
+      if (changed) saveSeenRaw(serializeSeen(this.seenGear));
       this.newGear = false;
     } else {
       if (this.freshGear.size) this.freshGear.clear();

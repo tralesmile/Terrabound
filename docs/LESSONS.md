@@ -333,3 +333,7 @@
 ## 2026-11-17 run 75
 
 - The full gate takes ~9 min but a foreground Bash call dies at 2 min. Start `npm run check`/`npm run ship` with `&` and poll the log with short sleeps (each under 2 min).
+
+## 2026-11-17 run 76
+
+- UI-only state (seen flags) goes in a side localStorage key, not `SaveData`, to avoid a save bump; parse functions return null on corrupt data and the caller falls back to a safe default.

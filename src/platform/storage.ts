@@ -30,3 +30,22 @@ export function saveRaw(value: string): boolean {
 export function isPersistent(): boolean {
   return persistent;
 }
+
+const SEEN_KEY = 'terrabound.seen';
+
+/** Small side store for UI-only state (seen-gear ids); never throws. */
+export function loadSeenRaw(): string | null {
+  try {
+    return globalThis.localStorage?.getItem(SEEN_KEY) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveSeenRaw(value: string): void {
+  try {
+    globalThis.localStorage?.setItem(SEEN_KEY, value);
+  } catch {
+    /* UI-only convenience: losing it just re-flags NEW dots */
+  }
+}

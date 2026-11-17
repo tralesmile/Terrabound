@@ -1,5 +1,10 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-17 run 76
+
+- Done: NEW dots persist across reloads (Terraria keeps item-new flags in the player file).
+- Weakest progression: trophy weapons have no set; weakest audio: Logic Warden has no music motif (carried, still next).
+
 ## 2026-11-17 run 75
 
 - Done: gold NEW dot on each newly found gear item inside the inventory gear grid (so you can see WHICH item is new, as Terraria does).
