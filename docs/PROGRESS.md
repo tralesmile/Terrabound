@@ -925,3 +925,13 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** Circuit arena floor art; Warden music motif; Circuit armour set; dive stats on the share card.
 
 **Known issues:** none new.
+
+## 2026-11-17 Scheduled run 72
+
+**Done:** `dev` was detached/missing locally; recreated from `origin/dev`. Boss attack telegraphs are rising tones lasting the warning time (platform/warnvoice `warnVoice`, audio `bosswarn`); the Logic Warden arena gets the glowing circuit floor trace (renderer: style `logic` joins `core`) with an e2e check.
+
+**Numbers:** unit tests +2 (warnvoice), e2e +1 (Warden circuit floor).
+
+**Next:** Warden music motif; Circuit armour set; dive stats on the share card.
+
+**Known issues:** none new.

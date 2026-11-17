@@ -2306,6 +2306,7 @@ try {
     await page.evaluate(() => { const b = window.__terrabound.game.boss; window.__wardenHome = { x: b.x, y: b.y }; });
     const wardenRest = await wardenLook(null, 0);
     await page.screenshot({ path: path.join(out, '26f-warden.png') });
+    check('Logic Warden arena has a glowing circuit floor', await page.evaluate(() => window.__terrabound.renderer.arenaCells.length > 5), '');
     const wardenWarn = await wardenLook('grid', -0.3);
     await page.screenshot({ path: path.join(out, '26g-warden-telegraph.png') });
     const wardenFire = await wardenLook('grid', 0.1);

@@ -3075,7 +3075,7 @@ export class Renderer {
     const lift = !d.flying && bs.attack === 'slam' && bs.at < 0 ? Math.round(-bs.at * 10) : 0;
     const reach = bs.attack === 'charge' && bs.at >= 0 ? 8 : 0;
     const tv = { sx: (x: number) => this.sx(x, shakeX), sy: (y: number) => this.sy(y, shakeY), ts, u };
-    if (BOSS_ART[bs.id].style === 'core') {
+    if (BOSS_ART[bs.id].style === 'core' || BOSS_ART[bs.id].style === 'logic') {
       const w = game.world;
       if (this.arenaWorld !== w) {
         this.arenaWorld = w;

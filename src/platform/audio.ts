@@ -1,4 +1,5 @@
 import { PREFIXES } from '../sim/rarity';
+import { warnVoice } from './warnvoice';
 import type { GameEvent } from '../sim/game';
 import { BEATS_PER_BAR, composeBar, tempo, type Mood } from './composer';
 import { bossHitVoice } from './hitvoice';
@@ -337,7 +338,10 @@ export class Sfx {
         [110, 82, 55].forEach((f, i) => this.tone(f, 0.6, 'sawtooth', 0.16, undefined, i * 0.3));
         break;
       case 'bosswarn':
-        this.tone(660, 0.12, 'square', 0.08, 990);
+        {
+          const w = warnVoice(e.kind);
+          this.tone(w.from, w.dur, w.type, w.vol, w.to);
+        }
         break;
       case 'bosshit':
         if (this.ok('bosshit', 70)) {

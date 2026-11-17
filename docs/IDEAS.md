@@ -1,5 +1,12 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-17 run 72
+
+- Done this run: boss telegraphs are rising tones (pitch climbs to the hit, grid sweeps widest) so a hop can be timed by ear; the Warden arena floor glows with the circuit trace like the Hollow AI's.
+- Weakest graphics (ground): strata bands ignore dug-out tops (carried).
+- Weakest progression: a Circuit armour set to pay off the Warden's materials (carried).
+- Weakest UI: no NEW dot for found weapons on the inventory button (carried).
+
 ## 2026-11-16 run 71
 
 - Done this run: Warden phase 2 tripwire (26h2): phase 2 now asks for lane choice AND a timed hop, like Dome Keeper/Gungeon layered patterns.

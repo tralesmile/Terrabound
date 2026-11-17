@@ -246,7 +246,8 @@ Money (ethical, no paywalls)
 - [x] Boss 1 Junk Colossus with telegraphed attacks and arena (done in P1.8 + P1.10)
 - [x] Boss 2 Logic Warden (run 70): Circuit layer guardian (Logic key: 12 gold circuit, 12 copper wire, 8 crystal; summon in the Circuit layer or deeper), flying circuit monolith with orbiting logic nodes, new LASER GRID attack (0.95 s dashed guide lines, then beams across the arena; safe lanes swap each cast, tighter in phase 2), trophy Logic repeater (rapid piercing bolts), trinket Logic chip. Unlock flow: the Warden counts toward the deeper gates (GATE_BOSSES = biome bosses + Warden), victory and share cards count x/6
 - [x] Warden phase-2 twist: floor tripwire beam (run 71)
-- [ ] Follow-ups: Circuit-layer arena floor art, a Logic Warden music motif
+- [x] Warden arena gets the glowing circuit floor trace (run 72); boss attack telegraphs are rising tones that last the warning (run 72)
+- [ ] Follow-ups: a Logic Warden music motif
 - [ ] Tech tree for blueprints
 
 ## P4 Retention and sharing (M4)
