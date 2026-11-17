@@ -329,3 +329,7 @@
 
 - **"debris is in the air right after a break" flaked a second time in the gate** (caught false, live 0; passed on rerun). Guard: the wait window for the next break is now 10 s (was 4 s), so slow CI/CPU load can't fail it.
 - **Root cause of the debris flake:** e2e computed the next tile's screen position before the player fell into the hole, so the camera had moved and the mouse aimed at air. Guard: re-aim after the player settles (feet tile + 1). A flaky check is a stale-coordinate bug until proven otherwise.
+
+## 2026-11-17 run 75
+
+- The full gate takes ~9 min but a foreground Bash call dies at 2 min. Start `npm run check`/`npm run ship` with `&` and poll the log with short sleeps (each under 2 min).

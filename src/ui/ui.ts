@@ -198,6 +198,8 @@ export class UI {
   private seenGear: Set<string> | null = null;
   /** True while found gear has not been looked at in the inventory. */
   newGear = false;
+  /** Gear that was new when the inventory opened; each gets a NEW dot in the gear grid until it closes. */
+  freshGear = new Set<string>();
   /** Item highlighted in the inventory. */
   invSel: ItemId | null = null;
   /** Equipment sockets drawn last frame (e2e reads them). */
@@ -348,9 +350,13 @@ export class UI {
     const owned = game.ownedGearIds();
     if (!this.seenGear) this.seenGear = new Set(owned);
     if (this.invOpen) {
-      for (const id of owned) this.seenGear.add(id);
+      for (const id of owned) {
+        if (!this.seenGear.has(id)) this.freshGear.add(id);
+        this.seenGear.add(id);
+      }
       this.newGear = false;
     } else {
+      if (this.freshGear.size) this.freshGear.clear();
       this.newGear = owned.some((id) => !this.seenGear!.has(id));
     }
   }
@@ -1446,7 +1452,20 @@ export class UI {
     ry += u * 0.6;
     const gs = cs * 0.8;
     const gcols = Math.max(1, Math.floor((rw + 4) / (gs + 4)));
-    owned.forEach((id, i) => this.cell(ctx, rx + (i % gcols) * (gs + 4), ry + Math.floor(i / gcols) * (gs + 4), gs, id, null, game.isWorn(id), { k: 'equip', id }));
+    owned.forEach((id, i) => {
+      const gx = rx + (i % gcols) * (gs + 4);
+      const gy = ry + Math.floor(i / gcols) * (gs + 4);
+      this.cell(ctx, gx, gy, gs, id, null, game.isWorn(id), { k: 'equip', id });
+      if (this.freshGear.has(id)) {
+        ctx.fillStyle = '#ffd23a';
+        ctx.beginPath();
+        ctx.arc(gx + gs - u * 0.5, gy + u * 0.5, u * 0.38, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#1a1408';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    });
     ry += Math.ceil(owned.length / gcols) * (gs + 4) + u * 0.6;
     // Phones: the socket row sits under the gear grid (the stacked character card has no room for it).
     const dollH = narrow ? this.drawDoll(ctx, game, rx, ry - u * 0.2, rw, py + ph - u * 6, u) : 0;

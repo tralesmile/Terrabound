@@ -1102,6 +1102,9 @@ try {
   await page.keyboard.press('KeyI');
   await page.waitForTimeout(300);
   const dotOff = await page.evaluate(() => window.__terrabound.ui.newGear);
+  const freshIn = await page.evaluate(() => window.__terrabound.ui.freshGear.has('junk_hammer'));
+  await page.screenshot({ path: path.join(out, '18a2-new-gear-in-grid.png') });
+  check('the new weapon carries a NEW dot in the inventory gear grid', hadHammer || freshIn, String(freshIn));
   check('found gear lights a NEW dot on the bag until the inventory is opened', (hadHammer || dotOn) && !dotOff, JSON.stringify({ hadHammer, dotOn, dotOff }));
   if (!hadHammer) await page.evaluate(() => { const o = window.__terrabound.game.save.gear.owned; o.splice(o.indexOf('junk_hammer'), 1); });
   await page.keyboard.press('KeyI');

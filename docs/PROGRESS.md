@@ -955,3 +955,13 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** Warden music motif; trophy-weapon set design; dive stats on the share card.
 
 **Known issues:** the dot is session-only (a reload forgets what was seen, so nothing is flagged after reload).
+
+## 2026-11-17 Scheduled run 75
+
+**Done:** `dev` recreated from `origin/dev`; baseline green (1000 tests). Per-item NEW dot in the inventory gear grid (ui `freshGear`, set when the inventory opens, cleared on close; e2e 18a2 screenshot + check). No save change.
+
+**Numbers:** 1000 unit tests, e2e +1 check. Gate takes ~9 min (run it in the background; a foreground call times out at 2 min).
+
+**Next:** Warden music motif; trophy-weapon set design; persist seen-gear; dive stats on the share card.
+
+**Known issues:** the NEW markers are session-only.

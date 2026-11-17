@@ -1,5 +1,11 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-17 run 75
+
+- Done: gold NEW dot on each newly found gear item inside the inventory gear grid (so you can see WHICH item is new, as Terraria does).
+- Weakest UI: the NEW marker is session-only; persist seen gear in the save (needs SAVE_VERSION bump).
+- Weakest progression: trophy weapons have no set (carried). Weakest audio: Logic Warden has no music motif (carried).
+
 ## 2026-11-17 run 74
 
 - Done: NEW dot on the bag for unseen gear (Terraria/Core Keeper highlight new items).
