@@ -263,7 +263,7 @@ try {
     const pos2 = await tileToCss(page, target.tx, target.ty + 1);
     await page.mouse.move(pos2.x, pos2.y);
     await page.mouse.down();
-    const caught = await page.waitForFunction((n) => window.__terrabound.fx.breaks > n, n0, { polling: 'raf', timeout: 4000 }).then(() => true, () => false);
+    const caught = await page.waitForFunction((n) => window.__terrabound.fx.breaks > n, n0, { polling: 'raf', timeout: 10000 }).then(() => true, () => false);
     await page.mouse.up();
     await page.waitForTimeout(60);
     if (caught) await page.screenshot({ path: path.join(out, '02b-break-debris.png') });

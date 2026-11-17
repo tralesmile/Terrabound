@@ -324,3 +324,7 @@
 - **Hard-coded content counts in checks break when content grows** (share test "Bosses 0/5", e2e "Trinkets n/6"). Guard: the e2e codex check now reads `tk.total` and asserts it equals the boss count; new count-bearing checks should derive from the table (`BOSS_IDS.length`), not a literal.
 - **Retro (run 70):** new modules drafted in the scratchpad during the baseline gate (run 67 lesson) again saved ~8 minutes; e2e is built from `dist`, so `src/` edits are safe once the gate has passed its build step.
 - **A UI colour change broke an art probe:** the Hollow AI ring count included the (now pink) boss bar once a flying boss hovered up into it. Guard: the probe skips pixels under `ui.bossRect`, and the Warden check puts the held boss back where it stood. Pixel probes near the top of the screen should exclude HUD rects.
+
+## 2026-11-17 run 74
+
+- **"debris is in the air right after a break" flaked a second time in the gate** (caught false, live 0; passed on rerun). Guard: the wait window for the next break is now 10 s (was 4 s), so slow CI/CPU load can't fail it.
