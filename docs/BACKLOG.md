@@ -2,6 +2,103 @@
 
 Rule: ship small vertical slices. Each item needs tests. Keep the game playable at all times.
 
+## P12 GROWTH ROADMAP (OWNER PRIORITY 2026-11-18: work this section FIRST, top to bottom, before any older unchecked item below)
+
+Owner goal: make Terrabound feel closer to Terraria, Starbound and Core Keeper (richer graphics, better physics and feel, more to do and build, a bigger world, a story) WITHOUT changing the core idea. Research notes and sources: `docs/RESEARCH.md`.
+
+**Core idea guard (never break):** short dives on a battery clock, bank loot at the pad before the battery dies, upgrade the suit, build drones and automation at the base, survive the Hollow. Free to play, no dark patterns, tiny bundle, deterministic sim. Every item must deepen this loop. If an item would replace or dilute it, do not build it: write the question in `docs/NEEDS_FROM_USER.md` instead.
+
+**Slice rule:** each checkbox is one run-sized slice (tests plus a screenshot check; save changes follow the SAVE_VERSION rule). If an item is too big, split it into sub-bullets right here and tick as you go. Pick the order by player impact: A (feel) first because it improves everything else, then B, E, F, C, D, G. Tick an item only after `npm run ship` is green.
+
+### P12-A Feel and physics
+
+- [ ] Movement model v2: ground and air acceleration and friction instead of instant speed; all constants in one tuning table; tests for top speed, stop distance and turn-around; keep coyote time and jump buffer.
+- [ ] Jump feel: apex hang (reduced gravity near the apex), fast-fall when holding down, jump cut on release; measure the apex in a test (see LESSONS: derive geometry from the measured apex).
+- [ ] Landing and run juice: squash and stretch on jump and land (render-only), dust puffs, camera look-ahead and a small vertical lead when falling.
+- [ ] Hit feel stack: hit-stop that freezes BOTH attacker and target, trauma-based screen shake that stacks and respects the shake setting and reduced motion, short-decay knockback, white flash, damage numbers; per-weapon-class tuning table.
+- [ ] Anticipation: enemy and boss wind-up poses plus a brief audio dip before heavy attacks (the 0.4 s telegraph rule stays).
+- [ ] Dig feedback: crack stages on the block being mined, debris chips (render-only), per-material dig sounds with pitch variation, a drill heat or overdrive meter.
+- [ ] Dig-power tiers: harder blocks need a better drill; the tile tip says "needs drill Lv N"; no luck gating.
+- [ ] Falling blocks: sand, gravel and rubble fall and pile up; telegraphed ceiling collapse in deep layers (dodgeable); deterministic tests.
+- [ ] Liquids v2 (build on `liquids.ts`): flow and pressure rules, lava plus water makes obsidian, swimming buoyancy, an oxygen drain that uses the battery clock instead of a new bar.
+- [ ] Explosives: craftable charge, chain reactions, block damage radius, blast jump; deterministic.
+- [ ] Traversal tools: grapple hook or rope swing, wall-slide and wall-jump (boots or module), jetpack fuel tied to the battery, rails or ziplines between base points.
+- [ ] Mobile feel: haptics (`navigator.vibrate`) for hit, break and bank behind a setting; auto-aim tuning; one-hand layout.
+- [ ] Gamepad support (also listed in P5): aim stick for digging, radial hotbar.
+
+### P12-B Enemies, bosses and biomes (more to fight)
+
+- [ ] Enemy roster from 6 to about 30, 4-6 per run, at least 5 per biome with distinct behaviours: burrower (tunnels through blocks), sniper (telegraphed beam), swarm, shielded (hit the back), leaper, bomber, mimic chest, spawner nest (destroy it). Each needs a sprite, sound, drop, codex entry and a spawn-rule test.
+- [ ] Elite variants: rare, glowing, one modifier, better drop, odds shown to the player.
+- [ ] One optional repeatable mini-boss per biome between the 7 main bosses (cosmetic trophy).
+- [ ] World events: Hollow Surge (drone wave at night), acid rain, magnetic storm (extra battery drain), solar flare; telegraphed in the HUD, never mandatory to survive by skipping a dive.
+- [ ] New biomes, one per 2-3 runs, each with its own mechanic, palette ramp, music mood, hazard and boss hint: Flooded Ruins (liquids and pressure), Fungal Caverns (spores, light, bounce), Dune Sea (sand, buried vaults, sandworm), Corrupted Zone (a "Hollow bloom" that spreads until machines clean it), Orbital Wreck (low gravity).
+- [ ] "Reboot Phase" world change after a key boss (Terraria hardmode idea): new ores, enemies and events, tinted surface; opt-in with a confirmation.
+- [ ] Weapon classes: summoner drone weapons, tech (mines, turrets), thrown, shield and parry; target 30+ weapons (modifiers already exist) with a distinct feel each.
+- [ ] Gear tiers Mk II and Mk III so variety exists at every layer (Core Keeper players complain about thin weapon and armour variety).
+
+### P12-C Build and automate (more to do and build)
+
+- [ ] Furniture and decor sets plus a room quality score with a visible checklist that decides which robot moves in (`rooms.ts`).
+- [ ] Wiring and logic: switch, pressure plate, timer, AND/OR gate, signal lamp, door, trap; extends `lasergrid` and `power`.
+- [ ] Logistics (conveyors, sorters, depots) ONLY if it adds real decisions (placement, throughput, defence, drone hauling). Earlier runs dropped conveyors because the stash is shared; revisit only with that test in mind, otherwise skip.
+- [ ] Drone programming v2: more conditions and actions, builder and farmer drones, path visualisation, copy-paste blueprints of a base section.
+- [ ] Defence: turrets, shield domes, walls with HP, raid waves that threaten automation (`raids.ts`, `defences.ts`), tied to Hollow Surge. This is the "survive" pillar.
+- [ ] Farming and fishing expansion: crop tiers, cooking buffs (battery, dig speed), rods, aquarium decor.
+- [ ] Pets and mounts: hover-bike and walker mounts (garage exists), pet abilities.
+- [ ] Creative sandbox mode (P4) with unlimited items, plus a photo mode.
+- [ ] Tech tree (P3) as visible research goals; blueprints found in dives.
+
+### P12-D Bigger world and depth
+
+- [ ] More layers: 5 Abyss and 6 Orbit or Void, table-driven in `layers.ts`, with tile sets, hazards, enemies and a boss.
+- [ ] Planets: a launch pad to seeded planets (Starbound style), each with a biome mix and a gravity or atmosphere modifier; reuse worldgen and `seedcode`; unlocks tied to story acts; generation stays cheap.
+- [ ] Structure variety: crashed ships, buried cities, vault puzzles with keys, mini-dungeons, secret rooms, lore arenas.
+- [ ] Underground rail or tunnel network for fast travel, plus map waypoints and beacon fast travel (P1.7 follow-up).
+- [ ] Expand the sky layer: more floating islands and a sky boss.
+- [ ] BIGGER WORLD+ (2800 to about 4200 wide) with a chunk-cache perf test and an automatic low-end mode.
+- [ ] Anti-bland worldgen (Starbound lesson: a palette swap is not a biome): every biome and planet gets landmark structures and one unique mechanic.
+
+### P12-E Story (write `docs/STORY.md` first, then wire it in)
+
+Seed premise to refine, not to rewrite: you are a repair technician in a suit on the dead machine-planet. The Hollow AI was built to restore the world and got stuck in a loop, rebuilding the same dead machines. The bosses are its corrupted subsystems, the base robots (the 4 NPCs and Dex) are repaired survivors, the 12 lore logs are what happened. Acts follow the layers: I Scrap (Junk Colossus, the mystery), II the biome subsystems (Vine Queen, Crystal Golem, Ash Wyrm, Frost Titan), III Circuit (Logic Warden), IV Core (The Hollow AI). Final choice: Reboot (restore the world), Merge (join the AI) or Shutdown (end the loop, the planet stays quiet).
+
+- [ ] Write `docs/STORY.md`: premise, cast, acts mapped to layers and bosses, reveals, three endings, tone, rules (max two lines per delivery, no walls of text, skippable); reuse the existing logs, robots and Dex.
+- [ ] Objective tracker in the HUD ("what next?") and Guide hints; fixes the weak-tutorial complaint players have about Starbound; ties into FTUE.
+- [ ] Quest log and 3 short quest lines per robot, rewarded from the stash, never timed.
+- [ ] Act beats: two-line boss intro and outro cards; Hollow AI radio transmissions that change as it is weakened; ruins and logs placed by act.
+- [ ] Three endings at the Hollow AI, credits, then New Game+ "Loop N" with mutators and carry-over cosmetics (no power gating).
+- [ ] Lore expansion from 12 to about 40 logs across the acts, with synthesised voice bleeps.
+
+### P12-F Graphics and audio (code-drawn art stays the default until the owner approves assets; see NEEDS_FROM_USER "Art source")
+
+- [ ] Tile variation: 3-4 hash-picked variants per block plus rare decals (cracks, moss, ore veins) so big areas do not tile.
+- [ ] Animated tiles: lava and water surfaces, pulsing glow ores, idle machine animations, grass and plant sway in wind.
+- [ ] Coloured dynamic lights with a bloom approximation (additive pass) and heat haze near lava; stay inside the 60 fps budget on a mid-range 2019 phone.
+- [ ] Optional WebGL post-process pass (bloom, vignette, per-biome colour grade) with a canvas fallback and a bundle-size check.
+- [ ] Depth and atmosphere: 4 parallax layers per biome, depth fog, weather particles (rain, ash, snow, spores).
+- [ ] Character and enemy animation: 8-frame run, anticipation and follow-through, visible gear layers (helmet, backpack, weapon), idle variants.
+- [ ] Palette and dither audit against `docs/ART.md`; review the 4x sprite gallery every time art changes.
+- [ ] Boss presentation: bigger arenas, intro zoom, visual change per phase, one screenshot per boss.
+- [ ] UI polish: one panel style, icon set, damage number styles, colour-blind safe ore silhouettes.
+- [ ] Adaptive music: layered stems per depth and boss, stingers, pitch-varied SFX, positional panning.
+
+### P12-G Retention, community and longevity
+
+- [ ] First 10 minutes: finish FTUE, tie in the Guide, and add a local D1/D7/D30 funnel (opt-in, no sending without consent).
+- [ ] Weekly mutators and seasonal Hollow events; no FOMO, nothing lost by skipping.
+- [ ] Anti-grind audit: every drop has a visible pity counter or a deterministic source (Terraria's top complaint is low drop rates and grind); report the audit in PROGRESS.
+- [ ] Content packs: load tiles, items and enemies from validated JSON so the community can add content (the lesson of Terraria's long life with tModLoader).
+- [ ] Share tools: photo mode, seed cards, daily leaderboard (leaderboard needs an owner decision).
+- [ ] Co-op (2-4 players, host-authoritative, deterministic sim) after a research spike; behind a feature flag.
+- [ ] Accessibility pass and localization (P5).
+- [ ] Steam and Steam Deck page once stable (needs the owner).
+
+### P12-H Discovered by research (runs append here; one line each, dated, with the reason; promote into A-G when ready)
+
+- [ ] 2026-11-18: Core Keeper added automation and new biomes in its 2026 update, so our drone automation must stay the differentiator: make drones visible, programmable and fun to watch (Dome Keeper lesson: systems that feed into one another).
+- [ ] 2026-11-18: Mobile D30 retention is about 3 percent on average; D30 killers are progression walls and content droughts. Keep a smooth ramp and a steady stream of small unlocks.
+
 ## P0 Foundation (done)
 
 - [x] Repo scaffold: TypeScript strict, Vite, Vitest, Playwright e2e with system Chrome, CI workflows

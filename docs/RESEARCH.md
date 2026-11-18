@@ -1,0 +1,27 @@
+# Research log (what players love and complain about; keep short, newest first)
+
+Rules: one dated entry per run, 3-6 lines, paraphrased (no long quotes), with the source URL. Merge or drop entries that were acted on or are weak. Anything worth building goes to `docs/BACKLOG.md` section P12-H (or straight into P12-A..G) and a one-line note in `docs/IDEAS.md`. Every idea must pass the Core idea guard in `CLAUDE.md`.
+
+## 2026-11-18 (interactive session, seed entry)
+
+**Survival-crafting player complaints (topic 3)**
+- Terraria: grind and low drop rates are the most common complaint; class variety (melee, ranged, mage, summoner) is the most praised. Source: https://vaporlens.app/app/105600/terraria
+- Core Keeper: praised for atmosphere, boss fights and exploration; criticised for difficulty imbalance and thin weapon and armour variety. Source: https://vaporlens.app/app/1621690/core_keeper/stats/analysis
+- Starbound: praised for worldbuilding, criticised for a weak first-player experience and for planets that differ only by palette. Sources: https://www.trueachievements.com/game/Starbound/reviews and https://community.playstarbound.com/threads/thoughts-on-how-to-better-starbound.140831/
+- Core Keeper's 2026 "Void & Voltage" update added automation, new biomes, a giant boss and mod support, so automation is no longer unique to us. Source: https://www.gamespark.jp/article/img/2024/09/08/144871/911755.html (and the linked update articles)
+
+**Game feel (topic 0)**
+- A hit feels heavy when hit-stop freezes both attacker and target; knockback should move fast in the first 100 ms then settle; stack hit-stop, flash, shake, particles, sound layers and anticipation. Source: https://freegamesprites.com/ar/news/game-feel-2d-combat-juice-tricks
+- Short audio dip before a boss attack builds tension; vary SFX pitch so repeats do not sound robotic. Sources: https://gamedo-live.pages.dev/news/game-feel-juice-guide-indie-devs and https://exekite-web.pages.dev/blog/seven-invisible-details-addictive-games
+- Effects that stack (trauma shake, hit-stop, squash) break each other unless they are designed together. Source: https://forum.godotengine.org/t/game-feel-effects-that-stack-without-fighting-your-code-trauma-shake-real-time-hit-stop-and-apply-the-difference/146379
+
+**Design lessons from adjacent games (topic 2 and 6)**
+- Dome Keeper: a few simple systems that feed into one another beat a pile of separate features; easy to pick up. Source: https://www.gamedeveloper.com/road-to-igf-2023/how-dome-keeper-focuses-on-systems-that-feed-into-one-another
+- Noita: depth and experimentation are loved, but cryptic secrets and chaotic physics that only hurt the player are not. Keep physics fun and readable. Source: https://www.virtualcuriosities.com/?p=5607
+
+**Mobile retention and ethics (topic 4)**
+- Average mobile retention is about 29 percent on day 1, 8.7 percent on day 7 and 3.2 percent on day 30; D30 killers are progression walls and content droughts. Sources: https://www.globalgamesforum.com/ctv/mobile-gamings-spend-to-grow-model-is-evolving and https://gamegrowthadvisor.com/blog/2026-03-17-mobile-game-retention-strategies-2026/
+- Rewarded ads remain a stable opt-in channel; trust and transparent monetization are now a competitive advantage; store commission is 15 percent for small developers. Sources: https://studiokrew.com/blog/?p=1608 and https://nbot.ai/curator/impsyolv/highlights/5ac5c51b-94d7-406d-b519-1e2d361ac39e
+- Social and community features and live events are what developers say help retention most (74 percent and 71 percent). Source: https://zbdpay.com/blog/mobile-game-retention-in-2026-4-key-insights-from-developers
+
+**Not yet researched (next runs, in rotation order):** code-drawn pixel art and lighting techniques (1), enemy and boss design (2), story in sandbox games (5), web performance and accessibility (7).

@@ -1011,3 +1011,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** seen-gear per save slot; persist the dive tally; strata bands vs dug-out tops.
 
 **Known issues:** aura has no dedicated screenshot (shares the full-set render path).
+
+## 2026-11-18 Interactive session (owner roadmap)
+
+**Done:** added the P12 GROWTH ROADMAP at the top of `docs/BACKLOG.md` (feel and physics, enemies and biomes, build and automate, bigger world, story, graphics and audio, retention, research findings), a Core idea guard and a mandatory per-run research step (topic rotation by run number modulo 8) in `CLAUDE.md`, a new `docs/RESEARCH.md` seeded with sourced findings, and the art-source question in `docs/NEEDS_FROM_USER.md`. Docs only, no code or save change.
+
+**Next:** scheduled runs start with P12-A (movement model v2, jump feel, hit-feel stack) and keep one research entry per run.
+
+**Known issues:** none; the build was not touched.
