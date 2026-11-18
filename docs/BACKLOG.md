@@ -418,6 +418,18 @@ Money (ethical, no paywalls)
 - [ ] iOS build and submission
 - [ ] Trailer, press kit, store listings in all languages
 
+## P13 Deferred option: hand-made art (owner decision 2026-11-18: keep code-drawn art for now, do NOT start this until the trigger below)
+
+The owner chose to keep improving the code-drawn art first (P12-F) and to keep this option open, not lose it. Do not work this section before the trigger. Do not delete it.
+
+**Trigger:** all P12-F items are done or the owner says so, AND a screenshot review (`e2e/out/`, the 4x sprite gallery, bosses, mobile) shows the player, enemies and bosses clearly weaker than the world and tiles around them. Then write the finding and the ask in `docs/NEEDS_FROM_USER.md` (the "Art source" item) and wait for the owner's yes; the owner must approve the pack or supply art.
+
+- [ ] Option B, scoped to characters only: approve a free CC0 pixel-art pack (no cost, no attribution required; check the licence text and keep a copy in `docs/ART.md`) for the player, enemies and bosses only. Tiles, lighting, UI and effects stay code-drawn so the look stays one style.
+- [ ] Recolour or palette-map the pack to the Terrabound palette in `docs/DESIGN.md` so it matches; compare in the sprite gallery at 4x before replacing anything.
+- [ ] Small sprite atlas (PNG, indexed palette) loaded behind a loader with the code-drawn sprites as the fallback; the bundle stays under 500 KB gzip and first interactive under 2 s on 4G (budget check in CI).
+- [ ] Update the Zero binary assets rule in `CLAUDE.md` to name exactly which asset files are allowed, so later runs do not add more.
+- [ ] Option C (owner supplies or commissions art): same loader and atlas; only a content swap. Needs the owner's files and licence.
+
 ## Definition of release candidate
 
 P0-P8 complete, all edge cases in EDGE_CASES marked done or consciously deferred with a reason, `npm run check` green, owner has played on a real phone and PC, bundle under 500 KB gzip.
