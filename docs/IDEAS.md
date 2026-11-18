@@ -139,3 +139,7 @@
 - Weakest UI (phones): the narrow inventory has no socket row; fold the 6 upgrade-level lines into one compact strip to make room.
 - Done too: mid-air jumps had no effect at all; now a kick ring in the gear's colour, a down-puff and (feather charm) green wisps, plus a lighter chirp (47c).
 - Weakest graphics (character): accessories show only as 1 px belt gems; a magnet ring could draw faint pull lines to loot it is reeling in.
+
+## 2026-11-18 (run 81)
+- Coloured torch light pools with dithered falloff (additive radial sprites) - deepens the dive mood cheaply.
+- Weakest part now: movement felt like instant speed (fixed by v2); next weakest is jump apex feel - add hang time and fast-fall.

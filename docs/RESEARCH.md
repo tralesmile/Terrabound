@@ -24,4 +24,8 @@ Rules: one dated entry per run, 3-6 lines, paraphrased (no long quotes), with th
 - Rewarded ads remain a stable opt-in channel; trust and transparent monetization are now a competitive advantage; store commission is 15 percent for small developers. Sources: https://studiokrew.com/blog/?p=1608 and https://nbot.ai/curator/impsyolv/highlights/5ac5c51b-94d7-406d-b519-1e2d361ac39e
 - Social and community features and live events are what developers say help retention most (74 percent and 71 percent). Source: https://zbdpay.com/blog/mobile-game-retention-in-2026-4-key-insights-from-developers
 
+**Code-drawn art and lighting (topic 1, run 81)**
+- Search results were mostly engine docs; useful takeaways: cheap 2D lighting is a dark overlay with additive light sprites (radial gradients) per torch, and dithered falloff reads as retro and hides banding. Sources: https://slembcke.github.io/2D-Lighting-Overview and https://alexjgriffith.itch.io/until-the-morning-breaks/devlog/213702/a-simple-retro-lighting-system and https://www.gamedeveloper.com/design/art-design-deep-dive-dynamic-2d-lighting-in-dwerve
+- Filter: Terrabound already has per-layer ambient and AO; coloured torch light pools with dithered falloff would deepen the dive mood at low cost (P12-F).
+
 **Not yet researched (next runs, in rotation order):** code-drawn pixel art and lighting techniques (1), enemy and boss design (2), story in sandbox games (5), web performance and accessibility (7).

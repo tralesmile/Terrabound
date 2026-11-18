@@ -1,3 +1,4 @@
+import { stepVx } from './movement';
 import { activePaint, nextPaint, type PaintDef, type PaintSlot } from './paints';
 import { CREW_KINDS, codexRows, loreKey, noteCodexEvent, trinketCount, type CodexRow } from './codex';
 import { currentGoal, FTUE_STEPS, goalIndex } from './ftue';
@@ -1612,7 +1613,7 @@ export class Game {
     const vst = this.vstats;
     const speed = d.speed * (vst ? vst.speed : 1) * (this.buffs.swift && !veh ? SWIFT_SPEED : 1);
     if (this.hook) b.vx += mx * 22 * dt;
-    else if (this.dashT <= 0) b.vx += (mx * speed - b.vx) * Math.min(1, 20 * dt);
+    else if (this.dashT <= 0) b.vx = stepVx(b.vx, mx, speed, probeGround(this.world, b, false), dt);
     if (Math.abs(mx) > 0.1) this.facing = mx > 0 ? 1 : -1;
 
     // Dash (dash boots): a short burst, also in the air.

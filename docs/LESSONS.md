@@ -342,3 +342,6 @@
 
 - **Editing `src/` or `tests/` while `npm run check` runs makes vitest fail mid-edit** (a half-written test failed once, passed alone). Guard: draft in the scratchpad during the gate and copy into the repo only after the gate finishes (or just rerun the failing test alone before chasing it).
 - `origin/dev` can be stale versus `origin/main`; start from `git checkout -B dev origin/main`.
+
+## 2026-11-18 run 81
+- `npx vitest run` takes ~3 min: always start it with `&` and poll; a foreground call dies at 2 min (same as the gate).

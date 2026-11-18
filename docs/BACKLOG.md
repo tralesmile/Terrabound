@@ -12,7 +12,7 @@ Owner goal: make Terrabound feel closer to Terraria, Starbound and Core Keeper (
 
 ### P12-A Feel and physics
 
-- [ ] Movement model v2: ground and air acceleration and friction instead of instant speed; all constants in one tuning table; tests for top speed, stop distance and turn-around; keep coyote time and jump buffer.
+- [x] Movement model v2 (run 81, `src/sim/movement.ts`; tuning table `MOVE`): ground and air acceleration and friction instead of instant speed; all constants in one tuning table; tests for top speed, stop distance and turn-around; keep coyote time and jump buffer.
 - [ ] Jump feel: apex hang (reduced gravity near the apex), fast-fall when holding down, jump cut on release; measure the apex in a test (see LESSONS: derive geometry from the measured apex).
 - [ ] Landing and run juice: squash and stretch on jump and land (render-only), dust puffs, camera look-ahead and a small vertical lead when falling.
 - [ ] Hit feel stack: hit-stop that freezes BOTH attacker and target, trauma-based screen shake that stacks and respects the shake setting and reduced motion, short-decay knockback, white flash, damage numbers; per-weapon-class tuning table.
@@ -74,7 +74,7 @@ Seed premise to refine, not to rewrite: you are a repair technician in a suit on
 
 - [ ] Tile variation: 3-4 hash-picked variants per block plus rare decals (cracks, moss, ore veins) so big areas do not tile.
 - [ ] Animated tiles: lava and water surfaces, pulsing glow ores, idle machine animations, grass and plant sway in wind.
-- [ ] Coloured dynamic lights with a bloom approximation (additive pass) and heat haze near lava; stay inside the 60 fps budget on a mid-range 2019 phone.
+- [ ] (2026-11-18 research: additive radial light sprites over a dark overlay, dithered falloff) Coloured dynamic lights with a bloom approximation (additive pass) and heat haze near lava; stay inside the 60 fps budget on a mid-range 2019 phone.
 - [ ] Optional WebGL post-process pass (bloom, vignette, per-biome colour grade) with a canvas fallback and a bundle-size check.
 - [ ] Depth and atmosphere: 4 parallax layers per biome, depth fog, weather particles (rain, ash, snow, spores).
 - [ ] Character and enemy animation: 8-frame run, anticipation and follow-through, visible gear layers (helmet, backpack, weapon), idle variants.

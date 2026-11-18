@@ -1019,3 +1019,13 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** scheduled runs start with P12-A (movement model v2, jump feel, hit-feel stack) and keep one research entry per run.
 
 **Known issues:** none; the build was not touched.
+
+## 2026-11-18 Scheduled run 81
+
+**Done:** baseline green. Research topic 1 (lighting) logged in RESEARCH and P12-F. Movement model v2: linear ground and air acceleration, friction, air drag and turn boost in `src/sim/movement.ts` (`MOVE` table, 5 tests); `game.ts` uses `stepVx`. No save change.
+
+**Numbers:** 1012 unit tests (from 1004+). Gate ~9 min (background).
+
+**Next:** jump feel (apex hang, fast-fall); landing juice; coloured dynamic lights.
+
+**Known issues:** no new screenshot (feel change only); creative review limited to research this run.
