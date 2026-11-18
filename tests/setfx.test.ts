@@ -34,3 +34,12 @@ describe('full set aura', () => {
     expect(setAura(st, 0.1 + MOTE_RISE)!.motes[0].dy).toBeCloseTo(a0.dy);
   });
 });
+
+describe('weapon set aura', () => {
+  it('lights up once the trophy pair is worn, not before', () => {
+    const tier = { n: 2, mod: { weaponMul: 1.15 }, desc: '' };
+    expect(setAura([{ id: 'trophy', worn: 1, active: [] }], 0)).toBeNull();
+    const a = setAura([{ id: 'trophy', worn: 2, active: [tier] }], 0);
+    expect(a?.color).toBe('#ffb347');
+  });
+});

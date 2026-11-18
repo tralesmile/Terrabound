@@ -28,7 +28,11 @@ const RISE = 26;
 
 /** The aura for the first fully worn set, or null when no set is complete. */
 export function setAura(states: SetState[], time: number): SetAura | null {
-  const full = states.find((s) => s.worn >= SETS[s.id].pieces.length);
+  // A weapon set can never be worn whole (its pieces share two slots), so it counts as complete once its top tier is on.
+  const full = states.find((s) => {
+    const d = SETS[s.id];
+    return d.weapons ? s.active.length >= d.tiers.length : s.worn >= d.pieces.length;
+  });
   if (!full) return null;
   const motes: AuraMote[] = [];
   for (let i = 0; i < MOTE_COUNT; i++) {

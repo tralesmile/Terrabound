@@ -1,5 +1,10 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-18 run 80
+
+- Done: trophy weapon pair now glows like a full armour set (a bonus you cannot see is a bonus players miss).
+- Weakest feel: enemy art is still rectangles-era in places; vehicle art pass is the biggest visual gap (carried).
+
 ## 2026-11-18 run 78
 
 - Done: share card carries the dive tally (shared screenshots that show effort get more clicks).

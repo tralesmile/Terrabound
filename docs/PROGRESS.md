@@ -1003,3 +1003,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** seen-gear per save slot; persist the dive tally; strata bands vs dug-out tops.
 
 **Known issues:** the set is stat-only (no dedicated visual).
+
+## 2026-11-18 Scheduled run 80
+
+**Done:** baseline green. Trophy Hunter weapon set now shows the suit aura (weapon sets count as complete when their top tier is active). 1 new test. No save change.
+
+**Next:** seen-gear per save slot; persist the dive tally; strata bands vs dug-out tops.
+
+**Known issues:** aura has no dedicated screenshot (shares the full-set render path).
