@@ -5,10 +5,13 @@
  */
 import type { GearId, GearStats, Loadout } from './gear';
 
-export type SetId = 'pathfinder' | 'deep_miner' | 'vanguard' | 'hollow' | 'circuit';
+export type SetId = 'pathfinder' | 'deep_miner' | 'vanguard' | 'hollow' | 'circuit' | 'trophy';
 
 /** Stats a set tier can add (all additive or multiplicative, so tiers stack). */
-export type SetMod = Partial<Pick<GearStats, 'armor' | 'digMul' | 'light' | 'maxHp' | 'drainMul' | 'airJumps'>>;
+export type SetMod = Partial<Pick<GearStats, 'armor' | 'digMul' | 'light' | 'maxHp' | 'drainMul' | 'airJumps'>> & {
+  /** Multiplies the equipped melee and ranged damage (trophy weapon pair). */
+  weaponMul?: number;
+};
 
 export interface SetTier {
   /** Pieces needed. */
@@ -22,6 +25,8 @@ export interface SetDef {
   pieces: GearId[];
   tiers: SetTier[];
   color: string;
+  /** A weapon set: its pieces sit in the melee and ranged slots, so it can never be worn whole. */
+  weapons?: boolean;
 }
 
 export const SETS: Record<SetId, SetDef> = {
@@ -57,6 +62,13 @@ export const SETS: Record<SetId, SetDef> = {
       { n: 3, mod: { armor: 0.1, drainMul: 0.85, maxHp: 25 }, desc: '10% armor, +25 health, battery lasts 15% longer' },
     ],
     color: '#5aff9a',
+  },
+  trophy: {
+    name: 'Trophy Hunter',
+    pieces: ['junk_hammer', 'thorn_whip', 'prism_lance', 'ember_cannon', 'logic_repeater'],
+    tiers: [{ n: 2, mod: { weaponMul: 1.15 }, desc: '+15% weapon damage with two boss trophy weapons' }],
+    color: '#ffb347',
+    weapons: true,
   },
   hollow: {
     name: 'Hollow Regalia',

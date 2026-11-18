@@ -244,7 +244,7 @@ Money (ethical, no paywalls)
 - [x] Circuit Core set (run 73): Circuit visor + Core plate + Trace boots, 2/3-piece tiers, green aura
 - [x] NEW dot on the bag when gear is found until the inventory is opened (run 74; session-only, no save change)
 - [x] Per-item NEW dot in the inventory gear grid (run 75)
-- [ ] Follow-ups: a set for the boss trophy weapons (sets are armor-only by test; needs a design, e.g. trophy bonuses)
+- [x] Trophy Hunter weapon set (run 79): any two boss trophy weapons (melee + ranged) give +15% weapon damage; shows in the inventory set lines and weapon tooltips
 - [x] Layer 2 Circuit: tiles, ores, enemies, hazards, dark zones (done in P1.8; layers.ts)
 - [x] Boss 1 Junk Colossus with telegraphed attacks and arena (done in P1.8 + P1.10)
 - [x] Boss 2 Logic Warden (run 70): Circuit layer guardian (Logic key: 12 gold circuit, 12 copper wire, 8 crystal; summon in the Circuit layer or deeper), flying circuit monolith with orbiting logic nodes, new LASER GRID attack (0.95 s dashed guide lines, then beams across the arena; safe lanes swap each cast, tighter in phase 2), trophy Logic repeater (rapid piercing bolts), trinket Logic chip. Unlock flow: the Warden counts toward the deeper gates (GATE_BOSSES = biome bosses + Warden), victory and share cards count x/6

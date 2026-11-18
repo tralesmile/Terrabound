@@ -229,6 +229,10 @@ export function gearStats(equip: Loadout, acc: readonly GearId[] = []): GearStat
     if (m.maxHp) s.maxHp += m.maxHp;
     if (m.drainMul) s.drainMul *= m.drainMul;
     if (m.airJumps) s.airJumps += m.airJumps;
+    if (m.weaponMul) {
+      s.meleeDmg = Math.round(s.meleeDmg * m.weaponMul);
+      s.rangedDmg = Math.round(s.rangedDmg * m.weaponMul);
+    }
   }
   s.armor = Math.min(0.6, s.armor);
   return s;

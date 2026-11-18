@@ -11,17 +11,18 @@ describe('armor set bonuses', () => {
       const d = SETS[id];
       for (const p of d.pieces) {
         expect(GEAR[p], p).toBeTruthy();
-        expect(['melee', 'ranged', 'acc', 'vehicle', 'pet']).not.toContain(GEAR[p].slot);
+        if (!d.weapons) expect(['melee', 'ranged', 'acc', 'vehicle', 'pet']).not.toContain(GEAR[p].slot);
+        else expect(['melee', 'ranged']).toContain(GEAR[p].slot);
         expect(seen.has(p), p).toBe(false);
         seen.add(p);
         expect(setOf(p)).toBe(id);
       }
       // Pieces fill distinct slots, so the whole set can be worn at once.
-      expect(new Set(d.pieces.map((p) => GEAR[p].slot)).size).toBe(d.pieces.length);
+      if (!d.weapons) expect(new Set(d.pieces.map((p) => GEAR[p].slot)).size).toBe(d.pieces.length);
       const ns = d.tiers.map((t) => t.n);
       expect(ns).toEqual([...ns].sort((a, b) => a - b));
       expect(ns[0]).toBeGreaterThanOrEqual(2);
-      expect(ns[ns.length - 1]).toBeLessThanOrEqual(d.pieces.length);
+      expect(ns[ns.length - 1]).toBeLessThanOrEqual(d.weapons ? 2 : d.pieces.length);
     }
     expect(setOf('energy_blade')).toBeNull();
   });
@@ -86,5 +87,19 @@ describe('Circuit Core set', () => {
     const three = gearStats({ head: 'circuit_visor', body: 'core_plate', feet: 'trace_boots' });
     expect(three.maxHp).toBeGreaterThan(two.maxHp + 25);
     expect(setStates({ head: 'circuit_visor', body: 'core_plate', feet: 'trace_boots' })[0].active.length).toBe(2);
+  });
+
+  it('two boss trophy weapons add 15% weapon damage; one does not; the set never reads as complete', () => {
+    const base = gearStats({ melee: 'junk_hammer', ranged: 'pulse_pistol' });
+    const pair = gearStats({ melee: 'junk_hammer', ranged: 'logic_repeater' });
+    const solo = gearStats({ melee: 'energy_blade', ranged: 'logic_repeater' });
+    expect(pair.meleeDmg).toBe(Math.round(GEAR.junk_hammer.mod.meleeDmg! * 1.15));
+    expect(pair.rangedDmg).toBe(Math.round(GEAR.logic_repeater.mod.rangedDmg! * 1.15));
+    expect(base.meleeDmg).toBe(GEAR.junk_hammer.mod.meleeDmg);
+    expect(solo.rangedDmg).toBe(GEAR.logic_repeater.mod.rangedDmg);
+    const st = setStates({ melee: 'junk_hammer', ranged: 'logic_repeater' }).find((x) => x.id === 'trophy')!;
+    expect(st.worn).toBe(2);
+    expect(st.worn).toBeLessThan(SETS.trophy.pieces.length);
+    expect(activeTierKeys({ melee: 'junk_hammer', ranged: 'logic_repeater' })).toContain('trophy:2');
   });
 });

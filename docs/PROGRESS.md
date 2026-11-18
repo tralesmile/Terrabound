@@ -995,3 +995,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** trophy-weapon set design; seen-gear per save slot; persist the dive tally.
 
 **Known issues:** none new; the share card layout has no dedicated screenshot (e2e share click only checks the flow).
+
+## 2026-11-18 Scheduled run 79
+
+**Done:** dev branched from origin/main (origin/dev was stale). Trophy Hunter weapon set: two boss trophy weapons worn together give +15% melee and ranged damage (`weaponMul` set mod, `weapons` flag on SetDef so the armour-only test still holds). 1 new test. No save change.
+
+**Next:** seen-gear per save slot; persist the dive tally; strata bands vs dug-out tops.
+
+**Known issues:** the set is stat-only (no dedicated visual).

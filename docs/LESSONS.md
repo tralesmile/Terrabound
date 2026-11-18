@@ -337,3 +337,8 @@
 ## 2026-11-17 run 76
 
 - UI-only state (seen flags) goes in a side localStorage key, not `SaveData`, to avoid a save bump; parse functions return null on corrupt data and the caller falls back to a safe default.
+
+## 2026-11-18 run 79
+
+- **Editing `src/` or `tests/` while `npm run check` runs makes vitest fail mid-edit** (a half-written test failed once, passed alone). Guard: draft in the scratchpad during the gate and copy into the repo only after the gate finishes (or just rerun the failing test alone before chasing it).
+- `origin/dev` can be stale versus `origin/main`; start from `git checkout -B dev origin/main`.
