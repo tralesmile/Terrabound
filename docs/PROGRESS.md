@@ -985,3 +985,13 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** trophy-weapon set design; dive stats on the share card; seen-gear per save slot.
 
 **Known issues:** the beat pulse has no dedicated screenshot; it shares the Warden e2e shot.
+
+## 2026-11-18 Scheduled run 78
+
+**Done:** dev checked out from origin/dev. Share card shows this dive's tally line (time, blocks mined, enemies beaten, chests; zero counts omitted) and the card text moved up to fit 4 lines (`diveLine` in ui/share, 1 new test, share test updated for 4 lines). No save change.
+
+**Numbers:** ~1005 unit tests. Gate ~9 min (background).
+
+**Next:** trophy-weapon set design; seen-gear per save slot; persist the dive tally.
+
+**Known issues:** none new; the share card layout has no dedicated screenshot (e2e share click only checks the flow).

@@ -259,7 +259,7 @@ Money (ethical, no paywalls)
 - [x] Seed sharing: 8-char world code with checksum (src/sim/seedcode.ts), COPY and PLAY A CODE in the workshop, save v7 `worldSeed`
 - [x] Run summary: SIGNAL LOST dive report card (time, depth, tallies, items lost, record flag, dive title) with NEW DIVE / SHARE (run 50; share card itself existed)
 - [x] Trip banked card: banking at the pad shows a light card above the bar (+items, trip depth, mined, beaten, chests, places since the last bank) instead of a toast; beam-home arrival has its own falling shimmer + thud (run 57)
-- [ ] Follow-ups: dive stats on the share card when shared from the report; persist the tally in the save
+- [ ] Follow-ups: persist the tally in the save (share card now shows this dive's time, mined, beaten, chests: run 78)
 - [ ] Achievements (30) with cosmetic rewards; stats screen
 - [ ] Weekly mutators (dark, low gravity, hot, double ore)
 - [ ] Daily contract and non-punishing streak

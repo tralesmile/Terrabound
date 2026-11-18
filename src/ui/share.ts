@@ -5,9 +5,20 @@
 import type { Game } from '../sim/game';
 import { BIOMES, type BiomeId } from '../sim/biomes';
 import { GATE_BOSSES } from '../sim/bosses';
+import { clock } from '../sim/divereport';
 
 export const CARD_W = 1200;
 export const CARD_H = 630;
+
+/** This dive's tally in one line ("This dive 12:05, 340 mined, 18 beaten"); zero counts are left out. */
+export function diveLine(game: Game): string {
+  const d = game.dive;
+  const parts = [`This dive ${clock(d.time)}`];
+  if (d.mined > 0) parts.push(`${d.mined} mined`);
+  if (d.kills > 0) parts.push(`${d.kills} beaten`);
+  if (d.chests > 0) parts.push(`${d.chests} chests`);
+  return parts.join(', ');
+}
 
 /** Text lines on the card (pure, tested). */
 export function shareLines(game: Game): string[] {
@@ -15,6 +26,7 @@ export function shareLines(game: Game): string[] {
   const biome = BIOMES[game.world.biome[col] as BiomeId]?.name ?? '';
   return [
     `Deepest dive ${game.stats.deepest} m   Bosses ${game.gateBossesBeaten()}/${GATE_BOSSES.length}   Codex ${game.codex.length}`,
+    diveLine(game),
     `Now in the ${biome}, ${Math.floor(game.depth)} m down`,
     `Play my world: code ${game.seedCode}`,
   ];
@@ -53,9 +65,9 @@ export function drawCard(game: Game, view: HTMLCanvasElement): HTMLCanvasElement
   ctx.textAlign = 'left';
   const lines = shareLines(game);
   lines.forEach((l, i) => {
-    ctx.font = `bold ${i === 2 ? 34 : 28}px ui-monospace, Menlo, Consolas, monospace`;
-    ctx.fillStyle = i === 2 ? '#ffcf4a' : '#ffffff';
-    ctx.fillText(l, 36, CARD_H - 130 + i * 44);
+    ctx.font = `bold ${i === 3 ? 34 : 28}px ui-monospace, Menlo, Consolas, monospace`;
+    ctx.fillStyle = i === 3 ? '#ffcf4a' : '#ffffff';
+    ctx.fillText(l, 36, CARD_H - 176 + i * 42);
   });
   return c;
 }
