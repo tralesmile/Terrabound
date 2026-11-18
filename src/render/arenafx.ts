@@ -80,6 +80,12 @@ export function arenaPulse(dist: number, time: number, ph: 1 | 2): number {
   return best * Math.max(0, 1 - d / 30);
 }
 
+/** Beat kick 0..1: 1 on the beat, decaying to 0 before the next (keeps the Warden floor in time with its music). Pure. */
+export function beatKick(time: number, bpm: number): number {
+  const f = (time * bpm) / 60;
+  return (1 - (f - Math.floor(f))) ** 3;
+}
+
 /** Trace colour: the boss accent in phase 1, red once enraged. */
 export function arenaColor(b: Boss): string {
   return phase(b) === 2 ? '#ff3a4a' : BOSSES[b.id].accent;
@@ -147,6 +153,7 @@ export function drawArenaFloor(ctx: CanvasRenderingContext2D, b: Boss, floor: Fl
   const lw = Math.max(2, Math.round(v.u * 2));
   const pads = safePads(b);
   let padCells = 0;
+  const kick = beatKick(time, 144);
   for (const c of floor) {
     const pad = pads.find(([a, z]) => c.x >= a && c.x < z);
     if (pad) {
@@ -154,7 +161,7 @@ export function drawArenaFloor(ctx: CanvasRenderingContext2D, b: Boss, floor: Fl
       drawPadCell(ctx, c, v, padFlare((pad[0] + pad[1]) / 2, b.zap, time), c.x === pad[0] ? -1 : c.x === pad[1] - 1 ? 1 : 0);
       continue;
     }
-    const k = arenaPulse(c.x + 0.5 - b.x, time, ph);
+    const k = Math.max(arenaPulse(c.x + 0.5 - b.x, time, ph), b.id === 'warden' ? 0.6 * kick : 0);
     const px = v.sx(c.x);
     const py = v.sy(c.y);
     // Base trace along the top face, brighter where the pulse passes.

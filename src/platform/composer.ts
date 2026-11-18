@@ -7,6 +7,8 @@ export interface Mood {
   layer: number;
   night: boolean;
   boss: boolean;
+  /** Which boss is active (picks a signature motif); optional. */
+  bossId?: string;
 }
 
 export type Voice = 'pad' | 'bass' | 'lead' | 'drum';
@@ -44,7 +46,7 @@ function h(a: number, b: number): number {
 
 /** Tempo in beats per minute: slower and lower deeper down, faster in boss fights. */
 export function tempo(m: Mood): number {
-  if (m.boss) return 132;
+  if (m.boss) return m.bossId === 'warden' ? 144 : 132;
   return Math.max(56, 84 - m.layer * 8 - (m.night ? 6 : 0));
 }
 
@@ -70,6 +72,15 @@ export function composeBar(m: Mood, bar: number): Note[] {
     if (h(bar, s + 17 * m.biome) > density) continue;
     const step = chordRoot + Math.floor(h(bar * 7 + s, 3) * 6) + 5;
     out.push({ beat: s / 2, len: 0.45, freq: midiToFreq(deg(step)), voice: 'lead', vol: 0.05 });
+  }
+  // Logic Warden motif: a 16th-note digital arpeggio that climbs and snaps back, with a tritone sting on the last beat.
+  if (m.boss && m.bossId === 'warden') {
+    const arp = [0, 2, 4, 7, 4, 2, 7, 9];
+    for (let s = 0; s < BEATS_PER_BAR * 4; s++) {
+      const step = chordRoot + arp[s % arp.length] - (bar % 2 ? 2 : 0);
+      out.push({ beat: s / 4, len: 0.2, freq: midiToFreq(deg(step) + 12), voice: 'lead', vol: 0.035 });
+    }
+    if (bar % 4 === 3) out.push({ beat: 3.5, len: 0.5, freq: midiToFreq(root + 6 + 12), voice: 'lead', vol: 0.06 });
   }
   // Drums only in boss fights: kick on every beat, hat on the off-beats.
   if (m.boss) for (let b = 0; b < BEATS_PER_BAR; b++) {

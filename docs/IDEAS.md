@@ -1,5 +1,10 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-18 run 77
+
+- Done: Warden has a music motif and its floor flashes on the beat (Crypt of the NecroDancer / Dome Keeper style: visuals locked to music).
+- Weakest progression: trophy weapons have no set (carried). Weakest UI: seen-gear is per browser, not per save slot.
+
 ## 2026-11-17 run 76
 
 - Done: NEW dots persist across reloads (Terraria keeps item-new flags in the player file).

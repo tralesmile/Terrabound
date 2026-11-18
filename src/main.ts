@@ -955,7 +955,7 @@ function boot(): void {
       renderer.follow(game, dt);
       if (ui.screen === 'play') {
         const col = Math.max(0, Math.min(game.world.w - 1, Math.floor(game.body.x)));
-        sfx.updateMusic({ biome: game.world.biome[col] ?? 0, layer: game.depth > 8 ? game.layer : 0, night: isNight(game.time), boss: !!game.boss });
+        sfx.updateMusic({ biome: game.world.biome[col] ?? 0, layer: game.depth > 8 ? game.layer : 0, night: isNight(game.time), boss: !!game.boss, bossId: game.boss?.id });
       }
       renderer.draw(game, fx, input.mouse.has && ui.screen === 'play' && !ui.touch ? renderer.screenToTile(input.mouse.x * dpr, input.mouse.y * dpr) : null, clock);
 

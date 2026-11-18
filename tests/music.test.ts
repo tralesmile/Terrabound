@@ -6,6 +6,23 @@ import { Game } from '../src/sim/game';
 const base: Mood = { biome: 0, layer: 0, night: false, boss: false };
 
 describe('procedural music', () => {
+  it('the Logic Warden has its own faster motif that stays in range', () => {
+    const w: Mood = { ...base, boss: true, bossId: 'warden' };
+    const plain = { ...base, boss: true };
+    expect(tempo(w)).toBeGreaterThan(tempo(plain));
+    for (let bar = 0; bar < 8; bar++) {
+      const a = composeBar(w, bar);
+      expect(a).toEqual(composeBar(w, bar));
+      expect(a.length).toBeGreaterThan(composeBar(plain, bar).length + 10);
+      for (const n of a) {
+        expect(n.beat).toBeLessThan(BEATS_PER_BAR);
+        expect(n.freq).toBeGreaterThan(20);
+        expect(n.freq).toBeLessThan(10000);
+        expect(n.vol).toBeLessThanOrEqual(0.2);
+      }
+    }
+  });
+
   it('is deterministic, stays inside the bar and in an audible range', () => {
     for (let biome = 0; biome < 5; biome++) {
       for (let bar = 0; bar < 16; bar++) {
@@ -42,5 +59,15 @@ describe('procedural music', () => {
     expect(parseSave(JSON.stringify(g.toSave())).settings.music).toBe(false);
     const v10 = { ...defaultSave(), v: 10, settings: { muted: false } };
     expect(parseSave(JSON.stringify(v10)).settings.music).toBe(true);
+  });
+});
+
+import { beatKick } from '../src/render/arenafx';
+describe('Warden floor beat', () => {
+  it('kicks on the beat and decays within it, matching the 144 bpm motif', () => {
+    expect(beatKick(0, 144)).toBe(1);
+    expect(beatKick(60 / 144 / 2, 144)).toBeLessThan(0.2);
+    expect(beatKick(60 / 144 + 1e-6, 144)).toBeGreaterThan(0.99);
+    for (let t = 0; t < 3; t += 0.013) { const k = beatKick(t, 144); expect(k).toBeGreaterThanOrEqual(0); expect(k).toBeLessThanOrEqual(1); }
   });
 });

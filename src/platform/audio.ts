@@ -106,7 +106,7 @@ export class Sfx {
       this.nextBarAt = 0;
       return;
     }
-    const key = `${m.biome}|${m.layer}|${m.night}|${m.boss}`;
+    const key = `${m.biome}|${m.layer}|${m.night}|${m.boss}|${m.bossId ?? ''}`;
     if (key !== this.moodKey) {
       // Mood change: start fresh on the next bar boundary.
       this.moodKey = key;
