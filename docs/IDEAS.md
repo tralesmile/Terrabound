@@ -143,3 +143,5 @@
 ## 2026-11-18 (run 81)
 - Coloured torch light pools with dithered falloff (additive radial sprites) - deepens the dive mood cheaply.
 - Weakest part now: movement felt like instant speed (fixed by v2); next weakest is jump apex feel - add hang time and fast-fall.
+
+- 2026-11-19: Landing dust plus squash on hard falls would sell the new jump hang (feel, render-only). Weakest part now: combat feedback (no hit-stop), see P12-A.

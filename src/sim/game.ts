@@ -1,4 +1,4 @@
-import { stepVx } from './movement';
+import { gravityMul, stepVx } from './movement';
 import { activePaint, nextPaint, type PaintDef, type PaintSlot } from './paints';
 import { CREW_KINDS, codexRows, loreKey, noteCodexEvent, trinketCount, type CodexRow } from './codex';
 import { currentGoal, FTUE_STEPS, goalIndex } from './ftue';
@@ -1718,7 +1718,7 @@ export class Game {
     } else if (this.dashT > 0) {
       b.vy = 0;
     } else {
-      b.vy = Math.min(MAX_FALL, b.vy + GRAVITY * dt);
+      b.vy = Math.min(MAX_FALL, b.vy + GRAVITY * gravityMul(b.vy, !!c.jump && !this.padLaunch, !!c.down && !grounded) * dt);
       // Jetpack: hold jump in the air once the jump has peaked (or with no jumps left).
       if (g.jetpack && c.jump && !grounded && !this.hook && b.vy > -4 && this.battery > 0) {
         b.vy = Math.max(-JET_MAX, b.vy - JET_THRUST * dt);

@@ -13,7 +13,8 @@ Owner goal: make Terrabound feel closer to Terraria, Starbound and Core Keeper (
 ### P12-A Feel and physics
 
 - [x] Movement model v2 (run 81, `src/sim/movement.ts`; tuning table `MOVE`): ground and air acceleration and friction instead of instant speed; all constants in one tuning table; tests for top speed, stop distance and turn-around; keep coyote time and jump buffer.
-- [ ] Jump feel: apex hang (reduced gravity near the apex), fast-fall when holding down, jump cut on release; measure the apex in a test (see LESSONS: derive geometry from the measured apex).
+- [x] Jump feel (run 82, `JUMPFEEL` + `gravityMul` in movement.ts): apex hang (reduced gravity near the apex), fast-fall when holding down, jump cut on release; measure the apex in a test (see LESSONS: derive geometry from the measured apex).
+- [ ] (run 82 research) Enemy attack-pattern teaching: each new enemy shows its pattern in a safe first encounter (telegraph plus a harmless first use), cheap and fits P12-B.
 - [ ] Landing and run juice: squash and stretch on jump and land (render-only), dust puffs, camera look-ahead and a small vertical lead when falling.
 - [ ] Hit feel stack: hit-stop that freezes BOTH attacker and target, trauma-based screen shake that stacks and respects the shake setting and reduced motion, short-decay knockback, white flash, damage numbers; per-weapon-class tuning table.
 - [ ] Anticipation: enemy and boss wind-up poses plus a brief audio dip before heavy attacks (the 0.4 s telegraph rule stays).

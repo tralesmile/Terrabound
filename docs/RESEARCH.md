@@ -28,4 +28,8 @@ Rules: one dated entry per run, 3-6 lines, paraphrased (no long quotes), with th
 - Search results were mostly engine docs; useful takeaways: cheap 2D lighting is a dark overlay with additive light sprites (radial gradients) per torch, and dithered falloff reads as retro and hides banding. Sources: https://slembcke.github.io/2D-Lighting-Overview and https://alexjgriffith.itch.io/until-the-morning-breaks/devlog/213702/a-simple-retro-lighting-system and https://www.gamedeveloper.com/design/art-design-deep-dive-dynamic-2d-lighting-in-dwerve
 - Filter: Terrabound already has per-layer ambient and AO; coloured torch light pools with dithered falloff would deepen the dive mood at low cost (P12-F).
 
+**Enemy, boss and weapon design (topic 2, run 82)**
+- Searches returned mostly generic boss-design blogs: a good boss teaches its own pattern in a safe first use, and weapon variety matters only when each weapon changes how you play (not just numbers). Sources: https://bugnet.io/blog/how-to-design-a-boss-that-teaches-its-own-pattern and https://bugnet.io/blog/how-to-design-weapon-variety-that-matters
+- Filter: both fit the roster and weapon-class items in P12-B; one-liner added there.
+
 **Not yet researched (next runs, in rotation order):** code-drawn pixel art and lighting techniques (1), enemy and boss design (2), story in sandbox games (5), web performance and accessibility (7).

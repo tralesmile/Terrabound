@@ -1029,3 +1029,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** jump feel (apex hang, fast-fall); landing juice; coloured dynamic lights.
 
 **Known issues:** no new screenshot (feel change only); creative review limited to research this run.
+
+## 2026-11-19 Scheduled run 82
+
+**Done:** dev reset to origin/dev. Research topic 2 logged. Jump feel: apex hang while jump is held and fast-fall when holding down (`JUMPFEEL`, `gravityMul`), 2 tests incl. measured apex. No save change.
+
+**Next:** landing and run juice (squash/stretch, dust, camera lead); hit feel stack.
+
+**Known issues:** no screenshot check (sim feel only); creative review limited to research this run.

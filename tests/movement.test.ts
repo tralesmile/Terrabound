@@ -35,3 +35,27 @@ describe('movement v2', () => {
     expect(v).toBeGreaterThan(7);
   });
 });
+
+import { JUMPFEEL, gravityMul } from '../src/sim/movement';
+import { GRAVITY, JUMP_V } from '../src/sim/game';
+
+describe('jump feel', () => {
+  const apex = (held: boolean): { h: number; t: number } => {
+    let vy = -JUMP_V, y = 0, t = 0;
+    const dt = 1 / 60;
+    while (vy < 0 || t === 0) { vy += GRAVITY * gravityMul(vy, held, false) * dt; y += vy * dt; t += dt; if (t > 3) break; }
+    return { h: -y, t };
+  };
+  it('apex hang adds air time at the top without changing the jump much', () => {
+    const hang = apex(true), plain = apex(false);
+    expect(hang.t).toBeGreaterThan(plain.t);
+    expect(hang.h).toBeGreaterThan(plain.h);
+    expect(hang.h - plain.h).toBeLessThan(0.5);
+  });
+  it('no hang when jump is released, fast-fall when diving', () => {
+    expect(gravityMul(0, false, false)).toBe(1);
+    expect(gravityMul(0, true, false)).toBe(JUMPFEEL.hangMul);
+    expect(gravityMul(8, true, true)).toBe(JUMPFEEL.fastFallMul);
+    expect(gravityMul(-8, false, true)).toBe(1);
+  });
+});

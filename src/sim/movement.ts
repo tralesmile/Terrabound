@@ -27,3 +27,17 @@ export function stepVx(vx: number, mx: number, speed: number, grounded: boolean,
   const step = accel * dt;
   return Math.abs(dv) <= step ? target : vx + Math.sign(dv) * step;
 }
+
+/** Vertical feel: slightly lighter gravity near the apex while jump is held, heavier when diving. */
+export const JUMPFEEL = {
+  hangBand: 3, // |vy| below this (units/s) counts as the apex
+  hangMul: 0.55, // gravity multiplier in the apex band while jump is held
+  fastFallMul: 1.6, // gravity multiplier when holding down while falling
+} as const;
+
+/** Gravity multiplier for this frame (1 = normal). */
+export function gravityMul(vy: number, jumpHeld: boolean, down: boolean): number {
+  if (vy > 0 && down) return JUMPFEEL.fastFallMul;
+  if (jumpHeld && Math.abs(vy) < JUMPFEEL.hangBand) return JUMPFEEL.hangMul;
+  return 1;
+}
