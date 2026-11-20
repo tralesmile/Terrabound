@@ -21,7 +21,8 @@ Owner goal: make Terrabound feel closer to Terraria, Starbound and Core Keeper (
 - [x] (run 83: `src/render/digfx.ts`, `src/platform/digvoice.ts`) Dig feedback: crack stages on the block being mined, debris chips (render-only), per-material dig sounds with pitch variation.
 - [ ] Drill heat or overdrive meter (split from dig feedback in run 83): holding the drill builds heat that tints the beam; an overdrive burst digs faster but drains battery; must deepen the battery-clock decision, not add a second bar to babysit.
 - [x] (run 83, `src/sim/drilltier.ts`: ores only, rock never gated) Dig-power tiers: harder blocks need a better drill; the tile tip says "needs drill Lv N"; no luck gating.
-- [ ] Falling blocks: sand, gravel and rubble fall and pile up; telegraphed ceiling collapse in deep layers (dodgeable); deterministic tests.
+- [x] (run 83, `src/sim/falling.ts`) Falling blocks: crystal sand and ash wobble 0.45 s when undermined, drop, pile up and cascade; one landing on the player does 8 damage and breaks into a pickup; deterministic tests.
+- [ ] Telegraphed ceiling collapse in deep layers (split from falling blocks in run 83): rubble tiles in Plasma and Core ceilings that shake, drop dust, then fall (dodgeable); reuse `falling.ts`.
 - [ ] Liquids v2 (build on `liquids.ts`): flow and pressure rules, lava plus water makes obsidian, swimming buoyancy, an oxygen drain that uses the battery clock instead of a new bar.
 - [ ] Explosives: craftable charge, chain reactions, block damage radius, blast jump; deterministic.
 - [ ] Traversal tools: grapple hook or rope swing, wall-slide and wall-jump (boots or module), jetpack fuel tied to the battery, rails or ziplines between base points.

@@ -267,6 +267,8 @@ export class Renderer {
   /** Watered test for crops this frame (sprinklers, ponds, robot gardeners in the base). */
   private cropWet: ((x: number, y: number) => boolean) | null = null;
   private snapped = false;
+  /** Loose blocks drawn wobbling or falling this frame (read by e2e). */
+  fallsShown = 0;
   /** Crack stage drawn on the block being mined this frame (read by e2e). */
   crackShown = 0;
   /** Eased camera lead in tiles (look-ahead and fall lead). */
@@ -587,6 +589,14 @@ export class Renderer {
         ctx.fillRect(ex - w / 2, ey - h - 4 * scale, (w * Math.max(0, e.hp)) / d.hp, 2 * scale);
       }
     }
+    // Loose blocks (falling.ts): a wobbling block jitters a pixel over its own tile; falling ones draw free.
+    for (const fw of game.fallWarns) {
+      const jx = Math.round(Math.sin(time * 47 + fw.x) * 1.2) * scale;
+      const t = world.get(fw.x, fw.y);
+      ctx.drawImage(this.atlas, atlasCol(0, edgeMask(getTile, fw.x, fw.y)) * TS, t * TS, TS, TS, this.sx(fw.x, shakeX) + jx, this.sy(fw.y, shakeY), ts, ts);
+    }
+    for (const fb of game.fallBodies) ctx.drawImage(this.atlas, atlasCol(0, MASKS - 1) * TS, fb.tile * TS, TS, TS, this.sx(fb.x, shakeX), this.sy(fb.y, shakeY), ts, ts);
+    this.fallsShown = game.fallWarns.length + game.fallBodies.length;
     if (game.swing > 0) {
       // Swing trail in the weapon's own colours; a rare or epic prefix adds a rarity glow and sparkles.
       const k = 1 - game.swing / 0.18;

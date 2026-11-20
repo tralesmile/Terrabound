@@ -855,6 +855,18 @@ function boot(): void {
         ui.toast(TEACH[e.kind], '#ffcf4a', 5, 'teach');
         fx.ring(e.x, e.y, 1.4, '#ffcf4a');
         break;
+      case 'fallwarn':
+        // Grains trickle from under a loose block before it drops (the telegraph).
+        fx.dust(e.x + 0.5, e.y + 1, TILE_COLORS[e.tile] ?? '#c9b48a', 4, 0.8);
+        break;
+      case 'falland':
+        fx.dust(e.x + 0.5, e.y + 1, TILE_COLORS[e.tile] ?? '#c9b48a', 6, 2.5);
+        fx.addShake(0.12);
+        break;
+      case 'fallbreak':
+        fx.burst(e.x + 0.5, e.y + 0.5, TILE_COLORS[e.tile] ?? '#c9b48a', 10, 4);
+        if (e.player) fx.addShake(0.3);
+        break;
       case 'enemyslam':
         // The hulk's slam lands: a frost shockwave as wide as its reach so the dodge reads.
         fx.slamImpact(e.x, e.y, 0.55, e.radius, TILE_COLORS[game.world.get(Math.floor(e.x), Math.floor(e.y + 0.05))] ?? '#c9e8ff', '#9fe8ff', null);

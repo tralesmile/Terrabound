@@ -312,6 +312,35 @@ try {
     }, [spot.tx, spot.ty, spot.old]);
     check('a starter drill skids off a core shard and names the Drill bit level it needs', spot.pick < 3 && hard.tile === CORE_ORE && hard.toast.includes('Drill bit Lv 3'), JSON.stringify({ spot, hard }));
   }
+  // Falling blocks: loose sand above a dug cell wobbles, drops and piles up on the floor.
+  {
+    const tilesSrc = fs.readFileSync(path.join(root, 'src/sim/tiles.ts'), 'utf8');
+    const id = (n) => Number(tilesSrc.match(new RegExp(`\\b${n}: (\\d+),`))[1]);
+    const ids = { SAND: id('SAND'), METAL: id('METAL'), AIR: id('AIR') };
+    const fall = await page.evaluate(async (k) => {
+      const { game: g, renderer } = window.__terrabound;
+      const x = Math.floor(g.body.x) + 3;
+      const by = Math.floor(g.body.y);
+      const keep = [];
+      for (let y = by - 6; y <= by; y++) keep.push([y, g.world.get(x, y)]);
+      for (let y = by - 4; y < by; y++) g.world.set(x, y, k.AIR);
+      g.world.set(x, by, k.METAL);
+      g.world.set(x, by - 5, k.SAND);
+      g['loosen'](x, by - 4);
+      await new Promise((r) => setTimeout(r, 200));
+      const wobbling = renderer.fallsShown;
+      return { x, by, wobbling, keep };
+    }, ids);
+    await page.screenshot({ path: path.join(out, '02d-falling-sand.png') });
+    const landed = await page.evaluate(async ([f, k]) => {
+      const { game: g } = window.__terrabound;
+      await new Promise((r) => setTimeout(r, 1500));
+      const r = { rest: g.world.get(f.x, f.by - 1), top: g.world.get(f.x, f.by - 5) };
+      for (const [y, t] of f.keep) g.world.set(f.x, y, t);
+      return r;
+    }, [fall, ids]);
+    check('loose sand wobbles, drops and piles up where it lands', fall.wobbling > 0 && landed.rest === ids.SAND && landed.top === ids.AIR, JSON.stringify({ wobbling: fall.wobbling, landed }));
+  }
   // Landing pad deck: hazard chevrons at both ends, runway lights chasing toward the centre.
   const padArt = await page.evaluate(async () => {
     const { game, renderer } = window.__terrabound;

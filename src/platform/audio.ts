@@ -180,6 +180,16 @@ export class Sfx {
           this.tone(digPitch(v.freq, Math.random()), v.dur, v.wave, v.vol);
         }
         break;
+      case 'fallwarn':
+        // A dry crumble: the block above is coming loose.
+        if (this.ok('fallwarn', 120)) this.noise(0.18, 0.1);
+        break;
+      case 'falland':
+        if (this.ok('falland', 60)) {
+          this.noise(0.08, 0.22);
+          this.tone(90, 0.08, 'triangle', 0.08, 60);
+        }
+        break;
       case 'enemyslam':
         // A heavy thud with a low slide.
         this.tone(70, 0.25, 'triangle', 0.18, 40);

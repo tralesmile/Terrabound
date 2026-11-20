@@ -11,6 +11,7 @@ import { noteBoss, noteDepth, noteLoot, startAttempt, type RecordBeat, type Worl
 import { hash2, mixSeed, mulberry32 } from './rng';
 import { HIT_FEEL, type HitClass } from './hitfeel';
 import { drillNeeded } from './drilltier';
+import { FALL, disturb, stepFalling, type FallBody, type FallWarn } from './falling';
 import { TEACH_SHOVE, firstMeet, sanitizeMet, shouldTeach } from './teach';
 import { ENEMIES, ENEMY_HIT_IFRAMES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
 import { type Body, moveX, moveY, onLadder, probeGround, stepUp, unstick, BODY_H, HALF_W } from './physics';
@@ -139,6 +140,12 @@ export type GameEvent =
   | { t: 'discover'; id: string; name: string }
   /** First sight of an enemy kind this save never met: the HUD names its pattern (teach.ts). */
   | { t: 'teach'; kind: EnemyKind; x: number; y: number }
+  /** A loose block (sand, ash) lost its support and wobbles before it drops (falling.ts). */
+  | { t: 'fallwarn'; x: number; y: number; tile: number }
+  /** A falling block came to rest at tile (x, y). */
+  | { t: 'falland'; x: number; y: number; tile: number }
+  /** A falling block broke (on the player, in water, on a torch) into a pickup. */
+  | { t: 'fallbreak'; x: number; y: number; tile: number; player: boolean }
   /** A slammer (Frost hulk) landed its telegraphed ground slam at its feet (x, y), reaching `radius` tiles. */
   | { t: 'enemyslam'; x: number; y: number; radius: number; hit: boolean }
   /** A teacher's first touch: a harmless shove instead of damage. */
@@ -433,6 +440,9 @@ export class Game {
   private placeCd = 0;
   private digTick = 0;
   private fullCd = 0;
+  /** Loose blocks wobbling before they drop, and blocks in flight (falling.ts); transient, not saved. */
+  fallWarns: FallWarn[] = [];
+  fallBodies: FallBody[] = [];
   private lowWarned = false;
   /** The garage bay charging the battery this step (null when not under a field garage; render + e2e). */
   bayCharging: { x: number; y: number } | null = null;
@@ -1851,7 +1861,10 @@ export class Game {
           }
           if (this.mining.progress >= 1) {
             if (onWall) this.world.setWall(tx, ty, W.NONE);
-            else removeTile(this.world, tx, ty); // also clears the other half of a 2-tile bed/table
+            else {
+              removeTile(this.world, tx, ty); // also clears the other half of a 2-tile bed/table
+              this.loosen(tx, ty);
+            }
             this.emit({ t: 'break', x: tx, y: ty, tile: onWall ? T.WALL : tile });
             if (def.drop) {
               invAdd(this.carried, def.drop, 1);
@@ -1926,6 +1939,7 @@ export class Game {
     this.stepShots(dt);
     this.stepBossFight(dt);
     this.stepHazards(dt);
+    this.stepFalls(dt);
 
     // Base services, battery and survival.
     if (this.isAtBase()) {
@@ -1993,6 +2007,8 @@ export class Game {
         if (def.drop) addDrop(this.drops, makeDrop(def.drop, 1, tx + 0.5, ty + 0.5, 0, -2));
       }
     }
+    // Loose blocks above the crater lose their support.
+    for (let tx = Math.floor(x - r); tx <= Math.ceil(x + r); tx++) for (let ty = Math.ceil(y + r); ty >= Math.floor(y - r); ty--) this.loosen(tx, ty);
     this.emit({ t: 'boom', x, y });
   }
 
@@ -2403,6 +2419,33 @@ export class Game {
       this.raid = null;
       reactNpcs(this.npcs, 'cheer');
       this.emit({ t: 'raidclear', n: r.total, reward, blueprint: blueprintDrop(this.save.stats.raids)?.name ?? null });
+    }
+  }
+
+  /** A tile at (x, y) was removed: a loose block resting on it starts to wobble (falling.ts). */
+  private loosen(x: number, y: number): void {
+    if (disturb(this.world, x, y, this.fallWarns)) {
+      const w = this.fallWarns[this.fallWarns.length - 1];
+      this.emit({ t: 'fallwarn', x: w.x, y: w.y, tile: this.world.get(w.x, w.y) });
+    }
+  }
+
+  /** Drop wobbling loose blocks and move falling ones; one landing on the player hurts a little and breaks. */
+  private stepFalls(dt: number): void {
+    if (this.fallWarns.length === 0 && this.fallBodies.length === 0) return;
+    const b = this.body;
+    const hits = (x: number, y: number): boolean => x + 1 > b.x - HALF_W && x < b.x + HALF_W && y + 1 > b.y - BODY_H && y < b.y;
+    const r = stepFalling(this.world, this.fallWarns, this.fallBodies, dt, hits);
+    for (const w of r.warned) this.emit({ t: 'fallwarn', x: w.x, y: w.y, tile: this.world.get(w.x, w.y) });
+    for (const l of r.landed) this.emit({ t: 'falland', x: l.x, y: l.y, tile: l.tile });
+    for (const k of r.broke) {
+      if (k.player && this.iframes === 0 && !this.isAtBase()) {
+        this.hurt(FALL.dmg);
+        this.iframes = IFRAMES;
+      }
+      const drop = TILES[k.tile]?.drop;
+      if (drop) addDrop(this.drops, makeDrop(drop, 1, k.x + 0.5, k.y + 0.5, 0, -3));
+      this.emit({ t: 'fallbreak', x: k.x, y: k.y, tile: k.tile, player: k.player });
     }
   }
 
