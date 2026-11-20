@@ -19,6 +19,9 @@ export const SPAWN_LIGHT_MAX = 0.3;
 export const W = { NONE: 0, CAVE_RUST: 1, CAVE_ROCK: 2, PLATE: 3 } as const;
 export const WALL_IDS = [W.NONE, W.CAVE_RUST, W.CAVE_ROCK, W.PLATE] as const;
 
+/** Tiles that light like a torch: torches, lamps and the two neon blocks. */
+const LIGHT_TILES: ReadonlySet<number> = new Set<number>([T.TORCH, T.LAMP, T.NEON_CYAN, T.NEON_PINK]);
+
 export class World {
   readonly tiles: Uint8Array;
   /** Back walls behind tiles (W ids). Underground is lined with natural cave walls. */
@@ -82,8 +85,8 @@ export class World {
     if (x < 0 || x >= this.w || y < 0 || y >= this.h) return false;
     const i = y * this.w + x;
     // Lamps (furniture) light like torches.
-    if (this.tiles[i] === T.TORCH || this.tiles[i] === T.LAMP) this.torches.delete(i);
-    if (t === T.TORCH || t === T.LAMP) this.torches.add(i);
+    if (LIGHT_TILES.has(this.tiles[i])) this.torches.delete(i);
+    if (LIGHT_TILES.has(t)) this.torches.add(i);
     if (t !== T.SAPLING) this.saplings.delete(i);
     this.crops.delete(i); // a new stage (or anything else) restarts the stage timer; plantCrop / stepCrops set it
     if (t !== T.CHEST && this.chests.delete(i)) this.chestVersion++;

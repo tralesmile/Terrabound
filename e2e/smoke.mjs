@@ -4199,6 +4199,22 @@ try {
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(out, '38-windows.png') });
   check('a window in a room wall gives it a view and keeps it a valid home', winState.view === true && winState.valid && winState.comfort === 4, JSON.stringify(winState));
+  // Build set: panel, hazard, brick, grate and the two neon blocks as a wall strip above the pad.
+  const buildSet = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const px = w.padX - 12;
+    const py = w.padY - 2;
+    const ids = [71, 72, 73, 74, 75, 76];
+    ids.forEach((id, i) => { for (let r = 0; r < 2; r++) w.set(px + i * 2, py - r, id); w.set(px + i * 2 + 1, py, id); });
+    g.body.x = px + 6;
+    g.body.y = w.padY;
+    g.body.vx = g.body.vy = 0;
+    return ids.map((id, i) => w.get(px + i * 2, py) === id);
+  });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: path.join(out, '38c-build-set.png') });
+  check('the six build blocks place into the world and render without errors', buildSet.every(Boolean) && errors.length === 0, JSON.stringify({ buildSet, errors }));
   const liftY0 = await page.evaluate(() => {
     const g = window.__terrabound.game;
     g.body.x = g.world.padX + 5.5;

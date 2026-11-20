@@ -38,6 +38,12 @@ const NOTES: Partial<Record<number, string>> = {
   [T.PLATFORM]: 'Jump up through it, press S to drop.',
   [T.DOOR]: 'You walk through, enemies cannot.',
   [T.WINDOW]: 'Lets light in.',
+  [T.PANEL]: 'Smooth hull plating for walls and floors.',
+  [T.HAZARD]: 'Warning stripes for edges and danger zones.',
+  [T.BRICK]: 'Warm brick for homes.',
+  [T.GRATE]: 'Solid, but light and sight pass through.',
+  [T.NEON_CYAN]: 'Glows. Trim your base with it.',
+  [T.NEON_PINK]: 'Glows. Trim your base with it.',
   [T.LADDER]: 'Climb with W and S.',
 };
 

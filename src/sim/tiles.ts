@@ -45,6 +45,12 @@ export type ItemId =
   | 'bed'
   | 'chair'
   | 'window'
+  | 'panel'
+  | 'hazard'
+  | 'brick'
+  | 'grate'
+  | 'neon_cyan'
+  | 'neon_pink'
   | 'lift'
   | 'corn_seed'
   | 'root_seed'
@@ -105,6 +111,12 @@ export const ITEM_IDS: ItemId[] = [
   'bed',
   'chair',
   'window',
+  'panel',
+  'hazard',
+  'brick',
+  'grate',
+  'neon_cyan',
+  'neon_pink',
   'lift',
   'corn_seed',
   'root_seed',
@@ -208,6 +220,13 @@ export const T = {
   ICE: 69,
   /** Spring pad: stepping on it launches the player high (a way up to sky islands). */
   JUMP_PAD: 70,
+  /** Build set (solid decor blocks): smooth hull panel, hazard stripe, red brick, see-through grate, and two self-lit neon blocks. */
+  PANEL: 71,
+  HAZARD: 72,
+  BRICK: 73,
+  GRATE: 74,
+  NEON_CYAN: 75,
+  NEON_PINK: 76,
 } as const;
 
 export interface TileDef {
@@ -309,6 +328,12 @@ export const TILES: TileDef[] = [
   { name: 'Garage bay', hardness: 0.8, solid: false, drop: 'garage_kit', minable: true },
   { name: 'Pond ice', hardness: 0.4, solid: true, drop: null, clear: true },
   { name: 'Jump pad', hardness: 0.5, solid: true, drop: 'jump_pad' },
+  { name: 'Hull panel', hardness: 0.7, solid: true, drop: 'panel' },
+  { name: 'Hazard block', hardness: 0.7, solid: true, drop: 'hazard' },
+  { name: 'Red brick', hardness: 0.7, solid: true, drop: 'brick' },
+  { name: 'Grate', hardness: 0.4, solid: true, drop: 'grate', clear: true },
+  { name: 'Cyan neon', hardness: 0.4, solid: true, drop: 'neon_cyan', glow: true },
+  { name: 'Pink neon', hardness: 0.4, solid: true, drop: 'neon_pink', glow: true },
 ];
 
 export interface ItemDef {
@@ -385,9 +410,15 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   tart: { name: 'Berry tart', color: '#7ac8ff', places: null, kit: true },
   icefin: { name: 'Icefin', color: '#bfe6f5', places: null },
   jump_pad: { name: 'Jump pad', color: '#36e0e8', places: T.JUMP_PAD, kit: true },
+  panel: { name: 'Hull panel', color: '#6f7d96', places: T.PANEL, kit: true },
+  hazard: { name: 'Hazard block', color: '#e8b82a', places: T.HAZARD, kit: true },
+  brick: { name: 'Red brick', color: '#a8503c', places: T.BRICK, kit: true },
+  grate: { name: 'Grate', color: '#8a96a8', places: T.GRATE, kit: true },
+  neon_cyan: { name: 'Cyan neon', color: '#36e0e8', places: T.NEON_CYAN, kit: true },
+  neon_pink: { name: 'Pink neon', color: '#ff5ac8', places: T.NEON_PINK, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair', 'window', 'lift', 'corn_seed', 'root_seed', 'berry_seed', 'sprinkler', 'pot', 'garage_kit', 'jump_pad'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair', 'window', 'lift', 'corn_seed', 'root_seed', 'berry_seed', 'sprinkler', 'pot', 'garage_kit', 'jump_pad', 'panel', 'hazard', 'brick', 'grate', 'neon_cyan', 'neon_pink'];
 
 /**
  * Full build-bar order: the player's arranged order first (unknown and duplicate ids dropped),
