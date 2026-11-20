@@ -391,8 +391,11 @@ const WALL_LOOK: Record<number, Look> = {
   1: { base: '#2e2026', light: '#3a2a2f', dark: '#22171c', detail: 'flakes' },
   2: { base: '#1e2230', light: '#272c3c', dark: '#161923', detail: 'cracks' },
   3: { base: '#2f3748', light: '#3d475c', dark: '#232a38', detail: 'rivets' },
+  4: { base: '#38425a', light: '#46526c', dark: '#29314a', detail: 'panel' },
+  5: { base: '#4a2a26', light: '#5e3830', dark: '#341c1a', detail: 'bricks' },
+  6: { base: '#2c2e34', light: '#5a4c1c', dark: '#1c1d22', detail: 'hazard' },
 };
-export const WALL_KINDS = 4;
+export const WALL_KINDS = 7;
 /**
  * Natural cave walls in the deeper layers (index = layer). Each is well below its layer's rock in
  * brightness, so a lit open cave reads as a hollow behind the blocks, never brighter than them:
@@ -460,6 +463,18 @@ export function wallTexture(wall: number, v: number): (string | null)[] {
       put(TS - 1, i, look.dark);
     }
     for (const [rx, ry] of [[2, 2], [13, 2], [2, 13], [13, 13]]) put(rx, ry, '#566077');
+  } else if (look.detail === 'panel') {
+    for (let i = 0; i < TS; i++) {
+      put(i, 0, look.light); put(0, i, look.light); put(i, TS - 1, look.dark); put(TS - 1, i, look.dark);
+      put(i, 7, look.dark); put(i, 8, look.light);
+    }
+  } else if (look.detail === 'bricks') {
+    for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) {
+      if (y % 4 === 3) put(x, y, look.dark);
+      else if ((x + (Math.floor(y / 4) % 2) * 4) % 8 === 0) put(x, y, look.dark);
+    }
+  } else if (look.detail === 'hazard') {
+    for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) if (((x + y) >> 2) % 2 === 0) put(x, y, look.light);
   }
   return px;
 }

@@ -41,3 +41,42 @@ describe('build block set', () => {
     expect(typeof buildAtlas).toBe('function');
   });
 });
+
+import { Game } from '../src/sim/game';
+import { defaultSave } from '../src/sim/save';
+import { W, WALL_ITEM, isBuiltWall } from '../src/sim/world';
+import { sanitizeWalls } from '../src/sim/base';
+import { invAdd, invCount } from '../src/sim/tiles';
+
+describe('styled back walls', () => {
+  it('built walls are the plate plus three styles; cave walls are not built', () => {
+    expect([W.PLATE, W.PANEL, W.BRICK, W.STRIPE].every(isBuiltWall)).toBe(true);
+    expect(isBuiltWall(W.NONE) || isBuiltWall(W.CAVE_RUST) || isBuiltWall(W.CAVE_ROCK)).toBe(false);
+    for (const [id, item] of [[W.PANEL, 'wall_panel'], [W.BRICK, 'wall_brick'], [W.STRIPE, 'wall_stripe']] as const) {
+      expect(ITEMS[item].placesWall).toBe(id);
+      expect(WALL_ITEM[id]).toBe(item);
+      expect(recipeById(item)?.out).toBe(item);
+    }
+  });
+  it('they persist in the base save and unknown wall ids are dropped', () => {
+    const t = [1, 1, W.PANEL, 2, 1, W.BRICK, 3, 1, W.STRIPE, 4, 1, 99];
+    expect(sanitizeWalls(t)).toEqual([1, 1, W.PANEL, 2, 1, W.BRICK, 3, 1, W.STRIPE]);
+  });
+  it('a built wall can be repainted in another style, but not in its own', () => {
+    const g = new Game(defaultSave(11));
+    const x = g.world.padX + 3;
+    const y = g.world.padY - 2;
+    g.world.setWall(x, y, W.PLATE);
+    expect(g.canPlaceWall(x, y, W.PLATE)).toBe(false);
+    expect(g.canPlaceWall(x, y, W.BRICK)).toBe(true);
+    // A styled wall also counts as a neighbour for lining out more wall.
+    g.world.setWall(x, y - 5, W.BRICK);
+    expect(g.canPlaceWall(x, y - 6, W.PANEL)).toBe(true);
+  });
+  it('mining a styled wall returns its own kit item', () => {
+    const g = new Game(defaultSave(12));
+    invAdd(g.carried, 'wall_stripe', 0);
+    expect(invCount(g.carried, 'wall_stripe')).toBe(0);
+    expect(WALL_ITEM[W.STRIPE]).toBe('wall_stripe');
+  });
+});

@@ -16,8 +16,16 @@ export const TORCH_RADIUS = 7;
 export const SPAWN_LIGHT_MAX = 0.3;
 
 /** Back-wall layer ids (separate from tiles; never solid). Natural cave walls are not minable. */
-export const W = { NONE: 0, CAVE_RUST: 1, CAVE_ROCK: 2, PLATE: 3 } as const;
-export const WALL_IDS = [W.NONE, W.CAVE_RUST, W.CAVE_ROCK, W.PLATE] as const;
+export const W = { NONE: 0, CAVE_RUST: 1, CAVE_ROCK: 2, PLATE: 3, PANEL: 4, BRICK: 5, STRIPE: 6 } as const;
+export const WALL_IDS = [W.NONE, W.CAVE_RUST, W.CAVE_ROCK, W.PLATE, W.PANEL, W.BRICK, W.STRIPE] as const;
+
+/** Player-built back walls (the plain plate and the styled ones); natural cave walls are not. */
+export function isBuiltWall(w: number): boolean {
+  return w >= W.PLATE;
+}
+
+/** The kit item a built wall gives back when mined. */
+export const WALL_ITEM: Record<number, 'wall' | 'wall_panel' | 'wall_brick' | 'wall_stripe'> = { 3: 'wall', 4: 'wall_panel', 5: 'wall_brick', 6: 'wall_stripe' };
 
 /** Tiles that light like a torch: torches, lamps and the two neon blocks. */
 const LIGHT_TILES: ReadonlySet<number> = new Set<number>([T.TORCH, T.LAMP, T.NEON_CYAN, T.NEON_PINK]);

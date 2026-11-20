@@ -46,6 +46,9 @@ export type ItemId =
   | 'chair'
   | 'window'
   | 'panel'
+  | 'wall_panel'
+  | 'wall_brick'
+  | 'wall_stripe'
   | 'hazard'
   | 'brick'
   | 'grate'
@@ -112,6 +115,9 @@ export const ITEM_IDS: ItemId[] = [
   'chair',
   'window',
   'panel',
+  'wall_panel',
+  'wall_brick',
+  'wall_stripe',
   'hazard',
   'brick',
   'grate',
@@ -410,6 +416,9 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   tart: { name: 'Berry tart', color: '#7ac8ff', places: null, kit: true },
   icefin: { name: 'Icefin', color: '#bfe6f5', places: null },
   jump_pad: { name: 'Jump pad', color: '#36e0e8', places: T.JUMP_PAD, kit: true },
+  wall_panel: { name: 'Panel wall', color: '#6f7d96', places: null, placesWall: 4, kit: true },
+  wall_brick: { name: 'Brick wall', color: '#a8503c', places: null, placesWall: 5, kit: true },
+  wall_stripe: { name: 'Stripe wall', color: '#e8b82a', places: null, placesWall: 6, kit: true },
   panel: { name: 'Hull panel', color: '#6f7d96', places: T.PANEL, kit: true },
   hazard: { name: 'Hazard block', color: '#e8b82a', places: T.HAZARD, kit: true },
   brick: { name: 'Red brick', color: '#a8503c', places: T.BRICK, kit: true },
@@ -418,7 +427,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   neon_pink: { name: 'Pink neon', color: '#ff5ac8', places: T.NEON_PINK, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair', 'window', 'lift', 'corn_seed', 'root_seed', 'berry_seed', 'sprinkler', 'pot', 'garage_kit', 'jump_pad', 'panel', 'hazard', 'brick', 'grate', 'neon_cyan', 'neon_pink'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair', 'window', 'lift', 'corn_seed', 'root_seed', 'berry_seed', 'sprinkler', 'pot', 'garage_kit', 'jump_pad', 'panel', 'hazard', 'brick', 'grate', 'neon_cyan', 'neon_pink', 'wall_panel', 'wall_brick', 'wall_stripe'];
 
 /**
  * Full build-bar order: the player's arranged order first (unknown and duplicate ids dropped),
