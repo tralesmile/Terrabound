@@ -1,3 +1,4 @@
+import { TEACH } from './sim/teach';
 import { SETS } from './sim/sets';
 import { PREFIXES, RARITY, prefixedName } from './sim/rarity';
 import { breakDebris, breakStyle } from './render/breakfx';
@@ -548,6 +549,9 @@ function boot(): void {
       case 'splash':
         fx.burst(e.x, e.y, e.kind === 'acid' ? '#8aff4a' : '#9aa3b8', 6, 3);
         break;
+      case 'jump':
+        fx.jump(game.body.x, game.body.y, groundColor());
+        break;
       case 'land':
         fx.land(game.body.x, game.body.y, e.speed, groundColor());
         break;
@@ -833,6 +837,15 @@ function boot(): void {
         saveNow();
         break;
       }
+      case 'teach':
+        // First sight of a new enemy kind: name its pattern once, ring it so the eye finds it.
+        ui.toast(TEACH[e.kind], '#ffcf4a', 5, 'teach');
+        fx.ring(e.x, e.y, 1.4, '#ffcf4a');
+        break;
+      case 'teachtouch':
+        ui.toast('That one was a warning: next touch hurts', '#ff9a3c', 2.4, 'teach');
+        fx.ring(e.x, e.y, 1, '#ff9a3c');
+        break;
       case 'lore':
         ui.toast(e.text, '#9ff6ff', 6);
         fx.burst(game.body.x, game.body.y - 1.5, '#36e0e8', 10, 4);

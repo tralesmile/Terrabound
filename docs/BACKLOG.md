@@ -14,8 +14,8 @@ Owner goal: make Terrabound feel closer to Terraria, Starbound and Core Keeper (
 
 - [x] Movement model v2 (run 81, `src/sim/movement.ts`; tuning table `MOVE`): ground and air acceleration and friction instead of instant speed; all constants in one tuning table; tests for top speed, stop distance and turn-around; keep coyote time and jump buffer.
 - [x] Jump feel (run 82, `JUMPFEEL` + `gravityMul` in movement.ts): apex hang (reduced gravity near the apex), fast-fall when holding down, jump cut on release; measure the apex in a test (see LESSONS: derive geometry from the measured apex).
-- [ ] (run 82 research) Enemy attack-pattern teaching: each new enemy shows its pattern in a safe first encounter (telegraph plus a harmless first use), cheap and fits P12-B.
-- [ ] Landing and run juice: squash and stretch on jump and land (render-only), dust puffs, camera look-ahead and a small vertical lead when falling.
+- [x] (run 83, `src/sim/teach.ts`, save v31 `met`) (run 82 research) Enemy attack-pattern teaching: each new enemy shows its pattern in a safe first encounter (telegraph plus a harmless first use), cheap and fits P12-B.
+- [x] (run 83: take-off stretch, camera look-ahead and fall lead in `src/render/camlead.ts`; landing squash and dust already existed) Landing and run juice: squash and stretch on jump and land (render-only), dust puffs, camera look-ahead and a small vertical lead when falling.
 - [ ] Hit feel stack: hit-stop that freezes BOTH attacker and target, trauma-based screen shake that stacks and respects the shake setting and reduced motion, short-decay knockback, white flash, damage numbers; per-weapon-class tuning table.
 - [ ] Anticipation: enemy and boss wind-up poses plus a brief audio dip before heavy attacks (the 0.4 s telegraph rule stays).
 - [ ] Dig feedback: crack stages on the block being mined, debris chips (render-only), per-material dig sounds with pitch variation, a drill heat or overdrive meter.
@@ -98,6 +98,8 @@ Seed premise to refine, not to rewrite: you are a repair technician in a suit on
 ### P12-H Discovered by research (runs append here; one line each, dated, with the reason; promote into A-G when ready)
 
 - [ ] 2026-11-18: Core Keeper added automation and new biomes in its 2026 update, so our drone automation must stay the differentiator: make drones visible, programmable and fun to watch (Dome Keeper lesson: systems that feed into one another).
+- [ ] 2026-11-20 (run 83): Core Keeper's top refund-risk complaint is "no tutorial" and its first-2-hour reviews are the least positive; promote the P12-E objective tracker ahead of other E items.
+- [ ] 2026-11-20 (run 83): Dome Keeper players tire of repetition and few unlocks; keep a steady drip of cosmetic suit and helmet paints tied to milestones (no power, no paywall).
 - [ ] 2026-11-18: Mobile D30 retention is about 3 percent on average; D30 killers are progression walls and content droughts. Keep a smooth ramp and a steady stream of small unlocks.
 
 ## P0 Foundation (done)

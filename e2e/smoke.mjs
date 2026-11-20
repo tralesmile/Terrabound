@@ -487,6 +487,48 @@ try {
     g.enemies = [];
   });
   check('a hit squashes the enemy sprite on the hit frame', squash.left > 0.1, JSON.stringify(squash));
+  // Pattern teaching: the first mite this save meets names its move once and wears the amber "!".
+  const teach = await page.evaluate(async () => {
+    const { game: g, ui } = window.__terrabound;
+    g['save'].met = g['save'].met.filter((k) => k !== 'mite');
+    ui.toasts = [];
+    g.enemies = [{ id: 31, kind: 'mite', x: g.body.x + 3.5, y: g.body.y - 0.01, vx: 0, vy: 0, hp: 16, dir: -1, iframes: 0, age: 1.35, phase: 0, teach: true }];
+    await new Promise((r) => setTimeout(r, 150));
+    g.hitStop = 5;
+    await new Promise((r) => setTimeout(r, 60));
+    return { toast: ui.toasts.map((t) => t.text).join('|'), met: g.metKinds.includes('mite'), teach: !!g.enemies[0]?.teach };
+  });
+  await page.screenshot({ path: path.join(out, '05e-teach.png') });
+  await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    g.hitStop = 0;
+    g.enemies = [];
+  });
+  check('first sight of a new enemy kind names its pattern once and marks it as a teacher', teach.toast.includes('Shard mite') && teach.met && teach.teach, JSON.stringify(teach));
+  // Run juice: running leads the camera ahead; a jump stretches the sprite on take-off.
+  const juice = await page.evaluate(async () => {
+    const { game: g, renderer, input } = window.__terrabound;
+    const lead0 = renderer.lead.x;
+    g.body.vx = 7;
+    let peak = 0;
+    for (let i = 0; i < 12; i++) {
+      g.body.vx = 7;
+      await new Promise((r) => setTimeout(r, 50));
+      peak = Math.max(peak, renderer.lead.x);
+    }
+    g.body.vx = 0;
+    return { lead0, peak, input: !!input };
+  });
+  await page.keyboard.down('Space');
+  const stretched = await page
+    .waitForFunction(() => window.__terrabound.fx.stretchLeft > 0, null, { polling: 'raf', timeout: 1500 })
+    .then(() => true)
+    .catch(() => false);
+  const stretch = await page.evaluate((ok) => ({ ok, onGround: window.__terrabound.game.body.onGround }), stretched);
+  await page.keyboard.up('Space');
+  await page.waitForTimeout(500);
+  check('running leads the camera ahead of the player', juice.peak > 0.5, JSON.stringify(juice));
+  check('a jump stretches the player sprite on take-off', stretch.ok, JSON.stringify(stretch));
   await page.keyboard.press('KeyQ');
   check('Q cycles to the pistol', (await page.evaluate(() => window.__terrabound.game.tool)) === 'pistol');
   await page.evaluate(() => {

@@ -18,13 +18,14 @@ import { furnitureArt, screenLines } from './furniture';
 import { wideSide } from '../sim/wide';
 import { REACH } from '../sim/game';
 import { onLadder, stepEase } from '../sim/physics';
-import { ENEMIES } from '../sim/enemies';
+import { ENEMIES, hopWindup } from '../sim/enemies';
+import { easeLead, leadTarget, type Lead } from './camlead';
 import { hash2 } from '../sim/rng';
 import { T, TILES, invTotal } from '../sim/tiles';
 import { isLiquid, levelAt as liquidLevel } from '../sim/liquids';
 import { W } from '../sim/world';
 import { BODY_H } from '../sim/physics';
-import { HIT_SQUASH_TIME, hitSquash, hurtSquash, hurtVignette, softFlash, magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx } from './fx';
+import { HIT_SQUASH_TIME, hitSquash, hurtSquash, hurtVignette, softFlash, magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx, crouchSquash, stretchScale } from './fx';
 import type { PlayerGear, VehicleSpriteId } from './sprites';
 import { ICON, drawIcon } from './icons';
 import { vehicleRemap } from './sprites';
@@ -264,6 +265,8 @@ export class Renderer {
   /** Watered test for crops this frame (sprinklers, ponds, robot gardeners in the base). */
   private cropWet: ((x: number, y: number) => boolean) | null = null;
   private snapped = false;
+  /** Eased camera lead in tiles (look-ahead and fall lead). */
+  lead: Lead = { x: 0, y: 0 };
 
   constructor(private ctx: CanvasRenderingContext2D) {}
 
@@ -276,8 +279,11 @@ export class Renderer {
 
   /** Smooth camera, clamped to the world so we never show the void. */
   follow(game: Game, dt: number): void {
-    const tx = game.body.x;
-    const ty = game.body.y - BODY_H / 2;
+    // Look ahead where the player is heading, and below during a long fall (camlead.ts).
+    const b = game.body;
+    this.lead = this.snapped ? easeLead(this.lead, leadTarget(b.vx, b.vy, b.onGround), dt) : { x: 0, y: 0 };
+    const tx = b.x + this.lead.x;
+    const ty = b.y - BODY_H / 2 + this.lead.y;
     const k = this.snapped ? Math.min(1, 9 * dt) : 1;
     this.snapped = true;
     this.camX += (tx - this.camX) * k;
@@ -542,7 +548,10 @@ export class Renderer {
         ctx.arc(ex, ey - h / 2, Math.max(w, h) * 0.9, 0, Math.PI * 2);
         ctx.fill();
       }
-      const sq = hitSquash(e.iframes);
+      const hit = hitSquash(e.iframes);
+      // Hoppers crouch for 0.4 s before each leap (sim-timed telegraph); a hit squash wins over it.
+      const crouch = hit.sx === 1 && e.vy === 0 ? crouchSquash(hopWindup(e.kind, e.age, e.phase)) : null;
+      const sq = crouch ?? hit;
       if (sq.sx !== 1) {
         // Squash and stretch about the feet so every hit lands with weight.
         ctx.save();
@@ -557,6 +566,15 @@ export class Renderer {
         ctx.fillRect(ex - 2 * scale, cy, scale, scale);
         ctx.fillRect(ex - scale, cy + scale, 2 * scale, scale);
         ctx.fillRect(ex + scale, cy, scale, scale);
+      }
+      if (e.teach) {
+        // A teacher (first of its kind) wears a bobbing amber "!" until its harmless first touch.
+        const ty = ey - h - 9 * scale + Math.round(Math.sin(time * 5 + e.id) * scale);
+        ctx.fillStyle = '#1a0d00';
+        ctx.fillRect(ex - 1.5 * scale, ty - scale, 3 * scale, 7 * scale);
+        ctx.fillStyle = '#ffcf4a';
+        ctx.fillRect(ex - 0.5 * scale, ty, scale, 3 * scale);
+        ctx.fillRect(ex - 0.5 * scale, ty + 4 * scale, scale, scale);
       }
       if (e.hp < d.hp) {
         ctx.fillStyle = '#300';
@@ -890,7 +908,7 @@ export class Renderer {
       gear: playerGear(game),
       ...this.heldPose(game, time),
       scorch: (this.scorchShown = scorchK(game.scorch)),
-      squash: fx.hurtLeft > 0 ? hurtSquash(fx.hurtLeft) : squashScale(fx.squashLeft, fx.squashPower),
+      squash: fx.hurtLeft > 0 ? hurtSquash(fx.hurtLeft) : fx.squashLeft > 0 ? squashScale(fx.squashLeft, fx.squashPower) : stretchScale(fx.stretchLeft),
     });
     if (swimming) ctx.restore();
     this.swimInfo = swimming ? { angle: this.swimAngle, moving: swimMoving } : null;

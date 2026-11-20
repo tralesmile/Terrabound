@@ -9,6 +9,7 @@ import { DEFAULT_KEYS, rebind, type BindId, type KeyMap } from './keys';
 import { decodeSeed, encodeSeed } from './seedcode';
 import { noteBoss, noteDepth, noteLoot, startAttempt, type RecordBeat, type WorldRecord } from './records';
 import { hash2, mixSeed, mulberry32 } from './rng';
+import { TEACH_SHOVE, firstMeet, sanitizeMet, shouldTeach } from './teach';
 import { ENEMIES, ENEMY_HIT_IFRAMES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
 import { type Body, moveX, moveY, onLadder, probeGround, stepUp, unstick, BODY_H, HALF_W } from './physics';
 import { defaultSave, type SaveData } from './save';
@@ -132,6 +133,10 @@ export type GameEvent =
   | { t: 'full' }
   | { t: 'chest'; x: number; y: number; items: number }
   | { t: 'discover'; id: string; name: string }
+  /** First sight of an enemy kind this save never met: the HUD names its pattern (teach.ts). */
+  | { t: 'teach'; kind: EnemyKind; x: number; y: number }
+  /** A teacher's first touch: a harmless shove instead of damage. */
+  | { t: 'teachtouch'; kind: EnemyKind; x: number; y: number }
   | { t: 'recallstart' }
   | { t: 'recallcancel' }
   | { t: 'recall' }
@@ -434,6 +439,7 @@ export class Game {
     checkAwards(this.save.awards);
     this.goalAt = goalIndex(this.save.awards);
     if (!Array.isArray(this.save.codex)) this.save.codex = [];
+    this.save.met = sanitizeMet(this.save.met);
     this.save.gear = sanitizeGear(this.save.gear);
     if (!this.save.garage) this.save.garage = defaultGarage();
     if (!Array.isArray(this.save.bosses)) this.save.bosses = [];
@@ -2238,13 +2244,17 @@ export class Game {
         const tg = goal ? raidTarget(e, b.x, b.y, goal.x - 0.5, goal.y, atBase) : raidTarget(e, b.x, b.y, this.world.padX, this.world.padY, atBase);
         stepEnemy(this.world, e, dt, tg.x, tg.y);
       } else stepEnemy(this.world, e, dt, b.x, b.y);
-      if (!atBase && this.iframes === 0 && enemyOverlapsBox(e, b.x, b.y, HALF_W, BODY_H)) {
+      if (!atBase && this.iframes === 0 && enemyOverlapsBox(e, b.x, b.y, HALF_W, BODY_H) && e.teach) {
+        // A teacher's first touch shows the move without the damage, then it fights for real.
+        this.teachTouch(e);
+      } else if (!atBase && this.iframes === 0 && enemyOverlapsBox(e, b.x, b.y, HALF_W, BODY_H)) {
         this.hurt(ENEMIES[e.kind].contact);
         this.iframes = IFRAMES;
         b.vx = (b.x >= e.x ? 1 : -1) * 8;
         b.vy = Math.min(b.vy, -6);
       }
     }
+    if (!atBase) this.meetEnemies();
     this.stepDefences(dt);
     this.stepNpcs(dt);
     // Deaths and drops.
@@ -2376,6 +2386,34 @@ export class Game {
     }
   }
 
+  /** First sight of an unmet kind: remember it and name its pattern once (teach.ts). */
+  private meetEnemies(): void {
+    const e = firstMeet(this.save.met, this.enemies, this.body.x, this.body.y);
+    if (!e) return;
+    this.save.met.push(e.kind);
+    this.emit({ t: 'teach', kind: e.kind, x: e.x, y: e.y - ENEMIES[e.kind].h });
+  }
+
+  /** A teacher touched the player: no damage, a soft shove, and every teacher of that kind is done teaching. */
+  private teachTouch(e: Enemy): void {
+    const b = this.body;
+    this.iframes = IFRAMES;
+    b.vx = (b.x >= e.x ? 1 : -1) * TEACH_SHOVE;
+    b.vy = Math.min(b.vy, -4);
+    if (!this.save.met.includes(e.kind)) {
+      // Touched before it was seen (it dropped in from off screen): name the pattern now.
+      this.save.met.push(e.kind);
+      this.emit({ t: 'teach', kind: e.kind, x: e.x, y: e.y - ENEMIES[e.kind].h });
+    }
+    for (const o of this.enemies) if (o.kind === e.kind) o.teach = false;
+    this.emit({ t: 'teachtouch', kind: e.kind, x: e.x, y: e.y - ENEMIES[e.kind].h });
+  }
+
+  /** Enemy kinds this save has met (each one taught its pattern once). */
+  get metKinds(): readonly EnemyKind[] {
+    return this.save.met;
+  }
+
   /** Spawn an enemy in open cave space near, but never on, the player and never inside walls. */
   trySpawn(): Enemy | null {
     if (this.enemies.length >= MAX_ENEMIES) return null;
@@ -2402,6 +2440,8 @@ export class Game {
       if (!ENEMIES[kind].flying && !this.world.isSolid(Math.floor(e.x), Math.floor(e.y + 0.05))) continue;
       // Deeper layers breed tougher enemies.
       e.hp *= LAYERS[layerAt(e.y - this.world.padY)].enemyHp * weatherEnemy(this.weather).hp;
+      // The first wild one of a kind this save never met teaches its pattern before it can hurt.
+      if (shouldTeach(this.save.met, kind) && !this.enemies.some((o) => o.kind === kind && o.teach)) e.teach = true;
       this.nextEnemyId++;
       this.enemies.push(e);
       return e;
@@ -2885,6 +2925,7 @@ export class Game {
       stats: { ...this.save.stats },
       settings: { ...this.save.settings },
       codex: [...this.save.codex],
+      met: [...this.save.met],
       gear: { owned: [...this.save.gear.owned], equip: { ...this.save.gear.equip }, acc: [...this.save.gear.acc], prefix: { ...this.save.gear.prefix }, reforges: this.save.gear.reforges },
       bosses: [...this.save.bosses],
       drones: { ...this.save.drones },

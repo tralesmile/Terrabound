@@ -63,6 +63,20 @@ export interface Enemy {
   chew?: number;
   /** Render-only ease after an auto-step (1 = just stepped up a tile, decays to 0). */
   lift?: number;
+  /** First of its kind this save has met (teach.ts): its first touch is harmless. */
+  teach?: boolean;
+}
+
+/** Seconds between a hopper's leaps, and the crouch telegraph before each leap (the 0.4 s rule). */
+export const HOP_PERIOD = 1.6;
+export const HOP_WINDUP = 0.4;
+
+/** Crouch amount 0..1 in the last HOP_WINDUP seconds before a hopper leaps (0 for other kinds). Pure. */
+export function hopWindup(kind: EnemyKind, age: number, phase: number): number {
+  if (!ENEMIES[kind].hop) return 0;
+  const t = (((age + phase) % HOP_PERIOD) + HOP_PERIOD) % HOP_PERIOD;
+  const start = HOP_PERIOD - HOP_WINDUP;
+  return t < start ? 0 : (t - start) / HOP_WINDUP;
 }
 
 /** How fast a walker's drawn body catches up after an auto-step (per second). */
@@ -161,7 +175,7 @@ export function stepEnemy(world: World, e: Enemy, dt: number, px: number, py: nu
   e.vy = Math.min(28, e.vy + G * dt);
   const grounded = world.isSolid(Math.floor(e.x), Math.floor(e.y + 0.05));
   // Hoppers leap at a nearby player on a fixed rhythm (phase keeps a pack out of sync).
-  if (d.hop && grounded && near && Math.floor((e.age + e.phase) / 1.6) !== Math.floor((e.age + e.phase - dt) / 1.6)) e.vy = -11;
+  if (d.hop && grounded && near && Math.floor((e.age + e.phase) / HOP_PERIOD) !== Math.floor((e.age + e.phase - dt) / HOP_PERIOD)) e.vy = -11;
   if (e.lift) e.lift = Math.max(0, e.lift - dt * ENEMY_STEP_EASE);
   const r = moveAxis(world, e, e.vx * dt, e.vy * dt);
   if (r.hitY) e.vy = 0;

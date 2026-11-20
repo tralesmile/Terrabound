@@ -2,6 +2,13 @@
 
 Rules: one dated entry per run, 3-6 lines, paraphrased (no long quotes), with the source URL. Merge or drop entries that were acted on or are weak. Anything worth building goes to `docs/BACKLOG.md` section P12-H (or straight into P12-A..G) and a one-line note in `docs/IDEAS.md`. Every idea must pass the Core idea guard in `CLAUDE.md`.
 
+## 2026-11-20 (run 83, topic 3: recent reviews and complaints)
+
+- Core Keeper (93% positive, ~65k reviews): the review-analysis site ranks "no tutorial" as the single biggest refund-risk complaint, and only 64% of first-2-hour reviews are positive versus 89-94% later. Sources: https://vaporlens.app/app/1621690/core_keeper/stats/analysis and https://vaporlens.app/app/1621690/core_keeper/stats/details
+- Dome Keeper (92%, the closest loop to ours): players love the dig-then-defend rhythm; the common complaint is repetition and thin long-term content (few unlocks, two keepers, little customisation). Sources: https://vaporlens.app/app/1637320/dome_keeper and https://shacknews.com/article/132448/dome-keeper-review
+- Necesse (93%): its biggest 2026 update reworked tutorial and onboarding alongside new content, a sign that onboarding is still where these games lose players. Source: https://www.gamespress.com/Announcement-Sandbox-Survival-Gem-Necesse-show-players-love-with-the-l
+- Filter: all three point at the first hour. Teaching enemies in a safe first encounter (shipped this run) and an objective tracker (P12-E) fit the loop; for Dome Keeper's repetition complaint, cosmetic suit unlocks and run mutators (P12-G) fit too.
+
 ## 2026-11-18 (interactive session, seed entry)
 
 **Survival-crafting player complaints (topic 3)**
@@ -32,4 +39,4 @@ Rules: one dated entry per run, 3-6 lines, paraphrased (no long quotes), with th
 - Searches returned mostly generic boss-design blogs: a good boss teaches its own pattern in a safe first use, and weapon variety matters only when each weapon changes how you play (not just numbers). Sources: https://bugnet.io/blog/how-to-design-a-boss-that-teaches-its-own-pattern and https://bugnet.io/blog/how-to-design-weapon-variety-that-matters
 - Filter: both fit the roster and weapon-class items in P12-B; one-liner added there.
 
-**Not yet researched (next runs, in rotation order):** code-drawn pixel art and lighting techniques (1), enemy and boss design (2), story in sandbox games (5), web performance and accessibility (7).
+**Not yet researched (next runs, in rotation order):** mobile retention and onboarding (4, run 84), story in sandbox games (5), automation and defence (6), web performance and accessibility (7).

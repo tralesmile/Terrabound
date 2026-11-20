@@ -86,6 +86,16 @@ export function squashScale(left: number, power: number): { sx: number; sy: numb
   return { sx: 1 + k, sy: 1 - k };
 }
 
+/** Take-off stretch length (s): tall and thin for a beat on the jump frame. */
+export const STRETCH_TIME = 0.16;
+
+/** Take-off stretch as (scaleX, scaleY): tall and narrow at the jump, easing back to (1, 1). Pure. */
+export function stretchScale(left: number): { sx: number; sy: number } {
+  if (left <= 0) return { sx: 1, sy: 1 };
+  const k = Math.min(1, left / STRETCH_TIME) ** 2 * 0.16;
+  return { sx: 1 - k, sy: 1 + k };
+}
+
 /** Enemy hit i-frames (game.ts sets 0.15 s on every hit); the squash eases over this window. */
 export const HIT_SQUASH_TIME = ENEMY_HIT_IFRAMES;
 
@@ -104,6 +114,13 @@ export function lighten(hex: string, k: number): string {
 /** Where a ground boss's fist lands, sideways from its centre (tiles): just past the body's edge. */
 export function slamFistOffset(halfW: number): number {
   return halfW + 0.5;
+}
+
+/** Hopper crouch before a leap: `w` 0..1 wind-up -> squat about the feet (area roughly kept). Null when idle. Pure. */
+export function crouchSquash(w: number): { sx: number; sy: number } | null {
+  if (!(w > 0)) return null;
+  const k = Math.min(1, w);
+  return { sx: 1 + 0.22 * k, sy: 1 - 0.3 * k };
 }
 
 export function hitSquash(left: number): { sx: number; sy: number } {
@@ -182,6 +199,8 @@ export class Fx {
   /** Landing squash timer and strength (read by the renderer). */
   squashLeft = 0;
   squashPower = 0;
+  /** Take-off stretch time left (see stretchScale). */
+  stretchLeft = 0;
   /** Player hurt timer and strength (vignette, recoil). */
   hurtLeft = 0;
   hurtPower = 0;
@@ -266,6 +285,13 @@ export class Fx {
     this.hurtLeft = HURT_TIME;
     this.hurtPower = Math.max(carry, hurtPower(amount, maxHp));
     if (amount >= 1) this.text(x, y, `-${Math.round(amount)}`, '#ff5a5a');
+  }
+
+  /** Take-off: stretch the sprite and push a small puff of dust down off the feet. */
+  jump(x: number, y: number, ground: string): void {
+    this.stretchLeft = STRETCH_TIME;
+    this.squashLeft = 0;
+    this.dust(x, y, ground, 3, 1.4);
   }
 
   /** Landing: squash the sprite and kick dust out to both sides of the feet. */
@@ -643,6 +669,7 @@ export class Fx {
     this.rings = this.rings.filter((r) => r.life > 0);
     this.shake = Math.max(0, this.shake - dt * 2.5);
     this.squashLeft = Math.max(0, this.squashLeft - dt);
+    this.stretchLeft = Math.max(0, this.stretchLeft - dt);
     this.hurtLeft = Math.max(0, this.hurtLeft - dt);
   }
 }
