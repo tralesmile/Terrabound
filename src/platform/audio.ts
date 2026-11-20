@@ -1,3 +1,5 @@
+import { DIG_VOICE, digPitch } from './digvoice';
+import { breakStyle } from '../render/breakfx';
 import { PREFIXES } from '../sim/rarity';
 import { warnVoice } from './warnvoice';
 import type { GameEvent } from '../sim/game';
@@ -167,8 +169,10 @@ export class Sfx {
     switch (e.t) {
       case 'dig':
         if (this.ok('dig', 90)) {
-          this.noise(0.05, 0.22);
-          this.tone(140 + Math.random() * 40, 0.05, 'square', 0.06);
+          // Each material has its own drill voice, with a little pitch drift per tick (digvoice.ts).
+          const v = DIG_VOICE[breakStyle(e.tile)];
+          this.noise(0.05, v.noise);
+          this.tone(digPitch(v.freq, Math.random()), v.dur, v.wave, v.vol);
         }
         break;
       case 'break':

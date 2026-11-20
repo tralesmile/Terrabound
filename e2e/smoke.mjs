@@ -43,7 +43,10 @@ const check = (name, ok, extra = '') => {
 /** Shows two toasts (one long) and checks the pills sit left of every HUD button and below the bars. */
 async function toastCheck(page, label, shot) {
   await page.evaluate(() => {
-    const ui = window.__terrabound.ui;
+    const { ui, game: g } = window.__terrabound;
+    // Keep live toasts (a teacher enemy's lesson) out of the layout checks below.
+    g.enemies = [];
+    g['spawnCd'] = 30;
     ui.toasts = [];
     ui.toast('Banked 128 items', '#9ff6a0', 6);
     ui.toast('Pack full: drop or bank 2 Crystal, 3 Iron scrap, 1 Plasma cell and a long tail of other loot', '#ff9a3c', 6);
@@ -62,7 +65,10 @@ async function toastCheck(page, label, shot) {
   await page.screenshot({ path: path.join(out, shot) });
   // Arrival: a place, its codex gift and the award it unlocks fold into one pill.
   await page.evaluate(() => {
-    const ui = window.__terrabound.ui;
+    const { ui, game: g } = window.__terrabound;
+    // Live game toasts (a teacher enemy's first-sight lesson) would add pills: clear enemies, hold spawns.
+    g.enemies = [];
+    g['spawnCd'] = 30;
     ui.toasts = [];
     ui.toast('Discovered: Overgrown Ruins', '#ffcf4a', 6);
     ui.toast('Codex reward: 2 Crystal, 3 Iron scrap, 1 Plasma cell', '#9ff6a0', 6);
@@ -247,13 +253,20 @@ try {
   const before = await page.evaluate(([tx, ty]) => window.__terrabound.game.world.get(tx, ty), [target.tx, target.ty]);
   const pos = await tileToCss(page, target.tx, target.ty);
   await page.mouse.move(pos.x, pos.y);
+  await page.evaluate(() => (window.__terrabound.renderer.crackShown = 0));
   await page.mouse.down();
+  // The drilled block cracks in visible stages before it breaks (digfx.ts).
+  const cracked = await page
+    .waitForFunction(() => window.__terrabound.renderer.crackShown >= 2, null, { polling: 'raf', timeout: 1500 })
+    .then(() => true, () => false);
+  if (cracked) await page.screenshot({ path: path.join(out, '02c-dig-crack.png'), clip: { x: Math.max(0, pos.x - 96), y: Math.max(0, pos.y - 120), width: 192, height: 192 } });
   await page.waitForTimeout(1500);
   await page.screenshot({ path: path.join(out, '02-digging.png') });
   await page.mouse.up();
   const after = await page.evaluate(([tx, ty]) => window.__terrabound.game.world.get(tx, ty), [target.tx, target.ty]);
   const carried = await page.evaluate(() => Object.values(window.__terrabound.game.carried).reduce((a, b) => a + (b ?? 0), 0));
   check('mouse digging removes the block', before !== 0 && after === 0, `tile ${before} -> ${after}`);
+  check('the drilled block shows a growing crack before it breaks', cracked);
   check('mined block lands in the pack', carried >= 1, `carried ${carried}`);
   const brk = await page.evaluate(() => ({ n: window.__terrabound.fx.breaks, style: window.__terrabound.fx.lastBreak }));
   check('breaking a block throws per-material debris', brk.n >= 1 && ['dirt', 'stone', 'metal', 'crystal', 'wood', 'leaf', 'tech'].includes(brk.style), JSON.stringify(brk));

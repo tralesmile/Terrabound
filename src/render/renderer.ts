@@ -21,6 +21,7 @@ import { onLadder, stepEase } from '../sim/physics';
 import { ENEMIES, hopWindup } from '../sim/enemies';
 import { easeLead, leadTarget, type Lead } from './camlead';
 import { traumaOffset } from './trauma';
+import { digCrackPixels, crackStage } from './digfx';
 import { hash2 } from '../sim/rng';
 import { T, TILES, invTotal } from '../sim/tiles';
 import { isLiquid, levelAt as liquidLevel } from '../sim/liquids';
@@ -266,6 +267,8 @@ export class Renderer {
   /** Watered test for crops this frame (sprinklers, ponds, robot gardeners in the base). */
   private cropWet: ((x: number, y: number) => boolean) | null = null;
   private snapped = false;
+  /** Crack stage drawn on the block being mined this frame (read by e2e). */
+  crackShown = 0;
   /** Eased camera lead in tiles (look-ahead and fall lead). */
   lead: Lead = { x: 0, y: 0 };
 
@@ -451,19 +454,17 @@ export class Renderer {
       const m = game.mining;
       const dx = this.sx(m.tx, shakeX);
       const dy = this.sy(m.ty, shakeY);
-      ctx.fillStyle = `rgba(0,0,0,${(m.progress * 0.55).toFixed(3)})`;
+      // Darken a little as it weakens, then draw the staged crack in art pixels: a dark seam with a
+      // light lip on its lower right (top-left light, docs/ART.md), growing from one impact point.
+      ctx.fillStyle = `rgba(0,0,0,${(m.progress * 0.3).toFixed(3)})`;
       ctx.fillRect(dx, dy, ts, ts);
-      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-      ctx.lineWidth = Math.max(1, scale / 2);
-      ctx.beginPath();
-      const n = Math.floor(m.progress * 4) + 1;
-      for (let i = 0; i < n; i++) {
-        const a = hash2(i, m.tx, m.ty);
-        const b = hash2(m.ty, i, m.tx);
-        ctx.moveTo(dx + a * ts, dy);
-        ctx.lineTo(dx + b * ts, dy + ts);
-      }
-      ctx.stroke();
+      const stage = crackStage(m.progress);
+      const px = digCrackPixels(m.tx, m.ty, stage);
+      ctx.fillStyle = 'rgba(255,255,255,0.28)';
+      for (const [cx, cy] of px) ctx.fillRect(dx + (cx + 1) * scale, dy + (cy + 1) * scale, scale, scale);
+      ctx.fillStyle = 'rgba(8,6,12,0.85)';
+      for (const [cx, cy] of px) ctx.fillRect(dx + cx * scale, dy + cy * scale, scale, scale);
+      this.crackShown = stage;
     }
 
     // Player and mining beam.

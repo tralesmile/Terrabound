@@ -127,7 +127,7 @@ export interface Controls {
 export const NO_CONTROLS: Controls = { moveX: 0, jump: false, dig: false, place: false, aim: null };
 
 export type GameEvent =
-  | { t: 'dig'; x: number; y: number }
+  | { t: 'dig'; x: number; y: number; tile: number }
   | { t: 'break'; x: number; y: number; tile: number }
   | { t: 'pickup'; item: ItemId; x: number; y: number }
   | { t: 'place'; x: number; y: number }
@@ -1834,7 +1834,7 @@ export class Game {
           this.digTick -= dt;
           if (this.digTick <= 0) {
             this.digTick = 0.14;
-            this.emit({ t: 'dig', x: tx, y: ty });
+            this.emit({ t: 'dig', x: tx, y: ty, tile: onWall ? T.WALL : tile });
           }
           if (this.mining.progress >= 1) {
             if (onWall) this.world.setWall(tx, ty, W.NONE);

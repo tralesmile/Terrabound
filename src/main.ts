@@ -1,4 +1,5 @@
 import { TEACH } from './sim/teach';
+import { digChips } from './render/digfx';
 import { HIT_FEEL } from './sim/hitfeel';
 import { SETS } from './sim/sets';
 import { PREFIXES, RARITY, prefixedName } from './sim/rarity';
@@ -515,6 +516,10 @@ function boot(): void {
   const handle = (e: GameEvent): void => {
     sfx.handle(e);
     switch (e.t) {
+      case 'dig':
+        // Chips knocked off the face toward the player on every drill tick (digfx.ts).
+        fx.addParticles(digChips(e.x, e.y, e.tile, TILE_COLORS[e.tile] ?? '#888888', game.body.x, game.body.y, Math.random));
+        break;
       case 'break':
         fx.addParticles(breakDebris(e.x + 0.5, e.y + 0.5, e.tile, TILE_COLORS[e.tile] ?? '#888888', Math.random), breakStyle(e.tile));
         fx.addShake(0.12);
