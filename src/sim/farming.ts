@@ -35,6 +35,8 @@ export const SPRINKLER_DX = 4;
 export const SPRINKLER_DY = 2;
 /** A natural pond waters crops within this many columns on the crop's row or the ground row. */
 export const POND_DX = 3;
+/** Crops on tilled soil (planting tills the ground under them) grow this many times faster and give one more produce. */
+export const TILLED_MUL = 1.25;
 /** Chance that cutting wild grass also drops a crop seed for its biome. */
 export const GRASS_SEED_CHANCE = 0.3;
 
@@ -70,6 +72,21 @@ export function isWatered(world: World, x: number, y: number): boolean {
 /** Whether a crop cell counts as watered (the game adds robot gardeners on top of isWatered). */
 export type WetFn = (world: World, x: number, y: number) => boolean;
 
+/** Growth speed of the crop at (x, y): watered x2, on tilled soil x1.25 (they multiply). Pure. */
+export function growMul(world: World, x: number, y: number, wet: WetFn): number {
+  return (wet(world, x, y) ? WET_MUL : 1) * (world.get(x, y + 1) === T.TILLED ? TILLED_MUL : 1);
+}
+
+/** Furrow the ground under a freshly planted crop (only plain soil; built blocks are left alone). */
+export function tillUnder(world: World, x: number, y: number): boolean {
+  const below = world.get(x, y + 1);
+  if (below === T.TILLED || !TILLABLE.has(below)) return false;
+  world.set(x, y + 1, T.TILLED);
+  return true;
+}
+
+const TILLABLE: ReadonlySet<number> = new Set<number>([T.RUST, T.SOIL, T.SAND, T.ASH, T.FROST]);
+
 /** Moods at which a robot tends the base garden (waters every crop in the base strip). */
 export const GARDENER_MOODS: readonly string[] = ['happy', 'delighted'];
 
@@ -85,7 +102,7 @@ export function ripeIn(world: World, x: number, y: number, wet: WetFn = isWatere
   if (!c || c.stage >= 2) return 0;
   const left = world.crops.get(y * world.w + x) ?? STAGE_TIME;
   const rest = (1 - c.stage) * STAGE_TIME;
-  return (left + rest) / (wet(world, x, y) ? WET_MUL : 1);
+  return (left + rest) / growMul(world, x, y, wet);
 }
 
 /** Advance every growing crop by dt seconds; returns how many reached a new stage. */
@@ -99,7 +116,7 @@ export function stepCrops(world: World, dt: number, wet: WetFn = isWatered): num
       world.crops.delete(i);
       continue;
     }
-    const t = left - dt * (wet(world, x, y) ? WET_MUL : 1);
+    const t = left - dt * growMul(world, x, y, wet);
     if (t > 0) {
       world.crops.set(i, t);
       continue;
@@ -127,7 +144,7 @@ export function growCrops(world: World, secs: number, wet: WetFn = isWatered): n
       world.crops.delete(i);
       continue;
     }
-    let t = secs * (wet(world, x, y) ? WET_MUL : 1);
+    let t = secs * growMul(world, x, y, wet);
     let stage = c.stage;
     let l = left;
     while (stage < 2 && t >= l) {
@@ -143,13 +160,13 @@ export function growCrops(world: World, secs: number, wet: WetFn = isWatered): n
 }
 
 /** What cutting a crop gives: ripe 2-3 produce and 1-2 seeds (hashed per cell), otherwise its seed back. Pure. */
-export function harvestYield(tile: number, x: number, y: number, seed: number): { item: ItemId; n: number }[] {
+export function harvestYield(tile: number, x: number, y: number, seed: number, tilled = false): { item: ItemId; n: number }[] {
   const c = cropAt(tile);
   if (!c) return [];
   const d = CROPS[c.crop];
   if (c.stage < 2) return [{ item: d.seed, n: 1 }];
   return [
-    { item: d.produce, n: 2 + (hash2(x, y, seed + 11) < 0.5 ? 1 : 0) },
+    { item: d.produce, n: 2 + (hash2(x, y, seed + 11) < 0.5 ? 1 : 0) + (tilled ? 1 : 0) },
     { item: d.seed, n: 1 + (hash2(x, y, seed + 12) < 0.5 ? 1 : 0) },
   ];
 }

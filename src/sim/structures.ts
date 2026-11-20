@@ -368,7 +368,7 @@ function vault(world: World, x0: number, y0: number, i: number): Structure {
 }
 
 /** Soil a sapling can grow on. */
-export const SOIL_TILES = new Set<number>([T.RUST, T.SOIL, T.SAND, T.ASH, T.FROST]);
+export const SOIL_TILES = new Set<number>([T.RUST, T.SOIL, T.SAND, T.ASH, T.FROST, T.TILLED]);
 
 /** Seconds a planted sapling takes to grow. */
 export function growTime(world: World, i: number): number {

@@ -10,6 +10,8 @@ export type ItemId =
   | 'seed'
   | 'fish'
   | 'glowfish'
+  | 'bait'
+  | 'lunker'
   | 'medkit'
   | 'beacon_colossus'
   | 'beacon_vine'
@@ -79,6 +81,8 @@ export const ITEM_IDS: ItemId[] = [
   'seed',
   'fish',
   'glowfish',
+  'bait',
+  'lunker',
   'medkit',
   'beacon_colossus',
   'beacon_vine',
@@ -233,6 +237,8 @@ export const T = {
   GRATE: 74,
   NEON_CYAN: 75,
   NEON_PINK: 76,
+  /** Furrowed soil: planting a crop tills the ground under it. Crops on it grow faster and give one more produce. */
+  TILLED: 77,
 } as const;
 
 export interface TileDef {
@@ -340,6 +346,7 @@ export const TILES: TileDef[] = [
   { name: 'Grate', hardness: 0.4, solid: true, drop: 'grate', clear: true },
   { name: 'Cyan neon', hardness: 0.4, solid: true, drop: 'neon_cyan', glow: true },
   { name: 'Pink neon', hardness: 0.4, solid: true, drop: 'neon_pink', glow: true },
+  { name: 'Tilled soil', hardness: 0.35, solid: true, drop: 'rust' },
 ];
 
 export interface ItemDef {
@@ -363,6 +370,8 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   seed: { name: 'Tree seed', color: '#c9a35a', places: T.SAPLING },
   fish: { name: 'Hollow fish', color: '#5aa6ff', places: null },
   glowfish: { name: 'Glowfish', color: '#36e0e8', places: null },
+  bait: { name: 'Bait', color: '#c9a35a', places: null },
+  lunker: { name: 'Lunker', color: '#ffb03a', places: null },
   medkit: { name: 'Medkit', color: '#ff5a5a', places: null, kit: true },
   beacon_colossus: { name: 'Scrap beacon', color: '#c77a5e', places: null },
   beacon_vine: { name: 'Vine beacon', color: '#7fcf5a', places: null },

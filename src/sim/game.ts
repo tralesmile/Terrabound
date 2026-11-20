@@ -49,7 +49,7 @@ import { METEOR_RATE, weatherAt, weatherEnemy, type WeatherKind } from './weathe
 import { MAX_PART, VEHICLES, bayAt, bayCharge, cargoLoad, cargoOf, defaultGarage, isVehicle, parkOffset, partCost, partsOf, vehicleStats, type PartId, type PartLevels, type VehicleId } from './garage';
 import { activeTierKeys, setStates, type SetId, type SetState } from './sets';
 import { ACC_SLOTS, GEAR, airJumpSources, gearStats, sanitizeGear, toggleAccessory, type GearId, type GearSlot, type GearStats, type Loadout } from './gear';
-import { FOOD, bestHeal, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE } from './fishing';
+import { FOOD, bestHeal, type Fishing, catchFor, castTarget, biteDelay, BITE_WINDOW, CAST_RANGE, BAIT_BITE_MUL } from './fishing';
 import { daylight } from './daynight';
 import { awaySeconds, simulateOffline, OFFLINE_MIN, type OfflineResult } from './offline';
 import { automationHint, stepGrid, newPower, scanMachines, stepSmelting, stepMining, stepDrones, SMELT_RUST, type PowerState } from './power';
@@ -61,7 +61,7 @@ import { findRooms, mountOk, roomHint, type Room } from './rooms';
 import { RESEARCH, applyResearch, researchMissing, type ResearchId } from './research';
 import { REFORGE_COST, applyPrefixes, rollReforge, type PrefixId, type WeaponSlot } from './rarity';
 import { MODS, applyMods, bounce, fitMod, type ModId, type ModSlot } from './mods';
-import { BUFF_TIME, CHARGED_DRAIN, MEAL_BUFF, STURDY_TAKEN, SWIFT_SPEED, hasPotIn, stepBuffs, type Buffs, GARDENER_MOODS, cropAt, cropOfSeed, grassSeed, growCrops, harvestYield, isCropTile, isWatered, plantCrop, ripeIn, stepCrops, type CropId } from './farming';
+import { BUFF_TIME, CHARGED_DRAIN, MEAL_BUFF, STURDY_TAKEN, SWIFT_SPEED, hasPotIn, stepBuffs, type Buffs, GARDENER_MOODS, cropAt, cropOfSeed, grassSeed, growCrops, harvestYield, isCropTile, isWatered, plantCrop, ripeIn, stepCrops, tillUnder, type CropId } from './farming';
 import { NPC_INFO, NPC_ORDER, TRADES, deathKeep, doTrade, moodGive, npcLine, npcMood, type Mood, npcSpots, reactNpcs, roomFloor, stepNpc, syncNpcs, tradeOpen, type Npc, type NpcKind, type Trade } from './npcs';
 import { merchantDay, merchantPresent, merchantStock } from './merchant';
 import { placement, removeTile } from './wide';
@@ -1919,6 +1919,7 @@ export class Game {
           if (item.places === T.SAPLING) this.world.saplings.set(i, growTime(this.world, i));
           const crop = cropOfSeed(this.selected);
           if (crop) {
+            tillUnder(this.world, tx, ty);
             plantCrop(this.world, tx, ty, crop);
             this.emit({ t: 'plant', crop, secs: Math.round(ripeIn(this.world, tx, ty, this.wetFn)), wet: this.cropWatered(tx, ty) });
           }
@@ -2695,7 +2696,7 @@ export class Game {
     const f = this.fishing;
     if (f) {
       if (f.bite > 0) {
-        const got = catchFor(this.world.seed, f.cast, this.depth, isNight(this.time), f.ice === true);
+        const got = catchFor(this.world.seed, f.cast, this.depth, isNight(this.time), f.ice === true, f.bait === true);
         const room = Math.max(0, this.derived.packCap - invTotal(this.carried));
         const n = Math.min(room, got.n);
         if (n > 0) invAdd(this.carried, got.item, n);
@@ -2710,7 +2711,10 @@ export class Game {
     const at = castTarget(this.world, this.body.x, this.body.y, aim.tx, aim.ty);
     if (!at) return;
     const cast = this.casts++;
-    this.fishing = { x: at.x, y: at.y, t: 0, biteAt: biteDelay(this.world.seed, cast), bite: 0, cast, ...(at.ice ? { ice: true } : {}) };
+    // A bait in the pack is used up on the cast: quicker bite, better catch.
+    const bait = invCount(this.carried, 'bait') > 0;
+    if (bait) invAdd(this.carried, 'bait', -1);
+    this.fishing = { x: at.x, y: at.y, t: 0, biteAt: biteDelay(this.world.seed, cast) * (bait ? BAIT_BITE_MUL : 1), bite: 0, cast, ...(at.ice ? { ice: true } : {}), ...(bait ? { bait: true } : {}) };
     this.emit({ t: 'cast', x: at.x, y: at.y });
   }
 
@@ -2728,7 +2732,7 @@ export class Game {
       if (f.bite <= 0) {
         // It got away: wait for the next bite.
         f.bite = 0;
-        f.biteAt = f.t + biteDelay(this.world.seed, f.cast + 1000);
+        f.biteAt = f.t + biteDelay(this.world.seed, f.cast + 1000) * (f.bait ? BAIT_BITE_MUL : 1);
       }
     } else if (f.t >= f.biteAt) {
       f.bite = BITE_WINDOW;
@@ -2939,7 +2943,7 @@ export class Game {
 
   /** Cutting a crop: ripe ones give produce and seeds, unripe ones their seed back. */
   private harvest(tile: number, x: number, y: number, cap: number): void {
-    const got = harvestYield(tile, x, y, this.world.seed);
+    const got = harvestYield(tile, x, y, this.world.seed, this.world.get(x, y + 1) === T.TILLED);
     for (const g of got) this.gain(g.item, g.n, x, y, cap);
     const c = cropAt(tile);
     if (c && c.stage >= 2) this.emit({ t: 'harvest', crop: c.crop, n: got[0]?.n ?? 0, x, y });

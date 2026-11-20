@@ -17,6 +17,7 @@ export interface Recipe {
 /** Fabricator recipes (base only). Inputs come from the stash, outputs go to the pack. */
 export const RECIPES: Recipe[] = [
   { id: 'torch', name: 'Torch x2', out: 'torch', qty: 2, cost: { rust: 2, iron_scrap: 1 } },
+  { id: 'bait', name: 'Bait x4 (faster bites, better catch)', out: 'bait', qty: 4, cost: { biomass: 1, rust: 1 } },
   { id: 'biotorch', name: 'Bio torch x3', out: 'torch', qty: 3, cost: { biomass: 3 } },
   { id: 'beacon_colossus', name: 'Scrap beacon (Junk Colossus)', out: 'beacon_colossus', qty: 1, cost: { iron_scrap: 12, copper_wire: 6, metal: 6 } },
   { id: 'beacon_vine', name: 'Vine beacon (Vine Queen)', out: 'beacon_vine', qty: 1, cost: { biomass: 20, crystal: 4, copper_wire: 6 } },

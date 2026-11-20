@@ -23,7 +23,7 @@ interface Look {
   speckCount?: number;
   /** Bright pixel on each speck (ore glint). */
   glint?: string;
-  detail?: 'panel' | 'hazard' | 'grate' | 'neon' | 'rivets' | 'flakes' | 'cracks' | 'frame' | 'pad' | 'bricks' | 'facets' | 'ripples' | 'roots' | 'traces';
+  detail?: 'furrows' | 'panel' | 'hazard' | 'grate' | 'neon' | 'rivets' | 'flakes' | 'cracks' | 'frame' | 'pad' | 'bricks' | 'facets' | 'ripples' | 'roots' | 'traces';
   /** Built-metal frame on exposed sides: bright band, inner shadow line, a bolt in each exposed corner. */
   trim?: Trim;
 }
@@ -60,6 +60,7 @@ const LOOK: Record<number, Look> = {
   [T.SHIELD]: { base: '#1d4a66', light: '#5ad8ff', dark: '#10283a', speck: '#c8f6ff', speckCount: 4, glint: '#ffffff', detail: 'rivets' },
   [T.GATE]: { base: '#0b2a3a', light: '#36e0e8', dark: '#061620', speck: '#c8ffff', speckCount: 4, detail: 'pad' },
   [T.ICE]: { base: '#8fc4e0', light: '#e6f6ff', dark: '#5a8cb0', speck: '#ffffff', speckCount: 3, glint: '#ffffff', detail: 'cracks' },
+  [T.TILLED]: { base: '#3f2f22', light: '#5e4a34', dark: '#281d14', detail: 'furrows' },
   [T.PANEL]: { base: '#56627a', light: '#7d8ba6', dark: '#3c4659', detail: 'panel', trim: { hi: '#a9b6cf', lo: '#2a3242', bolt: '#d0d8e6' } },
   [T.HAZARD]: { base: '#2b2d33', light: '#e8b82a', dark: '#1a1b20', detail: 'hazard', trim: { hi: '#f4d25a', lo: '#14151a', bolt: '#e8b82a' } },
   [T.BRICK]: { base: '#8a4434', light: '#b06048', dark: '#5c2c22', detail: 'bricks' },
@@ -105,6 +106,12 @@ export function tileTexture(id: number, v: number): (string | null)[] {
       for (let i = 0; i < TS; i++) {
         if (v % 2 === 0) { put(7, i, look.dark); put(8, i, look.light); }
         else { put(i, 7, look.dark); put(i, 8, look.light); }
+      }
+      break;
+    case 'furrows':
+      for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) {
+        if (y % 4 === 1) put(x, y, look.dark);
+        else if (y % 4 === 2) put(x, y, look.light);
       }
       break;
     case 'hazard':
@@ -333,6 +340,7 @@ export const TILE_COLORS: Record<number, string> = {
   [T.CHAIR]: '#c9a35a',
   [T.WINDOW]: '#9fd8ff',
   [T.LIFT]: '#5ad8ff',
+  [T.TILLED]: '#5e4a34',
   [T.PANEL]: '#7d8ba6',
   [T.HAZARD]: '#e8b82a',
   [T.BRICK]: '#a8503c',

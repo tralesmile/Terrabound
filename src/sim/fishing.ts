@@ -17,17 +17,22 @@ export interface Fishing {
   cast: number;
   /** Fishing through a hole in pond ice (Frozen Spires): the bobber sits in the water cell under the ice. */
   ice?: boolean;
+  /** A bait was used on this cast: bites come sooner and the catch is better. */
+  bait?: boolean;
 }
 
 export const CAST_RANGE = 10;
 export const BITE_WINDOW = 0.9;
 export const BITE_MIN = 2;
 export const BITE_SPREAD = 5;
+/** Bait halves the wait for a bite. */
+export const BAIT_BITE_MUL = 0.5;
 
 /** Food restores health and battery when eaten from the inventory. */
 export const FOOD: Partial<Record<ItemId, { hp: number; battery: number }>> = {
   fish: { hp: 25, battery: 0 },
   glowfish: { hp: 50, battery: 40 },
+  lunker: { hp: 80, battery: 30 },
   icefin: { hp: 35, battery: 20 },
   medkit: { hp: 60, battery: 0 },
   // Farm produce (farming.ts): small heals, glowcorn also tops up the battery.
@@ -84,8 +89,15 @@ export function biteDelay(seed: number, cast: number): number {
 }
 
 /** What comes up: mostly fish; glowfish at night or deep; sometimes crystal, seeds or junk. */
-export function catchFor(seed: number, cast: number, depth: number, night: boolean, ice = false): { item: ItemId; n: number } {
+export function catchFor(seed: number, cast: number, depth: number, night: boolean, ice = false, bait = false): { item: ItemId; n: number } {
   const r = hash2(cast, 12, seed);
+  // Bait: no junk. A lunker (big, filling catch) one time in eight, otherwise fish with more glowfish, the odd crystal.
+  if (bait && !ice) {
+    if (r < 0.125) return { item: 'lunker', n: 1 };
+    if (r < 0.125 + (night || depth > 30 ? 0.3 : 0.15)) return { item: 'glowfish', n: 1 };
+    if (r < 0.85) return { item: 'fish', n: 1 + (hash2(cast, 14, seed) < 0.3 ? 1 : 0) };
+    return { item: 'crystal', n: 1 + Math.floor(hash2(cast, 13, seed) * 2) };
+  }
   if (ice) {
     // Under the ice: icefin (better food) is the common bite, then fish, a few crystals or berry seeds.
     if (r < 0.4) return { item: 'icefin', n: 1 };

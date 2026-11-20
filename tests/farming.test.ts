@@ -158,7 +158,7 @@ describe('farming in the game', () => {
     expect(g.world.get(x + 2, y - 1)).toBe(T.CORN_1);
     expect(g.carried.corn_seed).toBe(1);
     const ev = g.drainEvents().find((e) => e.t === 'plant');
-    expect(ev && ev.t === 'plant' && ev.secs).toBe(STAGE_TIME * 2);
+    expect(ev && ev.t === 'plant' && ev.secs).toBe(Math.round((STAGE_TIME * 2) / 1.25)); // planting tills the soil: x1.25
     // Survives a save and keeps growing after it.
     const g2 = reload(g);
     expect(g2.world.get(x + 2, y - 1)).toBe(T.CORN_1);
