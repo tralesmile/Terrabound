@@ -345,3 +345,11 @@
 
 ## 2026-11-18 run 81
 - `npx vitest run` takes ~3 min: always start it with `&` and poll; a foreground call dies at 2 min (same as the gate).
+
+## 2026-11-20 run 83
+
+- **The npm registry was unreachable in this session** (ENOTFOUND on registry.npmjs.org), so `npm ci`, `npm run check` and `npm run ship` could not run. Workaround used (outside the repo, nothing committed): node_modules symlinks to preinstalled TypeScript and playwright-core, a ~90-line vitest-compatible shim (describe/it/expect with the matchers the suite uses) run through tsx, and an esbuild bundle in place of `vite build`. All 1014 baseline tests and 291 e2e checks passed under it. Guard: a run that cannot reach the registry commits locally and does NOT push; the owner (or the next normal run) runs the real `npm run check` before shipping.
+- **A tag on `fx.addParticles` counts as a block break** (`fx.breaks`, `lastBreak`): passing one for non-break particles (dig chips) made the debris e2e catch the wrong event. Guard: only `break` events pass a tag; a unit test pins it.
+- **Decaying values (screen trauma) read after a wait flake**: main adds and decays trauma in the same frame, and a slow headless frame (dt capped at 0.1 s) zeroes a 0.15 trauma before any sample. Guard: the hit-feel e2e wraps `fx.addShake` to record what a hit adds; measure the input, not a decayed output.
+- **New live toasts can leak into layout checks**: the enemy-teaching toast fired during the toast-merge e2e (a wild Drone wisp met the player) and made 2 pills. Guard: toast layout checks clear enemies and hold spawns (`spawnCd`) before injecting their own toasts.
+- **Retro (run 83):** drafting the next slice in a scratch folder while the ~10 min gate ran (run 67/79 lesson) kept the pipeline full; committing once unit tests and build are green and the e2e is still going, then fixing forward, saved several waits without ever pushing red.

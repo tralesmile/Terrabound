@@ -3038,10 +3038,14 @@ try {
   }, cog);
   await holdClick(page, cogCss.x, cogCss.y);
   await page.waitForTimeout(120);
-  const setA = await page.evaluate(() => {
+  // Expected live steppers derive from the PREFS table (a '-' when above 0, a '+' when below max).
+  const prefMax = Object.fromEntries([...fs.readFileSync(path.join(root, 'src/sim/settings.ts'), 'utf8').matchAll(/\{ key: '(\w+)', label: '[^']*', max: (\d+)/g)].map((m) => [m[1], Number(m[2])]));
+  const setA = await page.evaluate((maxes) => {
     const t = window.__terrabound;
-    return { open: t.ui.settingsOpen, time: t.game.time, rows: t.ui.rects.filter((r) => r.a.k === 'pref').length };
-  });
+    const p = t.game.prefs;
+    const want = Object.entries(maxes).reduce((n, [k, max]) => n + (p[k] > 0 ? 1 : 0) + (p[k] < max ? 1 : 0), 0);
+    return { open: t.ui.settingsOpen, time: t.game.time, rows: t.ui.rects.filter((r) => r.a.k === 'pref').length, want, prefs: Object.keys(maxes).length };
+  }, prefMax);
   await page.waitForTimeout(300);
   const pausedT = await page.evaluate(() => window.__terrabound.game.time);
   const clickPref = async (key, d) => {
@@ -3064,7 +3068,7 @@ try {
     return { scale: t.ui.uiScale, shake: t.renderer.shakeMul, prefs: t.game.prefs };
   });
   await page.screenshot({ path: path.join(out, '44-settings.png') });
-  check('cog opens settings with its steppers (maxed ones disabled) and pauses the game', setA.open && setA.rows === 11 && Math.abs(pausedT - setA.time) < 1e-6, JSON.stringify({ ...setA, pausedT }));
+  check('cog opens settings with its steppers (maxed ones disabled) and pauses the game', setA.open && setA.prefs >= 9 && setA.rows === setA.want && Math.abs(pausedT - setA.time) < 1e-6, JSON.stringify({ ...setA, pausedT }));
   check('settings steppers raise UI size and turn screen shake off', setB.scale > 1 && setB.shake === 0 && setB.prefs.uiSize === 1 && setB.prefs.shake === 0, JSON.stringify(setB));
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
@@ -4535,6 +4539,19 @@ try {
   await page.waitForTimeout(400);
   check('tap starts the game on mobile', (await page.evaluate(() => window.__terrabound.ui.screen)) === 'play');
   check('touch mode detected', await page.evaluate(() => window.__terrabound.ui.touch));
+  // Haptics: a hit buzzes the phone.
+  const vib = await page.evaluate(async () => {
+    const { game: g } = window.__terrabound;
+    const sent = [];
+    navigator.vibrate = (p) => {
+      sent.push(p);
+      return true;
+    };
+    g['emit']({ t: 'hurt', amount: 30 });
+    await new Promise((r) => setTimeout(r, 150));
+    return { on: sent.length, first: sent[0] ?? null };
+  });
+  check('a hit vibrates a phone (VIBRATION on by default; off is unit-tested)', vib.on >= 1, JSON.stringify(vib));
   await page.screenshot({ path: path.join(out, '06-mobile-play.png') });
   // Icon HUD: square glyph buttons, two wide, cog first; the column is far narrower than the old text column.
   const hudIcons = await page.evaluate(() => {

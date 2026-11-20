@@ -62,7 +62,7 @@ describe('settings screen prefs', () => {
   it('a v19 save keeps its prefs and gets ore marks off, flashes full', () => {
     const v19 = { ...defaultSave(), v: 19, settings: { muted: false, music: true, raids: true, master: 3, musicVol: 4, sfxVol: 5, shake: 1, uiSize: 2 } };
     const s = parseSave(JSON.stringify(v19));
-    expect(s.settings).toEqual({ muted: false, music: true, raids: true, master: 3, musicVol: 4, sfxVol: 5, shake: 1, uiSize: 2, oreMarks: 0, flashes: 0, stickSide: 0, keys: DEFAULT_KEYS });
+    expect(s.settings).toEqual({ muted: false, music: true, raids: true, master: 3, musicVol: 4, sfxVol: 5, shake: 1, uiSize: 2, oreMarks: 0, flashes: 0, stickSide: 0, haptics: 1, keys: DEFAULT_KEYS });
     expect(prefValueLabel(s.settings, 'oreMarks')).toBe('OFF');
     expect(prefValueLabel({ ...s.settings, flashes: 1 }, 'flashes')).toBe('REDUCED');
   });

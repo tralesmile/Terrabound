@@ -19,7 +19,7 @@ import { sanitizeMet } from './teach';
 import type { EnemyKind } from './enemies';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 31;
+export const SAVE_VERSION = 32;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -34,7 +34,7 @@ export interface SaveData {
   upgrades: Levels;
   /** v14 adds raids (night raids repelled). */
   stats: { deepest: number; deaths: number; playTime: number; banked: number; raids: number };
-  /** v11 adds music (background music on/off, default on); v14 adds raids (night base raids, default on); v19 adds the settings screen prefs (volumes, shake, UI size); v20 adds oreMarks and flashes; v21 adds stickSide; v22 adds keys (desktop bindings). */
+  /** v32 adds haptics (vibration on phones, default on). v11 adds music (background music on/off, default on); v14 adds raids (night base raids, default on); v19 adds the settings screen prefs (volumes, shake, UI size); v20 adds oreMarks and flashes; v21 adds stickSide; v22 adds keys (desktop bindings). */
   settings: { muted: boolean; music: boolean; raids: boolean; keys: KeyMap } & Prefs;
   /** v2: persistent base tiles above the landing pad (see base.ts). */
   base: BaseTiles;
@@ -176,6 +176,7 @@ export function parseSave(raw: string | null | undefined): SaveData {
     // v19 -> v20: oreMarks and flashes are missing and take their defaults (off, full).
     // v20 -> v21: stickSide is missing and takes its default (move stick on the left).
     // v21 -> v22: keys is missing and takes DEFAULT_KEYS; bad or duplicate bindings reset to defaults.
+    // v31 -> v32: haptics is missing and takes its default (vibration on; only phones vibrate).
     settings: { muted: se.muted === true, music: se.music !== false, raids: se.raids !== false, keys: cleanKeys(se.keys), ...cleanPrefs(se) },
     // v1 saves have no base field: sanitizeBase(undefined) yields an empty base (migration v1 -> v2).
     base: sanitizeBase(r.base),

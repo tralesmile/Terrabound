@@ -15,11 +15,13 @@ export interface Prefs {
   flashes: number;
   /** Touch: 0 move stick on the left (default), 1 on the right (left-handed). */
   stickSide: number;
+  /** Phones: 0 off, 1 on (default): short vibrations on hits, breaks and banking (platform/haptics.ts). */
+  haptics: number;
 }
 
 export type PrefKey = keyof Prefs;
 
-export const DEFAULT_PREFS: Prefs = { master: 8, musicVol: 7, sfxVol: 8, shake: 2, uiSize: 0, oreMarks: 0, flashes: 0, stickSide: 0 };
+export const DEFAULT_PREFS: Prefs = { master: 8, musicVol: 7, sfxVol: 8, shake: 2, uiSize: 0, oreMarks: 0, flashes: 0, stickSide: 0, haptics: 1 };
 
 interface PrefDef {
   key: PrefKey;
@@ -38,6 +40,7 @@ export const PREFS: readonly PrefDef[] = [
   { key: 'oreMarks', label: 'ORE AND HAZARD MARKS', max: 1, names: ['OFF', 'ON'] },
   { key: 'flashes', label: 'FLASHES', max: 1, names: ['FULL', 'REDUCED'] },
   { key: 'stickSide', label: 'TOUCH MOVE STICK', max: 1, names: ['LEFT', 'RIGHT'] },
+  { key: 'haptics', label: 'VIBRATION (PHONES)', max: 1, names: ['OFF', 'ON'] },
 ];
 
 function def(key: PrefKey): PrefDef {

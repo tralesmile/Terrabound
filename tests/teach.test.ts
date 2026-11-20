@@ -107,8 +107,8 @@ describe('enemy pattern teaching', () => {
     const v30 = { ...JSON.parse(serializeSave(defaultSave())), v: 30 };
     delete v30.met;
     const s = parseSave(JSON.stringify(v30));
-    expect(SAVE_VERSION).toBe(31);
-    expect(s.v).toBe(31);
+    expect(SAVE_VERSION).toBeGreaterThanOrEqual(31);
+    expect(s.v).toBe(SAVE_VERSION);
     expect(s.met).toEqual([]);
     expect(parseSave(JSON.stringify({ ...v30, met: 'junk' })).met).toEqual([]);
   });

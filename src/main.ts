@@ -1,4 +1,5 @@
 import { TEACH } from './sim/teach';
+import { Haptics } from './platform/haptics';
 import { digChips } from './render/digfx';
 import { HIT_FEEL } from './sim/hitfeel';
 import { SETS } from './sim/sets';
@@ -93,6 +94,8 @@ function boot(): void {
   sfx.muted = game.muted;
   sfx.musicOn = game.musicOn;
   const renderer = new Renderer(ctx);
+  // Phones vibrate on hits, breaks and banking (VIBRATION setting); a no-op without navigator.vibrate.
+  const haptics = new Haptics(typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function' ? (p) => navigator.vibrate(p) : null);
   /** Push settings-screen prefs into audio, renderer and UI. */
   const applyPrefs = (): void => {
     const p = game.prefs;
@@ -105,6 +108,7 @@ function boot(): void {
     input.keymap = game.keys;
     ui.stickSide = p.stickSide;
     ui.uiScale = uiScale(p);
+    haptics.enabled = p.haptics === 1;
   };
   ui.touch = window.matchMedia?.('(pointer: coarse)').matches === true || 'ontouchstart' in window;
   const input = new Input(canvas, ui, renderer, () => dpr);
@@ -514,6 +518,8 @@ function boot(): void {
     fx.bubbles(dt, now !== 0 && isLiquid(head), b.x, b.y - BODY_H + 0.4, game.facing, liquidKind(now) === 'water' ? '#cfeeff' : splashColor(liquidKind(now)).foam);
   };
   const handle = (e: GameEvent): void => {
+    haptics.touch = ui.touch;
+    haptics.fire(e, performance.now());
     sfx.handle(e);
     switch (e.t) {
       case 'dig':
