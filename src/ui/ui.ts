@@ -4,7 +4,7 @@ import { BANK_CARD_LIFE, bankCardAge, bankCardFade, bankCardLayout } from './ban
 import { PAINTS, PAINT_SLOTS, unlockedPaints, type PaintSlot } from '../sim/paints';
 import { codexCounts, logParts, readLogs, stepLog, type CodexSection } from '../sim/codex';
 import { AWARDS, awardGift, awardProgress } from '../sim/achievements';
-import { FTUE_STEPS } from '../sim/ftue';
+import { GOAL_STEPS } from '../sim/ftue';
 import { PREFS, prefValueLabel, type PrefKey } from '../sim/settings';
 import { BINDS, keyLabel, type BindId } from '../sim/keys';
 import { recordLine } from '../sim/records';
@@ -1886,7 +1886,7 @@ export class UI {
     const badgeFs = Math.round(u * 0.56);
     const raw = this.touch ? g.step.touch : g.step.text;
     const body = raw.replace('{shop}', keyLabel(game.keys.shop));
-    const badge = `${g.index + 1}/${FTUE_STEPS.length}`;
+    const badge = `${g.index + 1}/${GOAL_STEPS.length}`;
     const counted = g.step.goal > 1;
     const count = `${g.have}/${g.step.goal}`;
     ctx.font = `bold ${badgeFs}px ${FONT}`;

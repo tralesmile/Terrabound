@@ -12,7 +12,7 @@ import { VEHICLES } from './sim/garage';
 import { dropAt } from './sim/drops';
 import { itemTip } from './ui/itemtip';
 import { TileDwell, tileTip } from './ui/tiletip';
-import { FTUE_STEPS } from './sim/ftue';
+import { GOAL_STEPS } from './sim/ftue';
 import { audioGains, shakeMul, uiScale } from './sim/settings';
 import { CROPS } from './sim/farming';
 import { drawDecorGallery } from './render/decor';
@@ -579,8 +579,8 @@ function boot(): void {
         saveNow();
         break;
       case 'goal': {
-        const next = FTUE_STEPS[e.next];
-        ui.toast(next ? 'Goal done! Next goal below' : 'Goal done! You know the basics: the AWARDS page in your inventory has more', '#7dffb0', 3, 'goal');
+        const next = GOAL_STEPS[e.next];
+        ui.toast(next ? 'Goal done! Next goal below' : 'Goal done! That is every guided goal: the AWARDS page in your inventory has more', '#7dffb0', 3, 'goal');
         break;
       }
       case 'award':

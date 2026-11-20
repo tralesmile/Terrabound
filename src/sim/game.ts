@@ -1,7 +1,7 @@
 import { gravityMul, stepVx } from './movement';
 import { activePaint, nextPaint, type PaintDef, type PaintSlot } from './paints';
 import { CREW_KINDS, codexRows, loreKey, noteCodexEvent, trinketCount, type CodexRow } from './codex';
-import { currentGoal, FTUE_STEPS, goalIndex } from './ftue';
+import { chainGoal, chainIndex, GOAL_STEPS } from './ftue';
 import { foldDive, newDive, tripSince, type DiveReport, type TripReport } from './divereport';
 import { awardGift, checkAwards, countEvent, newAwards, noteMax, sanitizeAwards, type Awards, type Tier } from './achievements';
 import { stepPref, type PrefKey, type Prefs } from './settings';
@@ -454,7 +454,7 @@ export class Game {
     // Older in-memory saves (tests, fixtures) may lack awards; unlocks already earned are granted quietly.
     this.save.awards = this.save.awards ? sanitizeAwards(this.save.awards) : newAwards();
     checkAwards(this.save.awards);
-    this.goalAt = goalIndex(this.save.awards);
+    this.goalAt = chainIndex(this.save.awards, this.save.bosses);
     if (!Array.isArray(this.save.codex)) this.save.codex = [];
     this.save.met = sanitizeMet(this.save.met);
     this.save.gear = sanitizeGear(this.save.gear);
@@ -1015,9 +1015,9 @@ export class Game {
       for (const k of Object.keys(gift) as ItemId[]) invAdd(this.stash, k, gift[k] ?? 0);
       this.emit({ t: 'award', id: d.id, name: d.name, tier: d.tier, gift });
     }
-    const gi = goalIndex(this.save.awards);
+    const gi = chainIndex(this.save.awards, this.save.bosses);
     if (gi > this.goalAt) {
-      const done = FTUE_STEPS[this.goalAt];
+      const done = GOAL_STEPS[this.goalAt];
       this.goalAt = gi;
       if (done) this.emit({ t: 'goal', id: done.id, next: gi });
     }
@@ -1026,9 +1026,9 @@ export class Game {
   /** First unfinished guided goal (ftue.ts); set quietly on load. */
   private goalAt = 0;
 
-  /** The current guided goal with progress, or null once the chain is done. */
-  get goal(): ReturnType<typeof currentGoal> {
-    return currentGoal(this.save.awards);
+  /** The current guided goal (first minutes, then what next) with progress, or null once the chain is done. */
+  get goal(): ReturnType<typeof chainGoal> {
+    return chainGoal(this.save.awards, this.save.bosses);
   }
 
   /** Suit paint worn now (earned and chosen), or null for the default look. */

@@ -69,7 +69,7 @@ Owner goal: make Terrabound feel closer to Terraria, Starbound and Core Keeper (
 Seed premise to refine, not to rewrite: you are a repair technician in a suit on the dead machine-planet. The Hollow AI was built to restore the world and got stuck in a loop, rebuilding the same dead machines. The bosses are its corrupted subsystems, the base robots (the 4 NPCs and Dex) are repaired survivors, the 12 lore logs are what happened. Acts follow the layers: I Scrap (Junk Colossus, the mystery), II the biome subsystems (Vine Queen, Crystal Golem, Ash Wyrm, Frost Titan), III Circuit (Logic Warden), IV Core (The Hollow AI). Final choice: Reboot (restore the world), Merge (join the AI) or Shutdown (end the loop, the planet stays quiet).
 
 - [ ] Write `docs/STORY.md`: premise, cast, acts mapped to layers and bosses, reveals, three endings, tone, rules (max two lines per delivery, no walls of text, skippable); reuse the existing logs, robots and Dex.
-- [ ] Objective tracker in the HUD ("what next?") and Guide hints; fixes the weak-tutorial complaint players have about Starbound; ties into FTUE.
+- [x] Objective tracker in the HUD ("what next?") and Guide hints; fixes the weak-tutorial complaint players have about Starbound; ties into FTUE.
 - [ ] Quest log and 3 short quest lines per robot, rewarded from the stash, never timed.
 - [ ] Act beats: two-line boss intro and outro cards; Hollow AI radio transmissions that change as it is weakened; ruins and logs placed by act.
 - [ ] Three endings at the Hollow AI, credits, then New Game+ "Loop N" with mutators and carry-over cosmetics (no power gating).
