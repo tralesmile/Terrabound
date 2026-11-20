@@ -1,5 +1,13 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-20 run 83
+
+- Done: first-of-a-kind enemies teach their move (amber "!", lesson toast, harmless first touch); mites crouch before leaping; camera looks ahead and leads falls; per-class hit feel with trauma shake; drilled blocks crack in stages with chips and material voices; ores need a drill tier.
+- Weakest graphics (from the screenshots): big ground areas are one flat noisy texture (crystal flats, dirt); P12-F tile variants and strata bands are the cheapest visible win.
+- Weakest gameplay feel: the Frost hulk is only a slow contact damage box; give it a telegraphed ground slam (0.4 s wind-up) so "hits hard" is a move you can read and dodge.
+- Weakest onboarding: research says the first hour loses players (Core Keeper's top refund reason is no tutorial); the objective tracker (P12-E) should come early.
+- Idea: a drill "skid" spark trail along the tile edge when the bit is too weak, so the tier gate reads without the toast.
+
 ## 2026-11-18 run 80
 
 - Done: trophy weapon pair now glows like a full armour set (a bonus you cannot see is a bonus players miss).

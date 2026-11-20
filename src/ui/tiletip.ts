@@ -3,6 +3,7 @@
  * on a tile. Pure (no canvas) so tests can check every tile has a name and the dig line is right.
  */
 import { isCropTile } from '../sim/farming';
+import { drillNeeded } from '../sim/drilltier';
 import { ITEMS, T, TILES } from '../sim/tiles';
 import type { ItemTip } from './itemtip';
 
@@ -41,7 +42,7 @@ const NOTES: Partial<Record<number, string>> = {
 };
 
 /** Tooltip for tile `t`; `digPower` is the drill's current power (seconds = hardness / power). */
-export function tileTip(t: number, digPower: number): ItemTip | null {
+export function tileTip(t: number, digPower: number, pickLevel = Infinity): ItemTip | null {
   const def = TILES[t];
   if (!def || t === T.AIR) return null;
   const lines: string[] = [];
@@ -51,6 +52,7 @@ export function tileTip(t: number, digPower: number): ItemTip | null {
   if (def.liquid) {
     // Liquids flow; nothing to dig.
   } else if (!Number.isFinite(def.hardness)) lines.push('Unbreakable');
+  else if (drillNeeded(t) > pickLevel) lines.push(`Needs Drill bit Lv ${drillNeeded(t)} (yours: Lv ${pickLevel})`);
   else {
     const s = def.hardness / Math.max(0.01, digPower);
     const drop = def.drop ? ITEMS[def.drop]?.name : null;

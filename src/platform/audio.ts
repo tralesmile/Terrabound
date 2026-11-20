@@ -175,6 +175,11 @@ export class Sfx {
           this.tone(digPitch(v.freq, Math.random()), v.dur, v.wave, v.vol);
         }
         break;
+      case 'toohard':
+        // A dull clank: the bit skids off something too hard for it.
+        this.tone(95, 0.12, 'square', 0.08, 70);
+        this.noise(0.04, 0.12);
+        break;
       case 'break':
         this.noise(0.14, 0.4);
         this.tone(180, 0.12, 'triangle', 0.15, 70);

@@ -10,6 +10,7 @@ import { decodeSeed, encodeSeed } from './seedcode';
 import { noteBoss, noteDepth, noteLoot, startAttempt, type RecordBeat, type WorldRecord } from './records';
 import { hash2, mixSeed, mulberry32 } from './rng';
 import { HIT_FEEL, type HitClass } from './hitfeel';
+import { drillNeeded } from './drilltier';
 import { TEACH_SHOVE, firstMeet, sanitizeMet, shouldTeach } from './teach';
 import { ENEMIES, ENEMY_HIT_IFRAMES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
 import { type Body, moveX, moveY, onLadder, probeGround, stepUp, unstick, BODY_H, HALF_W } from './physics';
@@ -128,6 +129,8 @@ export const NO_CONTROLS: Controls = { moveX: 0, jump: false, dig: false, place:
 
 export type GameEvent =
   | { t: 'dig'; x: number; y: number; tile: number }
+  /** The drill bit is too weak for this block (drilltier.ts): `need` is the Drill bit level it takes. */
+  | { t: 'toohard'; x: number; y: number; tile: number; need: number }
   | { t: 'break'; x: number; y: number; tile: number }
   | { t: 'pickup'; item: ItemId; x: number; y: number }
   | { t: 'place'; x: number; y: number }
@@ -1822,7 +1825,15 @@ export class Game {
       if (isMinable(tile) || onWall) {
         const def = onWall ? TILES[T.WALL] : TILES[tile];
         const blockedByPack = def.drop !== null && invTotal(this.carried) >= d.packCap;
-        if (blockedByPack) {
+        const need = onWall ? 0 : drillNeeded(tile);
+        if (need > (this.upgrades.pick ?? 0)) {
+          // Too hard for this drill bit: no progress, and say which level it takes (about once a second).
+          this.mining = null;
+          if (this.fullCd === 0) {
+            this.emit({ t: 'toohard', x: tx, y: ty, tile, need });
+            this.fullCd = 1;
+          }
+        } else if (blockedByPack) {
           if (this.fullCd === 0) {
             this.emit({ t: 'full' });
             this.fullCd = 1;

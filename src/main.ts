@@ -32,7 +32,7 @@ import { ENEMY_ART_UNIT, ENEMY_LOOKS, ENEMY_W, TILE_COLORS, drawGallery, enemyFr
 import { FIXED_DT, Game, NO_CONTROLS, TOOLS, type GameEvent, type Tool } from './sim/game';
 import { parseSave, serializeSave } from './sim/save';
 import { WORLD_H, WORLD_W, biggerWorldPitch } from './sim/worldsize';
-import { ITEMS, T, type ItemId } from './sim/tiles';
+import { ITEMS, T, TILES, type ItemId } from './sim/tiles';
 import { codexEntry } from './sim/explore';
 import { GEAR } from './sim/gear';
 import { isNight } from './sim/daynight';
@@ -520,6 +520,11 @@ function boot(): void {
         // Chips knocked off the face toward the player on every drill tick (digfx.ts).
         fx.addParticles(digChips(e.x, e.y, e.tile, TILE_COLORS[e.tile] ?? '#888888', game.body.x, game.body.y, Math.random));
         break;
+      case 'toohard':
+        // The bit skids off: sparks at the face and the level it takes (drilltier.ts).
+        fx.burst(e.x + 0.5, e.y + 0.5, '#fff6c8', 5, 4);
+        ui.toast(`${TILES[e.tile]?.name ?? 'This block'} needs Drill bit Lv ${e.need}: upgrade it at the pad workshop`, '#ff9a3c', 2.6, 'toohard');
+        break;
       case 'break':
         fx.addParticles(breakDebris(e.x + 0.5, e.y + 0.5, e.tile, TILE_COLORS[e.tile] ?? '#888888', Math.random), breakStyle(e.tile));
         fx.addShake(0.12);
@@ -990,7 +995,7 @@ function boot(): void {
       // nor during a boss fight or a raid: the screen should show the fight, not "Rust").
       const ht = wp ? { x: Math.floor(wp.x), y: Math.floor(wp.y) } : null;
       const seen = ht && ht.x >= 0 && ht.y >= 0 && ht.x < game.world.w && ht.y < game.world.h && game.fog.isSeen(ht.x, ht.y) ? ht : null;
-      if (tileDwell.update(dt, seen, input.pressing || !!game.boss || !!game.raid) && !hd && seen) ui.worldTip = tileTip(game.world.get(seen.x, seen.y), game.derived.digPower);
+      if (tileDwell.update(dt, seen, input.pressing || !!game.boss || !!game.raid) && !hd && seen) ui.worldTip = tileTip(game.world.get(seen.x, seen.y), game.derived.digPower, game.upgrades.pick ?? 0);
       ui.draw(ctx, game, canvas.clientWidth, canvas.clientHeight, clock);
       const st = input.stick();
       if (st) {

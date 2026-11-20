@@ -285,6 +285,33 @@ try {
     const live = await page.evaluate(() => window.__terrabound.fx.particles.length);
     check('debris is in the air right after a break', caught && live >= 6, JSON.stringify({ caught, live }));
   }
+  // Dig-power tiers: a core shard under the feet will not budge for a starter drill and says why.
+  {
+    // Tile id read from the table (no literal ids in checks; see LESSONS run 70).
+    const CORE_ORE = Number(fs.readFileSync(path.join(root, 'src/sim/tiles.ts'), 'utf8').match(/CORE_ORE: (\d+)/)[1]);
+    await page.waitForTimeout(400);
+    const spot = await page.evaluate((id) => {
+      const { game: g, ui } = window.__terrabound;
+      const tx = Math.floor(g.body.x);
+      const ty = Math.floor(g.body.y);
+      ui.toasts = [];
+      const old = g.world.get(tx, ty);
+      g.world.set(tx, ty, id);
+      return { tx, ty, old, id, pick: g.upgrades.pick ?? 0, set: g.world.get(tx, ty) };
+    }, CORE_ORE);
+    const pos3 = await tileToCss(page, spot.tx, spot.ty);
+    await page.mouse.move(pos3.x, pos3.y);
+    await page.mouse.down();
+    await page.waitForTimeout(700);
+    await page.mouse.up();
+    const hard = await page.evaluate(([tx, ty, old]) => {
+      const { game: g, ui } = window.__terrabound;
+      const r = { tile: g.world.get(tx, ty), toast: ui.toasts.map((t) => t.text).join('|') };
+      g.world.set(tx, ty, old);
+      return r;
+    }, [spot.tx, spot.ty, spot.old]);
+    check('a starter drill skids off a core shard and names the Drill bit level it needs', spot.pick < 3 && hard.tile === CORE_ORE && hard.toast.includes('Drill bit Lv 3'), JSON.stringify({ spot, hard }));
+  }
   // Landing pad deck: hazard chevrons at both ends, runway lights chasing toward the centre.
   const padArt = await page.evaluate(async () => {
     const { game, renderer } = window.__terrabound;
