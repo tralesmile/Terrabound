@@ -545,6 +545,27 @@ try {
     g.enemies = [];
   });
   check('first sight of a new enemy kind names its pattern once and marks it as a teacher', teach.toast.includes('Shard mite') && teach.met && teach.teach, JSON.stringify(teach));
+  // Anticipation: a Frost hulk rears up (wind-up pose), then its slam lands with a shockwave.
+  const rear = await page.evaluate(async () => {
+    const { game: g, fx } = window.__terrabound;
+    if (!g['save'].met.includes('hulk')) g['save'].met.push('hulk');
+    g.iframes = 0;
+    g.enemies = [{ id: 41, kind: 'hulk', x: g.body.x + 1.8, y: g.body.y - 0.01, vx: 0, vy: 0, hp: 60, dir: -1, iframes: 0, age: 0, phase: 0, slamT: 0.35 }];
+    g.hitStop = 5;
+    await new Promise((r) => setTimeout(r, 80));
+    return { rings: fx.rings.length };
+  });
+  await page.screenshot({ path: path.join(out, '05f-hulk-rear.png') });
+  const slam = await page.evaluate(async (r0) => {
+    const { game: g, fx } = window.__terrabound;
+    g.hitStop = 0;
+    await new Promise((r) => setTimeout(r, 450));
+    const out = { cd: g.enemies[0]?.slamCd ?? 0, rings: fx.rings.length, r0 };
+    g.enemies = [];
+    g.iframes = 1;
+    return out;
+  }, rear.rings);
+  check('a Frost hulk winds up and its slam lands with a shockwave', slam.cd > 0 && slam.rings > slam.r0, JSON.stringify(slam));
   // Hit feel by attack class: a blast adds more screen trauma than a pistol bolt, and freezes longer.
   const feel = await page.evaluate(async () => {
     const { game: g, fx } = window.__terrabound;
@@ -552,10 +573,19 @@ try {
       fx.shake = 0;
       g.hitStop = 0;
       g.enemies = [{ id: 40, kind: 'crawler', x: g.body.x + 3, y: g.body.y - 0.01, vx: 0, vy: 0, hp: 999, dir: -1, iframes: 0, age: 0, phase: 0 }];
+      // Trauma is added and decayed in the same frame (a slow frame can zero a small hit before any
+      // sample), so record what the hit adds by wrapping addShake instead of reading fx.shake later.
+      let added = 0;
+      const orig = fx.addShake;
+      fx.addShake = (k) => {
+        added = Math.max(added, k);
+        orig.call(fx, k);
+      };
       g.damageEnemy(g.enemies[0], 1, 1, cls);
       const stop = g.hitStop;
-      await new Promise((r) => setTimeout(r, 50));
-      return { stop, shake: fx.shake };
+      await new Promise((r) => setTimeout(r, 120));
+      fx.addShake = orig;
+      return { stop, shake: added };
     };
     const ranged = await hit('ranged');
     const blast = await hit('blast');

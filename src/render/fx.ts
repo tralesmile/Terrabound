@@ -86,6 +86,13 @@ export function squashScale(left: number, power: number): { sx: number; sy: numb
   return { sx: 1 + k, sy: 1 - k };
 }
 
+/** Slammer wind-up pose: `w` 0..1 -> rears up tall and narrow about the feet. Null when idle. Pure. */
+export function rearScale(w: number): { sx: number; sy: number } | null {
+  if (!(w > 0)) return null;
+  const k = Math.min(1, w);
+  return { sx: 1 - 0.1 * k, sy: 1 + 0.2 * k };
+}
+
 /** Take-off stretch length (s): tall and thin for a beat on the jump frame. */
 export const STRETCH_TIME = 0.16;
 

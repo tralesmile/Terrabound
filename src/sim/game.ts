@@ -139,6 +139,8 @@ export type GameEvent =
   | { t: 'discover'; id: string; name: string }
   /** First sight of an enemy kind this save never met: the HUD names its pattern (teach.ts). */
   | { t: 'teach'; kind: EnemyKind; x: number; y: number }
+  /** A slammer (Frost hulk) landed its telegraphed ground slam at its feet (x, y), reaching `radius` tiles. */
+  | { t: 'enemyslam'; x: number; y: number; radius: number; hit: boolean }
   /** A teacher's first touch: a harmless shove instead of damage. */
   | { t: 'teachtouch'; kind: EnemyKind; x: number; y: number }
   | { t: 'recallstart' }
@@ -2261,6 +2263,7 @@ export class Game {
         const tg = goal ? raidTarget(e, b.x, b.y, goal.x - 0.5, goal.y, atBase) : raidTarget(e, b.x, b.y, this.world.padX, this.world.padY, atBase);
         stepEnemy(this.world, e, dt, tg.x, tg.y);
       } else stepEnemy(this.world, e, dt, b.x, b.y);
+      if (e.slammed) this.resolveSlam(e, atBase);
       if (!atBase && this.iframes === 0 && enemyOverlapsBox(e, b.x, b.y, HALF_W, BODY_H) && e.teach) {
         // A teacher's first touch shows the move without the damage, then it fights for real.
         this.teachTouch(e);
@@ -2401,6 +2404,27 @@ export class Game {
       reactNpcs(this.npcs, 'cheer');
       this.emit({ t: 'raidclear', n: r.total, reward, blueprint: blueprintDrop(this.save.stats.raids)?.name ?? null });
     }
+  }
+
+  /** A telegraphed slam lands: hurts a grounded player in reach (a jump dodges it); a teacher's first one only shoves. */
+  private resolveSlam(e: Enemy, atBase: boolean): void {
+    e.slammed = false;
+    const s = ENEMIES[e.kind].slam;
+    if (!s) return;
+    const b = this.body;
+    const inReach = !atBase && b.onGround && Math.abs(b.x - e.x) <= s.radius && Math.abs(b.y - e.y) < 1.2;
+    let hit = false;
+    if (inReach && this.iframes === 0) {
+      if (e.teach) this.teachTouch(e);
+      else {
+        this.hurt(s.dmg);
+        this.iframes = IFRAMES;
+        b.vx = (b.x >= e.x ? 1 : -1) * 7;
+        b.vy = Math.min(b.vy, -7);
+        hit = true;
+      }
+    }
+    this.emit({ t: 'enemyslam', x: e.x, y: e.y, radius: s.radius, hit });
   }
 
   /** First sight of an unmet kind: remember it and name its pattern once (teach.ts). */

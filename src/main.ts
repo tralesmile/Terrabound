@@ -855,6 +855,11 @@ function boot(): void {
         ui.toast(TEACH[e.kind], '#ffcf4a', 5, 'teach');
         fx.ring(e.x, e.y, 1.4, '#ffcf4a');
         break;
+      case 'enemyslam':
+        // The hulk's slam lands: a frost shockwave as wide as its reach so the dodge reads.
+        fx.slamImpact(e.x, e.y, 0.55, e.radius, TILE_COLORS[game.world.get(Math.floor(e.x), Math.floor(e.y + 0.05))] ?? '#c9e8ff', '#9fe8ff', null);
+        fx.addShake(e.hit ? 0.45 : 0.25);
+        break;
       case 'teachtouch':
         ui.toast('That one was a warning: next touch hurts', '#ff9a3c', 2.4, 'teach');
         fx.ring(e.x, e.y, 1, '#ff9a3c');

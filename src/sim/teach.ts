@@ -12,7 +12,7 @@ export const TEACH: Record<EnemyKind, string> = {
   vine: 'Vine stalker: fast jungle runner. Hit it, step back, hit again.',
   mite: 'Shard mite: crouches, then leaps. Step away when it crouches.',
   ember: 'Ember wisp: quick and fiery. Keep moving and shoot it down.',
-  hulk: 'Frost hulk: slow but hits hard. Keep your distance and chip away.',
+  hulk: 'Frost hulk: rears up, then slams the ground. Jump or back off when it rears.',
 };
 
 /** Tiles from the player at which a teacher counts as met (inside the usual camera view). */

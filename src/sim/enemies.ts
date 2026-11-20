@@ -21,6 +21,20 @@ export interface EnemyDef {
   drop?: ItemId;
   /** Ground enemy that leaps toward the player every few seconds. */
   hop?: boolean;
+  /** Telegraphed ground slam (anticipation): plants its feet, winds up, then hits everything grounded nearby. */
+  slam?: SlamDef;
+}
+
+export interface SlamDef {
+  /** Starts winding up when the player is this close (tiles, level with it). */
+  range: number;
+  /** Wind-up seconds (at least the 0.4 s telegraph rule). */
+  windup: number;
+  /** Hits a grounded player this close (tiles) when it lands. */
+  radius: number;
+  dmg: number;
+  /** Seconds before it can wind up again. */
+  cd: number;
 }
 
 export const ENEMIES: Record<EnemyKind, EnemyDef> = {
@@ -29,7 +43,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
   vine: { name: 'Vine stalker', hp: 30, speed: 3.0, contact: 12, halfW: 0.4, h: 0.7, flying: false, minDepth: 8, biome: B.JUNGLE, drop: 'biomass' },
   mite: { name: 'Shard mite', hp: 16, speed: 3.2, contact: 9, halfW: 0.3, h: 0.5, flying: false, minDepth: 8, biome: B.CRYSTAL, drop: 'crystal', hop: true },
   ember: { name: 'Ember wisp', hp: 18, speed: 3.8, contact: 10, halfW: 0.3, h: 0.5, flying: true, minDepth: 10, biome: B.ASH, drop: 'copper_wire' },
-  hulk: { name: 'Frost hulk', hp: 60, speed: 1.4, contact: 18, halfW: 0.55, h: 0.95, flying: false, minDepth: 12, biome: B.FROST },
+  hulk: { name: 'Frost hulk', hp: 60, speed: 1.4, contact: 18, halfW: 0.55, h: 0.95, flying: false, minDepth: 12, biome: B.FROST, slam: { range: 2.4, windup: 0.55, radius: 2.2, dmg: 16, cd: 2.6 } },
 };
 
 /** Kinds allowed at this depth in this biome (biome kinds only in their biome). */
@@ -65,6 +79,36 @@ export interface Enemy {
   lift?: number;
   /** First of its kind this save has met (teach.ts): its first touch is harmless. */
   teach?: boolean;
+  /** Slam wind-up seconds so far (undefined = not winding up), cooldown left, and the landing frame flag. */
+  slamT?: number;
+  slamCd?: number;
+  slammed?: boolean;
+}
+
+/** Slam wind-up 0..1 for the render pose (0 when not winding up). Pure. */
+export function slamWindup(e: Enemy): number {
+  const d = ENEMIES[e.kind].slam;
+  if (!d || e.slamT === undefined) return 0;
+  return Math.min(1, e.slamT / d.windup);
+}
+
+/**
+ * Advance a slammer's wind-up. Returns true while it is planted (winding up, or the landing frame, which
+ * sets `slammed` for the game to resolve). `canStart` = grounded with the player in range and level.
+ */
+export function stepSlam(e: Enemy, d: SlamDef, dt: number, canStart: boolean): boolean {
+  e.slamCd = Math.max(0, (e.slamCd ?? 0) - dt);
+  if (e.slamT === undefined) {
+    if (!canStart || e.slamCd > 0) return false;
+    e.slamT = 0;
+  }
+  e.slamT += dt;
+  if (e.slamT >= d.windup) {
+    e.slamT = undefined;
+    e.slamCd = d.cd;
+    e.slammed = true;
+  }
+  return true;
 }
 
 /** Seconds between a hopper's leaps, and the crouch telegraph before each leap (the 0.4 s rule). */
@@ -174,6 +218,13 @@ export function stepEnemy(world: World, e: Enemy, dt: number, px: number, py: nu
   else e.vx *= Math.max(0, 1 - 6 * dt);
   e.vy = Math.min(28, e.vy + G * dt);
   const grounded = world.isSolid(Math.floor(e.x), Math.floor(e.y + 0.05));
+  if (d.slam && !e.raid && stepSlam(e, d.slam, dt, grounded && !knock && Math.abs(px - e.x) < d.slam.range && Math.abs(py - e.y) < 1.5)) {
+    // Planted for the wind-up: only gravity (and any knockback already under way) moves it.
+    if (!knock) e.vx = 0;
+    const rs = moveAxis(world, e, e.vx * dt, e.vy * dt);
+    if (rs.hitY) e.vy = 0;
+    return;
+  }
   // Hoppers leap at a nearby player on a fixed rhythm (phase keeps a pack out of sync).
   if (d.hop && grounded && near && Math.floor((e.age + e.phase) / HOP_PERIOD) !== Math.floor((e.age + e.phase - dt) / HOP_PERIOD)) e.vy = -11;
   if (e.lift) e.lift = Math.max(0, e.lift - dt * ENEMY_STEP_EASE);

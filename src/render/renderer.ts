@@ -18,7 +18,7 @@ import { furnitureArt, screenLines } from './furniture';
 import { wideSide } from '../sim/wide';
 import { REACH } from '../sim/game';
 import { onLadder, stepEase } from '../sim/physics';
-import { ENEMIES, hopWindup } from '../sim/enemies';
+import { ENEMIES, hopWindup, slamWindup } from '../sim/enemies';
 import { easeLead, leadTarget, type Lead } from './camlead';
 import { traumaOffset } from './trauma';
 import { digCrackPixels, crackStage } from './digfx';
@@ -27,7 +27,7 @@ import { T, TILES, invTotal } from '../sim/tiles';
 import { isLiquid, levelAt as liquidLevel } from '../sim/liquids';
 import { W } from '../sim/world';
 import { BODY_H } from '../sim/physics';
-import { HIT_SQUASH_TIME, hitSquash, hurtSquash, hurtVignette, softFlash, magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx, crouchSquash, stretchScale } from './fx';
+import { HIT_SQUASH_TIME, hitSquash, hurtSquash, hurtVignette, softFlash, magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx, crouchSquash, rearScale, stretchScale } from './fx';
 import type { PlayerGear, VehicleSpriteId } from './sprites';
 import { ICON, drawIcon } from './icons';
 import { vehicleRemap } from './sprites';
@@ -554,7 +554,7 @@ export class Renderer {
       }
       const hit = hitSquash(e.iframes);
       // Hoppers crouch for 0.4 s before each leap (sim-timed telegraph); a hit squash wins over it.
-      const crouch = hit.sx === 1 && e.vy === 0 ? crouchSquash(hopWindup(e.kind, e.age, e.phase)) : null;
+      const crouch = hit.sx === 1 && e.vy === 0 ? (crouchSquash(hopWindup(e.kind, e.age, e.phase)) ?? rearScale(slamWindup(e))) : null;
       const sq = crouch ?? hit;
       if (sq.sx !== 1) {
         // Squash and stretch about the feet so every hit lands with weight.

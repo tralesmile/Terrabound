@@ -1,3 +1,4 @@
+import { duckMul, duckTau } from './duck';
 import { DIG_VOICE, digPitch } from './digvoice';
 import { breakStyle } from '../render/breakfx';
 import { PREFIXES } from '../sim/rarity';
@@ -92,6 +93,8 @@ export class Sfx {
   private nextBarAt = 0;
   private bar = 0;
   private moodKey = '';
+  /** AudioContext time of the last boss warning (drives the anticipation dip); -1e9 = none. */
+  private duckAt = -1e9;
 
   /** Call every frame: schedules the next bar a little ahead of time (no timers, no audio files). */
   updateMusic(m: Mood): void {
@@ -103,7 +106,9 @@ export class Sfx {
     }
     const on = this.musicOn && !this.muted;
     const now = this.ctx.currentTime;
-    this.musicGain.gain.setTargetAtTime(on ? 0.8 * this.vol.music : 0, now, 0.4);
+    // A boss warning dips the music for a breath (duck.ts) so the telegraph reads.
+    const since = now - this.duckAt;
+    this.musicGain.gain.setTargetAtTime(on ? 0.8 * this.vol.music * duckMul(since) : 0, now, duckTau(since));
     if (!on) {
       this.nextBarAt = 0;
       return;
@@ -174,6 +179,11 @@ export class Sfx {
           this.noise(0.05, v.noise);
           this.tone(digPitch(v.freq, Math.random()), v.dur, v.wave, v.vol);
         }
+        break;
+      case 'enemyslam':
+        // A heavy thud with a low slide.
+        this.tone(70, 0.25, 'triangle', 0.18, 40);
+        this.noise(0.12, 0.3);
         break;
       case 'toohard':
         // A dull clank: the bit skids off something too hard for it.
@@ -347,6 +357,7 @@ export class Sfx {
         [110, 82, 55].forEach((f, i) => this.tone(f, 0.6, 'sawtooth', 0.16, undefined, i * 0.3));
         break;
       case 'bosswarn':
+        if (this.ctx) this.duckAt = this.ctx.currentTime;
         {
           const w = warnVoice(e.kind);
           this.tone(w.from, w.dur, w.type, w.vol, w.to);
