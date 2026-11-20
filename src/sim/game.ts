@@ -11,6 +11,7 @@ import { noteBoss, noteDepth, noteLoot, startAttempt, type RecordBeat, type Worl
 import { hash2, mixSeed, mulberry32 } from './rng';
 import { HIT_FEEL, type HitClass } from './hitfeel';
 import { drillNeeded } from './drilltier';
+import { blastPush } from './blastjump';
 import { FALL, disturb, stepFalling, type FallBody, type FallWarn } from './falling';
 import { TEACH_SHOVE, firstMeet, sanitizeMet, shouldTeach } from './teach';
 import { ENEMIES, ENEMY_HIT_IFRAMES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
@@ -1991,8 +1992,17 @@ export class Game {
   }
 
   /** Bomb blast: damages enemies in the radius and breaks minable solid tiles (their drops land as pickups). */
-  explode(x: number, y: number, dmg: number, radius = BOMB_RADIUS): void {
+  explode(x: number, y: number, dmg: number, radius = BOMB_RADIUS, own = false): void {
     const r = radius;
+    if (own) {
+      // Blast jump: your own bomb pushes you away (mostly up) and never hurts you (blastjump.ts).
+      const b = this.body;
+      const p = blastPush(b.x - x, b.y - BODY_H / 2 - y, r);
+      if (p) {
+        b.vx += p.vx;
+        b.vy = Math.min(b.vy, p.vy);
+      }
+    }
     for (const e of this.enemies) if (Math.hypot(e.x - x, e.y - 0.4 - y) <= r + 0.5) this.damageEnemy(e, dmg, Math.sign(e.x - x) || 1, 'blast');
     if (this.boss && Math.abs(this.boss.x - x) < BOSSES[this.boss.id].halfW + r && y > this.boss.y - BOSSES[this.boss.id].h - r && y < this.boss.y + r) this.damageBoss(dmg, x, y);
     for (let ty = Math.floor(y - r); ty <= Math.ceil(y + r); ty++) {
@@ -2163,13 +2173,13 @@ export class Game {
             this.emit({ t: 'ricochet', x: px, y: py });
             continue;
           }
-          if (s.bomb) this.explode(s.x, s.y, s.dmg ?? 20);
+          if (s.bomb) this.explode(s.x, s.y, s.dmg ?? 20, BOMB_RADIUS, true);
           else this.emit({ t: 'shothit', x: s.x, y: s.y });
           alive = false;
           break;
         }
         if (this.boss && bossHits(this.boss, s.x, s.y, 0.1, 0.1)) {
-          if (s.bomb) this.explode(s.x, s.y, s.dmg ?? 20);
+          if (s.bomb) this.explode(s.x, s.y, s.dmg ?? 20, BOMB_RADIUS, true);
           else if (!s.pierce || !s.hit?.includes(-1)) {
             this.damageBoss(s.dmg ?? PISTOL_DMG, s.x, s.y);
             s.hit?.push(-1);
@@ -2183,7 +2193,7 @@ export class Game {
         for (const e of this.enemies) {
           if (e.hp > 0 && enemyOverlapsBox(e, s.x, s.y + 0.1, 0.1, 0.2)) {
             if (s.bomb) {
-              this.explode(s.x, s.y, s.dmg ?? 20);
+              this.explode(s.x, s.y, s.dmg ?? 20, BOMB_RADIUS, true);
               alive = false;
               break;
             }
@@ -2203,7 +2213,7 @@ export class Game {
       }
       if (!alive || s.life > 0) {
         // fallthrough
-      } else if (s.bomb) this.explode(s.x, s.y, s.dmg ?? 20);
+      } else if (s.bomb) this.explode(s.x, s.y, s.dmg ?? 20, BOMB_RADIUS, true);
       if (alive) keep.push(s);
     }
     this.shots = keep;
