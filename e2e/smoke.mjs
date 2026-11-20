@@ -505,6 +505,25 @@ try {
     g.enemies = [];
   });
   check('first sight of a new enemy kind names its pattern once and marks it as a teacher', teach.toast.includes('Shard mite') && teach.met && teach.teach, JSON.stringify(teach));
+  // Hit feel by attack class: a blast adds more screen trauma than a pistol bolt, and freezes longer.
+  const feel = await page.evaluate(async () => {
+    const { game: g, fx } = window.__terrabound;
+    const hit = async (cls) => {
+      fx.shake = 0;
+      g.hitStop = 0;
+      g.enemies = [{ id: 40, kind: 'crawler', x: g.body.x + 3, y: g.body.y - 0.01, vx: 0, vy: 0, hp: 999, dir: -1, iframes: 0, age: 0, phase: 0 }];
+      g.damageEnemy(g.enemies[0], 1, 1, cls);
+      const stop = g.hitStop;
+      await new Promise((r) => setTimeout(r, 50));
+      return { stop, shake: fx.shake };
+    };
+    const ranged = await hit('ranged');
+    const blast = await hit('blast');
+    g.enemies = [];
+    g.hitStop = 0;
+    return { ranged, blast };
+  });
+  check('a blast hits harder than a bolt (more trauma, longer hit-stop)', feel.blast.shake > feel.ranged.shake && feel.blast.stop > feel.ranged.stop && feel.ranged.shake > 0, JSON.stringify(feel));
   // Run juice: running leads the camera ahead; a jump stretches the sprite on take-off.
   const juice = await page.evaluate(async () => {
     const { game: g, renderer, input } = window.__terrabound;

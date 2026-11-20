@@ -1,4 +1,5 @@
 import { TEACH } from './sim/teach';
+import { HIT_FEEL } from './sim/hitfeel';
 import { SETS } from './sim/sets';
 import { PREFIXES, RARITY, prefixedName } from './sim/rarity';
 import { breakDebris, breakStyle } from './render/breakfx';
@@ -95,7 +96,8 @@ function boot(): void {
   const applyPrefs = (): void => {
     const p = game.prefs;
     sfx.setVolumes(audioGains(p, false));
-    renderer.shakeMul = shakeMul(p);
+    const reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    renderer.shakeMul = shakeMul(p, reduceMotion);
     renderer.setOreMarks(p.oreMarks === 1);
     renderer.reduceFlash = p.flashes === 1;
     input.stickSide = p.stickSide;
@@ -520,7 +522,8 @@ function boot(): void {
       case 'enemyhit':
         fx.burst(e.x, e.y, '#ffd24a', 6, 5);
         fx.text(e.x, e.y - 0.5, String(e.dmg), '#ffd24a');
-        fx.addShake(0.2);
+        // Screen trauma by attack class (hitfeel.ts): a rapid-fire burst stays readable, a bomb kicks.
+        fx.addShake(HIT_FEEL[e.cls ?? 'melee'].trauma);
         break;
       case 'enemykill':
         // e.y is mid-body (feet - 0.5); shatter wants the feet.

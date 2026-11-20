@@ -71,8 +71,10 @@ export function audioGains(p: Prefs, muted: boolean): { master: number; music: n
   return { master: muted ? 0 : p.master / 10, music: p.musicVol / 10, sfx: p.sfxVol / 10 };
 }
 
-export function shakeMul(p: Prefs): number {
-  return [0, 0.45, 1][p.shake] ?? 1;
+/** Screen shake strength from the setting; the OS "reduce motion" preference caps it at low. */
+export function shakeMul(p: Prefs, osReduceMotion = false): number {
+  const m = [0, 0.45, 1][p.shake] ?? 1;
+  return osReduceMotion ? Math.min(m, 0.45) : m;
 }
 
 export function uiScale(p: Prefs): number {

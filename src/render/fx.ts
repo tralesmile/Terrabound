@@ -667,7 +667,8 @@ export class Fx {
     this.tracers = this.tracers.filter((tr) => tr.life > 0);
     for (const r of this.rings) r.life -= dt;
     this.rings = this.rings.filter((r) => r.life > 0);
-    this.shake = Math.max(0, this.shake - dt * 2.5);
+    // Trauma fades linearly; the drawn shake is trauma squared (trauma.ts), so the tail eases out softly.
+    this.shake = Math.max(0, this.shake - dt * 1.6);
     this.squashLeft = Math.max(0, this.squashLeft - dt);
     this.stretchLeft = Math.max(0, this.stretchLeft - dt);
     this.hurtLeft = Math.max(0, this.hurtLeft - dt);

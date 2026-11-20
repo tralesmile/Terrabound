@@ -9,6 +9,7 @@ import { DEFAULT_KEYS, rebind, type BindId, type KeyMap } from './keys';
 import { decodeSeed, encodeSeed } from './seedcode';
 import { noteBoss, noteDepth, noteLoot, startAttempt, type RecordBeat, type WorldRecord } from './records';
 import { hash2, mixSeed, mulberry32 } from './rng';
+import { HIT_FEEL, type HitClass } from './hitfeel';
 import { TEACH_SHOVE, firstMeet, sanitizeMet, shouldTeach } from './teach';
 import { ENEMIES, ENEMY_HIT_IFRAMES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
 import { type Body, moveX, moveY, onLadder, probeGround, stepUp, unstick, BODY_H, HALF_W } from './physics';
@@ -233,7 +234,7 @@ export type GameEvent =
   | { t: 'goal'; id: string; next: number }
   | { t: 'record'; beat: RecordBeat; value: number; code: string }
   | { t: 'swing'; dir: number }
-  | { t: 'enemyhit'; x: number; y: number; dmg: number }
+  | { t: 'enemyhit'; x: number; y: number; dmg: number; cls?: HitClass }
   | { t: 'enemykill'; x: number; y: number; kind: EnemyKind }
   | { t: 'shoot'; x: number; y: number }
   | { t: 'shothit'; x: number; y: number }
@@ -832,7 +833,7 @@ export class Game {
     if (vs.ram > 0 && Math.abs(b.vx) > 5) {
       for (const e of this.enemies) {
         if (e.hp <= 0 || e.iframes > 0 || !enemyOverlapsBox(e, b.x + Math.sign(b.vx) * 0.6, b.y - 0.6, 0.7, 0.6)) continue;
-        this.damageEnemy(e, vs.ram, Math.sign(b.vx));
+        this.damageEnemy(e, vs.ram, Math.sign(b.vx), 'ram');
       }
     }
     if (vs.drill) {
@@ -1299,7 +1300,7 @@ export class Game {
     if (p.cd > 0) return;
     for (const e of this.enemies) {
       if (e.hp <= 0 || Math.hypot(e.x - p.x, e.y - 0.4 - p.y) > 4) continue;
-      this.damageEnemy(e, zap, Math.sign(e.x - p.x) || 1);
+      this.damageEnemy(e, zap, Math.sign(e.x - p.x) || 1, 'summon');
       this.emit({ t: 'zap', x: p.x, y: p.y, tx: e.x, ty: e.y - 0.4 });
       p.cd = 1;
       return;
@@ -1531,7 +1532,7 @@ export class Game {
       }
       if (e.t === 'droneshot') {
         const en = this.enemies.find((x) => x.id === e.id);
-        if (en) this.damageEnemy(en, GUARD_DMG, Math.sign(en.x - e.x) || 1);
+        if (en) this.damageEnemy(en, GUARD_DMG, Math.sign(en.x - e.x) || 1, 'summon');
         this.emit({ t: 'zap', x: e.x, y: e.y, tx: e.tx, ty: e.ty });
       } else if (e.t === 'dronemine') this.emit({ t: 'break', x: e.x, y: e.y, tile: e.tile });
       else if (e.t === 'dronebank') this.save.stats.banked += e.n;
@@ -1965,7 +1966,7 @@ export class Game {
   /** Bomb blast: damages enemies in the radius and breaks minable solid tiles (their drops land as pickups). */
   explode(x: number, y: number, dmg: number, radius = BOMB_RADIUS): void {
     const r = radius;
-    for (const e of this.enemies) if (Math.hypot(e.x - x, e.y - 0.4 - y) <= r + 0.5) this.damageEnemy(e, dmg, Math.sign(e.x - x) || 1);
+    for (const e of this.enemies) if (Math.hypot(e.x - x, e.y - 0.4 - y) <= r + 0.5) this.damageEnemy(e, dmg, Math.sign(e.x - x) || 1, 'blast');
     if (this.boss && Math.abs(this.boss.x - x) < BOSSES[this.boss.id].halfW + r && y > this.boss.y - BOSSES[this.boss.id].h - r && y < this.boss.y + r) this.damageBoss(dmg, x, y);
     for (let ty = Math.floor(y - r); ty <= Math.ceil(y + r); ty++) {
       for (let tx = Math.floor(x - r); tx <= Math.ceil(x + r); tx++) {
@@ -2041,15 +2042,20 @@ export class Game {
     return false;
   }
 
-  /** Hit an enemy. `stop` freezes the frame for juice; base defences pass false so they do not stutter the game. */
-  damageEnemy(e: Enemy, dmg: number, dir: number, stop = true): void {
+  /**
+   * Hit an enemy with the feel of its attack class (hitfeel.ts): hit-stop, knockback, lift and screen trauma.
+   * A boolean is the old form: true = melee, false = a base defence (no freeze, so raids never stutter).
+   */
+  damageEnemy(e: Enemy, dmg: number, dir: number, cls: HitClass | boolean = 'melee'): void {
     if (e.iframes > 0 || e.hp <= 0) return;
+    const c: HitClass = cls === true ? 'melee' : cls === false ? 'defence' : cls;
+    const f = HIT_FEEL[c];
     e.hp -= dmg;
     e.iframes = ENEMY_HIT_IFRAMES;
-    e.vx = dir * 9;
-    e.vy = ENEMIES[e.kind].flying ? e.vy : -5;
-    if (stop) this.hitStop = HITSTOP;
-    this.emit({ t: 'enemyhit', x: e.x, y: e.y - 0.5, dmg });
+    e.vx = dir * f.knock;
+    e.vy = ENEMIES[e.kind].flying ? e.vy : -f.lift;
+    if (f.stop > 0) this.hitStop = Math.max(this.hitStop, f.stop);
+    this.emit({ t: 'enemyhit', x: e.x, y: e.y - 0.5, dmg, cls: c });
   }
 
   private firePistol(aim: Controls['aim']): void {
@@ -2155,11 +2161,11 @@ export class Game {
             if (s.pierce) {
               if (s.hit?.includes(e.id)) continue;
               s.hit?.push(e.id);
-              this.damageEnemy(e, s.dmg ?? PISTOL_DMG, Math.sign(s.vx) || 1);
+              this.damageEnemy(e, s.dmg ?? PISTOL_DMG, Math.sign(s.vx) || 1, 'ranged');
               this.emit({ t: 'shothit', x: s.x, y: s.y });
               continue;
             }
-            this.damageEnemy(e, s.dmg ?? PISTOL_DMG, Math.sign(s.vx) || 1);
+            this.damageEnemy(e, s.dmg ?? PISTOL_DMG, Math.sign(s.vx) || 1, 'ranged');
             this.emit({ t: 'shothit', x: s.x, y: s.y });
             alive = false;
             break;
@@ -2327,7 +2333,7 @@ export class Game {
     if (this.turrets.length > 0) {
       for (const sh of stepTurrets(this.world, this.turrets, this.enemies, this.power.ratio, dt, this.upgrades.turret ?? 0)) {
         const en = this.enemies.find((x) => x.id === sh.id);
-        if (en) this.damageEnemy(en, turretStats(this.upgrades.turret ?? 0).dmg, Math.sign(sh.tx - sh.x) || 1, false);
+        if (en) this.damageEnemy(en, turretStats(this.upgrades.turret ?? 0).dmg, Math.sign(sh.tx - sh.x) || 1, 'defence');
         this.emit({ t: 'turretshot', x: sh.x, y: sh.y, tx: sh.tx, ty: sh.ty });
       }
     }
@@ -2335,7 +2341,7 @@ export class Game {
     if (this.spikeAcc < SPIKE_TICK) return;
     this.spikeAcc -= SPIKE_TICK;
     for (const e of spikeVictims(this.world, this.enemies)) {
-      this.damageEnemy(e, SPIKE_DMG, -e.dir || 1, false);
+      this.damageEnemy(e, SPIKE_DMG, -e.dir || 1, 'defence');
       this.emit({ t: 'spikehit', x: e.x, y: e.y });
     }
   }

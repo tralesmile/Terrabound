@@ -20,6 +20,7 @@ import { REACH } from '../sim/game';
 import { onLadder, stepEase } from '../sim/physics';
 import { ENEMIES, hopWindup } from '../sim/enemies';
 import { easeLead, leadTarget, type Lead } from './camlead';
+import { traumaOffset } from './trauma';
 import { hash2 } from '../sim/rng';
 import { T, TILES, invTotal } from '../sim/tiles';
 import { isLiquid, levelAt as liquidLevel } from '../sim/liquids';
@@ -375,8 +376,10 @@ export class Renderer {
     const ts = TS * scale;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
-    const shakeX = (Math.random() - 0.5) * fx.shake * this.shakeMul * 6 * scale;
-    const shakeY = (Math.random() - 0.5) * fx.shake * this.shakeMul * 6 * scale;
+    // Trauma shake: offset grows with trauma squared on smooth noise (trauma.ts); the setting scales it.
+    const shk = traumaOffset(fx.shake, time, this.shakeMul);
+    const shakeX = Math.round(shk.x * scale);
+    const shakeY = Math.round(shk.y * scale);
     const world = game.world;
     const dtFrame = Math.min(0.1, Math.max(0, time - this.lastDrawTime));
     this.lastDrawTime = time;
