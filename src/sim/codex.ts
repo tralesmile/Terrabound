@@ -32,6 +32,9 @@ const CREATURE_NOTES: Record<EnemyKind, string> = {
   mite: 'Crystal Flats only. Hops between shards and sheds crystal when broken.',
   ember: 'Ash Dunes only. A drifting coal that bites. Leaves copper wire behind.',
   hulk: 'Frozen Spires only. Slow and armoured. Keep your distance and shoot.',
+  hog: 'Harmless Overgrown Ruins wildlife. Slow and sturdy; drops prime meat.',
+  goat: 'Harmless Frozen Spires wildlife. Nimble; drops prime meat.',
+  lizard: 'Harmless Ash Dunes wildlife. Tiny and very fast.',
   hare: 'Harmless surface wildlife. Fast and skittish; one hit and it drops meat.',
 };
 

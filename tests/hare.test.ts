@@ -41,3 +41,31 @@ describe('scrap hare (wildlife)', () => {
     expect(n).toBe(hares.length);
   });
 });
+
+describe('biome wildlife', () => {
+  it('hog, goat and skink are passive and drop meat that heals', () => {
+    for (const k of ['hog', 'goat', 'lizard'] as const) {
+      expect(ENEMIES[k].passive).toBe(true);
+      expect(ENEMIES[k].contact).toBe(0);
+      expect(shouldTeach([], k)).toBe(false);
+      expect(spawnableKinds(10, 0, false)).not.toContain(k);
+      expect(FOOD[ENEMIES[k].drop!]?.hp).toBeGreaterThan(0);
+    }
+    expect(FOOD.prime_meat?.hp).toBeGreaterThan(FOOD.hare_meat?.hp ?? 99);
+  });
+  it('each biome spawns its own critter', () => {
+    const seen = new Set<string>();
+    for (let seed = 1; seed < 40 && seen.size < 3; seed++) {
+      const g = new Game(defaultSave(seed));
+      for (let i = 0; i < 30; i++) {
+        g.body.x = g.world.padX + ((i * 37) % 400) - 200;
+        g.body.y = g.world.padY - 1;
+        g.enemies.length = 0;
+        const e = g.trySpawnWild();
+        if (e) seen.add(e.kind);
+      }
+    }
+    expect(seen.has('hare')).toBe(true);
+    expect(seen.size).toBeGreaterThan(1);
+  });
+});

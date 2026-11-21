@@ -43,7 +43,7 @@ import { addDrop, makeDrop, stepDrops, type Drop } from './drops';
 import { ZAP_DMG, padsReached, safePads, stepZap, zapHits, zapRadius } from './arenazap';
 import { GRID_DMG, gridBarHits, gridColumns, gridFiring, gridFloorY, gridHits } from './lasergrid';
 import { BIOME_BOSSES, BOSS_IDS, GATE_BOSSES, FINAL_BOSS, ARENA_HALF, ATTACK_TIME, BOLT_DMG, BOSSES, SLAM_DMG, SLAM_RADIUS, bossContact, bossForBeacon, bossHits, makeBoss, stepBoss, type AttackKind, type Boss, type BossBolt, type BossId } from './bosses';
-import { BIOMES, type BiomeId } from './biomes';
+import { B, BIOMES, type BiomeId } from './biomes';
 import { LAYERS, layerAt, openGates } from './layers';
 import { METEOR_RATE, weatherAt, weatherEnemy, type WeatherKind } from './weather';
 import { MAX_PART, VEHICLES, bayAt, bayCharge, cargoLoad, cargoOf, defaultGarage, isVehicle, parkOffset, partCost, partsOf, vehicleStats, type PartId, type PartLevels, type VehicleId } from './garage';
@@ -307,6 +307,9 @@ export const BLADE_RANGE = 2.1;
 export const BLADE_CD = 0.32;
 export const MAX_ENEMIES = 8;
 export const IFRAMES = 0.8;
+
+/** Wildlife by biome (everywhere else, and Crystal Flats, hares). */
+const WILD_BY_BIOME: Partial<Record<number, EnemyKind>> = { [B.JUNGLE]: 'hog', [B.FROST]: 'goat', [B.ASH]: 'lizard' };
 
 export class Game {
   world: World;
@@ -2542,7 +2545,8 @@ export class Game {
   heat = 0;
   private wildCd = 5;
 
-  /** Daytime surface wildlife: up to 3 hares graze on open ground away from the pad. Never hurts, drops meat. */
+
+  /** Daytime surface wildlife: up to 3 critters (a hare by default, a hog, goat or skink in their own biome) graze on open ground away from the pad. Never hurts, drops meat. */
   trySpawnWild(): Enemy | null {
     const dark = isNight(this.time) || this.weather === 'eclipse';
     if (this.depth >= 8 || dark || this.raid || this.boss) return null;
@@ -2553,7 +2557,7 @@ export class Game {
       if (x < 2 || x >= this.world.w - 2 || Math.abs(x - this.world.padX) <= NIGHT_SAFE) continue;
       let y = Math.floor(this.body.y) - 8;
       while (y < this.world.h - 2 && !this.world.isSolid(x, y)) y++;
-      const e = makeEnemy(this.nextEnemyId, 'hare', x + 0.5, y, this.rng() * 6.28);
+      const e = makeEnemy(this.nextEnemyId, WILD_BY_BIOME[this.world.biome[x]] ?? 'hare', x + 0.5, y, this.rng() * 6.28);
       if (y <= this.world.padY - 12 || y > this.world.padY + 6 || enemyBoxHits(this.world, e)) continue;
       this.nextEnemyId++;
       this.enemies.push(e);

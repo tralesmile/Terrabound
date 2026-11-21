@@ -12,6 +12,9 @@ export const TEACH: Record<EnemyKind, string> = {
   vine: 'Vine stalker: fast jungle runner. Hit it, step back, hit again.',
   mite: 'Shard mite: crouches, then leaps. Step away when it crouches.',
   ember: 'Ember wisp: quick and fiery. Keep moving and shoot it down.',
+  hog: 'Moss hog: harmless wildlife. Hunt it for prime meat.',
+  goat: 'Frost goat: harmless wildlife. Hunt it for prime meat.',
+  lizard: 'Ash skink: harmless wildlife. Fast and tiny.',
   hare: 'Scrap hare: harmless wildlife. Catch it for meat.',
   hulk: 'Frost hulk: rears up, then slams the ground. Jump or back off when it rears.',
 };

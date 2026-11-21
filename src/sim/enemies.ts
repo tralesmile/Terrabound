@@ -3,7 +3,7 @@ import type { World } from './world';
 import type { ItemId } from './tiles';
 import { B } from './biomes';
 
-export type EnemyKind = 'crawler' | 'flyer' | 'vine' | 'mite' | 'ember' | 'hulk' | 'hare';
+export type EnemyKind = 'crawler' | 'flyer' | 'vine' | 'mite' | 'ember' | 'hulk' | 'hare' | 'hog' | 'goat' | 'lizard';
 
 export interface EnemyDef {
   name: string;
@@ -46,6 +46,9 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
   mite: { name: 'Shard mite', hp: 16, speed: 3.2, contact: 9, halfW: 0.3, h: 0.5, flying: false, minDepth: 8, biome: B.CRYSTAL, drop: 'crystal', hop: true },
   ember: { name: 'Ember wisp', hp: 18, speed: 3.8, contact: 10, halfW: 0.3, h: 0.5, flying: true, minDepth: 10, biome: B.ASH, drop: 'copper_wire' },
   hare: { name: 'Scrap hare', hp: 8, speed: 3.2, contact: 0, halfW: 0.3, h: 0.45, flying: false, minDepth: 0, drop: 'hare_meat', passive: true },
+  hog: { name: 'Moss hog', hp: 16, speed: 2, contact: 0, halfW: 0.45, h: 0.6, flying: false, minDepth: 0, drop: 'prime_meat', passive: true },
+  goat: { name: 'Frost goat', hp: 12, speed: 2.8, contact: 0, halfW: 0.4, h: 0.65, flying: false, minDepth: 0, drop: 'prime_meat', passive: true },
+  lizard: { name: 'Ash skink', hp: 6, speed: 3.6, contact: 0, halfW: 0.3, h: 0.35, flying: false, minDepth: 0, drop: 'hare_meat', passive: true },
   hulk: { name: 'Frost hulk', hp: 60, speed: 1.4, contact: 18, halfW: 0.55, h: 0.95, flying: false, minDepth: 12, biome: B.FROST, slam: { range: 2.4, windup: 0.55, radius: 2.2, dmg: 16, cd: 2.6 } },
 };
 

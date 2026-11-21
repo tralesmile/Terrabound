@@ -17,6 +17,7 @@ export type ItemId =
   | 'ashpepper'
   | 'curry'
   | 'hare_meat'
+  | 'prime_meat'
   | 'lunker'
   | 'medkit'
   | 'beacon_colossus'
@@ -94,6 +95,7 @@ export const ITEM_IDS: ItemId[] = [
   'ashpepper',
   'curry',
   'hare_meat',
+  'prime_meat',
   'lunker',
   'medkit',
   'beacon_colossus',
@@ -399,6 +401,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   hut_kit: { name: 'Hut kit', color: '#c9a35a', places: null, kit: true },
   bait: { name: 'Bait', color: '#c9a35a', places: null },
   hare_meat: { name: 'Hare meat', color: '#d89a7a', places: null },
+  prime_meat: { name: 'Prime meat', color: '#e8826a', places: null },
   lunker: { name: 'Lunker', color: '#ffb03a', places: null },
   medkit: { name: 'Medkit', color: '#ff5a5a', places: null, kit: true },
   beacon_colossus: { name: 'Scrap beacon', color: '#c77a5e', places: null },
