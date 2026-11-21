@@ -4224,8 +4224,9 @@ try {
     g.body.y = w.padY;
     g.body.vx = g.body.vy = 0;
     const hp0 = g.hp;
-    const e = g.trySpawnWild() ?? null;
-    if (!e) return { spawned: false };
+    let e = null;
+    for (let i = 0; i < 40 && !e; i++) e = g.trySpawnWild();
+    if (!e) return { spawned: false, time: g.time, depth: g.depth, raid: !!g.raid, boss: !!g.boss, weather: g.weather, hares: g.enemies.length };
     e.x = g.body.x + 3;
     e.y = w.padY;
     await new Promise((r) => setTimeout(r, 600));

@@ -45,3 +45,29 @@ describe('hut kit', () => {
     expect(recipeById('hut_kit')?.out).toBe('hut_kit');
   });
 });
+
+import { COMFORT_MAX, roomHint } from '../src/sim/rooms';
+
+describe('room comfort ideas', () => {
+  it('the hut is valid; an aquarium or neon in its walls adds a comfort point', () => {
+    const { g, x, y } = flat(41);
+    stampHut(g.world, planHut(g.world, x, y)!);
+    const before = roomAt(g.world, x, y - 1)!;
+    expect(before.feature).toBe(false);
+    expect(before.ideas.length).toBeGreaterThan(0);
+    g.world.set(x - 3, y - 3, T.AQUARIUM); // swap a wall panel for a tank
+    const after = roomAt(g.world, x, y - 1)!;
+    expect(after.feature).toBe(true);
+    expect(after.comfort).toBe(before.comfort + 1);
+    expect(after.ideas).not.toContain('an aquarium or neon');
+    g.world.set(x - 3, y - 3, T.NEON_PINK);
+    expect(roomAt(g.world, x, y - 1)!.feature).toBe(true);
+  });
+  it('the ready hint says what to add until comfort is full, then stops', () => {
+    const { g, x, y } = flat(42);
+    stampHut(g.world, planHut(g.world, x, y)!);
+    const r = roomAt(g.world, x, y - 1)!;
+    expect(roomHint(r)).toContain('add ');
+    expect(roomHint({ ...r, comfort: COMFORT_MAX, ideas: [] })).not.toContain('add ');
+  });
+});

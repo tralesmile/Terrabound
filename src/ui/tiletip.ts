@@ -38,15 +38,15 @@ const NOTES: Partial<Record<number, string>> = {
   [T.PLATFORM]: 'Jump up through it, press S to drop.',
   [T.DOOR]: 'You walk through, enemies cannot.',
   [T.WINDOW]: 'Lets light in.',
-  [T.AQUARIUM]: 'A tank of glowing fish. Light passes through.',
+  [T.AQUARIUM]: 'A tank of glowing fish. In a room wall it adds comfort.',
   [T.GRAVEL]: 'Loose: falls when nothing holds it up.',
   [T.TILLED]: 'Crops here grow faster and give more.',
   [T.PANEL]: 'Smooth hull plating for walls and floors.',
   [T.HAZARD]: 'Warning stripes for edges and danger zones.',
   [T.BRICK]: 'Warm brick for homes.',
   [T.GRATE]: 'Solid, but light and sight pass through.',
-  [T.NEON_CYAN]: 'Glows. Trim your base with it.',
-  [T.NEON_PINK]: 'Glows. Trim your base with it.',
+  [T.NEON_CYAN]: 'Glows. In a room wall it adds comfort.',
+  [T.NEON_PINK]: 'Glows. In a room wall it adds comfort.',
   [T.LADDER]: 'Climb with W and S.',
 };
 

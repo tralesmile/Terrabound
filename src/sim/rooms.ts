@@ -18,6 +18,8 @@ export const FURNITURE: ReadonlySet<number> = new Set<number>([T.TABLE, T.LAMP, 
 export const ROOM_LIGHTS: ReadonlySet<number> = new Set<number>([T.TORCH, T.LAMP]);
 /** Decorations that add comfort (one point per kind). */
 export const DECOR: readonly number[] = [T.SCREEN, T.POT_PLANT, T.BANNER, T.CHAIR];
+/** Showpiece blocks: an aquarium or neon block in the room's walls adds one comfort point. */
+export const FEATURE_TILES: ReadonlySet<number> = new Set<number>([T.AQUARIUM, T.NEON_CYAN, T.NEON_PINK]);
 /** Highest comfort score. */
 export const COMFORT_MAX = 4;
 
@@ -35,6 +37,10 @@ export interface Room {
   comfort: number;
   /** A window in the room's walls. */
   view: boolean;
+  /** An aquarium or neon block in the room's walls. */
+  feature: boolean;
+  /** Cheap ways to add comfort, in plain words (empty at full comfort). */
+  ideas: string[];
   valid: boolean;
   /** What a valid room still needs, in plain words ("a bed", "a light"). */
   missing: string[];
@@ -89,6 +95,7 @@ export function roomAt(world: World, x: number, y: number, leaked?: Set<number>)
   const stack = [start];
   const cells: number[] = [];
   let view = false;
+  let feature = false;
   // A failed fill tells findRooms that every cell it reached is in one leaking pocket.
   const fail = (): null => {
     if (leaked) {
@@ -110,6 +117,7 @@ export function roomAt(world: World, x: number, y: number, leaked?: Set<number>)
       if (k === 3 && cy === H - 1) continue; // below the world is rock
       const nt = tiles[ni];
       if (nt === T.WINDOW) view = true;
+      if (FEATURE_TILES.has(nt)) feature = true;
       if (seen[ni] === gen || bounds(nt)) continue;
       seen[ni] = gen;
       stack.push(ni);
@@ -138,13 +146,24 @@ export function roomAt(world: World, x: number, y: number, leaked?: Set<number>)
     if (DECOR.includes(t)) decor.add(t);
     if (world.wall(cx, cy) !== 0) walls++;
   }
-  const comfort = Math.min(COMFORT_MAX, decor.size + (walls * 2 >= cells.length ? 1 : 0) + (view ? 1 : 0));
+  const backWalled = walls * 2 >= cells.length;
+  const comfort = Math.min(COMFORT_MAX, decor.size + (backWalled ? 1 : 0) + (view ? 1 : 0) + (feature ? 1 : 0));
+  const ideas: string[] = [];
+  if (comfort < COMFORT_MAX) {
+    if (!backWalled) ideas.push('back walls');
+    if (!view) ideas.push('a window');
+    if (!feature) ideas.push('an aquarium or neon');
+    if (!decor.has(T.POT_PLANT)) ideas.push('a potted plant');
+    if (!decor.has(T.BANNER)) ideas.push('a banner');
+    if (!decor.has(T.CHAIR)) ideas.push('a chair');
+    if (!decor.has(T.SCREEN)) ideas.push('a screen');
+  }
   const missing: string[] = [];
   if (cells.length < ROOM_MIN) missing.push('more space');
   if (!light) missing.push('a light');
   if (!table) missing.push('a table');
   if (!bed) missing.push('a bed');
-  return { cells, x0, y0, x1, y1, light, table, bed, comfort, view, valid: missing.length === 0, missing };
+  return { cells, x0, y0, x1, y1, light, table, bed, comfort, view, feature, ideas, valid: missing.length === 0, missing };
 }
 
 /** Every distinct enclosed room with a cell in the base strip (scan order: top-left first). Pure. */
@@ -170,7 +189,10 @@ export function findRooms(world: World): Room[] {
 /** One-line hint for the player standing in a room (null outside rooms). Pure. */
 export function roomHint(r: Room | null): string | null {
   if (!r) return null;
-  if (r.valid) return `Room ready: a robot can move in here (comfort ${r.comfort}/${COMFORT_MAX})`;
+  if (r.valid) {
+    const more = r.ideas.length ? `, add ${r.ideas.slice(0, 2).join(' or ')}` : '';
+    return `Room ready: a robot can move in here (comfort ${r.comfort}/${COMFORT_MAX}${more})`;
+  }
   return `Room: needs ${r.missing.join(', ')} (Fabricator)`;
 }
 
