@@ -63,6 +63,9 @@ export type GearId =
   | 'energy_blade'
   | 'plasma_axe'
   | 'arc_spear'
+  | 'hunter_knife'
+  | 'twin_blaster'
+  | 'hunting_rifle'
   | 'pulse_pistol'
   | 'rail_rifle'
   | 'scatter_gun'
@@ -113,6 +116,9 @@ export const GEAR: Record<GearId, GearDef> = {
   energy_blade: { name: 'Energy blade', slot: 'melee', desc: 'Quick arc, 12 damage', cost: {}, mod: {}, color: '#36e0e8', accent: '#c8ffff' },
   plasma_axe: { name: 'Plasma axe', slot: 'melee', desc: 'Heavy: 24 damage, wide, slower', cost: { metal: 8, copper_wire: 4, crystal: 3 }, mod: { meleeDmg: 24, meleeRange: 2.6, meleeCd: 0.45 }, color: '#ff7a3c', accent: '#ffd24a' },
   arc_spear: { name: 'Arc spear', slot: 'melee', desc: 'Long reach 3.4 tiles, 15 damage', cost: { iron_scrap: 10, copper_wire: 6, crystal: 2 }, mod: { meleeDmg: 15, meleeRange: 3.4, meleeCd: 0.3 }, color: '#b06bff', accent: '#e2c4ff' },
+  hunter_knife: { name: 'Hunter knife', slot: 'melee', desc: 'Very fast stabs, 9 damage, short reach', cost: { iron_scrap: 6, biomass: 2 }, mod: { meleeDmg: 9, meleeRange: 1.9, meleeCd: 0.16 }, color: '#d6dde8', accent: '#c9a35a' },
+  twin_blaster: { name: 'Twin blaster', slot: 'ranged', desc: 'Rapid weak bolts, 5 damage', cost: { iron_scrap: 10, copper_wire: 6, crystal: 1 }, mod: { ranged: 'pulse', rangedDmg: 5, rangedCd: 0.18 }, color: '#ff7a5a', accent: '#ffd0a0' },
+  hunting_rifle: { name: 'Hunting rifle', slot: 'ranged', desc: 'Slow piercing shot, 30 damage', cost: { metal: 8, iron_scrap: 8, copper_wire: 4 }, mod: { ranged: 'rail', rangedDmg: 30, rangedCd: 0.95 }, color: '#8a6a44', accent: '#e8d0a0' },
   pulse_pistol: { name: 'Pulse pistol', slot: 'ranged', desc: 'Basic bolt', cost: {}, mod: {}, color: '#ffd24a', accent: '#fff0a0' },
   rail_rifle: { name: 'Rail rifle', slot: 'ranged', desc: 'Fast bolt that pierces enemies, 16 damage', cost: { metal: 10, copper_wire: 6, crystal: 4 }, mod: { ranged: 'rail', rangedDmg: 16, rangedCd: 0.5 }, color: '#5aa6ff', accent: '#c8e8ff' },
   scatter_gun: { name: 'Scatter gun', slot: 'ranged', desc: 'Three bolts in a spread', cost: { iron_scrap: 12, copper_wire: 6 }, mod: { ranged: 'scatter', rangedDmg: 7, rangedCd: 0.55 }, color: '#ff9a3c', accent: '#ffd8a8' },

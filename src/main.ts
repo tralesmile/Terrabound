@@ -687,6 +687,9 @@ function boot(): void {
       case 'nosoil':
         ui.toast('Seeds need soil underneath', '#ff9a3c');
         break;
+      case 'nospace':
+        ui.toast('Needs flat open ground, 7 wide and 5 tall', '#ff9a3c');
+        break;
       case 'nomount':
         ui.toast('Hang it on a wall: needs a back wall or a block beside it', '#ff9a3c');
         break;

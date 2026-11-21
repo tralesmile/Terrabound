@@ -432,6 +432,23 @@ export const ICONS: Record<string, IconDef> = {
       '            ',
     ],
   },
+  hut_kit: {
+    pal: { a: '#a8503c', b: '#6f7d96', d: '#ffe08a' },
+    rows: [
+      '            ',
+      '     oo     ',
+      '    oaao    ',
+      '   oaaaao   ',
+      '  obbbbbbo  ',
+      ' oabbbbbbao ',
+      ' oabbddbbao ',
+      ' oabbddbbao ',
+      ' ooooooooooo',
+      '            ',
+      '            ',
+      '            ',
+    ],
+  },
   medkit: {
     pal: { a: '#f2f4f8', b: '#c8ccd8', r: '#e8343a', R: '#ff8a8a' },
     rows: [

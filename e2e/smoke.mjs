@@ -4237,6 +4237,24 @@ try {
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(out, '38d-hare.png') });
   check('a scrap hare spawns by day, runs from the player and does no damage', hare.spawned && hare.fled && hare.unhurt, JSON.stringify(hare));
+  // Hut kit: one item stamps a furnished home on levelled ground.
+  const hut = await page.evaluate(() => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    const x = w.padX + 20;
+    let y = 0;
+    while (!w.isSolid(x, y)) y++;
+    for (let dx = -4; dx <= 4; dx++) { for (let yy = y - 8; yy < y; yy++) w.set(x + dx, yy, 0); w.set(x + dx, y, 1); }
+    g.carried.hut_kit = 1;
+    g.body.x = x - 6;
+    g.body.y = y - 0.01;
+    g.body.vx = g.body.vy = 0;
+    const ok = g.placeHut(x, y - 1);
+    return { ok, left: g.carried.hut_kit ?? 0, door: w.get(x + 3, y - 1), bed: w.get(x + 1, y - 1) };
+  });
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: path.join(out, '38e-hut.png') });
+  check('a hut kit stamps a furnished hut (door, bed) and is used up', hut.ok && hut.left === 0 && hut.door === 11 && hut.bed === 51, JSON.stringify(hut));
   const liftY0 = await page.evaluate(() => {
     const g = window.__terrabound.game;
     g.body.x = g.world.padX + 5.5;

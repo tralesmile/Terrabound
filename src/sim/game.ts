@@ -70,6 +70,7 @@ import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
 import { BASE_HALF, BASE_ROWS, captureBase, captureWalls, stampBase, stampWalls } from './base';
+import { planHut, stampHut } from './prefab';
 import { PAD_HALF, SPAWN_LIGHT_MAX, W, WALL_ITEM, isBuiltWall, WORLD_H, WORLD_W, World, generateWorld } from './world';
 import { isLegacySize } from './worldsize';
 
@@ -180,6 +181,7 @@ export type GameEvent =
   | { t: 'reel' }
   | { t: 'nosoil' }
   | { t: 'nomount' }
+  | { t: 'nospace' }
   | { t: 'craftgear'; id: GearId }
   | { t: 'reforge'; id: GearId; prefix: PrefixId }
   | { t: 'mount'; cargo: number }
@@ -1894,7 +1896,11 @@ export class Game {
     if (c.place && c.aim && this.placeCd === 0 && this.reachable(c.aim.tx, c.aim.ty)) {
       const { tx, ty } = c.aim;
       const item = ITEMS[this.selected];
-      if (
+      if (this.selected === 'hut_kit') {
+        // One kit stamps a furnished hut on flat ground (prefab.ts); the aimed cell is its floor row.
+        if (!this.placeHut(tx, ty) && this.placeCd === 0) this.emit({ t: 'nospace' });
+        this.placeCd = 0.4;
+      } else if (
         item.places !== null &&
         invCount(this.carried, this.selected) > 0 &&
         // Blocks can be placed into liquid (displacing it), so players can dam and plug pools.
@@ -2515,6 +2521,18 @@ export class Game {
   /** Enemy kinds this save has met (each one taught its pattern once). */
   get metKinds(): readonly EnemyKind[] {
     return this.save.met;
+  }
+
+  /** Use a hut kit with its floor row at (tx, ty): stamps the furnished hut, or does nothing when it does not fit. */
+  placeHut(tx: number, ty: number): boolean {
+    const plan = invCount(this.carried, 'hut_kit') > 0 ? planHut(this.world, tx, ty) : null;
+    if (!plan || plan.tiles.some((t) => this.overlapsPlayer(t.x, t.y) && TILES[t.tile].solid)) return false;
+    const homeBefore = this.validRooms();
+    stampHut(this.world, plan);
+    invAdd(this.carried, 'hut_kit', -1);
+    if (this.validRooms() > homeBefore) this.emit({ t: 'roomready', x: tx, y: ty });
+    this.emit({ t: 'place', x: tx, y: ty });
+    return true;
   }
 
   private wildCd = 5;

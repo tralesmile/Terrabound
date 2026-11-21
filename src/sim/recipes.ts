@@ -57,6 +57,7 @@ export const RECIPES: Recipe[] = [
   { id: 'wall_panel', name: 'Panel wall x4', out: 'wall_panel', qty: 4, cost: { metal: 1, rust: 1 } },
   { id: 'wall_brick', name: 'Brick wall x4', out: 'wall_brick', qty: 4, cost: { rust: 3 } },
   { id: 'wall_stripe', name: 'Stripe wall x4', out: 'wall_stripe', qty: 4, cost: { metal: 1, iron_scrap: 1 } },
+  { id: 'hut_kit', name: 'Hut kit (furnished home)', out: 'hut_kit', qty: 1, cost: { rust: 14, metal: 6, biomass: 2, crystal: 1 } },
   { id: 'lift', name: 'Lift shaft x4', out: 'lift', qty: 4, cost: { metal: 2, copper_wire: 1 }, fab: 1 },
   { id: 'pot', name: 'Cooking pot x1', out: 'pot', qty: 1, cost: { rust: 4, iron_scrap: 2 } },
   { id: 'garage_kit', name: 'Garage kit (build vehicles)', out: 'garage_kit', qty: 1, cost: { metal: 16, iron_scrap: 10, copper_wire: 6 } },

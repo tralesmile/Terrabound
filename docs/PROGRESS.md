@@ -1037,3 +1037,16 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** landing and run juice (squash/stretch, dust, camera lead); hit feel stack.
 
 **Known issues:** no screenshot check (sim feel only); creative review limited to research this run.
+
+## 2026-11-20 Autonomous run 83
+
+**Done (local `dev`, nothing pushed):** P12 feel and content slices, all green on a substitute toolchain (1098 unit tests, 300+ e2e checks; the real `npm run check` could not run: no registry).
+- Feel: enemy teaching, landing/run juice, hit feel, dig feedback and crack stages, drill tiers, anticipation (hopper crouch, hulk slam), falling blocks, phone haptics, explosive blast jump.
+- Guidance: the goal card now continues past the first 7 steps with a "what next?" chain (Circuit, Colossus, Warden, third boss, Plasma, Core, Hollow AI); no save change.
+- Building: six decor blocks (hull panel, hazard, red brick, grate, cyan and pink neon; neon lights like a torch), three back-wall styles with repainting, and a Hut kit that stamps a furnished, valid home in one use.
+- Farming and fishing: planting tills the soil (x1.25 growth, +1 produce); Bait (faster bites, no junk, Lunker catch).
+- Animals and weapons: passive Scrap hare (flees, drops Hare meat); Hunter knife, Twin blaster, Hunting rifle.
+
+**Next:** drill heat meter, ceiling collapse, room-quality checklist, Guide hints and the opt-in funnel, more crops (a fourth crop and meal), aquarium decor, hunting beyond the hare (more critters by biome).
+
+**Known issues:** real `npm run check` and the ship script have never run in this session; new weapons use colour-only art (no bespoke held sprites).

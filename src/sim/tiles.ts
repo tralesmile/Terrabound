@@ -11,6 +11,7 @@ export type ItemId =
   | 'fish'
   | 'glowfish'
   | 'bait'
+  | 'hut_kit'
   | 'hare_meat'
   | 'lunker'
   | 'medkit'
@@ -83,6 +84,7 @@ export const ITEM_IDS: ItemId[] = [
   'fish',
   'glowfish',
   'bait',
+  'hut_kit',
   'hare_meat',
   'lunker',
   'medkit',
@@ -372,6 +374,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   seed: { name: 'Tree seed', color: '#c9a35a', places: T.SAPLING },
   fish: { name: 'Hollow fish', color: '#5aa6ff', places: null },
   glowfish: { name: 'Glowfish', color: '#36e0e8', places: null },
+  hut_kit: { name: 'Hut kit', color: '#c9a35a', places: null, kit: true },
   bait: { name: 'Bait', color: '#c9a35a', places: null },
   hare_meat: { name: 'Hare meat', color: '#d89a7a', places: null },
   lunker: { name: 'Lunker', color: '#ffb03a', places: null },
@@ -439,7 +442,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   neon_pink: { name: 'Pink neon', color: '#ff5ac8', places: T.NEON_PINK, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair', 'window', 'lift', 'corn_seed', 'root_seed', 'berry_seed', 'sprinkler', 'pot', 'garage_kit', 'jump_pad', 'panel', 'hazard', 'brick', 'grate', 'neon_cyan', 'neon_pink', 'wall_panel', 'wall_brick', 'wall_stripe'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair', 'window', 'lift', 'corn_seed', 'root_seed', 'berry_seed', 'sprinkler', 'pot', 'garage_kit', 'jump_pad', 'panel', 'hazard', 'brick', 'grate', 'neon_cyan', 'neon_pink', 'wall_panel', 'wall_brick', 'wall_stripe', 'hut_kit'];
 
 /**
  * Full build-bar order: the player's arranged order first (unknown and duplicate ids dropped),
