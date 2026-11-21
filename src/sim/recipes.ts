@@ -64,6 +64,7 @@ export const RECIPES: Recipe[] = [
   { id: 'garage_kit', name: 'Garage kit (build vehicles)', out: 'garage_kit', qty: 1, cost: { metal: 16, iron_scrap: 10, copper_wire: 6 } },
   { id: 'chowder', name: 'Corn chowder (Charged)', out: 'chowder', qty: 1, cost: { glowcorn: 2, fish: 1 }, pot: true },
   { id: 'stew', name: 'Root stew (Sturdy)', out: 'stew', qty: 1, cost: { rustroot: 2, biomass: 1 }, pot: true },
+  { id: 'curry', name: 'Ember curry (Sturdy)', out: 'curry', qty: 1, cost: { ashpepper: 2, rustroot: 1, fish: 1 }, pot: true },
   { id: 'tart', name: 'Berry tart (Swift)', out: 'tart', qty: 1, cost: { frostberry: 2, glowcorn: 1 }, pot: true },
   { id: 'sprinkler', name: 'Sprinkler x1', out: 'sprinkler', qty: 1, cost: { rust: 4, iron_scrap: 2 } },
   { id: 'banner', name: 'Banner x1', out: 'banner', qty: 1, cost: { biomass: 2, rust: 1 } },

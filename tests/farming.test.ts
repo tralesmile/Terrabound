@@ -37,8 +37,8 @@ function field(): { w: World; y: number } {
 }
 
 describe('crop data', () => {
-  it('three crops, each with a kit seed that plants its sprout, edible produce and 3 distinct stage tiles', () => {
-    expect(CROP_IDS.length).toBe(3);
+  it('four crops, each with a kit seed that plants its sprout, edible produce and 3 distinct stage tiles', () => {
+    expect(CROP_IDS.length).toBe(4);
     const tiles = new Set<number>();
     for (const id of CROP_IDS) {
       const d = CROPS[id];
@@ -55,7 +55,7 @@ describe('crop data', () => {
         expect(TILES[t].minable).toBe(true);
       });
     }
-    expect(tiles.size).toBe(9);
+    expect(tiles.size).toBe(12);
     expect(RECIPES.some((r) => r.out === 'sprinkler')).toBe(true);
     // Produce heals less than a medkit, so medkits stay worth buying.
     for (const id of CROP_IDS) expect(FOOD[CROPS[id].produce]?.hp ?? 0).toBeLessThan(FOOD.medkit?.hp ?? 0);
@@ -138,7 +138,8 @@ describe('harvest and seeds', () => {
     expect(first(B.JUNGLE)).toBe('corn_seed');
     expect(first(B.CRYSTAL)).toBe('corn_seed');
     expect(first(B.FROST)).toBe('berry_seed');
-    expect(first(B.ASH)).toBe('root_seed');
+    expect(first(B.ASH)).toBe('pepper_seed');
+    expect(first(B.WASTES)).toBe('root_seed');
     expect(grassSeed(B.WASTES, 12, 7, 5)).toBe(grassSeed(B.WASTES, 12, 7, 5));
   });
 });
@@ -203,7 +204,7 @@ describe('cooking and meal buffs', () => {
   it('meal recipes need a cooking pot in the base, take farm produce, and every meal gives a buff', async () => {
     const { MEAL_BUFF, BUFFS } = await import('../src/sim/farming');
     const meals = RECIPES.filter((r) => r.pot);
-    expect(meals.length).toBe(3);
+    expect(meals.length).toBe(4);
     for (const r of meals) {
       expect(MEAL_BUFF[r.out]).toBeDefined();
       expect(BUFFS[MEAL_BUFF[r.out] as keyof typeof BUFFS].desc.length).toBeGreaterThan(5);
@@ -364,7 +365,7 @@ describe('robot gardeners and the seed packet (run 27)', () => {
     const stash = { biomass: 6 };
     const pack = {};
     expect(doTrade(stash, t!, pack)).toBe(true);
-    expect(pack).toEqual({ corn_seed: 1, root_seed: 1, berry_seed: 1 });
+    expect(pack).toEqual({ corn_seed: 1, root_seed: 1, berry_seed: 1, pepper_seed: 1 });
     for (const c of CROP_IDS) expect(ITEMS[CROPS[c].seed].kit).toBe(true);
   });
 });

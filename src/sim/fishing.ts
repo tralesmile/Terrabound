@@ -44,6 +44,8 @@ export const FOOD: Partial<Record<ItemId, { hp: number; battery: number }>> = {
   chowder: { hp: 25, battery: 40 },
   stew: { hp: 45, battery: 0 },
   tart: { hp: 30, battery: 10 },
+  ashpepper: { hp: 10, battery: 15 },
+  curry: { hp: 50, battery: 20 },
 };
 
 /**

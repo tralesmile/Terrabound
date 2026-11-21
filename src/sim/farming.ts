@@ -9,8 +9,8 @@ import { hash2 } from './rng';
 import { T, type ItemId } from './tiles';
 import type { World } from './world';
 
-export type CropId = 'glowcorn' | 'rustroot' | 'frostberry';
-export const CROP_IDS: readonly CropId[] = ['glowcorn', 'rustroot', 'frostberry'];
+export type CropId = 'glowcorn' | 'rustroot' | 'frostberry' | 'ashpepper';
+export const CROP_IDS: readonly CropId[] = ['glowcorn', 'rustroot', 'frostberry', 'ashpepper'];
 
 export interface CropDef {
   name: string;
@@ -23,6 +23,7 @@ export interface CropDef {
 export const CROPS: Record<CropId, CropDef> = {
   glowcorn: { name: 'Glowcorn', seed: 'corn_seed', produce: 'glowcorn', tiles: [T.CORN_1, T.CORN_2, T.CORN_3] },
   rustroot: { name: 'Rustroot', seed: 'root_seed', produce: 'rustroot', tiles: [T.ROOT_1, T.ROOT_2, T.ROOT_3] },
+  ashpepper: { name: 'Ashpepper', seed: 'pepper_seed', produce: 'ashpepper', tiles: [T.PEPPER_1, T.PEPPER_2, T.PEPPER_3] },
   frostberry: { name: 'Frostberry', seed: 'berry_seed', produce: 'frostberry', tiles: [T.BERRY_1, T.BERRY_2, T.BERRY_3] },
 };
 
@@ -174,7 +175,7 @@ export function harvestYield(tile: number, x: number, y: number, seed: number, t
 /** Crop seed found in wild grass of a biome (deterministic per cell), or null. Pure. */
 export function grassSeed(biome: number, x: number, y: number, seed: number): ItemId | null {
   if (hash2(x, y, seed + 31) >= GRASS_SEED_CHANCE) return null;
-  const crop: CropId = biome === B.FROST ? 'frostberry' : biome === B.JUNGLE || biome === B.CRYSTAL ? 'glowcorn' : 'rustroot';
+  const crop: CropId = biome === B.ASH ? 'ashpepper' : biome === B.FROST ? 'frostberry' : biome === B.JUNGLE || biome === B.CRYSTAL ? 'glowcorn' : 'rustroot';
   return CROPS[crop].seed;
 }
 
@@ -201,7 +202,7 @@ export const STURDY_TAKEN = 0.75;
 export const SWIFT_SPEED = 1.2;
 
 /** Meal item -> the buff it gives. */
-export const MEAL_BUFF: Partial<Record<ItemId, BuffId>> = { chowder: 'charged', stew: 'sturdy', tart: 'swift' };
+export const MEAL_BUFF: Partial<Record<ItemId, BuffId>> = { chowder: 'charged', stew: 'sturdy', tart: 'swift', curry: 'sturdy' };
 
 export type Buffs = Partial<Record<BuffId, number>>;
 

@@ -62,3 +62,23 @@ describe('bait', () => {
     expect(BAIT_BITE_MUL).toBeLessThan(1);
   });
 });
+
+import { CROPS, MEAL_BUFF, cropOfSeed, grassSeed } from '../src/sim/farming';
+import { B } from '../src/sim/biomes';
+
+describe('ashpepper and ember curry', () => {
+  it('Ash Dunes grass gives pepper seeds, and the crop is a full crop', () => {
+    expect(CROPS.ashpepper.seed).toBe('pepper_seed');
+    expect(cropOfSeed('pepper_seed')).toBe('ashpepper');
+    let got = 0;
+    for (let x = 0; x < 300; x++) if (grassSeed(B.ASH, x, 9, 3) === 'pepper_seed') got++;
+    expect(got).toBeGreaterThan(40);
+  });
+  it('the curry is a pot meal with a buff, made from farm produce and a fish', () => {
+    const r = recipeById('curry');
+    expect(r?.pot).toBe(true);
+    expect(Object.keys(r?.cost ?? {}).sort()).toEqual(['ashpepper', 'fish', 'rustroot']);
+    expect(MEAL_BUFF.curry).toBe('sturdy');
+    expect(FOOD.curry?.hp).toBeGreaterThan(FOOD.stew?.hp ?? 99);
+  });
+});
