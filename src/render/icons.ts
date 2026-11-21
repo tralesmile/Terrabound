@@ -534,6 +534,23 @@ export const ICONS: Record<string, IconDef> = {
       '            ',
     ],
   },
+  aquarium: {
+    pal: { a: '#1c6a9a', b: '#6ac8f0', c: '#ffb03a', d: '#c9b98a', g: '#3fbf5a' },
+    rows: [
+      '            ',
+      ' oooooooooo ',
+      ' obbbbbbbbo ',
+      ' oaaaaaaaao ',
+      ' oaaccaaaao ',
+      ' oaacccaagao',
+      ' oaaaaaaagao',
+      ' oaaaaaaagao',
+      ' oddddddddo ',
+      ' oooooooooo ',
+      '            ',
+      '            ',
+    ],
+  },
   medkit: {
     pal: { a: '#f2f4f8', b: '#c8ccd8', r: '#e8343a', R: '#ff8a8a' },
     rows: [

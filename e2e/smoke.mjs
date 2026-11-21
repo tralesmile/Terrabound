@@ -4205,7 +4205,7 @@ try {
     const w = g.world;
     const px = w.padX - 12;
     const py = w.padY - 2;
-    const ids = [71, 72, 73, 74, 75, 76];
+    const ids = [71, 72, 73, 74, 75, 76, 82];
     ids.forEach((id, i) => { for (let r = 0; r < 2; r++) w.set(px + i * 2, py - r, id); w.set(px + i * 2 + 1, py, id); });
     [3, 4, 5, 6].forEach((wl, i) => { for (let x = 0; x < 3; x++) for (let r = 0; r < 3; r++) w.setWall(px + i * 3 + x, py - 4 - r, wl); });
     g.body.x = px + 6;

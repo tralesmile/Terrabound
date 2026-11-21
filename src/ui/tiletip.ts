@@ -38,6 +38,7 @@ const NOTES: Partial<Record<number, string>> = {
   [T.PLATFORM]: 'Jump up through it, press S to drop.',
   [T.DOOR]: 'You walk through, enemies cannot.',
   [T.WINDOW]: 'Lets light in.',
+  [T.AQUARIUM]: 'A tank of glowing fish. Light passes through.',
   [T.GRAVEL]: 'Loose: falls when nothing holds it up.',
   [T.TILLED]: 'Crops here grow faster and give more.',
   [T.PANEL]: 'Smooth hull plating for walls and floors.',

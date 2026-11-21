@@ -23,7 +23,7 @@ interface Look {
   speckCount?: number;
   /** Bright pixel on each speck (ore glint). */
   glint?: string;
-  detail?: 'furrows' | 'panel' | 'hazard' | 'grate' | 'neon' | 'rivets' | 'flakes' | 'cracks' | 'frame' | 'pad' | 'bricks' | 'facets' | 'ripples' | 'roots' | 'traces';
+  detail?: 'tank' | 'furrows' | 'panel' | 'hazard' | 'grate' | 'neon' | 'rivets' | 'flakes' | 'cracks' | 'frame' | 'pad' | 'bricks' | 'facets' | 'ripples' | 'roots' | 'traces';
   /** Built-metal frame on exposed sides: bright band, inner shadow line, a bolt in each exposed corner. */
   trim?: Trim;
 }
@@ -60,6 +60,7 @@ const LOOK: Record<number, Look> = {
   [T.SHIELD]: { base: '#1d4a66', light: '#5ad8ff', dark: '#10283a', speck: '#c8f6ff', speckCount: 4, glint: '#ffffff', detail: 'rivets' },
   [T.GATE]: { base: '#0b2a3a', light: '#36e0e8', dark: '#061620', speck: '#c8ffff', speckCount: 4, detail: 'pad' },
   [T.ICE]: { base: '#8fc4e0', light: '#e6f6ff', dark: '#5a8cb0', speck: '#ffffff', speckCount: 3, glint: '#ffffff', detail: 'cracks' },
+  [T.AQUARIUM]: { base: '#1c6a9a', light: '#6ac8f0', dark: '#0f3f66', detail: 'tank', trim: { hi: '#c8eaff', lo: '#0a2a44', bolt: '#9ad8ff' } },
   [T.GRAVEL]: { base: '#7a756c', light: '#a8a296', dark: '#55514a', speck: '#cfc8b8', speckCount: 10, detail: 'ripples' },
   [T.TILLED]: { base: '#3f2f22', light: '#5e4a34', dark: '#281d14', detail: 'furrows' },
   [T.PANEL]: { base: '#56627a', light: '#7d8ba6', dark: '#3c4659', detail: 'panel', trim: { hi: '#a9b6cf', lo: '#2a3242', bolt: '#d0d8e6' } },
@@ -109,6 +110,19 @@ export function tileTexture(id: number, v: number): (string | null)[] {
         else { put(i, 7, look.dark); put(i, 8, look.light); }
       }
       break;
+    case 'tank': {
+      // Water with a gravel bed, weed and a couple of fish; the fish differ per variant.
+      for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) put(x, y, y < 3 ? look.light : look.base);
+      for (let x = 0; x < TS; x++) { put(x, TS - 2, '#c9b98a'); put(x, TS - 3, '#9a8a62'); }
+      for (let y = 8; y < TS - 3; y++) put(2 + (v % 3) * 4, y, '#3fbf5a');
+      const fy = 5 + (v % 3);
+      const fx = 4 + ((v * 5) % 6);
+      for (let i = 0; i < 3; i++) put(fx + i, fy, '#ffb03a');
+      put(fx - 1, fy - 1, '#ff8a2a'); put(fx - 1, fy + 1, '#ff8a2a');
+      put(fx + 2, fy - 1, '#ffffff');
+      put(12 - (v % 4), 9 + (v % 2), '#7ff6ff');
+      break;
+    }
     case 'furrows':
       for (let y = 0; y < TS; y++) for (let x = 0; x < TS; x++) {
         if (y % 4 === 1) put(x, y, look.dark);
@@ -341,6 +355,7 @@ export const TILE_COLORS: Record<number, string> = {
   [T.CHAIR]: '#c9a35a',
   [T.WINDOW]: '#9fd8ff',
   [T.LIFT]: '#5ad8ff',
+  [T.AQUARIUM]: '#6ac8f0',
   [T.GRAVEL]: '#a8a296',
   [T.TILLED]: '#5e4a34',
   [T.PANEL]: '#7d8ba6',

@@ -80,3 +80,14 @@ describe('styled back walls', () => {
     expect(WALL_ITEM[W.STRIPE]).toBe('wall_stripe');
   });
 });
+
+describe('aquarium', () => {
+  it('is a solid see-through decor block you can craft with a fish, saved with the base', () => {
+    expect(TILES[T.AQUARIUM].solid).toBe(true);
+    expect(TILES[T.AQUARIUM].clear).toBe(true);
+    expect(ITEMS.aquarium.places).toBe(T.AQUARIUM);
+    expect(recipeById('aquarium')?.cost.fish).toBe(1);
+    expect(BASE_KEEP.has(T.AQUARIUM)).toBe(true);
+    expect(PLACEABLE).toContain('aquarium');
+  });
+});
