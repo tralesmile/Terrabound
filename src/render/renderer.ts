@@ -33,6 +33,7 @@ import { ICON, drawIcon } from './icons';
 import { vehicleRemap } from './sprites';
 import { PAD_PAL, padDeckRows, padLight, padRun } from './padfx';
 import { RECALL_TIME } from '../sim/explore';
+import { heatColor } from '../sim/drillheat';
 import { arrivalBeam, beamMotes, chargeBeam, hexRgb, lootBeam, type BeamShape } from './beamfx';
 /**
  * Swim tilt in radians (canvas rotation; positive leans the head right): head-first toward the
@@ -491,7 +492,8 @@ export class Renderer {
       const hy = py - 14 * scale;
       const ex = this.sx(game.mining.tx + 0.5, shakeX);
       const ey = this.sy(game.mining.ty + 0.5, shakeY);
-      ctx.strokeStyle = `rgba(54,224,232,${0.55 + 0.35 * Math.sin(time * 40)})`;
+      const [hr, hg, hb] = heatColor(game.heat);
+      ctx.strokeStyle = `rgba(${hr},${hg},${hb},${0.55 + 0.35 * Math.sin(time * 40)})`;
       ctx.lineWidth = scale * 1.5;
       ctx.beginPath();
       ctx.moveTo(hx, hy);

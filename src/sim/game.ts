@@ -70,6 +70,7 @@ import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
 import { BASE_HALF, BASE_ROWS, captureBase, captureWalls, stampBase, stampWalls } from './base';
+import { heatDigMul, heatDrainMul, stepHeat } from './drillheat';
 import { planHut, stampHut } from './prefab';
 import { PAD_HALF, SPAWN_LIGHT_MAX, W, WALL_ITEM, isBuiltWall, WORLD_H, WORLD_W, World, generateWorld } from './world';
 import { isLegacySize } from './worldsize';
@@ -1857,7 +1858,7 @@ export class Game {
         } else {
           mining = true;
           if (!this.mining || this.mining.tx !== tx || this.mining.ty !== ty) this.mining = { tx, ty, progress: 0 };
-          this.mining.progress += (dt * d.digPower) / def.hardness;
+          this.mining.progress += (dt * d.digPower * heatDigMul(this.heat)) / def.hardness;
           this.digTick -= dt;
           if (this.digTick <= 0) {
             this.digTick = 0.14;
@@ -1891,6 +1892,7 @@ export class Game {
       }
     }
     if (!mining) this.mining = null;
+    this.heat = stepHeat(this.heat, mining, dt);
 
     // Placing blocks (must touch existing solid, must not trap the player).
     if (c.place && c.aim && this.placeCd === 0 && this.reachable(c.aim.tx, c.aim.ty)) {
@@ -1960,7 +1962,7 @@ export class Game {
       this.lowWarned = false;
       this.bank();
     } else if (this.depth > 1.5) {
-      this.battery = Math.max(0, this.battery - dt * this.gear.drainMul * LAYERS[layerAt(this.depth)].heat * (this.buffs.charged ? CHARGED_DRAIN : 1));
+      this.battery = Math.max(0, this.battery - dt * this.gear.drainMul * LAYERS[layerAt(this.depth)].heat * heatDrainMul(this.heat) * (this.buffs.charged ? CHARGED_DRAIN : 1));
       if (this.battery < d.maxBattery * 0.2 && !this.lowWarned) {
         this.lowWarned = true;
         this.emit({ t: 'lowbattery' });
@@ -2536,6 +2538,8 @@ export class Game {
     return true;
   }
 
+  /** Drill heat 0..1 (drillheat.ts): not saved. */
+  heat = 0;
   private wildCd = 5;
 
   /** Daytime surface wildlife: up to 3 hares graze on open ground away from the pad. Never hurts, drops meat. */
