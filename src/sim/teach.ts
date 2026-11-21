@@ -12,6 +12,7 @@ export const TEACH: Record<EnemyKind, string> = {
   vine: 'Vine stalker: fast jungle runner. Hit it, step back, hit again.',
   mite: 'Shard mite: crouches, then leaps. Step away when it crouches.',
   ember: 'Ember wisp: quick and fiery. Keep moving and shoot it down.',
+  hare: 'Scrap hare: harmless wildlife. Catch it for meat.',
   hulk: 'Frost hulk: rears up, then slams the ground. Jump or back off when it rears.',
 };
 
@@ -33,7 +34,7 @@ export function sanitizeMet(v: unknown): EnemyKind[] {
 
 /** True when a freshly spawned wild enemy of `kind` should teach (the save has never met one). */
 export function shouldTeach(met: readonly EnemyKind[], kind: EnemyKind): boolean {
-  return !met.includes(kind);
+  return !met.includes(kind) && !ENEMIES[kind].passive;
 }
 
 /** The nearest teacher of a kind not met yet within TEACH_RANGE of the player's feet, or null. */

@@ -3,7 +3,7 @@ import type { World } from './world';
 import type { ItemId } from './tiles';
 import { B } from './biomes';
 
-export type EnemyKind = 'crawler' | 'flyer' | 'vine' | 'mite' | 'ember' | 'hulk';
+export type EnemyKind = 'crawler' | 'flyer' | 'vine' | 'mite' | 'ember' | 'hulk' | 'hare';
 
 export interface EnemyDef {
   name: string;
@@ -23,6 +23,8 @@ export interface EnemyDef {
   hop?: boolean;
   /** Telegraphed ground slam (anticipation): plants its feet, winds up, then hits everything grounded nearby. */
   slam?: SlamDef;
+  /** Wildlife: never hurts, runs from the player, spawns on the sunlit surface (see Game.trySpawnWild). */
+  passive?: boolean;
 }
 
 export interface SlamDef {
@@ -43,6 +45,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
   vine: { name: 'Vine stalker', hp: 30, speed: 3.0, contact: 12, halfW: 0.4, h: 0.7, flying: false, minDepth: 8, biome: B.JUNGLE, drop: 'biomass' },
   mite: { name: 'Shard mite', hp: 16, speed: 3.2, contact: 9, halfW: 0.3, h: 0.5, flying: false, minDepth: 8, biome: B.CRYSTAL, drop: 'crystal', hop: true },
   ember: { name: 'Ember wisp', hp: 18, speed: 3.8, contact: 10, halfW: 0.3, h: 0.5, flying: true, minDepth: 10, biome: B.ASH, drop: 'copper_wire' },
+  hare: { name: 'Scrap hare', hp: 8, speed: 3.2, contact: 0, halfW: 0.3, h: 0.45, flying: false, minDepth: 0, drop: 'hare_meat', passive: true },
   hulk: { name: 'Frost hulk', hp: 60, speed: 1.4, contact: 18, halfW: 0.55, h: 0.95, flying: false, minDepth: 12, biome: B.FROST, slam: { range: 2.4, windup: 0.55, radius: 2.2, dmg: 16, cd: 2.6 } },
 };
 
@@ -50,6 +53,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
 export function spawnableKinds(depth: number, biome: number, flyingOnly = false): EnemyKind[] {
   return (Object.keys(ENEMIES) as EnemyKind[]).filter((k) => {
     const d = ENEMIES[k];
+    if (d.passive) return false;
     if (flyingOnly && !d.flying) return false;
     if (!flyingOnly && depth < d.minDepth) return false;
     return d.biome === undefined || d.biome === biome;
@@ -212,9 +216,9 @@ export function stepEnemy(world: World, e: Enemy, dt: number, px: number, py: nu
   }
   // Crawler: patrol, turn at walls and ledges, chase when the player is level and near.
   const near = e.raid ? Math.abs(px - e.x) > 0.3 : Math.abs(px - e.x) < 7 && Math.abs(py - e.y) < 2.5;
-  if (near) e.dir = px > e.x ? 1 : -1;
+  if (near) e.dir = (px > e.x ? 1 : -1) * (d.passive ? -1 : 1); // wildlife runs away
   const knock = Math.abs(e.vx) > d.speed * 1.5;
-  if (!knock) e.vx = e.dir * d.speed * (near ? 1.2 : 0.7);
+  if (!knock) e.vx = e.dir * d.speed * (d.passive ? (near ? 1.6 : 0.3 * (Math.sin(e.age * 0.7 + e.phase) > 0 ? 1 : 0)) : near ? 1.2 : 0.7);
   else e.vx *= Math.max(0, 1 - 6 * dt);
   e.vy = Math.min(28, e.vy + G * dt);
   const grounded = world.isSolid(Math.floor(e.x), Math.floor(e.y + 0.05));

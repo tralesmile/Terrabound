@@ -4216,6 +4216,27 @@ try {
   await page.waitForTimeout(400);
   await page.screenshot({ path: path.join(out, '38c-build-set.png') });
   check('the six build blocks place into the world and render without errors', buildSet.every(Boolean) && errors.length === 0, JSON.stringify({ buildSet, errors }));
+  // Wildlife: a scrap hare beside the player renders, flees, never hurts and drops meat when hit.
+  const hare = await page.evaluate(async () => {
+    const g = window.__terrabound.game;
+    const w = g.world;
+    g.body.x = w.padX - 14;
+    g.body.y = w.padY;
+    g.body.vx = g.body.vy = 0;
+    const hp0 = g.hp;
+    const e = g.trySpawnWild() ?? null;
+    if (!e) return { spawned: false };
+    e.x = g.body.x + 3;
+    e.y = w.padY;
+    await new Promise((r) => setTimeout(r, 600));
+    const fled = e.x > g.body.x + 3.5;
+    const unhurt = g.hp >= hp0;
+    e.hp = 0;
+    return { spawned: true, fled, unhurt };
+  });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: path.join(out, '38d-hare.png') });
+  check('a scrap hare spawns by day, runs from the player and does no damage', hare.spawned && hare.fled && hare.unhurt, JSON.stringify(hare));
   const liftY0 = await page.evaluate(() => {
     const g = window.__terrabound.game;
     g.body.x = g.world.padX + 5.5;

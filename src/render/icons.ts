@@ -415,6 +415,23 @@ export const ICONS: Record<string, IconDef> = {
       '            ',
     ],
   },
+  hare_meat: {
+    pal: { a: '#d89a7a', b: '#f4c8a8', c: '#8a4a34' },
+    rows: [
+      '            ',
+      '            ',
+      '    oooo    ',
+      '  ooaaaabo  ',
+      ' oaaaaabbbo ',
+      ' oaaaabbbbo ',
+      ' ocaaaabbbo ',
+      '  ocaaaaco  ',
+      '   oocccoo  ',
+      '     ooo    ',
+      '            ',
+      '            ',
+    ],
+  },
   medkit: {
     pal: { a: '#f2f4f8', b: '#c8ccd8', r: '#e8343a', R: '#ff8a8a' },
     rows: [

@@ -1299,6 +1299,7 @@ export const ENEMY_LOOKS: Record<EnemyKind, EnemyLook> = {
   vine: { sprite: 'crawler', remap: { c: '#4f9a3f', C: '#2a5e2b', d: '#9fe07a', e: '#ff7ab8', E: '#ffd0e8' }, size: 1.05, burst: '#7fcf5a' },
   mite: { sprite: 'crawler', remap: { c: '#8a5fd6', C: '#4f3a8a', d: '#e2c4ff', e: '#8ff4ff', E: '#ffffff' }, size: 0.72, burst: '#c08cff' },
   ember: { sprite: 'flyer', remap: { m: '#5a2a1a', M: '#ff8a3c', e: '#ffd24a', w: '#ffb08a' }, size: 1.05, burst: '#ff8a3c' },
+  hare: { sprite: 'crawler', remap: { c: '#c9a37a', C: '#7a5a3a', d: '#f2e2c8', e: '#2a1a14', E: '#2a1a14' }, size: 0.62, burst: '#d8b890' },
   hulk: { sprite: 'crawler', remap: { c: '#9fcbe8', C: '#4e6a88', d: '#f4fbff', e: '#36e0e8', E: '#c8ffff' }, size: 1.45, burst: '#cfe8ff' },
 };
 
@@ -1405,7 +1406,7 @@ export function drawGallery(canvas: HTMLCanvasElement): void {
   ex += 20;
   for (let i = 0; i < FLYER_ROWS.length; i++, ex += ENEMY_W * z + 10) drawEnemySprite(ctx, 'flyer', ex, 210 + 10 * z, z, 1, (i + 0.01) / 24 + 0.5, false);
   ex += 30;
-  for (const k of ['vine', 'mite', 'ember', 'hulk'] as EnemyKind[]) {
+  for (const k of ['vine', 'mite', 'ember', 'hulk', 'hare'] as EnemyKind[]) {
     drawEnemySprite(ctx, k, ex, 210 + 10 * z, z, 1, 0.4, false);
     ex += ENEMY_W * z * ENEMY_LOOKS[k].size + 12;
   }

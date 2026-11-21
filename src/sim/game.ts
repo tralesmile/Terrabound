@@ -2297,7 +2297,7 @@ export class Game {
       if (!atBase && this.iframes === 0 && enemyOverlapsBox(e, b.x, b.y, HALF_W, BODY_H) && e.teach) {
         // A teacher's first touch shows the move without the damage, then it fights for real.
         this.teachTouch(e);
-      } else if (!atBase && this.iframes === 0 && enemyOverlapsBox(e, b.x, b.y, HALF_W, BODY_H)) {
+      } else if (!atBase && this.iframes === 0 && !ENEMIES[e.kind].passive && enemyOverlapsBox(e, b.x, b.y, HALF_W, BODY_H)) {
         this.hurt(ENEMIES[e.kind].contact);
         this.iframes = IFRAMES;
         b.vx = (b.x >= e.x ? 1 : -1) * 8;
@@ -2332,6 +2332,11 @@ export class Game {
     if (this.spawnCd <= 0) {
       this.spawnCd = 4 + this.rng() * 4;
       this.trySpawn();
+    }
+    this.wildCd -= dt;
+    if (this.wildCd <= 0) {
+      this.wildCd = 6 + this.rng() * 6;
+      this.trySpawnWild();
     }
   }
 
@@ -2512,9 +2517,31 @@ export class Game {
     return this.save.met;
   }
 
+  private wildCd = 5;
+
+  /** Daytime surface wildlife: up to 3 hares graze on open ground away from the pad. Never hurts, drops meat. */
+  trySpawnWild(): Enemy | null {
+    const dark = isNight(this.time) || this.weather === 'eclipse';
+    if (this.depth >= 8 || dark || this.raid || this.boss) return null;
+    if (this.enemies.filter((o) => ENEMIES[o.kind].passive).length >= 3) return null;
+    for (let i = 0; i < 10; i++) {
+      const side = this.rng() < 0.5 ? -1 : 1;
+      const x = Math.floor(this.body.x + side * (10 + this.rng() * 10));
+      if (x < 2 || x >= this.world.w - 2 || Math.abs(x - this.world.padX) <= NIGHT_SAFE) continue;
+      let y = Math.floor(this.body.y) - 8;
+      while (y < this.world.h - 2 && !this.world.isSolid(x, y)) y++;
+      const e = makeEnemy(this.nextEnemyId, 'hare', x + 0.5, y, this.rng() * 6.28);
+      if (y <= this.world.padY - 12 || y > this.world.padY + 6 || enemyBoxHits(this.world, e)) continue;
+      this.nextEnemyId++;
+      this.enemies.push(e);
+      return e;
+    }
+    return null;
+  }
+
   /** Spawn an enemy in open cave space near, but never on, the player and never inside walls. */
   trySpawn(): Enemy | null {
-    if (this.enemies.length >= MAX_ENEMIES) return null;
+    if (this.enemies.filter((o) => !ENEMIES[o.kind].passive).length >= MAX_ENEMIES) return null;
     // At night, drone wisps also hunt on the surface (never near the pad).
     const dark = isNight(this.time) || this.weather === 'eclipse';
     const nightSurface = this.depth < 8 && dark && Math.abs(this.body.x - this.world.padX) > NIGHT_SAFE;
