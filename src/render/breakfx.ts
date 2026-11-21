@@ -19,6 +19,7 @@ const STYLE_OF: Partial<Record<number, BreakStyle>> = {
   [T.CRYSTAL]: 'crystal',
   [T.WINDOW]: 'crystal',
   [T.TILLED]: 'dirt',
+  [T.GRAVEL]: 'dirt',
   [T.PANEL]: 'metal',
   [T.HAZARD]: 'metal',
   [T.GRATE]: 'metal',

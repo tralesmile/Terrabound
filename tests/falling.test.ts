@@ -152,3 +152,23 @@ describe('falling blocks in the game', () => {
     expect(g.hp).toBeGreaterThanOrEqual(hp - FALL.dmg - 0.001);
   });
 });
+
+import { recipeById } from '../src/sim/recipes';
+import { ITEMS } from '../src/sim/tiles';
+import { World as RealWorld } from '../src/sim/world';
+
+describe('gravel', () => {
+  it('is a craftable placeable loose block', () => {
+    expect(FALLS.has(T.GRAVEL)).toBe(true);
+    expect(ITEMS.gravel.places).toBe(T.GRAVEL);
+    expect(recipeById('gravel')?.out).toBe('gravel');
+  });
+  it('an unsupported gravel block wobbles when something below is open', () => {
+    const w = new RealWorld(20, 20, 1);
+    for (let x = 0; x < 20; x++) w.set(x, 15, T.RUST);
+    w.set(5, 10, T.GRAVEL);
+    const warns: FallWarn[] = [];
+    expect(disturb(w, 5, 11, warns)).toBe(true);
+    expect(warns[0]).toMatchObject({ x: 5, y: 10 });
+  });
+});

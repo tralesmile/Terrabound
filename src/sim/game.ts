@@ -12,7 +12,7 @@ import { hash2, mixSeed, mulberry32 } from './rng';
 import { HIT_FEEL, type HitClass } from './hitfeel';
 import { drillNeeded } from './drilltier';
 import { blastPush } from './blastjump';
-import { FALL, disturb, stepFalling, type FallBody, type FallWarn } from './falling';
+import { FALL, FALLS, disturb, stepFalling, type FallBody, type FallWarn } from './falling';
 import { TEACH_SHOVE, firstMeet, sanitizeMet, shouldTeach } from './teach';
 import { ENEMIES, ENEMY_HIT_IFRAMES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
 import { type Body, moveX, moveY, onLadder, probeGround, stepUp, unstick, BODY_H, HALF_W } from './physics';
@@ -1934,6 +1934,7 @@ export class Game {
           invAdd(this.carried, this.selected, -1);
           this.placeCd = 0.12;
           this.emit({ t: 'place', x: tx, y: ty });
+          if (item.places !== null && FALLS.has(item.places)) this.loosen(tx, ty + 1); // unsupported loose blocks drop at once
         }
       } else if (item.placesWall !== undefined && invCount(this.carried, this.selected) > 0 && this.canPlaceWall(tx, ty, item.placesWall)) {
         // Back walls sit behind tiles, so they may overlap the player, torches and ladders.

@@ -449,6 +449,23 @@ export const ICONS: Record<string, IconDef> = {
       '            ',
     ],
   },
+  gravel: {
+    pal: { a: '#9a9488', b: '#b8b2a4', c: '#6a665c' },
+    rows: [
+      '            ',
+      '            ',
+      '   oooooo   ',
+      '  oabcbabo  ',
+      ' oabbabcbao ',
+      ' obcabbabco ',
+      ' oababcabbo ',
+      ' obbcabbcabo',
+      '  ooooooooo ',
+      '            ',
+      '            ',
+      '            ',
+    ],
+  },
   medkit: {
     pal: { a: '#f2f4f8', b: '#c8ccd8', r: '#e8343a', R: '#ff8a8a' },
     rows: [

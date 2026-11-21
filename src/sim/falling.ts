@@ -8,7 +8,7 @@ import type { World } from './world';
 import { T } from './tiles';
 
 /** Loose tiles that fall when the block under them is removed. */
-export const FALLS: ReadonlySet<number> = new Set<number>([T.SAND, T.ASH]);
+export const FALLS: ReadonlySet<number> = new Set<number>([T.SAND, T.ASH, T.GRAVEL]);
 
 export const FALL = {
   /** Wobble seconds before a loose block drops (the 0.4 s telegraph rule). */
