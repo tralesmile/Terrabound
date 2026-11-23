@@ -423,6 +423,34 @@ export class Fx {
   }
 
   /** Low, sideways dust puffs at the feet in the ground's colour. */
+  private slideAcc = 0;
+  /** Wall-slide trail: grit trickles off the wall at the player's hand height while sliding (side = wall -1/1, 0 = none). */
+  wallSlideTrail(dt: number, side: number, x: number, y: number, color: string): number {
+    if (!side) {
+      this.slideAcc = 0;
+      return 0;
+    }
+    this.slideAcc += dt * 14;
+    let made = 0;
+    while (this.slideAcc >= 1 && this.particles.length < MAX_PARTICLES) {
+      this.slideAcc -= 1;
+      this.particles.push({
+        x: x + side * 0.45,
+        y: y - 0.9 - Math.random() * 0.5,
+        vx: -side * (0.3 + Math.random() * 0.8),
+        vy: 0.2 + Math.random() * 0.8,
+        life: 0.25 + Math.random() * 0.2,
+        max: 0.45,
+        color,
+        size: 2,
+        g: 4,
+      });
+      made++;
+    }
+    if (this.slideAcc > 1) this.slideAcc = 0;
+    return made;
+  }
+
   dust(x: number, y: number, color: string, n: number, speed: number, dir = 0): void {
     for (let i = 0; i < n && this.particles.length < MAX_PARTICLES; i++) {
       const side = dir !== 0 ? dir : i % 2 === 0 ? -1 : 1;

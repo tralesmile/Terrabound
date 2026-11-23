@@ -357,3 +357,4 @@
 - Run 83: an e2e that depends on a random spawn (trySpawnWild) flaked once ("spawned:false"). Retry the spawn in a loop (up to 40) and put time, depth and flags in the failure detail so the next failure explains itself.
 
 - 2026-11-23: the checked-out clone was a detached HEAD on main with no `dev` branch, and PROGRESS lagged main. Guard: start with `git fetch origin && git checkout -B dev origin/main` when `git checkout dev` fails.
+- 2026-11-23 run 87: editing src/ while the baseline gate ran was harmless this time because the edits were small and the gate had passed unit tests; still prefer scratch drafts.

@@ -1074,3 +1074,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** ziplines, explosives part 2, liquids v2 rest; wall-slide dust trail and a sprite pose.
 
 **Known issues:** no screenshot check (sim feel only); no wall-slide sprite pose yet.
+
+## 2026-11-23 Scheduled run 87
+
+**Done:** dev reset to origin/dev (equal to main), baseline green. Research topic 7 logged (no new items). Wall-slide grit trail (`Fx.wallSlideTrail`, wired in main.ts; 2 tests in `tests/slidefx.test.ts`). No save change.
+
+**Next:** ziplines, wall-slide sprite pose, explosives part 2, liquids v2 rest.
+
+**Known issues:** no screenshot check (particles only; the slide state is not reachable from the e2e screenshots).

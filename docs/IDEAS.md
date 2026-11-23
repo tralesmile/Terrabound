@@ -1,5 +1,12 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-23 run 87
+
+- Done: wall-slide now trickles grit off the wall (run 86 had sound and a ring only).
+- Weakest feel: sliding has no sprite pose (arms to the wall); a 2-frame pose is cheap.
+- Weakest traversal: only grapple and wall-jump; ziplines between base points would make bases feel connected.
+- Weakest graphics (carried): big ground areas are flat noise; tile variants first.
+
 ## 2026-11-20 run 83
 
 - Done: first-of-a-kind enemies teach their move (amber "!", lesson toast, harmless first touch); mites crouch before leaping; camera looks ahead and leads falls; per-class hit feel with trauma shake; drilled blocks crack in stages with chips and material voices; ores need a drill tier.

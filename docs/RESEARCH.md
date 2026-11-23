@@ -48,3 +48,7 @@ Rules: one dated entry per run, 3-6 lines, paraphrased (no long quotes), with th
 **Story delivery (topic 5, run 85)**
 - Search returned mostly roundups; the recurring point is that roguelikes and sandboxes land best with hands-off lore: story told through places, found logs and NPC lines the player can ignore, never a gate on play. Sources: https://www.killscreen.com/irresistible-appeal-roguelike-storytelling/ and https://www.gamesradar.com/games/roguelike/
 - Filter: fits P12-E as optional found logs and ruins; no new item beyond that.
+
+**Web performance, input and platform rules (topic 7, run 87)**
+- Portals (CrazyGames, Poki) judge on time to first frame, small initial download and stable mobile frame rate; CrazyGames has a dedicated "getting to the first frame" guide. Accessibility roundups: reduced-motion support, colour-independent cues, remappable and touch-friendly controls. Sources: https://docs.crazygames.com/requirements/technical/ and https://docs.crazygames.com/resources/getting-to-the-first-frame/ and https://poki.com/blog/building-web-browser-games-2026 and https://developer.mozilla.org/en-US/docs/Games/Techniques/Control_mechanisms
+- Filter: our budgets (500 KB gzip, 2 s first interactive) already match; reduced motion already caps shake. No new item; colour-independent cues are covered by P12-F UI polish.
