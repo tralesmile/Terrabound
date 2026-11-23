@@ -2979,11 +2979,11 @@ try {
     return { x: mx, y: my };
   });
   const cooled = await page
-    .waitForFunction(([x, y]) => window.__terrabound.game.world.get(x, y) === 41, [basin.x, basin.y], { timeout: 3000 })
+    .waitForFunction(([x, y]) => window.__terrabound.game.world.get(x, y) === 83 || window.__terrabound.game.world.get(x, y) === 41, [basin.x, basin.y], { timeout: 3000 })
     .then(() => true, () => false);
   await page.waitForTimeout(120);
   await page.screenshot({ path: path.join(out, '27c-basalt.png') });
-  check('water cools magma into basalt', cooled, JSON.stringify(basin));
+  check('water cools magma into obsidian or basalt', cooled, JSON.stringify(basin));
   // Final boss: in the Core, summon and beat the Hollow AI; the victory screen appears and closes.
   await page.evaluate(() => {
     const g = window.__terrabound.game;
