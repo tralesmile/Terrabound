@@ -1050,3 +1050,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** drill heat meter, ceiling collapse, room-quality checklist, Guide hints and the opt-in funnel, more crops (a fourth crop and meal), aquarium decor, hunting beyond the hare (more critters by biome).
 
 **Known issues:** real `npm run check` and the ship script have never run in this session; new weapons use colour-only art (no bespoke held sprites).
+
+## 2026-11-23 Scheduled run 84
+
+**Done:** reset dev to origin/main (the run 83 local branch was never pushed; main has the newer commits). Research topic 4 logged. Telegraphed ceiling collapse (`src/sim/collapse.ts`, wired in `game.ts` `stepCollapses`, reuses falling bodies; 5 tests). No save change.
+
+**Next:** liquids v2, explosives part 2, traversal tools; dust colour per layer; held weapon silhouettes.
+
+**Known issues:** no screenshot check (sim logic only; reuses the existing fall dust effect).

@@ -153,3 +153,8 @@
 - Weakest part now: movement felt like instant speed (fixed by v2); next weakest is jump apex feel - add hang time and fast-fall.
 
 - 2026-11-19: Landing dust plus squash on hard falls would sell the new jump hang (feel, render-only). Weakest part now: combat feedback (no hit-stop), see P12-A.
+
+## 2026-11-23 (run 84, no screenshot pass: logic slice only)
+- Collapse rubble could glint and drop a rare chunk: makes dodging and then digging the rubble feel like a reward.
+- Coloured warning dust per layer (violet in Plasma, red in Core) so the telegraph reads at a glance.
+- Weakest part now: held weapon art (colour-only sprites from run 83); give each new weapon a silhouette.

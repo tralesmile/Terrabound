@@ -12,6 +12,7 @@ import { hash2, mixSeed, mulberry32 } from './rng';
 import { HIT_FEEL, type HitClass } from './hitfeel';
 import { drillNeeded } from './drilltier';
 import { blastPush } from './blastjump';
+import { COLLAPSE, isCollapseDepth, pickCollapse, stepCollapse, type CollapseWarn } from './collapse';
 import { FALL, FALLS, disturb, stepFalling, type FallBody, type FallWarn } from './falling';
 import { TEACH_SHOVE, firstMeet, sanitizeMet, shouldTeach } from './teach';
 import { ENEMIES, ENEMY_HIT_IFRAMES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
@@ -450,6 +451,8 @@ export class Game {
   /** Loose blocks wobbling before they drop, and blocks in flight (falling.ts); transient, not saved. */
   fallWarns: FallWarn[] = [];
   fallBodies: FallBody[] = [];
+  collapseWarns: CollapseWarn[] = [];
+  private collapseCd = COLLAPSE.period;
   private lowWarned = false;
   /** The garage bay charging the battery this step (null when not under a field garage; render + e2e). */
   bayCharging: { x: number; y: number } | null = null;
@@ -1118,6 +1121,8 @@ export class Game {
     this.bladeCd = 0;
     this.spawnCd = 3;
     this.rng = mulberry32(this.diveSeed() ^ 0x5eed);
+    this.collapseWarns = [];
+    this.collapseCd = COLLAPSE.period;
     this.lavaBombs = [];
     this.rumble = null;
     this.eruptCd = 12;
@@ -2461,8 +2466,30 @@ export class Game {
     }
   }
 
+  /** Deep roofs shake loose: a dust telegraph, then the block drops as a falling body (collapse.ts). */
+  private stepCollapses(dt: number): void {
+    if (this.isAtBase()) {
+      this.collapseWarns.length = 0;
+      return;
+    }
+    this.collapseCd -= dt;
+    if (this.collapseCd <= 0) {
+      this.collapseCd = COLLAPSE.period * (0.7 + this.rng() * 0.6);
+      const c = isCollapseDepth(this.depth) && this.collapseWarns.length < 3 ? pickCollapse(this.world, this.rng, this.body.x, this.body.y) : null;
+      if (c) this.collapseWarns.push({ x: c.x, y: c.y, t: COLLAPSE.warn });
+    }
+    // Dust every ~0.17 s while the roof block trembles.
+    for (const w of this.collapseWarns) if (Math.floor((w.t + dt) * 6) !== Math.floor(w.t * 6)) this.emit({ t: 'fallwarn', x: w.x, y: w.y, tile: this.world.get(w.x, w.y) });
+    for (const d of stepCollapse(this.world, this.collapseWarns, dt)) {
+      this.world.set(d.x, d.y, T.AIR);
+      this.fallBodies.push({ x: d.x, y: d.y, vy: 0, tile: d.tile });
+      this.emit({ t: 'fallwarn', x: d.x, y: d.y, tile: d.tile });
+    }
+  }
+
   /** Drop wobbling loose blocks and move falling ones; one landing on the player hurts a little and breaks. */
   private stepFalls(dt: number): void {
+    this.stepCollapses(dt);
     if (this.fallWarns.length === 0 && this.fallBodies.length === 0) return;
     const b = this.body;
     const hits = (x: number, y: number): boolean => x + 1 > b.x - HALF_W && x < b.x + HALF_W && y + 1 > b.y - BODY_H && y < b.y;

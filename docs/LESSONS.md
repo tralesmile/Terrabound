@@ -355,3 +355,5 @@
 - **Retro (run 83):** drafting the next slice in a scratch folder while the ~10 min gate ran (run 67/79 lesson) kept the pipeline full; committing once unit tests and build are green and the e2e is still going, then fixing forward, saved several waits without ever pushing red.
 - Run 83: a new placeable tile touches ~10 places (tiles T/TILES/ITEMS/PLACEABLE, recipes, base BASE_KEEP, autotile BLOCKS, sprites LOOK + colour, breakfx, tiletip, icons). The icons test enforces 12-wide rows; generate rows in code, do not hand-type them.
 - Run 83: an e2e that depends on a random spawn (trySpawnWild) flaked once ("spawned:false"). Retry the spawn in a loop (up to 40) and put time, depth and flags in the failure detail so the next failure explains itself.
+
+- 2026-11-23: the checked-out clone was a detached HEAD on main with no `dev` branch, and PROGRESS lagged main. Guard: start with `git fetch origin && git checkout -B dev origin/main` when `git checkout dev` fails.

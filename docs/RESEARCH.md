@@ -40,3 +40,7 @@ Rules: one dated entry per run, 3-6 lines, paraphrased (no long quotes), with th
 - Filter: both fit the roster and weapon-class items in P12-B; one-liner added there.
 
 **Not yet researched (next runs, in rotation order):** mobile retention and onboarding (4, run 84), story in sandbox games (5), automation and defence (6), web performance and accessibility (7).
+
+**Retention check (topic 4, run 84)**
+- 2026 roundups repeat the same levers: a fast first session that teaches by playing, a clear next goal at every point, and no progression walls or content droughts around day 7 to 30. Sources: https://appfollow.io/blog/mobile-game-retention and https://gamegrowthadvisor.com/blog/2026-03-17-mobile-game-retention-strategies-2026/
+- Filter: already covered by the goal-card chain and the P12-G items; no new item. Deep roofs that shake loose add a readable danger to the dive with no wall.
