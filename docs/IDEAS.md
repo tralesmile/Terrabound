@@ -169,3 +169,7 @@
 ## 2026-11-23 (run 86)
 - Wall-slide dust trail and a clinging sprite pose would make the new wall-jump readable (render-only, `game.wallSlide` is exposed).
 - Weakest part now: vertical shafts are slow to climb back up on foot; wall-jump helps, ziplines or lifts next.
+
+## 2026-11-24 run 88
+- Dedicated wall-cling frame (hands on wall, legs bent) instead of reusing the ladder climb frames; reads clearer.
+- Weakest part now: held weapons are colour-only art; bespoke silhouettes per class would make the 30+ weapons feel distinct.

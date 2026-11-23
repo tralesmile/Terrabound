@@ -52,3 +52,6 @@ Rules: one dated entry per run, 3-6 lines, paraphrased (no long quotes), with th
 **Web performance, input and platform rules (topic 7, run 87)**
 - Portals (CrazyGames, Poki) judge on time to first frame, small initial download and stable mobile frame rate; CrazyGames has a dedicated "getting to the first frame" guide. Accessibility roundups: reduced-motion support, colour-independent cues, remappable and touch-friendly controls. Sources: https://docs.crazygames.com/requirements/technical/ and https://docs.crazygames.com/resources/getting-to-the-first-frame/ and https://poki.com/blog/building-web-browser-games-2026 and https://developer.mozilla.org/en-US/docs/Games/Techniques/Control_mechanisms
 - Filter: our budgets (500 KB gzip, 2 s first interactive) already match; reduced motion already caps shake. No new item; colour-independent cues are covered by P12-F UI polish.
+
+## 2026-11-24 run 88 (topic 0, game feel)
+Search returned only generic juice roundups (dvdfu "practical juicing", Amazon GameMaker "juicing your movements"); both agree a distinct wall-cling pose plus particles sells the slide. Applied: wall-slide now uses the cling frame. No new backlog items.

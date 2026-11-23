@@ -1082,3 +1082,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** ziplines, wall-slide sprite pose, explosives part 2, liquids v2 rest.
 
 **Known issues:** no screenshot check (particles only; the slide state is not reachable from the e2e screenshots).
+
+## 2026-11-24 Scheduled run 88
+
+**Done:** dev reset to origin/dev, baseline green. Research topic 0 logged (generic results). Wall-slide now shows the cling pose (`src/render/cling.ts`, reuses climb frames; test added). No save change.
+
+**Next:** ziplines, dedicated cling frame, explosives part 2, liquids v2 rest, held weapon silhouettes.
+
+**Known issues:** no screenshot check (slide state not reachable from e2e); cling reuses the animated ladder frames.

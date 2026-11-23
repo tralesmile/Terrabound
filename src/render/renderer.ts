@@ -27,6 +27,7 @@ import { T, TILES, invTotal } from '../sim/tiles';
 import { isLiquid, levelAt as liquidLevel } from '../sim/liquids';
 import { W } from '../sim/world';
 import { BODY_H } from '../sim/physics';
+import { clingPose } from './cling';
 import { HIT_SQUASH_TIME, hitSquash, hurtSquash, hurtVignette, softFlash, magmaBubble, magmaEmber, magmaPulse, squashScale, type Fx, crouchSquash, rearScale, stretchScale } from './fx';
 import type { PlayerGear, VehicleSpriteId } from './sprites';
 import { ICON, drawIcon } from './icons';
@@ -917,7 +918,7 @@ export class Renderer {
       t: time,
       airborne: !b.onGround,
       vy: b.vy,
-      climbing: onLadder(game.world, b) && !b.onGround,
+      climbing: clingPose(onLadder(game.world, b), game.wallSlide, b.onGround),
       hurt: game.iframes > 0 && (this.reduceFlash ? game.iframes > 0.3 : Math.floor(time * 20) % 2 === 0),
       swing: game.swing > 0,
       tier: game.upgrades.armor ?? 0,
