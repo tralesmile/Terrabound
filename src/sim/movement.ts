@@ -41,3 +41,27 @@ export function gravityMul(vy: number, jumpHeld: boolean, down: boolean): number
   if (jumpHeld && Math.abs(vy) < JUMPFEEL.hangBand) return JUMPFEEL.hangMul;
   return 1;
 }
+
+/** Wall slide and wall jump: cling to a solid wall you press into, fall slowly, kick off it. */
+export const WALL = {
+  slideFall: 3, // max fall speed (units/s) while sliding
+  jumpVy: 0.92, // fraction of a normal jump
+  kickVx: 7, // horizontal push away from the wall
+  maxJumps: 3, // wall jumps per airtime (resets on landing) so digging up stays a choice
+  reach: 0.12, // probe distance beyond the body edge
+} as const;
+
+/** -1 / 1 when a solid wall is on that side of an airborne body (feet to head), else 0. */
+export function wallSide(
+  solid: (x: number, y: number) => boolean,
+  x: number,
+  y: number,
+  halfW: number,
+  h: number,
+): number {
+  const rows = [y - 0.2, y - h / 2, y - h + 0.2];
+  const hit = (side: number): boolean => rows.every((r) => solid(Math.floor(x + side * (halfW + WALL.reach)), Math.floor(r)));
+  const l = hit(-1);
+  const r = hit(1);
+  return l === r ? 0 : l ? -1 : 1;
+}

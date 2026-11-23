@@ -158,3 +158,7 @@
 - Collapse rubble could glint and drop a rare chunk: makes dodging and then digging the rubble feel like a reward.
 - Coloured warning dust per layer (violet in Plasma, red in Core) so the telegraph reads at a glance.
 - Weakest part now: held weapon art (colour-only sprites from run 83); give each new weapon a silhouette.
+
+## 2026-11-23 (run 86)
+- Wall-slide dust trail and a clinging sprite pose would make the new wall-jump readable (render-only, `game.wallSlide` is exposed).
+- Weakest part now: vertical shafts are slow to climb back up on foot; wall-jump helps, ziplines or lifts next.

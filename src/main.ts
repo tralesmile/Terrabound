@@ -632,6 +632,9 @@ function boot(): void {
         fx.airJump(e.x, e.y, g?.color ?? '#9aa3b8', g?.accent ?? '#e8eef8', e.by === 'feather_charm');
         break;
       }
+      case 'walljump':
+        fx.ring(e.x + e.side * 0.4, e.y - 0.9, 0.8, '#cfd8e8', 0.25);
+        break;
       case 'gearfound': {
         const g = GEAR[e.id];
         const where = e.worn ? 'Worn on your belt' : 'Sockets full: swap it in from the inventory';

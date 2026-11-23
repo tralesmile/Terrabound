@@ -1066,3 +1066,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** liquids v2 rest (buoyancy, oxygen via battery), explosives part 2, traversal tools.
 
 **Known issues:** no screenshot check (obsidian uses the facets sprite detail); obsidian is not yet craftable into anything.
+
+## 2026-11-23 Scheduled run 86
+
+**Done:** dev reset to origin/main, baseline green. Wall-slide (press into a wall while falling: fall capped at 3/s) and wall-jump (kick away, 3 per airtime, resets on landing) in `src/sim/movement.ts` + `game.ts`, new `walljump` event with sound and a puff ring; 3 tests (`tests/walljump.test.ts`). No save change. Research topic 6 search returned only generic factory-genre roundups; nothing new to add.
+
+**Next:** ziplines, explosives part 2, liquids v2 rest; wall-slide dust trail and a sprite pose.
+
+**Known issues:** no screenshot check (sim feel only); no wall-slide sprite pose yet.

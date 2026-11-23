@@ -26,7 +26,7 @@ Owner goal: make Terrabound feel closer to Terraria, Starbound and Core Keeper (
 - [ ] (obsidian from water-over-magma done run 85) Liquids v2 (build on `liquids.ts`): flow and pressure rules, lava plus water makes obsidian, swimming buoyancy, an oxygen drain that uses the battery clock instead of a new bar.
 - [x] (run 83, `src/sim/blastjump.ts`: your own bomb launches you and never hurts you) Explosives: blast jump.
 - [ ] Explosives part 2 (split in run 83): craftable placed charge, chain reactions, block damage radius; deterministic.
-- [ ] Traversal tools: grapple hook or rope swing, wall-slide and wall-jump (boots or module), jetpack fuel tied to the battery, rails or ziplines between base points.
+- [ ] (run 86: wall-slide and wall-jump done for everyone, `WALL` in `movement.ts`, 3 per airtime; grapple already exists) Traversal tools: ziplines between base points, jetpack fuel tied to the battery, rails or ziplines between base points.
 - [x] (run 83, `src/platform/haptics.ts`, VIBRATION setting, save v32) Mobile feel: haptics (`navigator.vibrate`) for hit, break and bank behind a setting.
 - [ ] Mobile feel part 2 (split in run 83): auto-aim tuning for touch digging and combat; one-hand layout.
 - [ ] Gamepad support (also listed in P5): aim stick for digging, radial hotbar.

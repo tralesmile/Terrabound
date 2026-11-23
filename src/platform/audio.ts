@@ -233,6 +233,10 @@ export class Sfx {
         this.tone(420, 0.1, 'square', 0.05, 760);
         this.tone(900, 0.12, 'sine', 0.04, 1400, 0.03);
         break;
+      case 'walljump':
+        this.tone(300, 0.08, 'square', 0.05, 620);
+        this.tone(700, 0.08, 'sine', 0.03, 980, 0.03);
+        break;
       case 'pad':
         // Spring boing: a fast rising sweep with a wobbly tail.
         if (this.ok('pad', 120)) {

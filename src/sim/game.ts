@@ -1,4 +1,4 @@
-import { gravityMul, stepVx } from './movement';
+import { WALL, gravityMul, stepVx, wallSide } from './movement';
 import { activePaint, nextPaint, type PaintDef, type PaintSlot } from './paints';
 import { CREW_KINDS, codexRows, loreKey, noteCodexEvent, trinketCount, type CodexRow } from './codex';
 import { chainGoal, chainIndex, GOAL_STEPS } from './ftue';
@@ -237,6 +237,7 @@ export type GameEvent =
   | { t: 'jump' }
   /** A mid-air jump at the feet (x, y); `by` is the gear that gave it (spring boots, feather charm). */
   | { t: 'airjump'; x: number; y: number; by: GearId | null }
+  | { t: 'walljump'; x: number; y: number; side: number }
   | { t: 'pad'; x: number; y: number }
   | { t: 'step' }
   | { t: 'land'; speed: number }
@@ -396,6 +397,9 @@ export class Game {
   /** Grappling hook rope, when attached. */
   hook: Hook | null = null;
   private airJumpsLeft = 0;
+  private wallJumpsLeft: number = WALL.maxJumps;
+  /** -1/1 while sliding on a wall this frame (render hint), else 0. */
+  wallSlide = 0;
   private dashT = 0;
   private dashCd = 0;
   private prevDash = false;
@@ -1666,7 +1670,8 @@ export class Game {
 
     // Jump with coyote time, input buffer and variable height; air jumps from spring boots.
     const grounded = probeGround(this.world, b, c.down);
-    if (grounded) this.airJumpsLeft = g.airJumps;
+    if (grounded) { this.airJumpsLeft = g.airJumps; this.wallJumpsLeft = WALL.maxJumps; }
+    const wall = !grounded && !this.riding && !this.inLiquid && !this.hook ? wallSide((x, y) => this.world.isSolid(x, y), b.x, b.y, HALF_W, BODY_H) : 0;
     this.coyote = grounded ? 0.1 : this.coyote - dt;
     const jumpPress = c.jump && !this.prevJump;
     this.jumpBuf = jumpPress ? 0.12 : this.jumpBuf - dt;
@@ -1682,6 +1687,13 @@ export class Game {
       this.coyote = 0;
       this.jumpBuf = 0;
       this.emit({ t: 'jump' });
+    } else if (jumpPress && wall !== 0 && this.coyote <= 0 && this.wallJumpsLeft > 0) {
+      this.wallJumpsLeft--;
+      b.vy = -jumpV * WALL.jumpVy;
+      b.vx = -wall * WALL.kickVx;
+      this.facing = -wall;
+      this.jumpBuf = 0;
+      this.emit({ t: 'walljump', x: b.x, y: b.y, side: wall });
     } else if (jumpPress && this.airJumpsLeft > 0 && !this.riding && !this.inLiquid) {
       this.airJumpsLeft--;
       b.vy = -JUMP_V * 0.9;
@@ -1753,6 +1765,9 @@ export class Game {
       b.vy = 0;
     } else {
       b.vy = Math.min(MAX_FALL, b.vy + GRAVITY * gravityMul(b.vy, !!c.jump && !this.padLaunch, !!c.down && !grounded) * dt);
+      // Wall slide: pressing into a wall while falling slows the drop.
+      this.wallSlide = wall !== 0 && mx === wall && b.vy > 0 ? wall : 0;
+      if (this.wallSlide) b.vy = Math.min(b.vy, WALL.slideFall);
       // Jetpack: hold jump in the air once the jump has peaked (or with no jumps left).
       if (g.jetpack && c.jump && !grounded && !this.hook && b.vy > -4 && this.battery > 0) {
         b.vy = Math.max(-JET_MAX, b.vy - JET_THRUST * dt);
