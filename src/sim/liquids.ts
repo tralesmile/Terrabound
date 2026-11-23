@@ -38,14 +38,16 @@ export function coolMagma(world: World, cx: number, cy: number, rx = FLOW_RX, ry
     for (let x = x0; x <= x1; x++) {
       if (world.get(x, y) !== T.MAGMA) continue;
       let hit = false;
+      let fromAbove = false;
       for (const [dx, dy] of NEIGHBOURS) {
         if (world.get(x + dx, y + dy) === T.WATER) {
           world.set(x + dx, y + dy, T.AIR);
           hit = true;
+          if (dy === -1) fromAbove = true;
         }
       }
       if (hit) {
-        world.set(x, y, T.BASALT);
+        world.set(x, y, fromAbove ? T.OBSIDIAN : T.BASALT);
         out.push({ x, y });
       }
     }

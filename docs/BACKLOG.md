@@ -23,7 +23,7 @@ Owner goal: make Terrabound feel closer to Terraria, Starbound and Core Keeper (
 - [x] (run 83, `src/sim/drilltier.ts`: ores only, rock never gated) Dig-power tiers: harder blocks need a better drill; the tile tip says "needs drill Lv N"; no luck gating.
 - [x] (run 83, `src/sim/falling.ts`) Falling blocks: crystal sand and ash wobble 0.45 s when undermined, drop, pile up and cascade; one landing on the player does 8 damage and breaks into a pickup; deterministic tests.
 - [x] (run 84, `src/sim/collapse.ts`: layer-rock roofs, 1 s dust telegraph, then a falling body that lands as diggable rubble; 8 damage if it hits you; Plasma and deeper only) Telegraphed ceiling collapse in deep layers (split from falling blocks in run 83): rubble tiles in Plasma and Core ceilings that shake, drop dust, then fall (dodgeable); reuse `falling.ts`.
-- [ ] Liquids v2 (build on `liquids.ts`): flow and pressure rules, lava plus water makes obsidian, swimming buoyancy, an oxygen drain that uses the battery clock instead of a new bar.
+- [ ] (obsidian from water-over-magma done run 85) Liquids v2 (build on `liquids.ts`): flow and pressure rules, lava plus water makes obsidian, swimming buoyancy, an oxygen drain that uses the battery clock instead of a new bar.
 - [x] (run 83, `src/sim/blastjump.ts`: your own bomb launches you and never hurts you) Explosives: blast jump.
 - [ ] Explosives part 2 (split in run 83): craftable placed charge, chain reactions, block damage radius; deterministic.
 - [ ] Traversal tools: grapple hook or rope swing, wall-slide and wall-jump (boots or module), jetpack fuel tied to the battery, rails or ziplines between base points.

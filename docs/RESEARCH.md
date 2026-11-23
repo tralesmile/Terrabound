@@ -44,3 +44,7 @@ Rules: one dated entry per run, 3-6 lines, paraphrased (no long quotes), with th
 **Retention check (topic 4, run 84)**
 - 2026 roundups repeat the same levers: a fast first session that teaches by playing, a clear next goal at every point, and no progression walls or content droughts around day 7 to 30. Sources: https://appfollow.io/blog/mobile-game-retention and https://gamegrowthadvisor.com/blog/2026-03-17-mobile-game-retention-strategies-2026/
 - Filter: already covered by the goal-card chain and the P12-G items; no new item. Deep roofs that shake loose add a readable danger to the dive with no wall.
+
+**Story delivery (topic 5, run 85)**
+- Search returned mostly roundups; the recurring point is that roguelikes and sandboxes land best with hands-off lore: story told through places, found logs and NPC lines the player can ignore, never a gate on play. Sources: https://www.killscreen.com/irresistible-appeal-roguelike-storytelling/ and https://www.gamesradar.com/games/roguelike/
+- Filter: fits P12-E as optional found logs and ruins; no new item beyond that.

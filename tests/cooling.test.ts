@@ -27,6 +27,15 @@ describe('water cools magma into basalt', () => {
     expect(w.get(10, 17)).toBe(T.BASALT);
     expect(w.get(11, 17)).toBe(T.AIR);
   });
+  it('water poured onto magma from above quenches it to obsidian', () => {
+    const w = box();
+    w.set(10, 17, T.MAGMA);
+    w.set(10, 16, T.WATER);
+    coolMagma(w, 15, 10);
+    expect(w.get(10, 17)).toBe(T.OBSIDIAN);
+    expect(TILES[T.OBSIDIAN].solid).toBe(true);
+    expect(TILES[T.OBSIDIAN].hardness).toBeGreaterThan(TILES[T.BASALT].hardness);
+  });
   it('magma and water apart do nothing', () => {
     const w = box();
     w.set(5, 17, T.MAGMA);
@@ -45,7 +54,7 @@ describe('water cools magma into basalt', () => {
       cooled += coolMagma(w, 15, 10).length;
     }
     expect(cooled).toBeGreaterThan(0);
-    expect(count(w, T.BASALT)).toBe(cooled);
+    expect(count(w, T.BASALT) + count(w, T.OBSIDIAN)).toBe(cooled);
     // Every cooled cell flashed at least one water cell (of some level) to steam; none touches water afterwards.
     expect(volumeOf(w, T.WATER)).toBeLessThanOrEqual(water0 * FULL - cooled);
     for (let x = 1; x < 29; x++) if (w.get(x, 17) === T.MAGMA) expect(w.get(x, 16)).not.toBe(T.WATER);

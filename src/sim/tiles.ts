@@ -263,6 +263,8 @@ export const T = {
   PEPPER_3: 81,
   /** Aquarium: a see-through water tank block for bases (decor). */
   AQUARIUM: 82,
+  /** Obsidian: magma quenched by water poured from above. Glassy, hard, dark, a prized building block. */
+  OBSIDIAN: 83,
 } as const;
 
 export interface TileDef {
@@ -376,6 +378,7 @@ export const TILES: TileDef[] = [
   { name: 'Ashpepper bush', hardness: 0.05, solid: false, drop: null, minable: true },
   { name: 'Ripe ashpepper', hardness: 0.05, solid: false, drop: null, minable: true },
   { name: 'Aquarium', hardness: 0.4, solid: true, drop: 'aquarium', clear: true },
+  { name: 'Obsidian', hardness: 2.8, solid: true, drop: 'metal' },
 ];
 
 export interface ItemDef {

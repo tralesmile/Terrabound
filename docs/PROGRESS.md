@@ -1058,3 +1058,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** liquids v2, explosives part 2, traversal tools; dust colour per layer; held weapon silhouettes.
 
 **Known issues:** no screenshot check (sim logic only; reuses the existing fall dust effect).
+
+## 2026-11-23 Scheduled run 85
+
+**Done:** dev reset to origin/main. Research topic 5 logged. Obsidian: water poured onto magma from above now quenches it to a hard glassy Obsidian block (`T.OBSIDIAN`, id 83, hardness 2.8), side contact still gives basalt; sprite, tip, break fx, autotile; test added. No save change (new tile id only).
+
+**Next:** liquids v2 rest (buoyancy, oxygen via battery), explosives part 2, traversal tools.
+
+**Known issues:** no screenshot check (obsidian uses the facets sprite detail); obsidian is not yet craftable into anything.
