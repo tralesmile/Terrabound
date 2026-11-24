@@ -58,3 +58,6 @@ Search returned only generic juice roundups (dvdfu "practical juicing", Amazon G
 
 ## 2026-11-24 run 89 (topic 1, pixel art and lighting)
 Search gave normal-map pixel-art lighting writeups (Sandfox devlog, DynaPix paper, itch devlogs). Needs authored normal maps, so not worth it for our code-drawn art; our dithered coloured light pools already cover the mood. No new backlog items. Sources: https://gamedeveloper.com/art/adding-depth-to-2d-with-hand-drawn-normal-maps-in-i-the-siege-and-the-sandfox-i- and https://pixel-beef.itch.io/xdasher/devlog/192949/4-things-we-did-to-add-light-and-depth-to-our-pixel-art-game
+
+## 2026-11-24 run 90 (topic 2, enemy and boss design)
+Generic boss-design roundups agree on readable telegraphs and learnable phases; already our rule. No new items. Source: https://molbv.github.io/blog/2025-07-08-boss-phases.html

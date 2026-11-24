@@ -1098,3 +1098,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** ziplines, explosives part 2, liquids v2 rest, dedicated cling frame.
 
 **Known issues:** no screenshot of the new silhouettes (the e2e shots show no weapon icons besides the old held shot); eyeball them in the sprite gallery next run.
+
+## 2026-11-24 Scheduled run 90
+
+**Done:** dev reset to origin/dev, baseline green. Blast reach (`src/sim/blastreach.ts`): bomb core breaks anything, outer ring only soft blocks, so bombs scuff hard rock; 2 tests (165 files, 1125+ tests). Research topic 2 searched (generic boss-telegraph roundups; our 0.4 s telegraph rule already matches). No save change.
+
+**Next:** placed charge and chain reactions, ziplines, liquids v2 rest.
+
+**Known issues:** no screenshot check (blasts not in e2e shots).

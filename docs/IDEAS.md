@@ -178,3 +178,7 @@
 - Done: every weapon family has its own held silhouette; readable at a glance in the hand and in the shop.
 - Next: swing arcs per class (axe wide, spear thrust line, knife flurry) so the silhouette matches the motion.
 - Weakest part now: climbing shafts back up (ziplines or lifts); weapon icons need a gallery screenshot check.
+
+## 2026-11-24 run 90
+- Placed charges that chain-detonate neighbours, so a planted row clears a shaft in one beat.
+- Weakest part now: climbing back up shafts (ziplines or lifts).

@@ -12,6 +12,7 @@ import { hash2, mixSeed, mulberry32 } from './rng';
 import { HIT_FEEL, type HitClass } from './hitfeel';
 import { drillNeeded } from './drilltier';
 import { blastPush } from './blastjump';
+import { blastBreaks } from './blastreach';
 import { COLLAPSE, isCollapseDepth, pickCollapse, stepCollapse, type CollapseWarn } from './collapse';
 import { FALL, FALLS, disturb, stepFalling, type FallBody, type FallWarn } from './falling';
 import { TEACH_SHOVE, firstMeet, sanitizeMet, shouldTeach } from './teach';
@@ -2043,10 +2044,12 @@ export class Game {
     if (this.boss && Math.abs(this.boss.x - x) < BOSSES[this.boss.id].halfW + r && y > this.boss.y - BOSSES[this.boss.id].h - r && y < this.boss.y + r) this.damageBoss(dmg, x, y);
     for (let ty = Math.floor(y - r); ty <= Math.ceil(y + r); ty++) {
       for (let tx = Math.floor(x - r); tx <= Math.ceil(x + r); tx++) {
-        if (Math.hypot(tx + 0.5 - x, ty + 0.5 - y) > r) continue;
+        const bd = Math.hypot(tx + 0.5 - x, ty + 0.5 - y);
+        if (bd > r) continue;
         const t = this.world.get(tx, ty);
         const def = TILES[t];
         if (!def.solid || !isMinable(t) || t === T.PAD || t === T.CHEST) continue;
+        if (!blastBreaks(bd, r, def.hardness)) continue;
         if (this.isAtBase() && Math.abs(tx - this.world.padX) <= 8) continue;
         this.world.set(tx, ty, T.AIR);
         this.emit({ t: 'break', x: tx, y: ty, tile: t });
