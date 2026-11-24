@@ -422,6 +422,29 @@ export class Fx {
     }
   }
 
+  /** Burning charge fuses throw bright sparks upward so a chain is readable (render-only randomness). */
+  fuseSparks(dt: number, fuses: ReadonlyArray<{ x: number; y: number }>): number {
+    let made = 0;
+    for (const f of fuses) {
+      const n = Math.max(1, Math.round(dt * 60 * 0.8));
+      for (let i = 0; i < n && this.particles.length < MAX_PARTICLES; i++) {
+        this.particles.push({
+          x: f.x + (Math.random() - 0.5) * 0.4,
+          y: f.y - 0.4,
+          vx: (Math.random() - 0.5) * 3,
+          vy: -2 - Math.random() * 2.5,
+          life: 0.2 + Math.random() * 0.15,
+          max: 0.35,
+          color: Math.random() < 0.5 ? '#ffd24a' : '#fff4c0',
+          size: 2,
+          g: 6,
+        });
+        made++;
+      }
+    }
+    return made;
+  }
+
   /** Low, sideways dust puffs at the feet in the ground's colour. */
   private slideAcc = 0;
   /** Wall-slide trail: grit trickles off the wall at the player's hand height while sliding (side = wall -1/1, 0 = none). */

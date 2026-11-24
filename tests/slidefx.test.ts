@@ -20,3 +20,13 @@ describe('wall-slide trail', () => {
     expect(fx.wallSlideTrail(0.01, 1, 0, 0, '#888')).toBe(0);
   });
 });
+
+describe('charge fuse sparks', () => {
+  it('emits sparks per live fuse and none without fuses', () => {
+    const fx = new Fx();
+    expect(fx.fuseSparks(1 / 60, [])).toBe(0);
+    const n = fx.fuseSparks(1 / 60, [{ x: 5, y: 5 }, { x: 8, y: 5 }]);
+    expect(n).toBeGreaterThanOrEqual(2);
+    expect(fx.particles[0].vy).toBeLessThan(0);
+  });
+});

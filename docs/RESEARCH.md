@@ -64,3 +64,6 @@ Generic boss-design roundups agree on readable telegraphs and learnable phases; 
 
 ## 2026-11-24 run 91 (topic 3, Steam reviews)
 Searches for Core Keeper, Necesse and Dome Keeper reviews returned only store pages and aggregators with no readable complaints; no new items. Sources: https://steambase.io/games/core-keeper/reviews , https://vaporlens.app/app/1169040/necesse
+
+## 2026-11-24 run 92 (topic 4, retention and monetization)
+Only generic 2026 monetization roundups (adapty, appfollow); all favour opt-in rewarded ads and cosmetic IAP, which matches our rules. No new items. Source: https://adapty.io/blog/mobile-game-monetization/

@@ -1000,6 +1000,7 @@ function boot(): void {
         } else fx.bossCharge(dt, false, 0, 0, 1, false, 0, '', '');
         fx.vehicleTrail(dt, game.riding ? game.vehicle : null, b.x, b.y, game.facing, b.vx, b.vy, b.onGround, groundColor());
         fx.wallSlideTrail(dt, game.wallSlide, b.x, b.y, groundColor());
+        fx.fuseSparks(dt, game.fuses);
         liquidFx(dt);
         // A rumbling cone shakes the ground harder as it nears erupting.
         const rs = game.rumbleState();

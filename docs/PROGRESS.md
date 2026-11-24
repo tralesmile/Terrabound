@@ -1114,3 +1114,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** fuse sparks, detonator item, ziplines, liquids v2 rest.
 
 **Known issues:** no screenshot of the charge sprite (not in e2e shots).
+
+## 2026-11-24 Scheduled run 92
+
+**Done:** dev reset to origin/dev, baseline green. Burning charge fuses now throw sparks (`Fx.fuseSparks`, wired in main.ts; test added). Research topic 4 logged (generic). No save change.
+
+**Next:** detonator item, ziplines, liquids v2 rest.
+
+**Known issues:** no screenshot check (charges not in e2e shots).
