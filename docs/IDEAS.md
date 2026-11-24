@@ -182,3 +182,8 @@
 ## 2026-11-24 run 90
 - Placed charges that chain-detonate neighbours, so a planted row clears a shaft in one beat.
 - Weakest part now: climbing back up shafts (ziplines or lifts).
+
+## 2026-11-24 run 91
+- Charge fuse sparks and a flash on each link of the chain (render-only) so the chain reads as a rhythm.
+- Blast charges in a wall as a defence trap that the raid wave sets off.
+- Weakest part now: climbing back up shafts (ziplines or lifts); charge sprite needs a gallery screenshot check.

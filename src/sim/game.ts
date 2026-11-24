@@ -13,6 +13,7 @@ import { HIT_FEEL, type HitClass } from './hitfeel';
 import { drillNeeded } from './drilltier';
 import { blastPush } from './blastjump';
 import { blastBreaks } from './blastreach';
+import { CHARGE, igniteWithin, stepFuses, type Fuse } from './charges';
 import { COLLAPSE, isCollapseDepth, pickCollapse, stepCollapse, type CollapseWarn } from './collapse';
 import { FALL, FALLS, disturb, stepFalling, type FallBody, type FallWarn } from './falling';
 import { TEACH_SHOVE, firstMeet, sanitizeMet, shouldTeach } from './teach';
@@ -383,6 +384,8 @@ export class Game {
   meteors: { x: number; y: number; vx: number; vy: number }[] = [];
   /** Lava bombs in flight from a cinder cone eruption. */
   lavaBombs: LavaBomb[] = [];
+  /** Lit blast charges counting down (charges.ts); not saved, a dive restarts clean. */
+  fuses: Fuse[] = [];
   /** A cone that is rumbling before it erupts (t counts up to ERUPT.rumbleT), or null. */
   rumble: { cone: Structure; t: number } | null = null;
   /** Seconds until the nearest live cone next erupts (counts down only while one is near). */
@@ -1129,6 +1132,7 @@ export class Game {
     this.collapseWarns = [];
     this.collapseCd = COLLAPSE.period;
     this.lavaBombs = [];
+    this.fuses = [];
     this.rumble = null;
     this.eruptCd = 12;
     this.runDeepest = 0;
@@ -1383,6 +1387,12 @@ export class Game {
   }
 
   /** Cinder cones near the player rumble, then lob lava bombs that burn and splash where they land. */
+  /** Lit charges burn down and go off; each blast lights any charge next to it (chain reaction). */
+  private stepCharges(dt: number): void {
+    if (this.fuses.length === 0) return;
+    for (const f of stepFuses(this.fuses, dt)) this.explode(f.x, f.y, CHARGE.dmg, CHARGE.radius, true);
+  }
+
   private stepEruptions(dt: number): void {
     const b = this.body;
     if (this.rumble) {
@@ -1438,6 +1448,7 @@ export class Game {
   private stepExplore(dt: number, c: Controls): void {
     this.stepWeather(dt);
     this.stepEruptions(dt);
+    this.stepCharges(dt);
     this.stepPet(dt);
     const b = this.body;
     const night = isNight(this.time);
@@ -2040,6 +2051,8 @@ export class Game {
         b.vy = Math.min(b.vy, p.vy);
       }
     }
+    // Charges in reach are lit first (so the crater loop does not just mine them) and go off a moment later.
+    igniteWithin(this.world, this.fuses, x, y, r + 0.5);
     for (const e of this.enemies) if (Math.hypot(e.x - x, e.y - 0.4 - y) <= r + 0.5) this.damageEnemy(e, dmg, Math.sign(e.x - x) || 1, 'blast');
     if (this.boss && Math.abs(this.boss.x - x) < BOSSES[this.boss.id].halfW + r && y > this.boss.y - BOSSES[this.boss.id].h - r && y < this.boss.y + r) this.damageBoss(dmg, x, y);
     for (let ty = Math.floor(y - r); ty <= Math.ceil(y + r); ty++) {
@@ -2213,7 +2226,10 @@ export class Game {
             continue;
           }
           if (s.bomb) this.explode(s.x, s.y, s.dmg ?? 20, BOMB_RADIUS, true);
-          else this.emit({ t: 'shothit', x: s.x, y: s.y });
+          else {
+            igniteWithin(this.world, this.fuses, Math.floor(s.x) + 0.5, Math.floor(s.y) + 0.5, 0.6);
+            this.emit({ t: 'shothit', x: s.x, y: s.y });
+          }
           alive = false;
           break;
         }

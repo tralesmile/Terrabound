@@ -1106,3 +1106,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** placed charge and chain reactions, ziplines, liquids v2 rest.
 
 **Known issues:** no screenshot check (blasts not in e2e shots).
+
+## 2026-11-24 Scheduled run 91
+
+**Done:** dev reset to origin/dev, baseline green. Blast charge: craftable placeable block (`T.CHARGE`, `src/sim/charges.ts`); a blast or bolt lights charges in reach, 0.18 s fuse, each blast lights the next (chain, cap 64 fuses). 6 tests (166 files, 1131 tests). Research topic 3 found nothing readable. No save change (fuses are not saved).
+
+**Next:** fuse sparks, detonator item, ziplines, liquids v2 rest.
+
+**Known issues:** no screenshot of the charge sprite (not in e2e shots).

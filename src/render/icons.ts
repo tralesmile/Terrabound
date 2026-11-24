@@ -449,6 +449,23 @@ export const ICONS: Record<string, IconDef> = {
       '            ',
     ],
   },
+  charge: {
+    pal: { a: '#c24a22', b: '#ff8a4a', c: '#ffd23a' },
+    rows: [
+      '            ',
+      '      c     ',
+      '     c      ',
+      '   oooooo   ',
+      '  oabbbbao  ',
+      ' oabccccbao ',
+      ' oabbbbbbao ',
+      ' oabccccbao ',
+      ' oabbbbbbao ',
+      '  oooooooo  ',
+      '            ',
+      '            ',
+    ],
+  },
   gravel: {
     pal: { a: '#9a9488', b: '#b8b2a4', c: '#6a665c' },
     rows: [

@@ -13,6 +13,7 @@ export type ItemId =
   | 'bait'
   | 'hut_kit'
   | 'gravel'
+  | 'charge'
   | 'pepper_seed'
   | 'ashpepper'
   | 'curry'
@@ -92,6 +93,7 @@ export const ITEM_IDS: ItemId[] = [
   'bait',
   'hut_kit',
   'gravel',
+  'charge',
   'pepper_seed',
   'ashpepper',
   'curry',
@@ -265,6 +267,8 @@ export const T = {
   AQUARIUM: 82,
   /** Obsidian: magma quenched by water poured from above. Glassy, hard, dark, a prized building block. */
   OBSIDIAN: 83,
+  /** Placed charge (charges.ts): inert until a blast or bolt lights it, then it chains to its neighbours. */
+  CHARGE: 84,
 } as const;
 
 export interface TileDef {
@@ -379,6 +383,7 @@ export const TILES: TileDef[] = [
   { name: 'Ripe ashpepper', hardness: 0.05, solid: false, drop: null, minable: true },
   { name: 'Aquarium', hardness: 0.4, solid: true, drop: 'aquarium', clear: true },
   { name: 'Obsidian', hardness: 2.8, solid: true, drop: 'metal' },
+  { name: 'Blast charge', hardness: 0.3, solid: true, drop: 'charge' },
 ];
 
 export interface ItemDef {
@@ -407,6 +412,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   aquarium: { name: 'Aquarium', color: '#4aa6d8', places: T.AQUARIUM, kit: true },
   curry: { name: 'Ember curry', color: '#ff9a3a', places: null, kit: true },
   gravel: { name: 'Gravel', color: '#9a9488', places: T.GRAVEL, kit: true },
+  charge: { name: 'Blast charge', color: '#ff6a3a', places: T.CHARGE, kit: true },
   hut_kit: { name: 'Hut kit', color: '#c9a35a', places: null, kit: true },
   bait: { name: 'Bait', color: '#c9a35a', places: null },
   hare_meat: { name: 'Hare meat', color: '#d89a7a', places: null },
@@ -476,7 +482,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   neon_pink: { name: 'Pink neon', color: '#ff5ac8', places: T.NEON_PINK, kit: true },
 };
 
-export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair', 'window', 'lift', 'corn_seed', 'root_seed', 'berry_seed', 'sprinkler', 'pot', 'garage_kit', 'jump_pad', 'panel', 'hazard', 'brick', 'grate', 'neon_cyan', 'neon_pink', 'wall_panel', 'wall_brick', 'wall_stripe', 'hut_kit', 'gravel', 'pepper_seed', 'aquarium'];
+export const PLACEABLE: ItemId[] = ['rust', 'metal', 'torch', 'ladder', 'scaffold', 'platform', 'door', 'wall', 'chest', 'seed', 'solar', 'smelter', 'battery', 'miner', 'drone', 'turret', 'spikes', 'reinforced', 'shield', 'table', 'lamp', 'screen', 'potplant', 'banner', 'bed', 'chair', 'window', 'lift', 'corn_seed', 'root_seed', 'berry_seed', 'sprinkler', 'pot', 'garage_kit', 'jump_pad', 'panel', 'hazard', 'brick', 'grate', 'neon_cyan', 'neon_pink', 'wall_panel', 'wall_brick', 'wall_stripe', 'hut_kit', 'gravel', 'charge', 'pepper_seed', 'aquarium'];
 
 /**
  * Full build-bar order: the player's arranged order first (unknown and duplicate ids dropped),

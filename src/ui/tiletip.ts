@@ -40,6 +40,7 @@ const NOTES: Partial<Record<number, string>> = {
   [T.WINDOW]: 'Lets light in.',
   [T.AQUARIUM]: 'A tank of glowing fish. In a room wall it adds comfort.',
   [T.OBSIDIAN]: 'Glassy rock: magma quenched by water from above. Very hard.',
+  [T.CHARGE]: 'Lit by a blast or bolt; chains to neighbouring charges.',
   [T.GRAVEL]: 'Loose: falls when nothing holds it up.',
   [T.TILLED]: 'Crops here grow faster and give more.',
   [T.PANEL]: 'Smooth hull plating for walls and floors.',

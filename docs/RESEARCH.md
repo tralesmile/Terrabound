@@ -61,3 +61,6 @@ Search gave normal-map pixel-art lighting writeups (Sandfox devlog, DynaPix pape
 
 ## 2026-11-24 run 90 (topic 2, enemy and boss design)
 Generic boss-design roundups agree on readable telegraphs and learnable phases; already our rule. No new items. Source: https://molbv.github.io/blog/2025-07-08-boss-phases.html
+
+## 2026-11-24 run 91 (topic 3, Steam reviews)
+Searches for Core Keeper, Necesse and Dome Keeper reviews returned only store pages and aggregators with no readable complaints; no new items. Sources: https://steambase.io/games/core-keeper/reviews , https://vaporlens.app/app/1169040/necesse
