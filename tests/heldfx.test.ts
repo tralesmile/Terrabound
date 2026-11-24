@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { heldArt, outlinePixels } from '../src/render/heldfx';
 import { RARITY } from '../src/sim/rarity';
-import { iconDef } from '../src/render/icons';
+import { iconDef, weaponShapeOf } from '../src/render/icons';
 
 describe('held weapon art', () => {
   it('the blade and pistol slots show the equipped weapon, other tools draw themselves', () => {
@@ -33,5 +33,18 @@ describe('held weapon art', () => {
     expect(px.length).toBe(8);
     for (const p of px) expect(rows[p.r]?.[p.c] ?? ' ').toBe(' ');
     expect(outlinePixels(iconDef('blade').rows, 12).length).toBeGreaterThan(10);
+  });
+
+  it('weapons have their own silhouettes, 12 columns wide, not the shared blade or pistol', () => {
+    for (const id of ['plasma_axe', 'arc_spear', 'hunter_knife', 'junk_hammer', 'thorn_whip', 'hunting_rifle', 'twin_blaster', 'scatter_gun', 'bomb_launcher']) {
+      expect(weaponShapeOf(id)).toBeTruthy();
+      const d = iconDef(id);
+      expect(d.rows.length).toBe(12);
+      for (const r of d.rows) expect(r.length).toBe(12);
+      expect(d.rows).not.toEqual(iconDef('blade').rows);
+      expect(d.rows).not.toEqual(iconDef('pistol').rows);
+    }
+    expect(new Set(['plasma_axe', 'arc_spear', 'hunter_knife', 'junk_hammer', 'thorn_whip'].map((i) => iconDef(i).rows.join('|'))).size).toBe(5);
+    expect(iconDef('energy_blade').rows).toEqual(iconDef('blade').rows);
   });
 });

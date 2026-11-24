@@ -173,3 +173,8 @@
 ## 2026-11-24 run 88
 - Dedicated wall-cling frame (hands on wall, legs bent) instead of reusing the ladder climb frames; reads clearer.
 - Weakest part now: held weapons are colour-only art; bespoke silhouettes per class would make the 30+ weapons feel distinct.
+
+## 2026-11-24 run 89
+- Done: every weapon family has its own held silhouette; readable at a glance in the hand and in the shop.
+- Next: swing arcs per class (axe wide, spear thrust line, knife flurry) so the silhouette matches the motion.
+- Weakest part now: climbing shafts back up (ziplines or lifts); weapon icons need a gallery screenshot check.

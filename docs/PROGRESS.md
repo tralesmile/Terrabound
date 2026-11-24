@@ -1090,3 +1090,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** ziplines, dedicated cling frame, explosives part 2, liquids v2 rest, held weapon silhouettes.
 
 **Known issues:** no screenshot check (slide state not reachable from e2e); cling reuses the animated ladder frames.
+
+## 2026-11-24 Scheduled run 89
+
+**Done:** dev reset to origin/dev, baseline green. Research topic 1 logged (generic normal-map and lighting roundups only). Held weapons now have bespoke silhouettes (axe, spear, knife, hammer, whip, rifle, twin blaster, scatter gun, launcher) in `src/render/icons.ts` `WEAPON_SHAPES`; blade and pistol kept for the rest. Test added. No save change.
+
+**Next:** ziplines, explosives part 2, liquids v2 rest, dedicated cling frame.
+
+**Known issues:** no screenshot of the new silhouettes (the e2e shots show no weapon icons besides the old held shot); eyeball them in the sprite gallery next run.

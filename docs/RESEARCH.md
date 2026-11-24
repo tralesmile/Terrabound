@@ -55,3 +55,6 @@ Rules: one dated entry per run, 3-6 lines, paraphrased (no long quotes), with th
 
 ## 2026-11-24 run 88 (topic 0, game feel)
 Search returned only generic juice roundups (dvdfu "practical juicing", Amazon GameMaker "juicing your movements"); both agree a distinct wall-cling pose plus particles sells the slide. Applied: wall-slide now uses the cling frame. No new backlog items.
+
+## 2026-11-24 run 89 (topic 1, pixel art and lighting)
+Search gave normal-map pixel-art lighting writeups (Sandfox devlog, DynaPix paper, itch devlogs). Needs authored normal maps, so not worth it for our code-drawn art; our dithered coloured light pools already cover the mood. No new backlog items. Sources: https://gamedeveloper.com/art/adding-depth-to-2d-with-hand-drawn-normal-maps-in-i-the-siege-and-the-sandfox-i- and https://pixel-beef.itch.io/xdasher/devlog/192949/4-things-we-did-to-add-light-and-depth-to-our-pixel-art-game
