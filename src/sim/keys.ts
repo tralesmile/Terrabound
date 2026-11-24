@@ -14,6 +14,7 @@ export type BindId =
   | 'shop'
   | 'map'
   | 'heal'
+  | 'detonate'
   | 'recall'
   | 'ride'
   | 'tool'
@@ -34,6 +35,7 @@ export const BINDS: readonly { id: BindId; label: string; def: string }[] = [
   { id: 'shop', label: 'WORKSHOP', def: 'KeyB' },
   { id: 'map', label: 'MAP', def: 'KeyM' },
   { id: 'heal', label: 'QUICK HEAL', def: 'KeyH' },
+  { id: 'detonate', label: 'DETONATE', def: 'KeyG' },
   { id: 'recall', label: 'BEAM HOME', def: 'KeyR' },
   { id: 'ride', label: 'RIDE VEHICLE', def: 'KeyV' },
   { id: 'tool', label: 'NEXT TOOL', def: 'KeyQ' },

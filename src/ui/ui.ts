@@ -110,6 +110,7 @@ export type UiAction =
   | { k: 'deploy'; id: VehicleId }
   | { k: 'part'; id: VehicleId; part: PartId }
   | { k: 'heal' }
+  | { k: 'detonate' }
   | { k: 'dash' }
   /** Touch hold button: reel the grappling rope in while held (handled by Input as a held pointer). */
   | { k: 'reel' }

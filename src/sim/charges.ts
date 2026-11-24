@@ -12,6 +12,9 @@ export const CHARGE = {
   dmg: 14,
   /** Hard cap on live fuses so a huge field cannot stall a frame. */
   maxFuses: 64,
+  /** Detonator (G): reach in tiles and the battery it costs; only away from the base. */
+  detonateReach: 24,
+  detonateCost: 2,
 };
 
 export interface Fuse {

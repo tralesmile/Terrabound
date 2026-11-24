@@ -3110,7 +3110,7 @@ try {
       const raw = JSON.parse(localStorage.getItem(Object.keys(localStorage).find((k) => k.includes('terrabound')) ?? '') || '{}');
       return { jump: t.game.keys.jump, armed: t.ui.rebinding, saved: raw.settings && raw.settings.keys ? raw.settings.keys.jump : null };
     });
-    check('CONTROLS page lists every binding', toKeys && rowsK.page === 'keys' && rowsK.n === 15, JSON.stringify(rowsK));
+    check('CONTROLS page lists every binding', toKeys && rowsK.page === 'keys' && rowsK.n === 16, JSON.stringify(rowsK));
     check('clicking a binding arms it and the next key rebinds it (saved)', armed && armState === 'jump' && after.jump === 'KeyK' && after.armed === null && after.saved === 'KeyK', JSON.stringify({ armState, ...after }));
     await page.keyboard.press('Escape');
     await page.waitForTimeout(80);

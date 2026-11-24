@@ -356,6 +356,12 @@ function boot(): void {
         else if (r === 'none') ui.toast('Nothing to heal with: fish, glowfish or medkits', '#ff9a3c', 2, 'heal');
         break;
       }
+      case 'detonate': {
+        const n = game.detonate();
+        if (n === 0) ui.toast('No charges in range', '#c9d0e4', 1.5, 'detonate');
+        else ui.toast(`Detonated ${n} charge${n > 1 ? 's' : ''}`, '#ffb347', 1.5, 'detonate');
+        break;
+      }
       case 'ride':
         game.toggleRide();
         break;

@@ -360,3 +360,5 @@
 - 2026-11-23 run 87: editing src/ while the baseline gate ran was harmless this time because the edits were small and the gate had passed unit tests; still prefer scratch drafts.
 
 - 2026-11-24 run 91: `tests/base.test.ts` has a timing assertion (<2 s) that failed at 2.01 s when two checks ran at once. Do not run a second `npm run check` while another runs; rerun the file alone to confirm a timing flake.
+
+- 2026-11-25 run 93: adding a key bind changes the CONTROLS row count asserted in e2e/smoke.mjs. Guard: grep `rowsK.n ===` when adding to `BINDS`.

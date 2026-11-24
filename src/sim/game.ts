@@ -3013,6 +3013,14 @@ export class Game {
     this.bossBolts = keep;
   }
 
+  /** Detonator: light every placed charge within reach of the player for a small battery cost. Returns charges lit. */
+  detonate(): number {
+    const b = this.body;
+    const n = igniteWithin(this.world, this.fuses, b.x, b.y - 1, CHARGE.detonateReach);
+    if (n > 0 && !this.isAtBase()) this.battery = Math.max(0, this.battery - CHARGE.detonateCost);
+    return n;
+  }
+
   /** Eat food from the pack. */
   useItem(id: ItemId): boolean {
     const bossId = bossForBeacon(id);

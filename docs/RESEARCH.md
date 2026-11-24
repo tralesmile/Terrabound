@@ -67,3 +67,6 @@ Searches for Core Keeper, Necesse and Dome Keeper reviews returned only store pa
 
 ## 2026-11-24 run 92 (topic 4, retention and monetization)
 Only generic 2026 monetization roundups (adapty, appfollow); all favour opt-in rewarded ads and cosmetic IAP, which matches our rules. No new items. Source: https://adapty.io/blog/mobile-game-monetization/
+
+## 2026-11-25 run 93 (topic 5, story and lore)
+Searches returned generic roguelike storytelling and environmental-storytelling roundups (Kill Screen, Game Developer 'weaving narratives into procedural worlds'); all favour breadcrumb lore found in the world over exposition, which matches our logs and ruins. Applied: wrote docs/STORY.md with the two-line rule. No new items. Source: https://gamedeveloper.com/design/weaving-narratives-into-procedural-worlds

@@ -107,6 +107,8 @@ export class Input {
         return { k: 'map' };
       case 'heal':
         return { k: 'heal' };
+      case 'detonate':
+        return { k: 'detonate' };
       case 'recall':
         return { k: 'recall' };
       case 'ride':

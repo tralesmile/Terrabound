@@ -188,3 +188,4 @@
 - Blast charges in a wall as a defence trap that the raid wave sets off.
 - Weakest part now: climbing back up shafts (ziplines or lifts); charge sprite needs a gallery screenshot check.
 - 2026-11-24 (run 92): fuse sparks make chains readable; next idea: detonator item that lights all charges in view for a battery cost.
+- 2026-11-25 (run 93): detonator (G) lets a planted charge row clear a shaft on demand; next idea: place charges in a ring around a boss arena as a one-shot trap. Weakest part: climbing back up shafts (ziplines or lifts).

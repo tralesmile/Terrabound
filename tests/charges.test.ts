@@ -66,3 +66,19 @@ describe('placed charges', () => {
     expect(Array.from(a.g.world.tiles)).toEqual(Array.from(b.g.world.tiles));
   });
 });
+
+describe('detonator', () => {
+  it('lights every charge in reach, costs battery, and ignores far ones', () => {
+    const { g, x0, y } = gameWithRow(3, 3);
+    g.world.set(x0 + 200, y, T.CHARGE);
+    g.body.x = x0 + 4;
+    g.body.y = y + 1;
+    g.battery = 50;
+    const near = g.detonate();
+    expect(near).toBe(3);
+    expect(g.battery).toBe(50 - CHARGE.detonateCost);
+    expect(g.world.get(x0 + 200, y)).toBe(T.CHARGE);
+    expect(g.detonate()).toBe(0);
+    expect(g.battery).toBe(50 - CHARGE.detonateCost);
+  });
+});

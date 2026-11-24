@@ -1122,3 +1122,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** detonator item, ziplines, liquids v2 rest.
 
 **Known issues:** no screenshot check (charges not in e2e shots).
+
+## 2026-11-25 Scheduled run 93
+
+**Done:** dev reset to origin/dev, baseline green. Detonator: new bind G (`Game.detonate`, `CHARGE.detonateReach` 24 tiles, 2 battery away from base) lights every placed charge in reach; toast shows the count; test added; CONTROLS e2e now expects 16 rows. Wrote `docs/STORY.md` (P12-E item). Research topic 5 logged (generic). No save change.
+
+**Next:** wiring trigger or fuse item, ziplines, liquids v2 rest, quest log (P12-E).
+
+**Known issues:** no screenshot of the detonator toast or CONTROLS page with 16 rows (layout checks passed).
