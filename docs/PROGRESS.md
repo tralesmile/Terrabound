@@ -1130,3 +1130,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** wiring trigger or fuse item, ziplines, liquids v2 rest, quest log (P12-E).
 
 **Known issues:** no screenshot of the detonator toast or CONTROLS page with 16 rows (layout checks passed).
+
+## 2026-11-25 Scheduled run 94
+
+**Done:** dev reset to origin/dev, baseline green. Tripwire charges: an enemy touching a placed charge lights it (`Game.tripCharges`), so charges double as defence traps; test added (1132 tests). Research topic 6 searched (only Dome Keeper review aggregators, nothing readable). No save change.
+
+**Next:** wiring trigger or fuse item, ziplines, liquids v2 rest, quest log (P12-E).
+
+**Known issues:** no screenshot of charges (not in e2e shots); add a charge to a gallery or e2e shot.

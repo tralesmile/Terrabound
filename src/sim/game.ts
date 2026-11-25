@@ -1389,8 +1389,23 @@ export class Game {
   /** Cinder cones near the player rumble, then lob lava bombs that burn and splash where they land. */
   /** Lit charges burn down and go off; each blast lights any charge next to it (chain reaction). */
   private stepCharges(dt: number): void {
+    this.tripCharges();
     if (this.fuses.length === 0) return;
     for (const f of stepFuses(this.fuses, dt)) this.explode(f.x, f.y, CHARGE.dmg, CHARGE.radius, true);
+  }
+
+  /** Tripwire: an enemy that touches a placed charge lights it (a trap; nothing happens at the base). */
+  private tripCharges(): void {
+    if (this.enemies.length === 0 || this.fuses.length >= CHARGE.maxFuses) return;
+    for (const e of this.enemies) {
+      const d = ENEMIES[e.kind];
+      if (d.passive) continue;
+      const x0 = Math.floor(e.x - d.halfW), x1 = Math.floor(e.x + d.halfW);
+      const y0 = Math.floor(e.y - d.h), y1 = Math.floor(e.y);
+      for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+        if (this.world.get(tx, ty) === T.CHARGE) igniteWithin(this.world, this.fuses, tx + 0.5, ty + 0.5, 0.4);
+      }
+    }
   }
 
   private stepEruptions(dt: number): void {

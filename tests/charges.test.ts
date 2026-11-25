@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CHARGE, igniteWithin, stepFuses, type Fuse } from '../src/sim/charges';
+import { makeEnemy } from '../src/sim/enemies';
 import { FIXED_DT, Game, NO_CONTROLS } from '../src/sim/game';
 import { recipeById } from '../src/sim/recipes';
 import { defaultSave } from '../src/sim/save';
@@ -80,5 +81,18 @@ describe('detonator', () => {
     expect(g.world.get(x0 + 200, y)).toBe(T.CHARGE);
     expect(g.detonate()).toBe(0);
     expect(g.battery).toBe(50 - CHARGE.detonateCost);
+  });
+  it('an enemy walking into a charge trips it as a trap, and a far one does not', () => {
+    const { g, x0, y } = gameWithRow(1, 1);
+    g.enemies.length = 0;
+    const mk = (x: number) => ({ ...makeEnemy(900, 'crawler', x, y + 1) });
+    g.enemies.push(mk(x0 + 20.5));
+    g.step(FIXED_DT, NO_CONTROLS);
+    expect(g.fuses.length).toBe(0);
+    expect(g.world.get(x0, y)).toBe(T.CHARGE);
+    g.enemies.length = 0;
+    g.enemies.push(mk(x0 + 0.5));
+    g.step(FIXED_DT, NO_CONTROLS);
+    expect(g.world.get(x0, y)).toBe(T.AIR);
   });
 });

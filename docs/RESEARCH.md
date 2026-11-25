@@ -70,3 +70,6 @@ Only generic 2026 monetization roundups (adapty, appfollow); all favour opt-in r
 
 ## 2026-11-25 run 93 (topic 5, story and lore)
 Searches returned generic roguelike storytelling and environmental-storytelling roundups (Kill Screen, Game Developer 'weaving narratives into procedural worlds'); all favour breadcrumb lore found in the world over exposition, which matches our logs and ruins. Applied: wrote docs/STORY.md with the two-line rule. No new items. Source: https://gamedeveloper.com/design/weaving-narratives-into-procedural-worlds
+
+## 2026-11-25 run 94 (topic 6, automation and defence)
+Only Dome Keeper review aggregators came back, no readable detail; no new items. Source: https://vaporlens.app/app/1637320/dome_keeper
