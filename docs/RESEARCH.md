@@ -76,3 +76,6 @@ Only Dome Keeper review aggregators came back, no readable detail; no new items.
 
 ## 2026-11-25 run 95 (topic 7)
 Searched touch-control and web-game accessibility guides (accessiblegames.com Tags and Criteria 2025, simplified.media touch controls guide). Generic: remappable controls, reduced motion, large targets; all already covered by our settings. No new backlog items.
+
+## 2026-11-25 run 96 (topic 0, game feel)
+Platformer game-feel roundups (anchitsh.github.io/platformer.html, Celeste dev notes on GameSpot) list coyote time, jump buffer, hit-stop, camera lead: all already in movement.ts, hitfeel.ts and camlead.ts. No new items.

@@ -312,6 +312,31 @@ try {
     }, [spot.tx, spot.ty, spot.old]);
     check('a starter drill skids off a core shard and names the Drill bit level it needs', spot.pick < 3 && hard.tile === CORE_ORE && hard.toast.includes('Drill bit Lv 3'), JSON.stringify({ spot, hard }));
   }
+  // Charges and pressure plate: placed beside the player, drawn, and a screenshot is kept for review.
+  {
+    const tilesSrc = fs.readFileSync(path.join(root, 'src/sim/tiles.ts'), 'utf8');
+    const id = (n) => Number(tilesSrc.match(new RegExp(`\\b${n}: (\\d+),`))[1]);
+    const ids = { CHARGE: id('CHARGE'), PLATE: id('PLATE'), AIR: id('AIR') };
+    const placed = await page.evaluate((k) => {
+      const { game: g } = window.__terrabound;
+      const by = Math.floor(g.body.y);
+      const bx = Math.floor(g.body.x);
+      const keep = [];
+      for (let x = bx - 5; x <= bx - 2; x++) {
+        keep.push([x, by, g.world.get(x, by)]);
+        g.world.set(x, by, x === bx - 5 ? k.PLATE : k.CHARGE);
+      }
+      window.__chargeKeep = keep;
+      return keep.map(([x, y]) => g.world.get(x, y));
+    }, ids);
+    await page.waitForTimeout(250);
+    await page.screenshot({ path: path.join(out, '02e-charges-plate.png') });
+    await page.evaluate(() => {
+      const { game: g } = window.__terrabound;
+      for (const [x, y, t] of window.__chargeKeep) g.world.set(x, y, t);
+    });
+    check('charges and a pressure plate place and draw without errors', placed[0] === ids.PLATE && placed[1] === ids.CHARGE, JSON.stringify(placed));
+  }
   // Falling blocks: loose sand above a dug cell wobbles, drops and piles up on the floor.
   {
     const tilesSrc = fs.readFileSync(path.join(root, 'src/sim/tiles.ts'), 'utf8');

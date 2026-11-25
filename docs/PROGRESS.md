@@ -1146,3 +1146,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** fuse item, timer/AND gates, ziplines, liquids v2 rest, quest log (P12-E).
 
 **Known issues:** no screenshot of the plate or charges (not in e2e shots); add a gallery/e2e shot.
+
+## 2026-11-25 Scheduled run 96
+
+**Done:** baseline green. New e2e check + screenshot `02e-charges-plate.png` (charges render as orange hazard blocks; closes the charge/plate screenshot gap from runs 91-95). Research topic 0 (game feel) searched: only generic platformer-feel guides, all covered by `MOVE`/`JUMPFEEL`/`HIT_FEEL`. No sim or save change.
+
+**Next:** fuse item, timer/AND gates, ziplines, liquids v2 rest, quest log (P12-E).
+
+**Known issues:** the pressure plate sits at the left end of the row and is hard to see in the shot (pad overlaps); no bigger slice shipped this run.
