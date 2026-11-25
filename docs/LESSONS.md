@@ -364,3 +364,7 @@
 - 2026-11-25 run 93: adding a key bind changes the CONTROLS row count asserted in e2e/smoke.mjs. Guard: grep `rowsK.n ===` when adding to `BINDS`.
 
 - 2026-11-25 run 95: a new item id can clash with an existing recipe id (`plate` was already a recipe); check `grep "id: 'x'" src/sim/recipes.ts` before naming. Every new item also needs an icon in `src/render/icons.ts` (icons test catches it).
+
+## 2026-11-26 run 98
+- A ride or other scripted movement can pass every sim and e2e check and still look wrong: the first zipline drew the cable through the rider's legs. Guard: take a mid-action screenshot in e2e (02g) and look at it before shipping.
+- A traversal that ends in a vertical shaft needs a hold at the far end, or the player drops straight back down; the unit test uses a floorless shaft top to pin this.

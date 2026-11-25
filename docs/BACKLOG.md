@@ -26,7 +26,7 @@ Owner goal: make Terrabound feel closer to Terraria, Starbound and Core Keeper (
 - [ ] (obsidian from water-over-magma done run 85) Liquids v2 (build on `liquids.ts`): flow and pressure rules, lava plus water makes obsidian, swimming buoyancy, an oxygen drain that uses the battery clock instead of a new bar.
 - [x] (run 83, `src/sim/blastjump.ts`: your own bomb launches you and never hurts you) Explosives: blast jump.
 - [ ] Explosives part 2 rest (run 96: charge e2e shot added) (run 95: pressure plate block done, `pressPlates` in charges.ts; still to do: fuse item, timer/AND gates) (run 94: enemy-tripped charges done) (run 93: detonator key G lights charges in reach for 2 battery, done; still to do: wiring trigger, fuse item) (run 92: fuse sparks done) (run 91: craftable Blast charge block + chain reactions done, `charges.ts`, lit by blasts or bolts; still to do: detonator/fuse item, wiring trigger). (run 90: block damage radius done, `blastreach.ts`: core breaks all, outer ring only soft blocks)
-- [ ] (run 86: wall-slide and wall-jump done for everyone, `WALL` in `movement.ts`, 3 per airtime; grapple already exists) Traversal tools: ziplines between base points, jetpack fuel tied to the battery, rails or ziplines between base points.
+- [ ] (run 98: ziplines done, `zipline.ts` + `zipfx.ts`; still open: jetpack fuel/rails review) (run 86: wall-slide and wall-jump done for everyone, `WALL` in `movement.ts`, 3 per airtime; grapple already exists) Traversal tools: ziplines between base points, jetpack fuel tied to the battery, rails or ziplines between base points.
 - [x] (run 83, `src/platform/haptics.ts`, VIBRATION setting, save v32) Mobile feel: haptics (`navigator.vibrate`) for hit, break and bank behind a setting.
 - [ ] Mobile feel part 2 (split in run 83): auto-aim tuning for touch digging and combat; one-hand layout.
 - [ ] Gamepad support (also listed in P5): aim stick for digging, radial hotbar.
@@ -101,6 +101,7 @@ Seed premise to refine, not to rewrite: you are a repair technician in a suit on
 
 ### P12-H Discovered by research (runs append here; one line each, dated, with the reason; promote into A-G when ready)
 
+- [ ] 2026-11-26 (run 98): Terraria's 2026 combat fix list names unclear hitboxes, boss attacks and off-screen shooters; audit that every boss attack's damage area matches its drawn telegraph, with a table test.
 - [ ] 2026-11-18: Core Keeper added automation and new biomes in its 2026 update, so our drone automation must stay the differentiator: make drones visible, programmable and fun to watch (Dome Keeper lesson: systems that feed into one another).
 - [ ] 2026-11-20 (run 83): Core Keeper's top refund-risk complaint is "no tutorial" and its first-2-hour reviews are the least positive; promote the P12-E objective tracker ahead of other E items.
 - [ ] 2026-11-20 (run 83): Dome Keeper players tire of repetition and few unlocks; keep a steady drip of cosmetic suit and helmet paints tied to milestones (no power, no paywall).

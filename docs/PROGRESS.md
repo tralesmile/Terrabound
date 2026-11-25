@@ -1162,3 +1162,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** fuse item, timer/AND gates, ziplines, liquids v2 rest, quest log (P12-E).
 
 **Known issues:** the e2e charge shot is on the sunlit surface, so the glow is not visible there; add a dark-cave shot.
+
+## 2026-11-26 Scheduled run 98
+
+**Done:** baseline green. Ziplines: craftable `zipline` anchor (`T.ZIP` 86, recipe x2). Each anchor links to its nearest anchor with a clear run (3-32 tiles); USE (or the touch ride button) rides upward, holding down rides down, jump hops off, riders hang at the far end until they steer off; damage, dash, or a broken cable drops you. Free of extra battery. Overhead cable art, masts, running lights, trolley, ride prompt. 9 unit tests (167 files, 1145 tests; JS 194 KB gzip) and an e2e check with screenshots `02f/02g`. No save change (new tile id only).
+
+**Next:** zip sound and map pins, fuse item and gates, liquids v2 rest, boss hitbox audit, quest log (P12-E).
+
+**Known issues:** the touch zip button is unit-tested but not in a mobile screenshot.

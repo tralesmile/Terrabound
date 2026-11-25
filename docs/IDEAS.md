@@ -192,3 +192,9 @@
 - 2026-11-25 (run 94): charges now trip on enemies (trap lines in shafts); next idea: a pressure-plate block that lights charges on demand. Weakest part: no screenshot coverage of charge visuals.
 - 2026-11-25 (run 95): pressure plate pairs with charges for player-built trap lines and shaft clearing on foot; next idea: timer block for delayed chains. Weakest part: climbing shafts (ziplines) and no screenshot of charge visuals.
 - 2026-11-25 (run 97): emissive charges and plates make trap lines visible underground; next: timer block for delayed chains. Weakest part: no dark-cave screenshot of glow; climbing shafts (ziplines).
+
+## 2026-11-26 (run 98)
+- Done: ziplines (overhead cable, running lights, ride prompt), the fix for the long-standing "climbing shafts is slow" weak spot.
+- Zip whirr sound that rises with the ride and a few trolley sparks: the ride should sound fast.
+- Cable pins on the map, so your route network reads at a glance.
+- Weakest parts now. Graphics: large dirt areas look uniform (tile variants, P12-F). Feel: the ride is silent apart from the clip. Controls: touch digging has no auto-aim. Progression: no quest log. UI: the bottom hint line is dense text. Performance: no automated frame-time budget.

@@ -82,3 +82,6 @@ Platformer game-feel roundups (anchitsh.github.io/platformer.html, Celeste dev n
 
 ## 2026-11-25 run 97 (topic 1, code-drawn lighting)
 Search returned generic tile-lighting tutorials (flood-fill light, emissive tiles, simple retro lighting: https://alexjgriffith.itch.io/until-the-morning-breaks/devlog/213702/a-simple-retro-lighting-system, https://slembcke.github.io/2D-Lighting-Overview). Our flood-fill lightmap already matches; adopted only the emissive-tile idea (charges and plates glow in dark caves).
+
+## 2026-11-26 run 98 (topic 2, enemy and weapon design)
+Re-Logic's April 2026 plan targets aggro, invisible hitboxes, weapon ranges, boss attacks and enemies shooting from off-screen, plus evening out the four weapon classes. Our regular enemies are contact-only, so the survivor is a boss hitbox vs telegraph audit (added to P12-H). Traversal searches (zipline, return trips) found nothing readable. Source: https://www.pcgamesn.com/terraria/state-of-the-game-april-2026-combat-fixes
