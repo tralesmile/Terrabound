@@ -466,6 +466,23 @@ export const ICONS: Record<string, IconDef> = {
       '            ',
     ],
   },
+  pressure_plate: {
+    pal: { a: '#6a5418', b: '#e8c64a', c: '#ff5a2a' },
+    rows: [
+      '            ',
+      '            ',
+      '            ',
+      '            ',
+      '            ',
+      '     cc     ',
+      '  bbbbbbbb  ',
+      ' obbbbbbbbo ',
+      ' oaaaaaaaao ',
+      '  oooooooo  ',
+      '            ',
+      '            ',
+    ],
+  },
   gravel: {
     pal: { a: '#9a9488', b: '#b8b2a4', c: '#6a665c' },
     rows: [

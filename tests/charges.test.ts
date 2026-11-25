@@ -96,3 +96,23 @@ describe('detonator', () => {
     expect(g.world.get(x0, y)).toBe(T.AIR);
   });
 });
+
+describe('pressure plate', () => {
+  it('is craftable and lights charges when the player steps on it', () => {
+    expect(ITEMS.pressure_plate.places).toBe(T.PLATE);
+    expect(recipeById('pressure_plate')?.out).toBe('pressure_plate');
+    const { g, x0, y } = gameWithRow(1, 1);
+    g.world.set(x0 + 3, y + 1, T.RUST);
+    g.world.set(x0 + 3, y, T.PLATE);
+    g.body.x = x0 + 3.5; g.body.y = y + 1; g.body.vx = 0; g.body.vy = 0;
+    run(g, 0.05);
+    expect(g.world.get(x0, y)).toBe(T.AIR);
+  });
+  it('does nothing when nothing stands on it', () => {
+    const { g, x0, y } = gameWithRow(1, 1);
+    g.world.set(x0 + 5, y, T.PLATE);
+    g.body.x = x0 + 12.5; g.body.y = y + 1;
+    run(g, 0.05);
+    expect(g.world.get(x0, y)).toBe(T.CHARGE);
+  });
+});

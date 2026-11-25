@@ -15,6 +15,8 @@ export const CHARGE = {
   /** Detonator (G): reach in tiles and the battery it costs; only away from the base. */
   detonateReach: 24,
   detonateCost: 2,
+  /** Pressure plate: tiles around the plate in which stepping on it lights charges. */
+  plateReach: 6,
 };
 
 export interface Fuse {
@@ -52,4 +54,15 @@ export function stepFuses(fuses: Fuse[], dt: number): Fuse[] {
     if (fuses[i].t <= 0) fired.push(...fuses.splice(i, 1));
   }
   return fired.reverse();
+}
+
+/** Plates under a body box (feet row and the row above); lights charges near each one pressed. Returns charges lit. */
+export function pressPlates(world: TileReader, fuses: Fuse[], x: number, y: number, halfW: number, h: number): number {
+  let n = 0;
+  for (let ty = Math.floor(y - h); ty <= Math.floor(y); ty++) {
+    for (let tx = Math.floor(x - halfW); tx <= Math.floor(x + halfW); tx++) {
+      if (world.get(tx, ty) === T.PLATE) n += igniteWithin(world, fuses, tx + 0.5, ty + 0.5, CHARGE.plateReach);
+    }
+  }
+  return n;
 }

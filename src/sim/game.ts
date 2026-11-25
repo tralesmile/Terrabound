@@ -13,7 +13,7 @@ import { HIT_FEEL, type HitClass } from './hitfeel';
 import { drillNeeded } from './drilltier';
 import { blastPush } from './blastjump';
 import { blastBreaks } from './blastreach';
-import { CHARGE, igniteWithin, stepFuses, type Fuse } from './charges';
+import { CHARGE, igniteWithin, pressPlates, stepFuses, type Fuse } from './charges';
 import { COLLAPSE, isCollapseDepth, pickCollapse, stepCollapse, type CollapseWarn } from './collapse';
 import { FALL, FALLS, disturb, stepFalling, type FallBody, type FallWarn } from './falling';
 import { TEACH_SHOVE, firstMeet, sanitizeMet, shouldTeach } from './teach';
@@ -1390,6 +1390,7 @@ export class Game {
   /** Lit charges burn down and go off; each blast lights any charge next to it (chain reaction). */
   private stepCharges(dt: number): void {
     this.tripCharges();
+    if (this.fuses.length < CHARGE.maxFuses) pressPlates(this.world, this.fuses, this.body.x, this.body.y, HALF_W, 1.8);
     if (this.fuses.length === 0) return;
     for (const f of stepFuses(this.fuses, dt)) this.explode(f.x, f.y, CHARGE.dmg, CHARGE.radius, true);
   }
@@ -1405,6 +1406,7 @@ export class Game {
       for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
         if (this.world.get(tx, ty) === T.CHARGE) igniteWithin(this.world, this.fuses, tx + 0.5, ty + 0.5, 0.4);
       }
+      pressPlates(this.world, this.fuses, e.x, e.y, d.halfW, d.h);
     }
   }
 

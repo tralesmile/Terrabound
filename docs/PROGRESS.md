@@ -1138,3 +1138,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** wiring trigger or fuse item, ziplines, liquids v2 rest, quest log (P12-E).
 
 **Known issues:** no screenshot of charges (not in e2e shots); add a charge to a gallery or e2e shot.
+
+## 2026-11-25 Scheduled run 95
+
+**Done:** baseline green. Pressure plate block (`T.PLATE`, item `pressure_plate`, `pressPlates` in `charges.ts`): you or an enemy standing on it lights charges within 6 tiles; recipe, icon, sprite, tip; 2 tests (1136 tests). Research topic 7 (accessibility and touch controls) searched; only generic roundups, nothing new to adopt. No save change (new tile id 85 only).
+
+**Next:** fuse item, timer/AND gates, ziplines, liquids v2 rest, quest log (P12-E).
+
+**Known issues:** no screenshot of the plate or charges (not in e2e shots); add a gallery/e2e shot.

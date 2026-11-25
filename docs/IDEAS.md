@@ -190,3 +190,4 @@
 - 2026-11-24 (run 92): fuse sparks make chains readable; next idea: detonator item that lights all charges in view for a battery cost.
 - 2026-11-25 (run 93): detonator (G) lets a planted charge row clear a shaft on demand; next idea: place charges in a ring around a boss arena as a one-shot trap. Weakest part: climbing back up shafts (ziplines or lifts).
 - 2026-11-25 (run 94): charges now trip on enemies (trap lines in shafts); next idea: a pressure-plate block that lights charges on demand. Weakest part: no screenshot coverage of charge visuals.
+- 2026-11-25 (run 95): pressure plate pairs with charges for player-built trap lines and shaft clearing on foot; next idea: timer block for delayed chains. Weakest part: climbing shafts (ziplines) and no screenshot of charge visuals.

@@ -60,6 +60,7 @@ export const RECIPES: Recipe[] = [
   { id: 'hut_kit', name: 'Hut kit (furnished home)', out: 'hut_kit', qty: 1, cost: { rust: 14, metal: 6, biomass: 2, crystal: 1 } },
   { id: 'gravel', name: 'Gravel x6 (falls when unsupported)', out: 'gravel', qty: 6, cost: { rust: 2 } },
   { id: 'charge', name: 'Blast charge x2 (a blast or bolt lights it; chains)', out: 'charge', qty: 2, cost: { iron_scrap: 2, rust: 2 } },
+  { id: 'pressure_plate', name: 'Pressure plate x2 (stepped on, it lights charges nearby)', out: 'pressure_plate', qty: 2, cost: { iron_scrap: 2, copper_wire: 1 } },
   { id: 'aquarium', name: 'Aquarium x2', out: 'aquarium', qty: 2, cost: { crystal: 2, metal: 2, fish: 1 }, fab: 1 },
   { id: 'lift', name: 'Lift shaft x4', out: 'lift', qty: 4, cost: { metal: 2, copper_wire: 1 }, fab: 1 },
   { id: 'pot', name: 'Cooking pot x1', out: 'pot', qty: 1, cost: { rust: 4, iron_scrap: 2 } },

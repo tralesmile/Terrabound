@@ -73,3 +73,6 @@ Searches returned generic roguelike storytelling and environmental-storytelling 
 
 ## 2026-11-25 run 94 (topic 6, automation and defence)
 Only Dome Keeper review aggregators came back, no readable detail; no new items. Source: https://vaporlens.app/app/1637320/dome_keeper
+
+## 2026-11-25 run 95 (topic 7)
+Searched touch-control and web-game accessibility guides (accessiblegames.com Tags and Criteria 2025, simplified.media touch controls guide). Generic: remappable controls, reduced motion, large targets; all already covered by our settings. No new backlog items.

@@ -1290,6 +1290,16 @@ export class Renderer {
       ctx.fillRect(dx, dy + Math.max(2, ts * 0.22), ts, Math.max(1, ts * 0.08));
       return;
     }
+    if (t === T.PLATE) {
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      ctx.fillStyle = '#6a5418';
+      ctx.fillRect(dx + ts * 0.08, dy + ts * 0.78, ts * 0.84, ts * 0.22);
+      ctx.fillStyle = '#e8c64a';
+      ctx.fillRect(dx + ts * 0.12, dy + ts * 0.72, ts * 0.76, ts * 0.12);
+      ctx.fillStyle = '#ff5a2a';
+      ctx.fillRect(dx + ts * 0.44, dy + ts * 0.72, ts * 0.12, ts * 0.06);
+      return;
+    }
     if (t === T.SPIKES) {
       this.drawBack(ctx, world, tx, ty, dx, dy, ts);
       this.drawSpikes(ctx, dx, dy, ts);
