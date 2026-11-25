@@ -1,3 +1,4 @@
+import { keyLabel } from './sim/keys';
 import { TEACH } from './sim/teach';
 import { Haptics } from './platform/haptics';
 import { digChips } from './render/digfx';
@@ -362,6 +363,9 @@ function boot(): void {
         else ui.toast(`Detonated ${n} charge${n > 1 ? 's' : ''}`, '#ffb347', 1.5, 'detonate');
         break;
       }
+      case 'zip':
+        game.startZip(input.downHeld);
+        break;
       case 'ride':
         game.toggleRide();
         break;
@@ -453,7 +457,7 @@ function boot(): void {
         break;
       }
       case 'interact':
-        if (ui.screen === 'play' && !ui.invOpen && !game.interact() && !game.chestOpen) ui.toast('No chest within reach', '#8a90a2');
+        if (ui.screen === 'play' && !ui.invOpen && !game.interact(input.downHeld) && !game.chestOpen) ui.toast('No chest within reach', '#8a90a2');
         break;
       case 'invsel':
         ui.invSel = a.id;
@@ -1020,6 +1024,7 @@ function boot(): void {
         const col = Math.max(0, Math.min(game.world.w - 1, Math.floor(game.body.x)));
         sfx.updateMusic({ biome: game.world.biome[col] ?? 0, layer: game.depth > 8 ? game.layer : 0, night: isNight(game.time), boss: !!game.boss, bossId: game.boss?.id });
       }
+      renderer.zipLabel = ui.touch ? 'RIDE' : `${keyLabel(game.keys.interact)} RIDE`;
       renderer.draw(game, fx, input.mouse.has && ui.screen === 'play' && !ui.touch ? renderer.screenToTile(input.mouse.x * dpr, input.mouse.y * dpr) : null, clock);
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

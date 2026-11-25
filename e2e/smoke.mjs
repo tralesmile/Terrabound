@@ -337,6 +337,41 @@ try {
     });
     check('charges and a pressure plate place and draw without errors', placed[0] === ids.PLATE && placed[1] === ids.CHARGE, JSON.stringify(placed));
   }
+  // Zipline: two anchors string a cable; the real USE key rides it up. Screenshot kept for review.
+  {
+    const tilesSrc = fs.readFileSync(path.join(root, 'src/sim/tiles.ts'), 'utf8');
+    const zipId = Number(tilesSrc.match(/\bZIP: (\d+),/)[1]);
+    const set = await page.evaluate((id) => {
+      const { game: g } = window.__terrabound;
+      const bx = Math.floor(g.body.x);
+      const by = Math.ceil(g.body.y) - 1;
+      const keep = [];
+      for (let y = by - 12; y <= by; y++) for (let x = bx; x <= bx + 8; x++) { keep.push([x, y, g.world.get(x, y)]); g.world.set(x, y, 0); }
+      g.world.set(bx, by, id);
+      g.world.set(bx + 7, by - 9, id);
+      window.__zipKeep = { keep, body: { x: g.body.x, y: g.body.y } };
+      Object.assign(g.body, { x: bx + 0.5, y: by + 1, vx: 0, vy: 0 });
+      return { top: by - 9, y: by + 1 };
+    }, zipId);
+    await page.waitForTimeout(600);
+    const ready = await page.evaluate(() => ({ n: window.__terrabound.renderer.zipCount, prompt: window.__terrabound.renderer.zipPromptShown }));
+    await page.screenshot({ path: path.join(out, '02f-zipline-ready.png') });
+    await page.keyboard.press('e');
+    await page.waitForTimeout(250);
+    const mid = await page.evaluate(() => ({ zip: !!window.__terrabound.game.zip, y: window.__terrabound.game.body.y }));
+    await page.screenshot({ path: path.join(out, '02g-zipline-ride.png') });
+    await page.waitForFunction((top) => window.__terrabound.game.body.y < top + 1.2, set.top, { timeout: 8000 }).catch(() => {});
+    const end = await page.evaluate(() => {
+      const { game: g } = window.__terrabound;
+      const r = { y: g.body.y, hung: !!g.zip };
+      g.zip = null;
+      for (const [x, y, t] of window.__zipKeep.keep) g.world.set(x, y, t);
+      Object.assign(g.body, { ...window.__zipKeep.body, vx: 0, vy: 0 });
+      return r;
+    });
+    await page.waitForTimeout(300);
+    check('two zipline anchors string a cable with a ride prompt, and USE rides it up', ready.n === 1 && ready.prompt && mid.zip && mid.y < set.y && end.hung && end.y < set.top + 1.2, JSON.stringify({ set, ready, mid, end }));
+  }
   // Falling blocks: loose sand above a dug cell wobbles, drops and piles up on the floor.
   {
     const tilesSrc = fs.readFileSync(path.join(root, 'src/sim/tiles.ts'), 'utf8');

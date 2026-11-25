@@ -13,6 +13,7 @@ import { HIT_FEEL, type HitClass } from './hitfeel';
 import { drillNeeded } from './drilltier';
 import { blastPush } from './blastjump';
 import { blastBreaks } from './blastreach';
+import { stepRide, zipOffer, type Ride } from './zipline';
 import { CHARGE, igniteWithin, pressPlates, stepFuses, type Fuse } from './charges';
 import { COLLAPSE, isCollapseDepth, pickCollapse, stepCollapse, type CollapseWarn } from './collapse';
 import { FALL, FALLS, disturb, stepFalling, type FallBody, type FallWarn } from './falling';
@@ -419,6 +420,8 @@ export class Game {
   /** Fishing line state (rod tool). */
   /** In the air after a jump pad launch: no jump cut, no fall damage on the next landing. */
   padLaunch = false;
+  /** Riding a zipline (zipline.ts); null on foot. Not saved. */
+  zip: Ride | null = null;
   fishing: Fishing | null = null;
   /** Casts so far this session (seeds the bite timer and catch). */
   private casts = 0;
@@ -1516,6 +1519,7 @@ export class Game {
 
   private hurt(amount: number): void {
     this.cancelRecall();
+    this.zip = null;
     amount *= 1 - this.gear.armor;
     const vs = this.vstats;
     if (vs) amount *= 1 - vs.armor;
@@ -1696,16 +1700,23 @@ export class Game {
       this.emit({ t: 'dash' });
     }
     this.prevDash = !!c.dash;
+    if (this.zip && (this.dashT > 0 || this.hook || this.riding)) this.zip = null;
 
     // Jump with coyote time, input buffer and variable height; air jumps from spring boots.
     const grounded = probeGround(this.world, b, c.down);
     if (grounded) { this.airJumpsLeft = g.airJumps; this.wallJumpsLeft = WALL.maxJumps; }
     const wall = !grounded && !this.riding && !this.inLiquid && !this.hook ? wallSide((x, y) => this.world.isSolid(x, y), b.x, b.y, HALF_W, BODY_H) : 0;
-    this.coyote = grounded ? 0.1 : this.coyote - dt;
+    this.coyote = this.zip ? 0 : grounded ? 0.1 : this.coyote - dt;
     const jumpPress = c.jump && !this.prevJump;
     this.jumpBuf = jumpPress ? 0.12 : this.jumpBuf - dt;
     const jumpV = JUMP_V * (vst ? vst.jump : 1);
-    if (this.hook && jumpPress) {
+    if (this.zip && jumpPress) {
+      // Hop off the cable, keeping some of the ride's speed.
+      this.zip = null;
+      b.vy = -JUMP_V * 0.7;
+      this.jumpBuf = 0;
+      this.emit({ t: 'jump' });
+    } else if (this.hook && jumpPress) {
       // Let go of the rope with a little hop, keeping the swing's speed.
       this.hook = null;
       b.vy = Math.min(b.vy, -JUMP_V * 0.6);
@@ -1731,7 +1742,7 @@ export class Game {
       this.emit({ t: 'airjump', x: b.x, y: b.y, by: src[src.length - 1 - this.airJumpsLeft] ?? null });
     }
     // Jump pad under the feet (not while holding down, so a pad can be stood on to build): launch.
-    const pad = grounded && !c.down && !this.riding && b.vy >= 0 ? padUnder(this.world, b.x, b.y) : null;
+    const pad = grounded && !c.down && !this.riding && !this.zip && b.vy >= 0 ? padUnder(this.world, b.x, b.y) : null;
     if (pad) {
       b.vy = -PAD_V;
       this.padLaunch = true;
@@ -1762,7 +1773,12 @@ export class Game {
     if (wasLiquid && !this.inLiquid && c.jump && b.vy < 0) b.vy = -LEAP_V;
     this.jetting = false;
     this.gliding = false;
-    if (vst?.flying) {
+    if (this.zip) {
+      // On the cable: stepZip places the body after the normal collision step.
+      b.vx = 0;
+      b.vy = 0;
+      this.wallSlide = 0;
+    } else if (vst?.flying) {
       // Flying: jump climbs, down dives, otherwise a gentle sink. Battery powers it away from the pad.
       const target = c.jump ? -10 : c.down ? 12 : 1.5;
       b.vy += (target - b.vy) * Math.min(1, 6 * dt);
@@ -1824,6 +1840,7 @@ export class Game {
     const impact = b.vy;
     moveY(this.world, b, b.vy * dt, c.down);
     if (this.hook) this.stepRope(dt, c);
+    this.stepZip(dt, c);
     this.stepVehicle(dt);
     if (this.garageOpen && (!this.reachable(this.garageOpen.x, this.garageOpen.y) || this.world.get(this.garageOpen.x, this.garageOpen.y) !== T.GARAGE)) this.garageOpen = null;
     if (b.onGround && !this.wasGround) {
@@ -2089,6 +2106,62 @@ export class Game {
     // Loose blocks above the crater lose their support.
     for (let tx = Math.floor(x - r); tx <= Math.ceil(x + r); tx++) for (let ty = Math.ceil(y + r); ty >= Math.floor(y - r); ty--) this.loosen(tx, ty);
     this.emit({ t: 'boom', x, y });
+  }
+
+  /** Carry the body along a ridden cable; a mined anchor or blocked run drops the rider. */
+  private stepZip(dt: number, c: Controls): void {
+    if (!this.zip) return;
+    const b = this.body;
+    const p = stepRide(this.world, this.zip, dt);
+    if (!p) {
+      this.zip = null;
+      this.emit({ t: 'unhook' });
+      return;
+    }
+    b.x = p.x;
+    b.y = p.y;
+    this.facing = p.vx > 0.5 ? 1 : p.vx < -0.5 ? -1 : this.facing;
+    // The cable carries the weight: leaving it never counts as a long fall.
+    this.wasGround = true;
+    // At the far end the rider stays clipped on (a shaft has no floor there) until they steer off.
+    if (p.done) {
+      if (Math.abs(c.moveX) > 0.3 || c.down) {
+        this.zip = null;
+        this.emit({ t: 'unhook' });
+      }
+    } else {
+      b.vx = p.vx;
+      b.vy = p.vy;
+    }
+  }
+
+  /** The zipline ride on offer from where the player stands, if any. */
+  zipHere(down = false): ReturnType<typeof zipOffer> {
+    return this.zip || this.riding ? null : zipOffer(this.world, this.body.x, this.body.y, down);
+  }
+
+  private zipSeen: { at: number; key: string; offer: ReturnType<typeof zipOffer> } | null = null;
+
+  /** zipHere for per-frame HUD and prompt use: re-checked 5 times a second or on moving a tile. */
+  zipPrompt(): ReturnType<typeof zipOffer> {
+    if (this.zip || this.riding) return null;
+    const key = `${Math.floor(this.body.x)},${Math.floor(this.body.y)}`;
+    const s = this.zipSeen;
+    if (s && s.key === key && this.time - s.at < 0.2 && this.time >= s.at) return s.offer;
+    this.zipSeen = { at: this.time, key, offer: this.zipHere() };
+    return this.zipSeen.offer;
+  }
+
+  /** Clip onto the offered cable. */
+  startZip(down = false): boolean {
+    const o = this.zipHere(down);
+    if (!o) return false;
+    this.zip = { ...o, s: 0, check: 0 };
+    this.hook = null;
+    this.dashT = 0;
+    this.jumpBuf = 0;
+    this.emit({ t: 'hook', x: o.from.x + 0.5, y: o.from.y + 0.5 });
+    return true;
   }
 
   /** Rope: keep the body within the rope length of the anchor (pendulum); holding dig reels in. */
@@ -2730,8 +2803,13 @@ export class Game {
     return true;
   }
 
-  /** E: open the nearest chest within reach. */
-  interact(): boolean {
+  /** E: ride a zipline, else open the nearest chest within reach. */
+  interact(down = false): boolean {
+    if (this.zip) {
+      this.zip = null;
+      return true;
+    }
+    if (!this.chestOpen && !this.garageOpen && this.startZip(down)) return true;
     const b = this.body;
     let best: { x: number; y: number; d: number } | null = null;
     for (let y = Math.floor(b.y - 5); y <= Math.floor(b.y + 3); y++) {

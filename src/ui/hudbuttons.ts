@@ -5,12 +5,12 @@
  */
 import type { BindId } from '../sim/keys';
 
-export type HudGlyph = 'sound' | 'music' | 'mute' | 'map' | 'home' | 'beam' | 'drones' | 'shop' | 'dig' | 'build' | 'ride' | 'getoff' | 'reel' | 'dash';
+export type HudGlyph = 'sound' | 'music' | 'mute' | 'map' | 'home' | 'beam' | 'drones' | 'shop' | 'dig' | 'build' | 'ride' | 'getoff' | 'reel' | 'dash' | 'zip';
 
 export interface HudButton {
   glyph: HudGlyph;
   /** UI action kind (the action object is `{ k: action }`). */
-  action: 'mute' | 'map' | 'recall' | 'drones' | 'shop' | 'mode' | 'ride' | 'reel' | 'dash';
+  action: 'mute' | 'map' | 'recall' | 'drones' | 'shop' | 'mode' | 'ride' | 'reel' | 'dash' | 'zip';
   /** Fill colour of the button. */
   color: string;
   /** Short word for screen readers, tooltips and tests. */
@@ -40,6 +40,8 @@ export interface HudButtonState {
   hooked: boolean;
   reeling: boolean;
   dash: boolean;
+  /** A zipline ride is on offer where the player stands. */
+  zip?: boolean;
 }
 
 const TEAL = '#1f6f78';
@@ -56,6 +58,7 @@ export function hudButtons(s: HudButtonState): HudButton[] {
   if (s.touch) out.push(s.placeMode ? { glyph: 'build', action: 'mode', color: AMBER, label: 'Mode: build' } : { glyph: 'dig', action: 'mode', color: TEAL, label: 'Mode: dig' });
   if (s.canMount) out.push(s.riding ? { glyph: 'getoff', action: 'ride', color: AMBER, label: 'Get off', bind: 'ride' } : { glyph: 'ride', action: 'ride', color: TEAL, label: 'Ride', bind: 'ride' });
   if (s.touch && s.hooked) out.push({ glyph: 'reel', action: 'reel', color: s.reeling ? AMBER : TEAL, label: s.reeling ? 'Reeling' : 'Hold reel' });
+  if (s.touch && s.zip) out.push({ glyph: 'zip', action: 'zip', color: TEAL, label: 'Ride zipline', pulse: true });
   if (s.touch && s.dash) out.push({ glyph: 'dash', action: 'dash', color: TEAL, label: 'Dash' });
   return out;
 }

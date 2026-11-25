@@ -114,6 +114,7 @@ export type UiAction =
   | { k: 'dash' }
   /** Touch hold button: reel the grappling rope in while held (handled by Input as a held pointer). */
   | { k: 'reel' }
+  | { k: 'zip' }
   | { k: 'craftgear'; id: GearId }
   | { k: 'reforge'; id: GearId }
   | { k: 'equip'; id: GearId }
@@ -1741,6 +1742,7 @@ export class UI {
       hooked: !!game.hook,
       reeling: this.reeling,
       dash: !!game.gear.dash,
+      zip: this.touch && !!game.zipPrompt(),
     });
     this.gearButton(ctx, anc.bx, u, bhgt, bhgt);
     const labelRects: LabelRect[] = [{ x: anc.bx, y: u, w: bhgt, h: bhgt, label: 'Settings' }];

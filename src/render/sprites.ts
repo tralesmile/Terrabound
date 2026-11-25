@@ -361,6 +361,7 @@ export const TILE_COLORS: Record<number, string> = {
   [T.GRAVEL]: '#a8a296',
   [T.CHARGE]: '#ff8a4a',
   [T.PLATE]: '#c9a23a',
+  [T.ZIP]: '#5ae0d0',
   [T.OBSIDIAN]: '#6a4aa8',
   [T.TILLED]: '#5e4a34',
   [T.PANEL]: '#7d8ba6',

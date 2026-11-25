@@ -20,6 +20,8 @@ interface PointerInfo {
 
 /** Keyboard + mouse + touch. One third of a touch screen (left by default, right if left-handed) is a floating thumbstick; the rest aims and digs. */
 export class Input {
+  /** Down was held at the last read (riding a zipline downward). */
+  downHeld = false;
   private keys = new Set<string>();
   private pointers = new Map<number, PointerInfo>();
   /** True while any mouse button or touch is held (hover tips stay quiet while digging or building). */
@@ -252,6 +254,7 @@ export class Input {
     this.dashTap = false;
     this.ui.reeling = reel;
     this.ui.barPress = pressing;
+    this.downHeld = down;
     return { moveX, jump, dig, place, aim, down, dash, reel };
   }
 }

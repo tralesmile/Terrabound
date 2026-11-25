@@ -466,6 +466,23 @@ export const ICONS: Record<string, IconDef> = {
       '            ',
     ],
   },
+  zipline: {
+    pal: { a: '#3a4658', b: '#8fa2bc', c: '#5ae0d0' },
+    rows: [
+      'cc          ',
+      '  cc  oooo  ',
+      '    ccobbo  ',
+      '      obbocc',
+      '      oooo  ',
+      '       ab   ',
+      '       ab   ',
+      '       ab   ',
+      '       ab   ',
+      '      oaao  ',
+      '    oaaaaaao',
+      '    oooooooo',
+    ],
+  },
   pressure_plate: {
     pal: { a: '#6a5418', b: '#e8c64a', c: '#ff5a2a' },
     rows: [

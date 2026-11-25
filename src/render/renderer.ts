@@ -87,6 +87,8 @@ import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, b
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 import { drawGlyph, hasGlyph } from './glyphs';
 import { ropePoints, ropeSag, twangAmp } from './ropefx';
+import { ZIP_LIFT, drawAnchor, drawCable, drawMast, drawTrolley, drawZipPrompt } from './zipfx';
+import { ZIP, cablesNear, type Cable } from '../sim/zipline';
 import { scorchK } from './scorchfx';
 import { CONE_PUFFS, CRACK_VARIANTS, DRIFT_H, DRIFT_VARIANTS, conePuff, crackAt, crackPixels, driftPixels } from './ashfx';
 import { GRIME_VARIANTS, HANG_H, HANG_VARIANTS, RCRACK_VARIANTS, grimeAt, grimePixels, SOOT_VARIANTS, hangAt, hangKind, hangPixels, ruinCrackAt, ruinCrackPixels, sootAt, sootPixels } from './ruinfx';
@@ -877,6 +879,7 @@ export class Renderer {
       ctx.save();
       vehXf();
     }
+    this.drawZiplines(ctx, game, shakeX, shakeY, time);
     if (hullOver) {
       ctx.save();
       ctx.beginPath();
@@ -918,7 +921,7 @@ export class Renderer {
       t: time,
       airborne: !b.onGround,
       vy: b.vy,
-      climbing: clingPose(onLadder(game.world, b), game.wallSlide, b.onGround),
+      climbing: !!game.zip || clingPose(onLadder(game.world, b), game.wallSlide, b.onGround),
       hurt: game.iframes > 0 && (this.reduceFlash ? game.iframes > 0.3 : Math.floor(time * 20) % 2 === 0),
       swing: game.swing > 0,
       tier: game.upgrades.armor ?? 0,
@@ -942,6 +945,10 @@ export class Renderer {
     if (veh) ctx.restore();
 
     this.drawPullLines(ctx, game, shakeX, shakeY, time);
+    if (game.zip) drawTrolley(ctx, px, this.sy(b.y - ZIP.hang - ZIP_LIFT, shakeY), TS * scale, time);
+    const offer = game.zipPrompt();
+    this.zipPromptShown = !!offer;
+    if (offer) drawZipPrompt(ctx, this.sx(offer.from.x + 0.5, shakeX), this.sy(offer.from.y + 0.5, shakeY), TS * scale, this.zipLabel, time);
     // Items on the ground: bobbing icons with a soft glow so they read as pickups.
     for (const d of game.drops) {
       const isz = ICON * scale * 0.7;
@@ -1288,6 +1295,11 @@ export class Renderer {
       ctx.fillRect(dx, dy, ts, Math.max(2, ts * 0.22));
       ctx.fillStyle = '#55627a';
       ctx.fillRect(dx, dy + Math.max(2, ts * 0.22), ts, Math.max(1, ts * 0.08));
+      return;
+    }
+    if (t === T.ZIP) {
+      this.drawBack(ctx, world, tx, ty, dx, dy, ts);
+      drawAnchor(ctx, dx, dy, ts);
       return;
     }
     if (t === T.PLATE) {
@@ -1736,6 +1748,40 @@ export class Renderer {
    * battery fills, "+" motes rising off the player; once full, the bay's light turns steady green.
    */
   /** Magnet tethers: a faint line in the magnet gear's colour from each drop being reeled in, beads sliding in. */
+  /** Cables in view; the list is rebuilt a few times a second (finding anchors scans a wide window). */
+  private zipCache: { at: number; key: string; cables: Cable[] } | null = null;
+  /** Cables drawn last frame and whether a ride prompt showed (debug/e2e). */
+  zipCount = 0;
+  zipPromptShown = false;
+  /** Prompt text over an anchor; main sets it from the key binding or touch mode. */
+  zipLabel = 'E RIDE';
+
+  private drawZiplines(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
+    const ts = TS * this.scale;
+    const hw = Math.ceil(this.w / 2 / ts) + 1;
+    const hh = Math.ceil(this.h / 2 / ts) + 1;
+    const cx = Math.floor(this.camX);
+    const cy = Math.floor(this.camY);
+    const key = `${game.world.seed},${cx >> 2},${cy >> 2},${hw},${hh}`;
+    let c = this.zipCache;
+    if (!c || c.key !== key || time - c.at > 0.25 || time < c.at) c = this.zipCache = { at: time, key, cables: cablesNear(game.world, cx - hw, cy - hh, cx + hw, cy + hh) };
+    this.zipCount = c.cables.length;
+    for (const { a, b } of c.cables) {
+      // Dropped at once when either end is mined, without waiting for the next rebuild.
+      if (game.world.get(a.x, a.y) !== T.ZIP || game.world.get(b.x, b.y) !== T.ZIP) continue;
+      const z = game.zip;
+      const ridden = !!z && [z.from, z.to].every((p) => (p.x === a.x && p.y === a.y) || (p.x === b.x && p.y === b.y));
+      const ax = this.sx(a.x + 0.5, shakeX);
+      const bx = this.sx(b.x + 0.5, shakeX);
+      // The cable runs overhead, on a mast above each anchor, so the rider hangs beneath it.
+      const ay = this.sy(a.y + 0.5 - ZIP_LIFT, shakeY);
+      const by = this.sy(b.y + 0.5 - ZIP_LIFT, shakeY);
+      drawMast(ctx, ax, ay, ts);
+      drawMast(ctx, bx, by, ts);
+      drawCable(ctx, ax, ay, bx, by, ts, time, ridden);
+    }
+  }
+
   private drawPullLines(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
     this.pullShown = 0;
     const b = game.body;
@@ -3328,6 +3374,7 @@ export class Renderer {
         for (let xx = Math.max(0, x0); xx < Math.min(world.w, x0 + lw); xx++) {
           const tt = world.tiles[yy * world.w + xx];
           if (tt === T.TERMINAL) sources.push({ x: xx, y: yy, level: 22 });
+          else if (tt === T.ZIP) sources.push({ x: xx, y: yy, level: 12 });
           else if (tt === T.CHARGE || tt === T.PLATE) sources.push({ x: xx, y: yy, level: tt === T.CHARGE ? 14 : 10 });
           else if ((tt === T.GATE || tt === T.CIRCUIT_ORE || tt === T.PLASMA_ORE || tt === T.CORE_ORE) && !world.isSolid(xx, yy - 1)) sources.push({ x: xx, y: yy, level: tt === T.GATE ? 16 : 12 });
           else if (tt === T.ACID_POOL && world.get(xx, yy - 1) !== T.ACID_POOL) sources.push({ x: xx, y: yy, level: 14 });

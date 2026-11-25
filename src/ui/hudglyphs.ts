@@ -145,6 +145,17 @@ export function drawHudGlyph(ctx: CanvasRenderingContext2D, g: HudGlyph, cx: num
       }
       break;
     }
+    case 'zip': {
+      // Cable running up with a trolley and a hanging handle.
+      ctx.lineWidth = 1.4;
+      line([1, 9, 15, 1]);
+      ctx.lineWidth = 2;
+      line([8, 5, 8, 9]);
+      line([5, 9.5, 11, 9.5]);
+      line([5, 9.5, 5, 14]);
+      line([11, 9.5, 11, 14]);
+      break;
+    }
     case 'reel': {
       // Grapple hook on a line.
       ctx.lineWidth = 1.4;
