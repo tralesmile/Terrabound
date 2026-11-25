@@ -3328,6 +3328,7 @@ export class Renderer {
         for (let xx = Math.max(0, x0); xx < Math.min(world.w, x0 + lw); xx++) {
           const tt = world.tiles[yy * world.w + xx];
           if (tt === T.TERMINAL) sources.push({ x: xx, y: yy, level: 22 });
+          else if (tt === T.CHARGE || tt === T.PLATE) sources.push({ x: xx, y: yy, level: tt === T.CHARGE ? 14 : 10 });
           else if ((tt === T.GATE || tt === T.CIRCUIT_ORE || tt === T.PLASMA_ORE || tt === T.CORE_ORE) && !world.isSolid(xx, yy - 1)) sources.push({ x: xx, y: yy, level: tt === T.GATE ? 16 : 12 });
           else if (tt === T.ACID_POOL && world.get(xx, yy - 1) !== T.ACID_POOL) sources.push({ x: xx, y: yy, level: 14 });
           else if (tt === T.MAGMA) sources.push({ x: xx, y: yy, level: world.get(xx, yy - 1) !== T.MAGMA ? 28 : 22 });

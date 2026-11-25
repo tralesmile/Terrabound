@@ -1154,3 +1154,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** fuse item, timer/AND gates, ziplines, liquids v2 rest, quest log (P12-E).
 
 **Known issues:** the pressure plate sits at the left end of the row and is hard to see in the shot (pad overlaps); no bigger slice shipped this run.
+
+## 2026-11-25 Scheduled run 97
+
+**Done:** baseline green. Charge and pressure-plate tiles are now light sources in the lightmap (renderer.ts), so trap lines read in dark caves. Research topic 1 logged. No sim or save change, no new tests (render-only).
+
+**Next:** fuse item, timer/AND gates, ziplines, liquids v2 rest, quest log (P12-E).
+
+**Known issues:** the e2e charge shot is on the sunlit surface, so the glow is not visible there; add a dark-cave shot.

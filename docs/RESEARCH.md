@@ -79,3 +79,6 @@ Searched touch-control and web-game accessibility guides (accessiblegames.com Ta
 
 ## 2026-11-25 run 96 (topic 0, game feel)
 Platformer game-feel roundups (anchitsh.github.io/platformer.html, Celeste dev notes on GameSpot) list coyote time, jump buffer, hit-stop, camera lead: all already in movement.ts, hitfeel.ts and camlead.ts. No new items.
+
+## 2026-11-25 run 97 (topic 1, code-drawn lighting)
+Search returned generic tile-lighting tutorials (flood-fill light, emissive tiles, simple retro lighting: https://alexjgriffith.itch.io/until-the-morning-breaks/devlog/213702/a-simple-retro-lighting-system, https://slembcke.github.io/2D-Lighting-Overview). Our flood-fill lightmap already matches; adopted only the emissive-tile idea (charges and plates glow in dark caves).
