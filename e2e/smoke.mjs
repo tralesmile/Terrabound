@@ -1180,6 +1180,8 @@ try {
     for (let y = w.padY + 20; y < w.h - 5; y++) {
       for (let x = 30; x < w.w - 30; x++) {
         if (w.get(x, y) !== 25 || w.get(x, y - 1) !== 25 || w.get(x, y - 2) === 25) continue;
+        // A basin that holds its water: many generated cells like this are streams that drain while we look.
+        if (![-1, 0, 1].every((dx) => [y, y - 1].every((cy) => w.get(x + dx, cy) === 25 || w.isSolid(x + dx, cy)) && (w.isSolid(x + dx, y + 1) || w.get(x + dx, y + 1) === 25 && w.isSolid(x + dx, y + 2)))) continue;
         g.enemies = [];
         g.body.x = x + 0.5;
         g.body.y = y + 0.9;
