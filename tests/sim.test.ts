@@ -215,7 +215,9 @@ describe('game', () => {
     expect(g.stash.iron_scrap).toBe(4); // floor(9/2)
     expect(g.isAtBase()).toBe(true);
     expect(g.world.seed).not.toBe(seedBefore);
-    expect(Object.keys(g.carried).length).toBe(0);
+    // No loot comes back to the pack; the first-death award's medkit does (kit is never left in the stash).
+    expect(g.carried).toEqual({ medkit: 1 });
+    expect(g.stash.medkit ?? 0).toBe(0);
   });
 
   it('buys upgrades only at base with enough resources', () => {

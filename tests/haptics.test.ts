@@ -50,7 +50,7 @@ describe('haptics', () => {
     const v31 = { ...JSON.parse(serializeSave(defaultSave())), v: 31 };
     delete v31.settings.haptics;
     const s = parseSave(JSON.stringify(v31));
-    expect(SAVE_VERSION).toBe(32);
+    expect(s.v).toBe(SAVE_VERSION);
     expect(s.settings.haptics).toBe(1);
     const off = defaultSave();
     off.settings.haptics = 0;

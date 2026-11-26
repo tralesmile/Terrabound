@@ -205,3 +205,9 @@
 - Rebreather accessory (longer held breath) once Flooded Ruins exist.
 - Drowned vault: a chest at the bottom of deep pools, so diving under has a reward.
 - Weakest parts now. Graphics: dim underground areas turn into flat black bands near the hotbar. Feel: silent zip ride. Controls: no touch auto-aim, no gamepad. Progression: no quest log. UI: hint strip fixed; the goal card text is small. Performance: no automated frame budget for the whole scene.
+
+## 2026-11-26 (run 100)
+- Done: TRACK pin (HUD card with material icons, have/need, where to find), robot quest lines, output icons in the crafting list.
+- "!" bubble over a robot with a hand-in ready, so the base calls you home (deepens bank and automate).
+- Light the tracked ore: a faint pin-colour glint on tracked-material tiles already inside your lamp radius.
+- Weakest parts now. Graphics: deep-layer shot is near-black beyond a few tiles (needs ambient accents per layer). Feel: silent zip ride. Controls: no touch auto-aim, no gamepad. Progression: gear costs cannot be tracked yet. UI: workshop footer (codes, daily, new world) takes a quarter of the panel; small phone cost text is tiny. Performance: no automated whole-scene frame budget.

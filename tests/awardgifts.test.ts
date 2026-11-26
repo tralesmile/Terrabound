@@ -34,17 +34,19 @@ describe('award gifts', () => {
     expect(giftText({})).toBe('');
   });
 
-  it('an unlock puts the gift in the stash once and announces it', () => {
+  it('an unlock pays the gift once and announces it (torches reach the pack at the base)', () => {
     const g = new Game(defaultSave(7));
-    const before = invCount(g.stash, 'torch');
+    const owned = () => invCount(g.stash, 'torch') + invCount(g.carried, 'torch');
+    const before = owned();
     (g.awards.n as Record<string, number>).dashes = 49;
     const emit = (e: unknown) => (g as unknown as { emit: (e: unknown) => void }).emit(e);
     emit({ t: 'dash' });
     const ev = g.drainEvents().filter((e) => e.t === 'award');
     expect(ev[0]).toMatchObject({ id: 'dash1', gift: { torch: 6 } });
-    expect(invCount(g.stash, 'torch')).toBe(before + 6);
+    expect(owned()).toBe(before + 6);
+    expect(invCount(g.carried, 'torch')).toBe(6);
     emit({ t: 'dash' });
-    expect(invCount(g.stash, 'torch')).toBe(before + 6);
+    expect(owned()).toBe(before + 6);
   });
 
   it('awards earned before gifts existed load quietly with no gift', () => {

@@ -293,6 +293,12 @@ function boot(): void {
       case 'craft':
         if (game.craft(a.id)) saveNow();
         break;
+      case 'pin':
+        if (game.togglePin(a.id)) saveNow();
+        break;
+      case 'quest':
+        if (game.deliverQuest(a.npc)) saveNow();
+        break;
       case 'trade':
         if (game.trade(a.id)) saveNow();
         break;
@@ -942,6 +948,10 @@ function boot(): void {
         }
         break;
       case 'trade':
+        break;
+      case 'quest':
+        ui.toast(`${NPC_INFO[e.npc].name}: "${e.quest.done}"`, '#7dffb0', 6, 'goal');
+        ui.toast(`Quest done: ${e.quest.title}. Reward: ${giftText(e.quest.reward)}`, '#ffd23a', 5, 'award');
         break;
       case 'merchant':
         if (e.here) ui.toast(`${NPC_INFO.merchant.name} the merchant drone landed on the pad: today's stock is in TRADE`, '#5ad8ff', 5);

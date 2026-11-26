@@ -831,6 +831,53 @@ try {
   await page.evaluate(() => { window.__terrabound.ui.setShopTab('fab'); });
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(out, '08-shop-crafting.png') });
+  {
+    // Tracked goal and robot quests, with real clicks.
+    const center = (k, key, val) => page.evaluate(([k, key, val]) => {
+      const b = window.__terrabound.ui.rects.find((r) => r.a.k === k && r.a[key] === val);
+      return b ? { x: b.x + b.w / 2, y: b.y + b.h / 2 } : null;
+    }, [k, key, val]);
+    const track = await center('pin', 'id', 'r:beacon_colossus');
+    if (track) await page.mouse.click(track.x, track.y);
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(out, '08d-shop-tracked.png') });
+    await page.evaluate(() => {
+      const { ui } = window.__terrabound;
+      ui.shopOpen = false;
+      ui.toasts = [];
+    });
+    await page.waitForTimeout(300);
+    const card = await page.evaluate(() => ({ pin: window.__terrabound.game.pin, rect: window.__terrabound.ui.trackerRect, goal: window.__terrabound.ui.goalRect }));
+    await page.screenshot({ path: path.join(out, '02i-tracker.png') });
+    check('TRACK pins a recipe: a HUD card under the goal names the missing material and its source', !!track && card.pin === 'r:beacon_colossus' && !!card.rect && !!card.goal && card.rect.y >= card.goal.y + card.goal.h && /Metal|Iron|Copper/.test(card.rect.hint) && !card.rect.ready, JSON.stringify(card));
+    await page.evaluate(() => {
+      const { game: g, ui } = window.__terrabound;
+      g.togglePin('r:beacon_colossus');
+      window.__realHasNpc = g.hasNpc;
+      g.hasNpc = (kind) => kind === 'trader';
+      g.stash.iron_scrap = 14;
+      ui.shopOpen = true;
+      ui.setShopTab('quests');
+    });
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(out, '08e-shop-quests.png') });
+    const give = await center('quest', 'npc', 'trader');
+    if (give) await page.mouse.click(give.x, give.y);
+    await page.waitForTimeout(300);
+    const q = await page.evaluate(() => {
+      const { game: g, ui } = window.__terrabound;
+      return { log: { ...g.questLog }, iron: g.stash.iron_scrap ?? 0, wire: g.stash.copper_wire ?? 0, toasts: ui.toasts.map((t) => t.text), medicOpen: ui.rects.some((r) => r.a.k === 'quest' && r.a.npc === 'medic') };
+    });
+    await page.screenshot({ path: path.join(out, '08f-quest-delivered.png') });
+    check('QUESTS tab: DELIVER hands goods to a robot at home for the printed reward and its story line', !!give && q.log.trader === 1 && q.iron === 2 && q.toasts.some((t) => t.startsWith('Quest done')) && q.toasts.some((t) => t.startsWith('Bolt: "')), JSON.stringify(q));
+    await page.evaluate(() => {
+      const { game: g, ui } = window.__terrabound;
+      g.hasNpc = window.__realHasNpc;
+      ui.toasts = [];
+      g.stash.rust = 10;
+      g.stash.iron_scrap = 10;
+    });
+  }
   // Weapon rarity: REFORGE on the gear tab pays a visible price and rolls a coloured prefix.
   await page.evaluate(() => {
     const { game, ui } = window.__terrabound;
@@ -1143,6 +1190,8 @@ try {
     return null;
   });
   await page.waitForTimeout(500);
+  // A floating body bobs at the waterline: sample on a frame where it is in the water, not on a blind delay.
+  await page.waitForFunction(() => window.__terrabound.game.inLiquid === 25, null, { polling: 'raf', timeout: 3000 }).catch(() => {});
   const swim = await page.evaluate(() => ({ inLiquid: window.__terrabound.game.inLiquid, y: window.__terrabound.game.body.y }));
   await page.screenshot({ path: path.join(out, '17-water.png') });
   await page.keyboard.down('KeyW');
@@ -4755,6 +4804,39 @@ try {
   await page.evaluate(() => { window.__terrabound.ui.setShopTab('fab'); });
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(out, '09b-mobile-shop-fab.png') });
+  {
+    await page.evaluate(() => { window.__terrabound.ui.setShopTab('quests'); });
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(out, '09c-mobile-quests.png') });
+    const fit = await page.evaluate(() => {
+      const bs = window.__terrabound.ui.rects.filter((r) => ['tab', 'pin', 'quest'].includes(r.a.k));
+      return { tabs: bs.filter((r) => r.a.k === 'tab').length, pins: bs.filter((r) => r.a.k === 'pin').length, inside: bs.every((r) => r.x >= 0 && r.x + r.w <= window.innerWidth && r.y + r.h <= window.innerHeight) };
+    });
+    check('phone: five workshop tabs and the quest rows fit the screen', fit.tabs === 5 && fit.pins === 4 && fit.inside, JSON.stringify(fit));
+    await page.evaluate(() => {
+      const { game: g, ui } = window.__terrabound;
+      g.togglePin('r:beacon_colossus');
+      ui.shopOpen = false;
+      ui.toasts = [];
+    });
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(out, '09d-mobile-tracker.png') });
+    const card = await page.evaluate(() => {
+      const ui = window.__terrabound.ui;
+      const c = ui.trackerRect;
+      const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+      const btns = ui.rects.filter((b) => ['mute', 'map', 'recall', 'settings', 'shop', 'mode'].includes(b.a.k));
+      return { card: c, clash: !!c && btns.some((b) => hit(c, b)), onScreen: !!c && c.x >= 0 && c.x + c.w <= window.innerWidth };
+    });
+    check('phone: the tracker card stays on screen and clear of the HUD buttons', !!card.card && card.onScreen && !card.clash, JSON.stringify(card));
+    await page.evaluate(() => {
+      const { game: g, ui } = window.__terrabound;
+      g.togglePin('r:beacon_colossus');
+      ui.shopOpen = true;
+      ui.setShopTab('fab');
+    });
+    await page.waitForTimeout(200);
+  }
   await page.evaluate(() => { window.__terrabound.act({ k: 'tab', t: 'upgrades' }); });
   check('shop tab action switches tabs', (await page.evaluate(() => window.__terrabound.ui.shopTab)) === 'upgrades');
   const seedBeforeDaily = await page.evaluate(() => window.__terrabound.game.seedCode);

@@ -70,7 +70,8 @@ Seed premise to refine, not to rewrite: you are a repair technician in a suit on
 
 - [x] (run 93) Write `docs/STORY.md`: premise, cast, acts mapped to layers and bosses, reveals, three endings, tone, rules (max two lines per delivery, no walls of text, skippable); reuse the existing logs, robots and Dex.
 - [x] Objective tracker in the HUD ("what next?") and Guide hints; fixes the weak-tutorial complaint players have about Starbound; ties into FTUE.
-- [ ] Quest log and 3 short quest lines per robot, rewarded from the stash, never timed.
+- [x] (run 100: `quests.ts`, workshop QUESTS tab, 12 deliveries, save v33) Quest log and 3 short quest lines per robot, rewarded from the stash, never timed.
+- [ ] Quest follow-ups: robots say their latest finished-quest line when you talk to them; a "!" mark over a robot whose quest you can hand in; track gear costs from the GEAR tab too.
 - [ ] Act beats: two-line boss intro and outro cards; Hollow AI radio transmissions that change as it is weakened; ruins and logs placed by act.
 - [ ] Three endings at the Hollow AI, credits, then New Game+ "Loop N" with mutators and carry-over cosmetics (no power gating).
 - [ ] Lore expansion from 12 to about 40 logs across the acts, with synthesised voice bleeps.
@@ -101,7 +102,8 @@ Seed premise to refine, not to rewrite: you are a repair technician in a suit on
 
 ### P12-H Discovered by research (runs append here; one line each, dated, with the reason; promote into A-G when ready)
 
-- [ ] 2026-11-26 (run 99): review summaries of Terraria, Dome Keeper and Necesse keep naming weak in-game guidance, grind and repetition; do the P12-E quest log early, with each quest naming where its materials drop.
+- [ ] 2026-11-26 (run 100): Apple and Meta onboarding guides: teach one small step at a time and show visible growth in the first session; audit that the first upgrade is reachable from the first dive's loot, with a sim test.
+- [x] (run 100: quest log plus TRACK pin with material sources) 2026-11-26 (run 99): review summaries of Terraria, Dome Keeper and Necesse keep naming weak in-game guidance, grind and repetition; do the P12-E quest log early, with each quest naming where its materials drop.
 - [ ] 2026-11-26 (run 98): Terraria's 2026 combat fix list names unclear hitboxes, boss attacks and off-screen shooters; audit that every boss attack's damage area matches its drawn telegraph, with a table test.
 - [ ] 2026-11-18: Core Keeper added automation and new biomes in its 2026 update, so our drone automation must stay the differentiator: make drones visible, programmable and fun to watch (Dome Keeper lesson: systems that feed into one another).
 - [ ] 2026-11-20 (run 83): Core Keeper's top refund-risk complaint is "no tutorial" and its first-2-hour reviews are the least positive; promote the P12-E objective tracker ahead of other E items.

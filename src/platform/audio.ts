@@ -346,6 +346,10 @@ export class Sfx {
       case 'weather':
         if (e.kind !== 'clear') [440, 554, 659].forEach((f, i) => this.tone(f, 0.25, 'sine', 0.06, undefined, i * 0.15));
         break;
+      case 'quest':
+        // Quest handed in: a short rising thank-you.
+        [659, 880, 988, 1319].forEach((f, i) => this.tone(f, 0.16, 'triangle', 0.06, undefined, i * 0.09));
+        break;
       case 'npcarrive':
         // Robot greeting: two quick chirps then a doorbell.
         [880, 1175, 659, 523].forEach((f, i) => this.tone(f, 0.1, 'square', 0.05, undefined, i * 0.08));

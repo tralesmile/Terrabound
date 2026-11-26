@@ -67,6 +67,9 @@ import { RESEARCH, applyResearch, researchMissing, type ResearchId } from './res
 import { REFORGE_COST, applyPrefixes, rollReforge, type PrefixId, type WeaponSlot } from './rarity';
 import { MODS, applyMods, bounce, fitMod, type ModId, type ModSlot } from './mods';
 import { BUFF_TIME, CHARGED_DRAIN, MEAL_BUFF, STURDY_TAKEN, SWIFT_SPEED, hasPotIn, stepBuffs, type Buffs, GARDENER_MOODS, cropAt, cropOfSeed, grassSeed, growCrops, harvestYield, isCropTile, isWatered, plantCrop, ripeIn, stepCrops, tillUnder, type CropId } from './farming';
+import { deliverQuest, sanitizeQuests, type Quest, type QuestLog, type QuestNpc } from './quests';
+import { trackerFor, validPin, type PinId, type Tracker } from './tracker';
+import { restockKit } from './kit';
 import { NPC_INFO, NPC_ORDER, TRADES, deathKeep, doTrade, moodGive, npcLine, npcMood, type Mood, npcSpots, reactNpcs, roomFloor, stepNpc, syncNpcs, tradeOpen, type Npc, type NpcKind, type Trade } from './npcs';
 import { merchantDay, merchantPresent, merchantStock } from './merchant';
 import { placement, removeTile } from './wide';
@@ -172,6 +175,7 @@ export type GameEvent =
   | { t: 'npctalk'; kind: NpcKind }
   | { t: 'merchant'; here: boolean }
   | { t: 'trade'; id: string }
+  | { t: 'quest'; npc: QuestNpc; quest: Quest }
   | { t: 'modbuy'; id: ModId }
   | { t: 'research'; id: ResearchId }
   | { t: 'leech'; x: number; y: number; n: number }
@@ -486,6 +490,8 @@ export class Game {
     this.goalAt = chainIndex(this.save.awards, this.save.bosses);
     if (!Array.isArray(this.save.codex)) this.save.codex = [];
     this.save.met = sanitizeMet(this.save.met);
+    this.save.quests = sanitizeQuests(this.save.quests);
+    if (!validPin(this.save.pin, this.save.quests)) this.save.pin = null;
     this.save.gear = sanitizeGear(this.save.gear);
     if (!this.save.garage) this.save.garage = defaultGarage();
     if (!Array.isArray(this.save.bosses)) this.save.bosses = [];
@@ -509,6 +515,7 @@ export class Game {
     }
     this.save.stats.banked += bankedTotal;
     this.save.carried = {};
+    this.restock();
     // The current world persists until death: regenerate it from its seed, then replay the player's edits.
     this.world = generateWorld(this.diveSeed(), this.save.worldSize.w, this.save.worldSize.h);
     this.fog = new FogMap(this.world);
@@ -1042,6 +1049,7 @@ export class Game {
       // A small one-time gift lands in the base stash with the star (nothing to claim, nothing expires).
       const gift = awardGift(d);
       for (const k of Object.keys(gift) as ItemId[]) invAdd(this.stash, k, gift[k] ?? 0);
+      if (this.isAtBase()) this.restock();
       this.emit({ t: 'award', id: d.id, name: d.name, tier: d.tier, gift });
     }
     const gi = chainIndex(this.save.awards, this.save.bosses);
@@ -1050,6 +1058,45 @@ export class Game {
       this.goalAt = gi;
       if (done) this.emit({ t: 'goal', id: done.id, next: gi });
     }
+  }
+
+  /** Pack-only goods waiting in the stash (gifts, quest rewards, what a death kept) go back into the pack. */
+  private restock(): void {
+    if (this.stash && this.carried) restockKit(this.stash, this.carried, this.derived.packCap);
+  }
+
+  /** Quests finished per robot. */
+  get questLog(): Readonly<QuestLog> {
+    return this.save.quests;
+  }
+
+  /** Hand the robot's open quest in from the stash (it must live in your base, and you must be there). */
+  deliverQuest(npc: QuestNpc): boolean {
+    if (!this.canShop() || !this.hasNpc(npc)) return false;
+    const quest = deliverQuest(this.save.quests, npc, this.stash);
+    if (!quest) return false;
+    if (this.save.pin === `q:${npc}`) this.save.pin = null;
+    this.restock();
+    this.emit({ t: 'quest', npc, quest });
+    return true;
+  }
+
+  /** The pinned recipe or quest, or null. */
+  get pin(): PinId | null {
+    return this.save.pin;
+  }
+
+  /** Track a recipe or quest on the HUD; the same pin again clears it. */
+  togglePin(pin: PinId): boolean {
+    if (this.save.pin === pin) this.save.pin = null;
+    else if (validPin(pin, this.save.quests)) this.save.pin = pin;
+    else return false;
+    return true;
+  }
+
+  /** Progress of the tracked goal for the HUD card. */
+  get tracker(): Tracker | null {
+    return trackerFor(this.save.pin, this.save.quests, this.stash, this.carried);
   }
 
   /** First unfinished guided goal (ftue.ts); set quietly on load. */
@@ -1179,6 +1226,7 @@ export class Game {
 
   /** Move carried loot into the stash. Returns the number of items banked. */
   bank(): number {
+    this.restock();
     let total = 0;
     for (const id of Object.keys(this.carried) as ItemId[]) {
       const n = this.carried[id] ?? 0;
@@ -1240,6 +1288,7 @@ export class Game {
     if (invTotal(this.carried) + r.qty > this.derived.packCap) return false;
     pay(this.stash, r.cost);
     invAdd(this.carried, r.out, r.qty);
+    if (this.save.pin === `r:${r.id}`) this.save.pin = null;
     this.emit({ t: 'craft', id: r.id });
     return true;
   }
@@ -3280,6 +3329,8 @@ export class Game {
       settings: { ...this.save.settings },
       codex: [...this.save.codex],
       met: [...this.save.met],
+      quests: { ...this.save.quests },
+      pin: this.save.pin,
       gear: { owned: [...this.save.gear.owned], equip: { ...this.save.gear.equip }, acc: [...this.save.gear.acc], prefix: { ...this.save.gear.prefix }, reforges: this.save.gear.reforges },
       bosses: [...this.save.bosses],
       drones: { ...this.save.drones },

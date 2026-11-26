@@ -87,3 +87,6 @@ Weather events (dust storms), wandering merchant drone, ancient vaults, pets (co
 3. Extraction at 3% battery.
 4. Boss telegraph and dodge.
 5. Huge base with dozens of drones working in sync.
+
+## Quests and tracked goal (run 100)
+Each base robot has three delivery quests (stash in, stash out, all shown up front, never timed). One recipe or quest can be pinned; the HUD card lists have/need and where the first missing material comes from. Kit in the stash returns to the pack at base, up to half the pack.

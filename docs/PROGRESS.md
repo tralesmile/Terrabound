@@ -1178,3 +1178,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** pressure rule for connected pools, quest log with material sources (P12-E), fuse item and gates, zip sound and map pins, boss hitbox audit.
 
 **Known issues:** the touch zip button is still not in a mobile screenshot; the under-water chip has no mobile screenshot.
+
+## 2026-11-26 Scheduled run 100
+
+**Done:** baseline green (1154 tests). (1) Robot quest lines (`quests.ts`): 3 deliveries for each of the 4 robots, goods and rewards from the stash, two-line story, no timers; new workshop QUESTS tab (taller rows on phones). (2) TRACK pin (`tracker.ts`, `sources.ts`): a HUD card with material icons, have/need and where the first missing one comes from; clears when crafted or delivered. Save v33 (`quests`, `pin`). (3) Fabricate rows show the output icon; phone rows no longer overlap (short names, PIN button). (4) Bug fix: kit (torches, medkits) from award gifts or kept after death was stuck in the stash for good; it now returns to the pack at base, up to half the pack (`kit.ts`), and old saves recover theirs. Research topic 4. Now 170 test files, 1166 tests; JS about 200 KB gzip. Screenshots `02i`, `08d-08f`, `09b-09d`.
+
+**Next:** quest follow-ups (robot "!" and lines), liquids pressure rule, fuse item and gates, zip sound and map pins, boss hitbox audit, first-upgrade-in-first-dive audit.
+
+**Known issues:** raid and quest kit above half a pack waits in the stash until there is room (not shown in the UI). Long cost lines are small on 390 px phones.

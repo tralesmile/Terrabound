@@ -372,3 +372,9 @@
 ## 2026-11-26 run 99
 - A new movement force can pass its own tests yet flicker at a boundary: the first buoyancy bounced a body in a two-deep pool in and out of the water (only the e2e real cave caught it). Guard: `breath.test.ts` holds a floating body for 240 frames and checks it never leaves the water, plus a two-deep pool case.
 - `vitest` swallows `console.log`; debug traces need `process.stdout.write` with `--disableConsoleIntercept`.
+
+## 2026-11-26 run 100
+- Kit items could enter the stash (award gifts, death) but nothing could take them out; unit tests asserted "gift is in the stash" and so protected the bug. Guard: `kit.ts` plus `quests.test.ts` (a save with stranded medkits gets them back). When adding a new way into an inventory, test the way out too.
+- Adding buttons to a workshop row looked fine on desktop and overlapped on a 390 px phone while the "inside the screen" check passed. Guard: look at the 09* phone shots after any workshop row change; a narrow layout (`pw < u * 30`) exists.
+- A hard-coded `SAVE_VERSION` assertion came back (haptics test), against the run 58 rule. Compare with `SAVE_VERSION`.
+- The flooded-cave swim check failed once in a full e2e (inLiquid 0 after a blind 500 ms wait; a floating body sits on the waterline). It now waits for an in-water frame.

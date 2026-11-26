@@ -16,10 +16,12 @@ import { sanitizeResearch, type ResearchId } from './research';
 import { BOSS_IDS, type BossId } from './bosses';
 import { sanitizeDiff, type WorldDiff } from './persist';
 import { sanitizeMet } from './teach';
+import { sanitizeQuests, type QuestLog } from './quests';
+import { validPin } from './tracker';
 import type { EnemyKind } from './enemies';
 import { DRONE_ROLES, sanitizeRules, type DroneRole, type DroneRule } from './drones';
 
-export const SAVE_VERSION = 32;
+export const SAVE_VERSION = 33;
 /** Keep saves well under the ~5 MB localStorage quota: past this, the world diff is dropped (progress is kept). */
 export const SAVE_SOFT_LIMIT = 2_500_000;
 const MAX_COUNT = 1_000_000_000;
@@ -82,6 +84,9 @@ export interface SaveData {
   worldSize: { w: number; h: number };
   /** v31: enemy kinds already met (teach.ts); v30 saves load with none, so each kind teaches once. */
   met: EnemyKind[];
+  /** v33: robot quests finished (quests.ts) and the tracked recipe or quest (tracker.ts), null = none. */
+  quests: QuestLog;
+  pin: string | null;
 }
 
 export function defaultSave(seedBase = 1337): SaveData {
@@ -116,6 +121,8 @@ export function defaultSave(seedBase = 1337): SaveData {
     hotbar: [],
     worldSize: { w: WORLD_W, h: WORLD_H },
     met: [],
+    quests: {},
+    pin: null,
   };
 }
 
@@ -220,6 +227,9 @@ export function parseSave(raw: string | null | undefined): SaveData {
     worldSize: sanitizeWorldSize(r.worldSize, num(r.v, 0, 9999, 0) < 28 && !!r.world && typeof r.world === 'object'),
     // v30 -> v31: no enemy kinds met yet; each kind's first wild spawn teaches its pattern once.
     met: sanitizeMet(r.met),
+    // v32 -> v33: no quests finished and nothing tracked.
+    quests: sanitizeQuests(r.quests),
+    pin: validPin(r.pin, sanitizeQuests(r.quests)) ? r.pin : null,
   };
 }
 

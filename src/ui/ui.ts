@@ -7,6 +7,8 @@ import { PAINTS, PAINT_SLOTS, unlockedPaints, type PaintSlot } from '../sim/pain
 import { codexCounts, logParts, readLogs, stepLog, type CodexSection } from '../sim/codex';
 import { AWARDS, awardGift, awardProgress } from '../sim/achievements';
 import { GOAL_STEPS } from '../sim/ftue';
+import { QUESTS, QUEST_NPCS, activeQuest, questsDone, type QuestNpc } from '../sim/quests';
+import type { Tracker } from '../sim/tracker';
 import { PREFS, prefValueLabel, type PrefKey } from '../sim/settings';
 import { BINDS, keyLabel, type BindId } from '../sim/keys';
 import { recordLine } from '../sim/records';
@@ -71,6 +73,8 @@ export type UiAction =
   | { k: 'resetkeys' }
   | { k: 'buy'; id: string }
   | { k: 'craft'; id: string }
+  | { k: 'pin'; id: string }
+  | { k: 'quest'; npc: QuestNpc }
   | { k: 'trade'; id: string }
   | { k: 'modbuy'; id: ModId }
   | { k: 'modfit'; id: ModId }
@@ -134,10 +138,10 @@ export type UiAction =
   | { k: 'ruledel'; i: number }
   | { k: 'ruleadd' };
 
-export type ShopTab = 'upgrades' | 'fab' | 'gear' | 'trade';
+export type ShopTab = 'upgrades' | 'fab' | 'gear' | 'trade' | 'quests';
 
-export const SHOP_TABS: readonly ShopTab[] = ['upgrades', 'fab', 'gear', 'trade'];
-const TAB_LABEL: Record<ShopTab, string> = { upgrades: 'UPGRADES', fab: 'FABRICATE', gear: 'GEAR', trade: 'TRADE' };
+export const SHOP_TABS: readonly ShopTab[] = ['upgrades', 'fab', 'gear', 'trade', 'quests'];
+const TAB_LABEL: Record<ShopTab, string> = { upgrades: 'UPGRADES', fab: 'FABRICATE', gear: 'GEAR', trade: 'TRADE', quests: 'QUESTS' };
 
 /** Most shop rows drawn at once; longer lists scroll so the panel always fits a 360 px phone. */
 export const SHOP_VISIBLE = 9;
@@ -266,7 +270,7 @@ export class UI {
 
   /** Row count of the current shop tab. */
   shopRows(): number {
-    return this.shopTab === 'upgrades' ? UPGRADES.length : this.shopTab === 'gear' ? GEAR_IDS.length : this.shopTab === 'trade' ? this.tradeRows : RECIPES.length;
+    return this.shopTab === 'upgrades' ? UPGRADES.length : this.shopTab === 'gear' ? GEAR_IDS.length : this.shopTab === 'trade' ? this.tradeRows : this.shopTab === 'quests' ? QUEST_NPCS.length : RECIPES.length;
   }
 
   scrollShop(d: number): void {
@@ -1880,6 +1884,9 @@ export class UI {
     const goal = game.goal;
     this.goalRect = null;
     if (goal && !game.boss && !this.mapOpen && !this.invOpen) ty += this.drawGoal(ctx, game, goal, tl.x, ty, tl.maxW, u, time) + u * 0.35;
+    const tracker = game.tracker;
+    this.trackerRect = null;
+    if (tracker && !game.boss && !this.mapOpen && !this.invOpen) ty += this.drawTracker(ctx, tracker, tl.x, ty, tl.maxW, u) + u * 0.35;
     for (let i = this.toasts.length - 1; i >= 0; i--) ty += this.drawToast(ctx, this.toasts[i], tl.x, ty, tl.maxW, u) + u * 0.35;
 
     // Contextual warnings and first-minute hints.
@@ -1937,6 +1944,8 @@ export class UI {
   barsRect: { x: number; y: number; w: number; h: number } | null = null;
 
   /** Guided-goal card on screen this frame (e2e), or null. */
+  /** The tracked-goal card drawn last frame (e2e). */
+  trackerRect: { x: number; y: number; w: number; h: number; title: string; hint: string; ready: boolean } | null = null;
   goalRect: { x: number; y: number; w: number; h: number; id: string; lines: number } | null = null;
 
   /** Slim GOAL card: a "2/7" step badge, the step text (keys filled in) and count on one row, a hairline progress bar. */
@@ -2161,6 +2170,88 @@ export class UI {
     }
   }
 
+  /**
+   * One robot's quest line: what it asks (have/need), its story line, TRACK and DELIVER. Wide screens use
+   * one shop row with item icons; narrow phones get a taller row (title, story line, then goods and buttons).
+   */
+  private questRow(ctx: CanvasRenderingContext2D, game: Game, npc: QuestNpc, px: number, ry: number, pw: number, rowH: number, u: number): void {
+    const info = NPC_INFO[npc];
+    const quest = activeQuest(game.questLog, npc);
+    const done = questsDone(game.questLog, npc);
+    const total = QUESTS[npc].length;
+    const home = game.hasNpc(npc);
+    const pinned = game.pin === `q:${npc}`;
+    const ready = !!quest && home && ITEM_IDS.every((k) => (game.stash[k] ?? 0) >= (quest.need[k] ?? 0));
+    const narrow = pw < u * 30;
+    ctx.fillStyle = pinned ? 'rgba(255,207,74,0.12)' : ready ? 'rgba(125,255,176,0.1)' : 'rgba(255,255,255,0.05)';
+    ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
+    const isz = rowH - u * 0.8;
+    if (!narrow && quest) tradeParts(quest.need).forEach(([k, n], i) => this.cell(ctx, px + u * 0.8 + i * (isz + u * 0.3), ry + u * 0.25, isz, k, n, (game.stash[k] ?? 0) >= n, null, !home));
+    const pinX = px + pw - u * 10.7;
+    // Two icon columns are reserved on wide screens so every row's text lines up.
+    const tx = narrow ? px + u : px + u * 1.4 + (isz + u * 0.3) * 2;
+    const tw = narrow ? pw - u * 2 : pinX - u * 0.4 - tx;
+    const title = quest ? `${info.name}: ${quest.title}  ${done + 1}/${total}` : `${info.name}: all ${total} done`;
+    this.text(ctx, title, tx, ry + (narrow ? u * 0.9 : rowH * 0.3), Math.round(u * 0.85), quest ? '#fff' : '#ffd23a', 'left', tw);
+    const story = !quest
+      ? `"${QUESTS[npc][total - 1].done}"`
+      : home
+        ? `"${quest.ask}"`
+        : narrow
+          ? `Furnish a room so ${info.name} moves in`
+          : `Furnish ${npc === 'trader' ? 'a' : 'another'} room (light, table, bed) so ${info.name} moves in`;
+    this.text(ctx, story, tx, ry + (narrow ? u * 2.2 : rowH * 0.68), Math.round(u * 0.66), !quest ? '#c9d0e4' : home ? '#9fdcff' : '#9aa3b8', 'left', tw);
+    if (!quest) return;
+    const bh = narrow ? u * 2 : rowH - u * 0.9;
+    const by = narrow ? ry + rowH - bh - u * 0.6 : ry + u * 0.3;
+    if (narrow) {
+      const goods = tradeParts(quest.need).map(([k, n]) => `${Math.min(n, game.stash[k] ?? 0)}/${n} ${ITEMS[k].name.toLowerCase()}`);
+      goods.forEach((g, i) => this.text(ctx, g, tx, by + bh * (goods.length > 1 ? 0.3 + i * 0.45 : 0.55), Math.round(u * 0.66), ready ? '#9ff6a0' : '#eef1f8', 'left', pinX - u * 0.4 - tx));
+    }
+    this.button(ctx, pinX, by, u * 4.4, bh, pinned ? 'TRACKED' : 'TRACK', { k: 'pin', id: `q:${npc}` }, u * 0.7, { color: pinned ? '#7a5a1a' : '#23262f' });
+    this.button(ctx, px + pw - u * 6.1, by, u * 5.3, bh, 'DELIVER', { k: 'quest', npc }, u * 0.75, { enabled: ready });
+  }
+
+  /** The tracked goal under the GOAL card: material icons with have/need and where to get the next one. */
+  private drawTracker(ctx: CanvasRenderingContext2D, t: Tracker, x: number, y: number, maxW: number, u: number): number {
+    const fs = Math.round(u * 0.7);
+    const pad = u * 0.45;
+    const icon = u * 1.5;
+    const head = `TRACKING  ${t.title}`;
+    ctx.font = `bold ${fs}px ${FONT}`;
+    const countW = t.rows.map((r) => ctx.measureText(`${r.have}/${r.need}`).width);
+    const chipsW = countW.reduce((a, c) => a + icon + c + u * 0.9, 0);
+    const hintLines = wrapText(t.hint, maxW - pad * 2, (s) => ctx.measureText(s).width).slice(0, 2);
+    const hintW = Math.max(...hintLines.map((l) => ctx.measureText(l).width));
+    const pw = Math.min(maxW, Math.max(ctx.measureText(head).width, chipsW, hintW) + pad * 2 + u * 0.2);
+    const line = fs * 1.35;
+    const ph = pad * 2 + line + icon + u * 0.2 + hintLines.length * line;
+    const accent = t.ready ? '#7dffb0' : '#ffcf4a';
+    ctx.fillStyle = 'rgba(8,10,18,0.66)';
+    ctx.fillRect(x, y, pw, ph);
+    ctx.fillStyle = accent;
+    ctx.fillRect(x, y, Math.max(2, u * 0.18), ph);
+    const tx = x + pad + u * 0.2;
+    this.text(ctx, head, tx, y + pad + line * 0.5, fs, accent, 'left', pw - pad * 2);
+    let cx = tx;
+    const cy = y + pad + line;
+    // Many materials share the card's width evenly rather than spilling off it.
+    const squeeze = Math.min(1, (pw - pad * 2) / Math.max(1, chipsW));
+    t.rows.forEach((r, i) => {
+      const s = Math.max(1, Math.round((icon * squeeze) / ICON));
+      drawIcon(ctx, r.item, Math.round(cx), Math.round(cy + (icon - ICON * s) / 2), s);
+      this.text(ctx, `${r.have}/${r.need}`, cx + ICON * s + u * 0.2, cy + icon * 0.5, fs, r.have >= r.need ? '#9ff6a0' : '#eef1f8', 'left', countW[i] * squeeze);
+      cx += (icon + countW[i] + u * 0.9) * squeeze;
+    });
+    let ly = cy + icon + u * 0.2;
+    for (const l of hintLines) {
+      this.text(ctx, l, tx, ly + line * 0.5, fs, t.ready ? '#9ff6a0' : '#c9d0e4', 'left', pw - pad * 2);
+      ly += line;
+    }
+    this.trackerRect = { x, y, w: pw, h: ph, title: t.title, hint: t.hint, ready: t.ready };
+    return ph;
+  }
+
   private drawShop(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number): void {
     ctx.fillStyle = 'rgba(8,6,16,0.82)';
     ctx.fillRect(0, 0, w, h);
@@ -2237,16 +2328,33 @@ export class UI {
       const potLock = !!r.pot && !game.hasPot();
       const locked = fabLocked || bpLock || potLock;
       const afford = !locked && ITEM_IDS.every((id) => (game.stash[id] ?? 0) >= (r.cost[id] ?? 0));
-      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      const pinned = game.pin === `r:${r.id}`;
+      ctx.fillStyle = pinned ? 'rgba(255,207,74,0.12)' : 'rgba(255,255,255,0.05)';
       ctx.fillRect(px + u * 0.5, ry, pw - u, rowH - u * 0.3);
-      this.text(ctx, `${r.pot ? 'Cooking pot' : 'Fabricator'}: ${r.name}`, px + u, ry + rowH * 0.3, Math.round(u * 0.95));
+      // The thing you get, as an icon, so the list scans like a shelf; narrow phones keep the width for text.
+      const narrow = pw < u * 30;
+      const isz = narrow ? 0 : rowH - u * 0.8;
+      const makeW = u * (narrow ? 4 : 5.5);
+      const pinW = u * (narrow ? 2.8 : 4.4);
+      const pinX = px + pw - u * 0.8 - makeW - u * 0.4 - pinW;
+      if (isz > 0) this.cell(ctx, px + u * 0.8, ry + u * 0.25, isz, r.out, r.qty > 1 ? r.qty : null, false, null, locked);
+      const fx0 = isz > 0 ? px + u * 1.5 + isz : px + u;
+      const fw = pinX - u * 0.4 - fx0;
+      this.text(ctx, narrow ? r.name.split(' (')[0] : r.pot ? `Cooking pot: ${r.name}` : r.name, fx0, ry + rowH * 0.3, Math.round(u * 0.95), '#fff', 'left', fw);
       const meal = MEAL_BUFF[r.out];
       const mealNote = meal ? `  ${BUFFS[meal].desc} for ${BUFF_TIME / 60} min` : '';
-      this.text(ctx, fabLocked ? `Needs Fabricator Lv ${r.fab}` : bpLock ? `Raid blueprint: clear ${r.raids} raids (${game.stats.raids}/${r.raids})` : potLock ? `Place a cooking pot in the base first.${mealNote}` : `Cost: ${costText(r.cost)}${mealNote}`, px + u, ry + rowH * 0.68, Math.round(u * 0.72), afford ? '#9ff6a0' : '#ff8a8a');
-      const bw = u * 5.5;
-      this.button(ctx, px + pw - bw - u * 0.8, ry + u * 0.3, bw, rowH - u * 0.9, 'MAKE', { k: 'craft', id: r.id }, u * 0.9, { enabled: afford });
+      this.text(ctx, fabLocked ? `Needs Fabricator Lv ${r.fab}` : bpLock ? `Raid blueprint: clear ${r.raids} raids (${game.stats.raids}/${r.raids})` : potLock ? `Place a cooking pot in the base first.${mealNote}` : `Cost: ${costText(r.cost)}${mealNote}`, fx0, ry + rowH * 0.68, Math.round(u * 0.72), afford ? '#9ff6a0' : '#ff8a8a', 'left', fw);
+      this.button(ctx, pinX, ry + u * 0.3, pinW, rowH - u * 0.9, narrow ? (pinned ? 'ON' : 'PIN') : pinned ? 'TRACKED' : 'TRACK', { k: 'pin', id: `r:${r.id}` }, u * 0.7, { color: pinned ? '#7a5a1a' : '#23262f' });
+      this.button(ctx, px + pw - makeW - u * 0.8, ry + u * 0.3, makeW, rowH - u * 0.9, 'MAKE', { k: 'craft', id: r.id }, u * 0.9, { enabled: afford });
       ry += rowH;
     }
+    // Narrow phones give the four quest rows the height the longer lists use.
+    const questH = pw < u * 30 ? Math.min(u * 5.4, (vis * rowH) / Math.min(vis, QUEST_NPCS.length)) : rowH;
+    for (const npc of this.shopTab === 'quests' ? QUEST_NPCS.slice(this.shopScroll, this.shopScroll + vis) : []) {
+      this.questRow(ctx, game, npc, px, ry, pw, questH, u);
+      ry += questH;
+    }
+    if (this.shopTab === 'quests' && vis >= QUEST_NPCS.length) this.text(ctx, 'TRACK pins a quest to your HUD. No timers: hand it in whenever you like.', px + pw / 2, ry + u, Math.round(u * 0.72), '#8a90a2', 'center', pw - u * 2);
     for (const id of this.shopTab === 'gear' ? GEAR_IDS.slice(this.shopScroll, this.shopScroll + vis) : []) {
       const gd = GEAR[id];
       const owned = game.ownsGear(id);
