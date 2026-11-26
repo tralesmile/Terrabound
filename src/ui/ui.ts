@@ -1,4 +1,4 @@
-import { deskHints, hintAlpha, layoutHints } from './hintbar';
+import { deskHints, padHints, hintAlpha, layoutHints } from './hintbar';
 import { BREATH, breathLabel } from '../sim/breath';
 import { PREFIXES, RARITY, REFORGE_COST, oddsText, prefixedName, type PrefixId, type WeaponSlot } from '../sim/rarity';
 import { diveTitle, reportRows, tripChips, type DiveReport, type TripReport } from '../sim/divereport';
@@ -88,6 +88,8 @@ export type UiAction =
   | { k: 'sel'; i: number }
   /** Select visible build-bar slot n (keys 6-0 and -). */
   | { k: 'barslot'; n: number }
+  /** Controller bumper: the next filled build-bar slot. */
+  | { k: 'barnext' }
   /** Touch long-press on a bar slot: open the inventory with that item's actions. */
   | { k: 'barhold'; id: ItemId }
   /** Move a placeable one slot left/right on the build bar (inventory). */
@@ -283,6 +285,8 @@ export class UI {
   }
   placeMode = false;
   touch = false;
+  /** A controller is in use: the hint strip names its buttons. */
+  padMode = false;
   /** Settings: touch move stick on the left (0) or right (1); the hint follows it. */
   stickSide = 0;
   toasts: Toast[] = [];
@@ -1917,7 +1921,7 @@ export class UI {
 
   private drawHintBar(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, lift: number): void {
     const k = game.keys;
-    const hints = deskHints({ left: keyLabel(k.left), right: keyLabel(k.right), jump: keyLabel(k.jump), inventory: keyLabel(k.inventory), interact: keyLabel(k.interact) });
+    const hints = this.padMode ? padHints() : deskHints({ left: keyLabel(k.left), right: keyLabel(k.right), jump: keyLabel(k.jump), inventory: keyLabel(k.inventory), interact: keyLabel(k.interact) });
     const fs = Math.round(u * 0.7);
     ctx.font = `bold ${fs}px ${FONT}`;
     const L = layoutHints(hints, (t) => ctx.measureText(t).width, w / 2, w - u, u);

@@ -878,6 +878,54 @@ try {
       g.stash.iron_scrap = 10;
     });
   }
+  // Controller: a faked standard pad drives movement, aiming, digging and the menus.
+  await page.evaluate(() => {
+    const { ui, game: g } = window.__terrabound;
+    ui.shopOpen = false;
+    ui.toasts = [];
+    const pad = { connected: true, mapping: 'standard', axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+    window.__pad = pad;
+    window.__realPads = navigator.getGamepads;
+    navigator.getGamepads = () => [pad];
+    window.__padBtn = (i, on) => { pad.buttons[i] = { pressed: on, value: on ? 1 : 0 }; };
+    g.enemies = [];
+  });
+  const padFrames = () => page.evaluate(async () => { for (let i = 0; i < 6; i++) await new Promise((r) => requestAnimationFrame(r)); });
+  const padTap = async (i) => {
+    await page.evaluate((i) => window.__padBtn(i, true), i);
+    await padFrames();
+    await page.evaluate((i) => window.__padBtn(i, false), i);
+    await padFrames();
+  };
+  const x0 = await page.evaluate(() => window.__terrabound.game.body.x);
+  await page.evaluate(() => { window.__pad.axes = [1, 0, 0, 0]; });
+  await page.waitForTimeout(400);
+  await page.evaluate(() => { window.__pad.axes = [0, 0, 0.5, 0.5]; });
+  await page.waitForTimeout(400);
+  const walk = await page.evaluate((x0) => { const { game: g, input, ui } = window.__terrabound; return { dx: g.body.x - x0, mode: input.padMode, ui: ui.padMode, target: input.padTarget }; }, x0);
+  await page.screenshot({ path: path.join(out, '02j-gamepad.png') });
+  check('a controller walks with the left stick and aims a tile with the right', walk.dx > 0.5 && walk.mode && walk.ui && !!walk.target, JSON.stringify(walk));
+  await page.evaluate(() => { window.__pad.axes = [0, 0, 0, 0]; });
+  await padTap(3); // Y opens the pack
+  const invOn = await page.evaluate(() => window.__terrabound.ui.invOpen);
+  await page.evaluate(() => { window.__pad.axes = [0.7, 0, 0, 0]; });
+  await page.waitForTimeout(250);
+  await page.evaluate(() => { window.__pad.axes = [0, 0, 0, 0]; });
+  await padFrames();
+  const cur = await page.evaluate(() => ({ c: window.__terrabound.input.padCursor, w: innerWidth }));
+  await page.screenshot({ path: path.join(out, '18f-gamepad-menu.png') });
+  await padTap(1); // B closes it
+  const invOff = await page.evaluate(() => window.__terrabound.ui.invOpen);
+  check('Y opens the pack, the stick moves a menu cursor and B closes it', invOn && !invOff && !!cur.c && cur.c.x > cur.w / 2 + 20, JSON.stringify({ invOn, invOff, cur }));
+  await padTap(9); // START opens settings
+  const opened = await page.evaluate(() => window.__terrabound.ui.settingsOpen);
+  await padTap(9);
+  const closed = await page.evaluate(() => window.__terrabound.ui.settingsOpen);
+  await page.keyboard.press('KeyX');
+  await padFrames();
+  const back = await page.evaluate(() => ({ mode: window.__terrabound.input.padMode, cursor: window.__terrabound.input.padCursor }));
+  check('Start opens and closes settings, and a key press hands control back to the keyboard', opened && !closed && !back.mode && !back.cursor, JSON.stringify({ opened, closed, back }));
+  await page.evaluate(() => { navigator.getGamepads = window.__realPads; });
   // Weapon rarity: REFORGE on the gear tab pays a visible price and rolls a coloured prefix.
   await page.evaluate(() => {
     const { game, ui } = window.__terrabound;

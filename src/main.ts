@@ -114,6 +114,10 @@ function boot(): void {
   ui.touch = window.matchMedia?.('(pointer: coarse)').matches === true || 'ontouchstart' in window;
   const input = new Input(canvas, ui, renderer, () => dpr);
   applyPrefs();
+  input.padWorld = {
+    body: () => ({ x: game.body.x, y: game.body.y, h: BODY_H, face: game.facing }),
+    solid: (tx, ty) => game.world.isSolid(tx, ty),
+  };
 
   const resize = (): void => {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -463,7 +467,11 @@ function boot(): void {
         break;
       }
       case 'interact':
-        if (ui.screen === 'play' && !ui.invOpen && !game.interact(input.downHeld) && !game.chestOpen) ui.toast('No chest within reach', '#8a90a2');
+        if (ui.screen === 'play' && !ui.invOpen && !game.interact(input.downHeld) && !game.chestOpen) {
+          // A controller has no workshop key: X with nothing else to use opens it at base.
+          if (input.padMode && game.canShop()) ui.shopOpen = true;
+          else ui.toast('No chest within reach', '#8a90a2');
+        }
         break;
       case 'invsel':
         ui.invSel = a.id;
@@ -499,6 +507,9 @@ function boot(): void {
         break;
       case 'barslot':
         game.selectBarSlot(a.n);
+        break;
+      case 'barnext':
+        game.cycleBar();
         break;
       case 'barmove':
         game.moveHotbar(a.id, a.d);
@@ -990,11 +1001,27 @@ function boot(): void {
   let errors = 0;
   let saveTimer = 0;
 
+  /** The controller's menu cursor: a cyan ring with a dot, dark-edged so it reads on any panel. */
+  const drawPadCursor = (c: CanvasRenderingContext2D, x: number, y: number): void => {
+    for (const [color, width] of [['#05070d', 5], ['#7df0ff', 2]] as const) {
+      c.strokeStyle = color;
+      c.lineWidth = width;
+      c.beginPath();
+      c.arc(x, y, 10, 0, Math.PI * 2);
+      c.stroke();
+    }
+    c.fillStyle = '#ffffff';
+    c.fillRect(x - 2, y - 2, 4, 4);
+  };
+
   const frame = (now: number): void => {
     try {
       const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
       last = now;
       clock += dt;
+      const menu = ui.screen !== 'play' || ui.shopOpen || ui.invOpen || ui.mapOpen || ui.settingsOpen || ui.dronesOpen || !!game.chestOpen || !!game.garageOpen;
+      if (input.pollPad(dt, menu)) ui.toast('Controller on: right stick aims, X uses, Start opens settings', '#5ad8ff', 5);
+      ui.padMode = input.padMode;
       if (ui.screen === 'play') {
         acc += dt;
         let steps = 0;
@@ -1035,7 +1062,8 @@ function boot(): void {
         sfx.updateMusic({ biome: game.world.biome[col] ?? 0, layer: game.depth > 8 ? game.layer : 0, night: isNight(game.time), boss: !!game.boss, bossId: game.boss?.id });
       }
       renderer.zipLabel = ui.touch ? 'RIDE' : `${keyLabel(game.keys.interact)} RIDE`;
-      renderer.draw(game, fx, input.mouse.has && ui.screen === 'play' && !ui.touch ? renderer.screenToTile(input.mouse.x * dpr, input.mouse.y * dpr) : null, clock);
+      const mouseAim = input.mouse.has && ui.screen === 'play' && !ui.touch ? renderer.screenToTile(input.mouse.x * dpr, input.mouse.y * dpr) : null;
+      renderer.draw(game, fx, input.padMode ? input.padTarget : mouseAim, clock);
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ui.hover = input.mouse.has && !ui.touch ? { x: input.mouse.x, y: input.mouse.y } : null;
@@ -1049,6 +1077,7 @@ function boot(): void {
       const seen = ht && ht.x >= 0 && ht.y >= 0 && ht.x < game.world.w && ht.y < game.world.h && game.fog.isSeen(ht.x, ht.y) ? ht : null;
       if (tileDwell.update(dt, seen, input.pressing || !!game.boss || !!game.raid) && !hd && seen) ui.worldTip = tileTip(game.world.get(seen.x, seen.y), game.derived.digPower, game.upgrades.pick ?? 0);
       ui.draw(ctx, game, canvas.clientWidth, canvas.clientHeight, clock);
+      if (input.padCursor) drawPadCursor(ctx, input.padCursor.x, input.padCursor.y);
       const st = input.stick();
       if (st) {
         ctx.strokeStyle = 'rgba(255,255,255,0.35)';

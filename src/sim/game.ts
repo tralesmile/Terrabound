@@ -1318,6 +1318,18 @@ export class Game {
     return true;
   }
 
+  /** Select the next filled build-bar slot after the current block (controller bumper). */
+  cycleBar(): boolean {
+    const ids: ItemId[] = [];
+    for (let n = 0; n < 6; n++) {
+      const id = barSlotItem(this.carried, this.selected, this.save.hotbar, n);
+      if (id && !ids.includes(id)) ids.push(id);
+    }
+    if (!ids.length) return false;
+    this.selected = ids[(ids.indexOf(this.selected) + 1) % ids.length];
+    return true;
+  }
+
   setTool(t: Tool): void {
     this.tool = t;
     this.mining = null;

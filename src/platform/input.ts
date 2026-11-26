@@ -5,6 +5,20 @@ import type { Renderer } from '../render/renderer';
 import type { UI, UiAction } from '../ui/ui';
 import { PLACEABLE, type ItemId } from '../sim/tiles';
 import { longPressProgress } from './longpress';
+import { PAD, heldButtons, padAim, padInUse, padPlay, stepCursor, type AimBody, type PadPlay, type PadSnapshot } from './padmap';
+import { REACH } from '../sim/game';
+
+/** What controller aiming needs to know about the player and the world. */
+export interface PadWorld {
+  body: () => AimBody;
+  solid: (tx: number, ty: number) => boolean;
+}
+
+/** The first connected pad, preferring one the browser maps to the standard layout. */
+function browserPad(): PadSnapshot | null {
+  const pads = (typeof navigator.getGamepads === 'function' ? [...navigator.getGamepads()] : []).filter((g): g is Gamepad => !!g && g.connected);
+  return pads.find((g) => g.mapping === 'standard') ?? pads[0] ?? null;
+}
 
 interface PointerInfo {
   id: number;
@@ -20,6 +34,19 @@ interface PointerInfo {
 
 /** Keyboard + mouse + touch. One third of a touch screen (left by default, right if left-handed) is a floating thumbstick; the rest aims and digs. */
 export class Input {
+  /** A controller is the input in use (any key, click or touch hands control back). */
+  padMode = false;
+  /** Menu cursor in CSS px while a controller drives menus. */
+  padCursor: { x: number; y: number } | null = null;
+  /** Tile the controller aimed at in the last read (for the aim box). */
+  padTarget: { tx: number; ty: number } | null = null;
+  padWorld: PadWorld | null = null;
+  private padState: PadPlay | null = null;
+  private padPrev: boolean[] = [];
+  /** Buttons held across a menu opening or closing stay dead until released. */
+  private padBlocked = new Set<number>();
+  private padMenu = false;
+  private padCursorAt: { x: number; y: number } | null = null;
   /** Down was held at the last read (riding a zipline downward). */
   downHeld = false;
   private keys = new Set<string>();
@@ -44,6 +71,7 @@ export class Input {
     private dpr: () => number,
   ) {
     window.addEventListener('keydown', (e) => {
+      this.leavePad();
       this.onAnyInput();
       if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(e.code)) e.preventDefault();
       if (e.repeat) return;
@@ -131,7 +159,99 @@ export class Input {
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   }
 
+  private leavePad(): void {
+    this.padMode = false;
+    this.padCursor = null;
+    this.padState = null;
+    this.padTarget = null;
+  }
+
+  /**
+   * Poll the controller once a frame. In play it feeds read() and fires one-shot actions; in menus
+   * (`menu`) the sticks move a cursor and A clicks it, so every screen works without extra code.
+   * Returns true when the player has just picked the controller up.
+   */
+  pollPad(dt: number, menu: boolean, snap: PadSnapshot | null = browserPad()): boolean {
+    if (!snap) {
+      if (this.padMode) this.leavePad();
+      this.padPrev = [];
+      return false;
+    }
+    const held = heldButtons(snap);
+    let started = false;
+    if (!this.padMode) {
+      // Only a fresh press or a pushed stick takes over, so a pad resting on the desk never does.
+      const fresh = held.some((h, i) => h && !this.padPrev[i]) || padInUse({ axes: snap.axes, buttons: [] });
+      if (!fresh) {
+        this.padPrev = held;
+        return false;
+      }
+      this.padMode = true;
+      this.mouse.has = false;
+      started = true;
+    }
+    if (menu !== this.padMenu) {
+      held.forEach((h, i) => {
+        if (h && this.padPrev[i]) this.padBlocked.add(i);
+      });
+      this.padMenu = menu;
+    }
+    for (const i of this.padBlocked) if (!held[i]) this.padBlocked.delete(i);
+    const live = held.map((h, i) => h && !this.padBlocked.has(i));
+    const pressed = (i: number): boolean => live[i] && !this.padPrev[i];
+    this.padPrev = held;
+    if (live.some(Boolean)) this.onAnyInput();
+    if (menu) this.padMenus(dt, snap, live, pressed);
+    else this.padActions(snap, live, pressed);
+    return started;
+  }
+
+  private padMenus(dt: number, snap: PadSnapshot, live: boolean[], pressed: (i: number) => boolean): void {
+    this.padState = null;
+    this.padTarget = null;
+    if (this.ui.screen === 'title' && !this.ui.settingsOpen) {
+      this.padCursor = null;
+      if (pressed(PAD.A) || pressed(PAD.START)) this.onAction({ k: 'start' });
+      return;
+    }
+    const w = this.canvas.clientWidth;
+    const h = this.canvas.clientHeight;
+    this.padCursorAt = stepCursor(this.padCursorAt ?? { x: w / 2, y: h / 2 }, snap, live, dt, w, h);
+    this.padCursor = this.padCursorAt;
+    this.mouse = { ...this.padCursorAt, has: true };
+    if (pressed(PAD.A)) {
+      const a = this.ui.hit(this.padCursorAt.x, this.padCursorAt.y);
+      if (a) this.onAction(a);
+    }
+    if (pressed(PAD.B) || pressed(PAD.START)) this.onAction({ k: 'close' });
+    if (pressed(PAD.Y) && this.ui.invOpen) this.onAction({ k: 'inv' });
+    if (pressed(PAD.BACK) && this.ui.mapOpen) this.onAction({ k: 'map' });
+    if (pressed(PAD.LB)) this.onAction({ k: 'scroll', d: -1 });
+    if (pressed(PAD.RB)) this.onAction({ k: 'scroll', d: 1 });
+  }
+
+  private padActions(snap: PadSnapshot, live: boolean[], pressed: (i: number) => boolean): void {
+    if (this.padCursor) {
+      this.padCursor = null;
+      this.mouse.has = false;
+    }
+    this.padState = padPlay(snap, live);
+    const map: [number, UiAction][] = [
+      [PAD.X, { k: 'interact' }],
+      [PAD.Y, { k: 'inv' }],
+      [PAD.RB, { k: 'tool' }],
+      [PAD.LB, { k: 'barnext' }],
+      [PAD.BACK, { k: 'map' }],
+      [PAD.START, { k: 'settings' }],
+      [PAD.UP, { k: 'heal' }],
+      [PAD.LS, { k: 'ride' }],
+      [PAD.RS, { k: 'recall' }],
+    ];
+    for (const [i, a] of map) if (pressed(i)) this.onAction(a);
+  }
+
   private down(e: PointerEvent): void {
+    this.leavePad();
     this.onAnyInput();
     const { x, y } = this.css(e);
     if (e.pointerType === 'touch') this.ui.touch = true;
@@ -175,7 +295,10 @@ export class Input {
 
   private move(e: PointerEvent): void {
     const { x, y } = this.css(e);
-    if (e.pointerType === 'mouse') this.mouse = { x, y, has: true };
+    if (e.pointerType === 'mouse') {
+      if (this.padMode) this.leavePad();
+      this.mouse = { x, y, has: true };
+    }
     const p = this.pointers.get(e.pointerId);
     if (p) {
       p.x = x;
@@ -250,7 +373,19 @@ export class Input {
       const t = this.renderer.screenToTile(aimCss.x * d, aimCss.y * d);
       aim = { tx: t.tx, ty: t.ty };
     }
-    const dash = k.has(km.dash) || (km.dash === 'ShiftLeft' && k.has('ShiftRight')) || this.dashTap;
+    let dash = k.has(km.dash) || (km.dash === 'ShiftLeft' && k.has('ShiftRight')) || this.dashTap;
+    const pad = this.padState;
+    this.padTarget = null;
+    if (pad && this.padWorld) {
+      if (pad.moveX !== 0) moveX = pad.moveX;
+      jump ||= pad.jump;
+      down ||= pad.down;
+      dig ||= pad.dig;
+      place ||= pad.place;
+      dash ||= pad.dash;
+      aim = padAim(this.padWorld.body(), pad, REACH, this.padWorld.solid);
+      this.padTarget = aim;
+    }
     this.dashTap = false;
     this.ui.reeling = reel;
     this.ui.barPress = pressing;

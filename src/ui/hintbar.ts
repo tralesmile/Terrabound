@@ -29,6 +29,21 @@ export function deskHints(k: { left: string; right: string; jump: string; invent
   ];
 }
 
+/** The same strip while a controller is in use. */
+export function padHints(): Hint[] {
+  return [
+    { key: 'STICK', label: 'move' },
+    { key: 'A', label: 'jump' },
+    { key: 'RT', label: 'dig' },
+    { key: 'LT', label: 'build' },
+    { key: 'RB', label: 'tool' },
+    { key: 'LB', label: 'block' },
+    { key: 'Y', label: 'pack' },
+    { key: 'X', label: 'use' },
+    { key: 'START', label: 'menu' },
+  ];
+}
+
 export interface HintChip extends Hint {
   x: number;
   keyW: number;
