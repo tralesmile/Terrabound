@@ -3360,7 +3360,8 @@ export class Game {
       const act = `${touch ? 'Tap' : 'E'} to ${npc.kind === 'medic' ? 'get medkits' : npc.kind === 'gunsmith' ? 'fit weapon mods' : npc.kind === 'scientist' ? 'research perks' : 'trade'}`;
       if (npc.pose === 'sleep' && this.raid) return `${info.name} hides under the covers: "Tell me when it is over!"  ${act}`;
       if (isQuestNpc(npc.kind) && this.questReady(npc.kind)) {
-        return `${info.name} the ${info.title}: "${activeQuest(this.save.quests, npc.kind)?.ask}"  You have it: ${touch ? 'tap' : 'E'}, then QUESTS`;
+        // The robot asks for its delivery, and still says what else it does.
+        return `${info.name} the ${info.title}: "${activeQuest(this.save.quests, npc.kind)?.ask}"  ${act} (delivery ready in QUESTS)`;
       }
       const memory = isQuestNpc(npc.kind) ? questMemory(this.save.quests, npc.kind) : null;
       return `${info.name} the ${info.title}: "${npcLine(npc.kind, this.time, this.npcMood(npc.kind), memory)}"  ${act}`;
