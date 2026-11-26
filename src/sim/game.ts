@@ -1,3 +1,4 @@
+import { BREATH, scrubbing, stepBreath, swimVy } from './breath';
 import { WALL, gravityMul, stepVx, wallSide } from './movement';
 import { activePaint, nextPaint, type PaintDef, type PaintSlot } from './paints';
 import { CREW_KINDS, codexRows, loreKey, noteCodexEvent, trinketCount, type CodexRow } from './codex';
@@ -262,6 +263,8 @@ export type GameEvent =
   | { t: 'drip'; x: number; y: number }
   | { t: 'splash'; x: number; y: number; kind: 'acid' | 'debris' }
   | { t: 'steam'; x: number; y: number }
+  /** The held breath ran out under water: the suit scrubbers start drawing battery. */
+  | { t: 'scrubbers' }
   | { t: 'gas' }
   | { t: 'dronerole'; role: DroneRole; name: string }
   | DroneEvent;
@@ -427,6 +430,12 @@ export class Game {
   private casts = 0;
   /** Liquid tile the player's body centre is in (0 = none). */
   inLiquid = 0;
+  /** The helmet itself is under a liquid surface. */
+  headUnder = false;
+  /** Seconds of held breath spent (breath.ts). */
+  breathSpent = 0;
+  /** The suit scrubbers are drawing extra battery right now. */
+  scrubbersOn = false;
   private acidTick = 0;
   /** Seconds until a lavafall burns again while the player stands in it. */
   private fallBurn = 0;
@@ -1113,6 +1122,9 @@ export class Game {
     this.fallers = [];
     this.hazards = placeHazards(this.world);
     this.inGas = false;
+    this.breathSpent = 0;
+    this.headUnder = false;
+    this.scrubbersOn = false;
     this.debrisCd = 5;
     this.gasTick = 0;
     const d = this.derived;
@@ -1761,6 +1773,8 @@ export class Game {
     const covered = isLiquid(this.world.get(Math.floor(b.x), Math.floor(midY) - 1)) || midY - Math.floor(midY) >= 1 - swimLvl / FULL;
     const wasLiquid = this.inLiquid;
     this.inLiquid = isLiquid(swimT) && covered ? swimT : 0;
+    this.headUnder = this.inLiquid !== 0 && this.submergedAt(b.x, b.y - BODY_H + 0.3);
+    this.stepScrubbers(dt);
     // Falling lava (Ash Dunes lavafalls) burns like the magma it pours into.
     this.fallBurn = Math.max(0, this.fallBurn - dt);
     if (this.fallBurn <= 0 && inLavafall(this.world, b.x, b.y, HALF_W, BODY_H)) {
@@ -1788,7 +1802,8 @@ export class Game {
     } else if (this.inLiquid) {
       // Swimming: slow sink, jump strokes upward, no fall damage, drag on both axes.
       b.vx *= 1 - Math.min(1, 6 * dt);
-      b.vy = c.jump ? Math.max(-SWIM_UP, b.vy - GRAVITY * 1.2 * dt) : Math.min(SINK, b.vy + GRAVITY * 0.25 * dt);
+      const shallow = this.headUnder && !this.submergedAt(b.x, b.y - BODY_H + 0.3 - BREATH.buoyDepth);
+      b.vy = swimVy(b.vy, c, this.headUnder, shallow, dt, { gravity: GRAVITY, up: SWIM_UP, sink: SINK });
       this.coyote = 0.05;
       this.wasGround = true;
       const dps = TILES[this.inLiquid]?.dps ?? 0;
@@ -2040,6 +2055,24 @@ export class Game {
     }
     this.stepBay(dt, d.maxBattery);
     if (this.hp <= 0) this.die();
+  }
+
+  /** True when the point is below the liquid surface of its cell. */
+  private submergedAt(x: number, y: number): boolean {
+    const tx = Math.floor(x);
+    const ty = Math.floor(y);
+    if (!isLiquid(this.world.get(tx, ty))) return false;
+    return isLiquid(this.world.get(tx, ty - 1)) || y - ty >= 1 - levelAt(this.world, tx, ty) / FULL;
+  }
+
+  /** Held breath, then scrubbers that run off the battery (breath.ts). A sealed vehicle breathes free. */
+  private stepScrubbers(dt: number): void {
+    const under = this.headUnder && !this.riding;
+    this.breathSpent = stepBreath(this.breathSpent, under, dt);
+    const on = scrubbing(this.breathSpent, under) && !this.isAtBase();
+    if (on && !this.scrubbersOn) this.emit({ t: 'scrubbers' });
+    this.scrubbersOn = on;
+    if (on) this.battery = Math.max(0, this.battery - BREATH.drain * this.gear.drainMul * dt);
   }
 
   private blade(): void {

@@ -9,7 +9,7 @@ import { apronLights, bayArc, chargeMotes, dockCable } from './bayfx';
 import { APRON_FROM, APRON_TO, VEHICLES as GARAGE_VEHICLES, bayAt } from '../sim/garage';
 import { magnetTint, pullBeads, pulledDrops } from './magnetfx';
 import { FALL_W, LAVA_BLOCK, SHIMMER_ROW, SHIMMER_ROWS, fallShade, lavaDepthShade, lavaShade, shimmerRuns, shimmerShift, fallEdges } from './lavafx';
-import { acidBubble, causticDapples, depthRamp, liquidFalling, splashDrops, streamGap, streamLanding, streamWidth, surfaceGlint, waveOffsets } from './liquidfx';
+import { acidBubble, causticDapples, depthRamp, liquidFalling, splashDrops, streamGap, streamLanding, streamWidth, surfaceGlint, waveOffsets, underwaterLook } from './liquidfx';
 import { cropAt, isCropTile, isWatered } from '../sim/farming';
 import { cropSway, drawCropTile, ripeSparkle, sprinklerDrops } from './crops';
 import { NPC_INFO, type Mood, type Npc } from '../sim/npcs';
@@ -1145,6 +1145,7 @@ export class Renderer {
     this.drawDarkness(ctx, game, px, py - 14 * scale, time, shakeX, shakeY);
     // Bolts are light sources: drawn over the darkness with an additive glow so they read in deep caves.
     this.drawBolts(ctx, game, shakeX, shakeY, time);
+    this.drawUnderwater(ctx, game);
     this.drawHurt(ctx, game, fx, time);
   }
 
@@ -1168,6 +1169,26 @@ export class Renderer {
       ctx.fillRect(Math.round(px + m.dx * scale - scale / 2), Math.round(py - m.dy * scale - scale / 2), scale, scale);
     }
     ctx.restore();
+  }
+
+  /** Strength of the under-water wash, eased so bobbing at the surface does not flicker (e2e reads it). */
+  underK = 0;
+  private underKind: 'water' | 'acid' | 'magma' = 'water';
+
+  private drawUnderwater(ctx: CanvasRenderingContext2D, game: Game): void {
+    const under = game.headUnder && !game.riding;
+    if (under) this.underKind = game.inLiquid === T.ACID_POOL ? 'acid' : game.inLiquid === T.MAGMA ? 'magma' : 'water';
+    this.underK += ((under ? 1 : 0) - this.underK) * 0.15;
+    if (this.underK < 0.02) return;
+    const look = underwaterLook(this.underKind, this.underK, game.scrubbersOn);
+    ctx.fillStyle = look.tint;
+    ctx.fillRect(0, 0, this.w, this.h);
+    const r = Math.hypot(this.w, this.h) / 2;
+    const g = ctx.createRadialGradient(this.w / 2, this.h / 2, r * 0.3, this.w / 2, this.h / 2, r);
+    g.addColorStop(0, 'rgba(2,10,26,0)');
+    g.addColorStop(1, look.rim);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, this.w, this.h);
   }
 
   private drawHurt(ctx: CanvasRenderingContext2D, game: Game, fx: Fx, time: number): void {

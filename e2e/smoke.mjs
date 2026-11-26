@@ -1185,6 +1185,37 @@ try {
     return { most, inLiquid: g.inLiquid };
   }, tank) : null;
   check('the helmet leaks air bubbles while under water', !!bubbled && bubbled.most >= 2, JSON.stringify(bubbled));
+  // Held breath, then the suit scrubbers run off the battery (breath.ts): chip, wash and real drain.
+  const breath = tank ? await page.evaluate(async ({ x, top }) => {
+    const t = window.__terrabound;
+    const g = t.game;
+    g.breathSpent = 0;
+    const pin = async (ms) => {
+      const end = performance.now() + ms;
+      while (performance.now() < end) {
+        g.enemies = [];
+        g.hp = g.derived.maxHp;
+        g.body.x = x + 0.5;
+        g.body.y = top + 3.9;
+        g.body.vx = g.body.vy = 0;
+        await new Promise((r) => setTimeout(r, 40));
+      }
+    };
+    await pin(500);
+    const early = { on: g.scrubbersOn, label: t.ui.breathChip?.label ?? null };
+    // Skip the rest of the held breath: headless frames can run slower than real time.
+    g.breathSpent = 2.9;
+    await pin(900);
+    const bat0 = g.battery;
+    await pin(1000);
+    return { early, on: g.scrubbersOn, label: t.ui.breathChip?.label ?? null, wash: t.renderer.underK, spent: bat0 - g.battery };
+  }, tank) : null;
+  await page.screenshot({ path: path.join(out, '17b-underwater-scrubbers.png') });
+  check(
+    'under water the suit holds its breath, then the scrubbers drain battery with a HUD warning',
+    !!breath && !breath.early.on && /HOLDING BREATH/.test(breath.early.label ?? '') && breath.on && /SCRUBBERS ON/.test(breath.label ?? '') && breath.wash > 0.8 && breath.spent > 0,
+    JSON.stringify(breath),
+  );
   const splash = tank ? await page.evaluate(async ({ x, top }) => {
     const t = window.__terrabound;
     const g = t.game;

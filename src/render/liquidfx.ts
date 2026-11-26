@@ -121,3 +121,9 @@ export function streamLanding(world: World, x: number, y: number, t: number): nu
   }
   return null;
 }
+
+/** Full-screen under-water wash: tint colour and strength; the rim closes in while the scrubbers run. */
+export function underwaterLook(liquid: 'water' | 'acid' | 'magma', k: number, scrubbing: boolean): { tint: string; rim: string } {
+  const rgb = liquid === 'acid' ? '70,170,40' : liquid === 'magma' ? '200,80,10' : '30,110,190';
+  return { tint: `rgba(${rgb},${(0.14 * k).toFixed(3)})`, rim: `rgba(2,10,26,${((scrubbing ? 0.72 : 0.5) * k).toFixed(3)})` };
+}

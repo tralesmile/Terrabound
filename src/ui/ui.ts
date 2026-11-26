@@ -1,3 +1,4 @@
+import { BREATH, breathLabel } from '../sim/breath';
 import { PREFIXES, RARITY, REFORGE_COST, oddsText, prefixedName, type PrefixId, type WeaponSlot } from '../sim/rarity';
 import { diveTitle, reportRows, tripChips, type DiveReport, type TripReport } from '../sim/divereport';
 import { BANK_CARD_LIFE, bankCardAge, bankCardFade, bankCardLayout } from './bankcard';
@@ -539,6 +540,8 @@ export class UI {
   reeling = false;
   /** Touch long-press in progress on a build-bar slot (item id, 0..1 fill), drawn as a ring on the slot. */
   barPress: { id: string; k: number } | null = null;
+  /** The under-water chip drawn this frame (e2e reads it). */
+  breathChip: { x: number; y: number; w: number; h: number; label: string } | null = null;
   /** Boss bar damage chip (null when no fight) and the time it was last stepped. */
   bossChip: ChipState | null = null;
   private bossChipT = 0;
@@ -1717,6 +1720,26 @@ export class UI {
       this.text(ctx, label, bxp + u * 0.45, cy + u * 0.62, fs, left < 15 && Math.floor(time * 4) % 2 === 0 ? '#ffffff' : BUFFS[id].color);
       bxp += tw + u * 0.4;
       hudLow = Math.max(hudLow, cy + u * 1.6);
+    }
+
+    // Under water: held breath counts down, then the scrubbers' battery cost shows (breath.ts).
+    this.breathChip = null;
+    if (game.headUnder && !game.riding && !game.isAtBase()) {
+      const label = breathLabel(game.breathSpent, game.gear.drainMul);
+      const fs = Math.round(u * 0.75);
+      ctx.font = `bold ${fs}px ui-monospace, Menlo, Consolas, monospace`;
+      const tw = ctx.measureText(label).width + u * 0.8;
+      const cy = hudLow + u * 0.1;
+      const hot = game.scrubbersOn;
+      ctx.fillStyle = 'rgba(10,12,20,0.75)';
+      ctx.fillRect(x, cy, tw, u * 1.2);
+      ctx.fillStyle = hot ? '#ff9a3c' : '#7ad4ff';
+      ctx.fillRect(x, cy, u * 0.2, u * 1.2);
+      // The held breath drains along the bottom edge of the chip.
+      if (!hot) ctx.fillRect(x, cy + u * 1.06, tw * (1 - game.breathSpent / BREATH.hold), u * 0.14);
+      this.text(ctx, label, x + u * 0.45, cy + u * 0.58, fs, hot && Math.floor(time * 4) % 2 === 0 ? '#ffffff' : hot ? '#ff9a3c' : '#cfeeff');
+      this.breathChip = { x, y: cy, w: tw, h: u * 1.2, label };
+      hudLow = cy + u * 1.6;
     }
 
     if (game.isAtBase() && (game.power.solars > 0 || game.power.smelters > 0 || game.power.batteries > 0 || game.power.miners > 0 || game.power.drones > 0)) {
