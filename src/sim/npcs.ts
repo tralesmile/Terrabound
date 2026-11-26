@@ -389,11 +389,12 @@ function walk(npc: Npc, x: number, step: number): boolean {
   return false;
 }
 
-/** The line a robot says now (changes every 6 s of game time); every third line is about its mood. Pure. */
-export function npcLine(kind: NpcKind, time: number, mood: Mood = 'content'): string {
+/** The line a robot says now (changes every 6 s of game time); every third line is about its mood, and every third one after it is the latest quest memory. Pure. */
+export function npcLine(kind: NpcKind, time: number, mood: Mood = 'content', memory: string | null = null): string {
   const lines = NPC_INFO[kind].lines;
   const i = Math.floor(Math.max(0, time) / 6);
   const m = MOOD_LINES[mood];
   if (m && i % 3 === 0) return m;
+  if (memory && i % 3 === 1) return memory;
   return lines[i % lines.length];
 }

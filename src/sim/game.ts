@@ -67,7 +67,7 @@ import { RESEARCH, applyResearch, researchMissing, type ResearchId } from './res
 import { REFORGE_COST, applyPrefixes, rollReforge, type PrefixId, type WeaponSlot } from './rarity';
 import { MODS, applyMods, bounce, fitMod, type ModId, type ModSlot } from './mods';
 import { BUFF_TIME, CHARGED_DRAIN, MEAL_BUFF, STURDY_TAKEN, SWIFT_SPEED, hasPotIn, stepBuffs, type Buffs, GARDENER_MOODS, cropAt, cropOfSeed, grassSeed, growCrops, harvestYield, isCropTile, isWatered, plantCrop, ripeIn, stepCrops, tillUnder, type CropId } from './farming';
-import { deliverQuest, sanitizeQuests, type Quest, type QuestLog, type QuestNpc } from './quests';
+import { activeQuest, deliverQuest, isQuestNpc, questMemory, questReady, sanitizeQuests, type Quest, type QuestLog, type QuestNpc } from './quests';
 import { trackerFor, validPin, type PinId, type Tracker } from './tracker';
 import { restockKit } from './kit';
 import { NPC_INFO, NPC_ORDER, TRADES, deathKeep, doTrade, moodGive, npcLine, npcMood, type Mood, npcSpots, reactNpcs, roomFloor, stepNpc, syncNpcs, tradeOpen, type Npc, type NpcKind, type Trade } from './npcs';
@@ -1068,6 +1068,11 @@ export class Game {
   /** Quests finished per robot. */
   get questLog(): Readonly<QuestLog> {
     return this.save.quests;
+  }
+
+  /** The robot lives here and its open quest can be handed in now (drives the "!" over its head). */
+  questReady(npc: NpcKind): boolean {
+    return isQuestNpc(npc) && this.hasNpc(npc) && questReady(this.save.quests, npc, this.stash);
   }
 
   /** Hand the robot's open quest in from the stash (it must live in your base, and you must be there). */
@@ -3354,7 +3359,11 @@ export class Game {
       const info = NPC_INFO[npc.kind];
       const act = `${touch ? 'Tap' : 'E'} to ${npc.kind === 'medic' ? 'get medkits' : npc.kind === 'gunsmith' ? 'fit weapon mods' : npc.kind === 'scientist' ? 'research perks' : 'trade'}`;
       if (npc.pose === 'sleep' && this.raid) return `${info.name} hides under the covers: "Tell me when it is over!"  ${act}`;
-      return `${info.name} the ${info.title}: "${npcLine(npc.kind, this.time, this.npcMood(npc.kind))}"  ${act}`;
+      if (isQuestNpc(npc.kind) && this.questReady(npc.kind)) {
+        return `${info.name} the ${info.title}: "${activeQuest(this.save.quests, npc.kind)?.ask}"  ${touch ? 'Tap' : 'E'} to hand it in`;
+      }
+      const memory = isQuestNpc(npc.kind) ? questMemory(this.save.quests, npc.kind) : null;
+      return `${info.name} the ${info.title}: "${npcLine(npc.kind, this.time, this.npcMood(npc.kind), memory)}"  ${act}`;
     }
     if (!this.isAtBase()) return null;
     const room = roomHint(this.roomHere());

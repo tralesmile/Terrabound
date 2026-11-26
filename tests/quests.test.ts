@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { Game } from '../src/sim/game';
-import { QUESTS, QUEST_NPCS, activeQuest, deliverQuest, sanitizeQuests, type QuestLog } from '../src/sim/quests';
+import { QUESTS, QUEST_NPCS, activeQuest, deliverQuest, questMemory, questReady, sanitizeQuests, type QuestLog } from '../src/sim/quests';
 import { SOURCES } from '../src/sim/sources';
 import { trackerFor, validPin } from '../src/sim/tracker';
 import { restockKit } from '../src/sim/kit';
 import { RECIPES } from '../src/sim/recipes';
-import { TRADES } from '../src/sim/npcs';
+import { TRADES, npcLine } from '../src/sim/npcs';
 import { ITEMS, invTotal, type Inventory, type ItemId } from '../src/sim/tiles';
 import { SAVE_VERSION, defaultSave, parseSave, serializeSave } from '../src/sim/save';
 
@@ -30,6 +30,28 @@ describe('robot quests', () => {
         }
       }
     }
+  });
+
+  it('knows when a delivery is ready and remembers the latest finished one', () => {
+    const log: QuestLog = {};
+    expect(questReady(log, 'trader', { iron_scrap: 11 })).toBe(false);
+    expect(questReady(log, 'trader', { iron_scrap: 12 })).toBe(true);
+    expect(questMemory(log, 'trader')).toBeNull();
+    deliverQuest(log, 'trader', { iron_scrap: 12 });
+    expect(questMemory(log, 'trader')).toBe(QUESTS.trader[0].done);
+    log.trader = 3;
+    expect(questReady(log, 'trader', { crystal: 999, metal: 999, copper_wire: 999, iron_scrap: 999 })).toBe(false);
+    expect(questMemory(log, 'trader')).toBe(QUESTS.trader[2].done);
+  });
+
+  it('a robot brings up the memory every third line, and only a robot that lives here is ever ready', () => {
+    const said = [0, 6, 12, 18, 24, 30].map((t) => npcLine('trader', t, 'content', 'I remember.'));
+    expect(said.filter((s) => s === 'I remember.')).toHaveLength(2);
+    expect(npcLine('trader', 6)).not.toBe('I remember.');
+    const g = new Game(defaultSave(7));
+    g.stash.iron_scrap = 99;
+    expect(g.questReady('trader')).toBe(false);
+    expect(g.questReady('merchant')).toBe(false);
   });
 
   it('delivers in order, pays from the stash and stops after three', () => {

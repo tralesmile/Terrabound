@@ -58,6 +58,17 @@ export function activeQuest(log: QuestLog, npc: QuestNpc): Quest | null {
   return QUESTS[npc][questsDone(log, npc)] ?? null;
 }
 
+/** True when the robot's open quest can be paid from the stash right now. */
+export function questReady(log: QuestLog, npc: QuestNpc, stash: Inventory): boolean {
+  const q = activeQuest(log, npc);
+  return !!q && canAfford(stash, q.need);
+}
+
+/** What the robot remembered after its latest finished quest (it keeps bringing it up), or null. */
+export function questMemory(log: QuestLog, npc: QuestNpc): string | null {
+  return QUESTS[npc][questsDone(log, npc) - 1]?.done ?? null;
+}
+
 /** Hand in the open quest from the stash. False (and nothing changes) when the line is done or goods are missing. */
 export function deliverQuest(log: QuestLog, npc: QuestNpc, stash: Inventory): Quest | null {
   const q = activeQuest(log, npc);

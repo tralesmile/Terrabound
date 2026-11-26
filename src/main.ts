@@ -942,6 +942,11 @@ function boot(): void {
         if (ui.screen === 'play' && !ui.shopOpen) {
           ui.invOpen = false;
           ui.shopOpen = true;
+          // A robot waiting on a delivery you can make opens straight on QUESTS.
+          if (game.questReady(e.kind)) {
+            ui.setShopTab('quests');
+            break;
+          }
           ui.setShopTab('trade');
           // Jump to the rows this robot posts (the Medic's sit below the Trader's).
           ui.shopScroll = Math.max(0, tradeEntries(game).findIndex((t) => entryNpc(t) === e.kind));

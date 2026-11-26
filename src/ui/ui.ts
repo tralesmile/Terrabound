@@ -2300,6 +2300,13 @@ export class UI {
     const ty = py + u * 4.3;
     for (const [i, t] of SHOP_TABS.entries()) {
       this.button(ctx, px + u + i * (tw + u * 0.4), ty, tw, u * 1.9, TAB_LABEL[t], { k: 'tab', t }, u * 0.8, { color: this.shopTab === t ? '#1f6f78' : '#23262f' });
+      // The same gold mark the robot wears: a delivery is ready on that tab.
+      if (t === 'quests' && QUEST_NPCS.some((n) => game.questReady(n))) {
+        ctx.fillStyle = '#ffd23a';
+        ctx.beginPath();
+        ctx.arc(px + u + i * (tw + u * 0.4) + tw - u * 0.15, ty + u * 0.15, u * 0.38, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
     if (scrolls) {
       const ax = px + pw - u - arrow * 2 - u * 0.2;

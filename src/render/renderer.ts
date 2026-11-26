@@ -266,6 +266,8 @@ export class Renderer {
   lastHurtAlpha = 0;
   /** Mood hearts drawn last frame (read by e2e). */
   heartsShown = 0;
+  /** Robots showing a ready-delivery "!" this frame (e2e). */
+  questMarks = 0;
   /** Crops and sprinklers drawn by the per-frame pass last frame (read by e2e). */
   farmShown = 0;
   /** Watered test for crops this frame (sprinklers, ponds, robot gardeners in the base). */
@@ -2239,6 +2241,7 @@ export class Renderer {
     const near = game.npcNear();
     const s = this.scale;
     this.heartsShown = 0;
+    this.questMarks = 0;
     for (const n of game.npcs) {
       const x = this.sx(n.x, shakeX);
       const hop = n.react && n.pose !== 'sit' ? npcHop(n.react, n.reactT ?? 0) * s : 0;
@@ -2257,8 +2260,13 @@ export class Renderer {
         const rows = robotRows(kind, t, n.to !== null);
         drawRows(ctx, rows, Math.round(x - (TRADER_W / 2) * s), Math.round(y - 20 * s), s, n.face < 0, TRADER_W, undefined, remap);
       }
+      const quest = n.pose !== 'sleep' && game.questReady(n.kind);
       if (n.react) this.drawNpcBubble(ctx, x, y - (n.pose === 'sit' ? 23 : 22) * s, n.react === 'cheer' ? 'Yay!' : 'Hi!', n.react === 'cheer' ? '#7dffb0' : '#ffffff', time);
-      else if (n.pose !== 'sleep' && n !== near) {
+      else if (quest) {
+        // Above the name tag when you are close, so the two never overlap.
+        this.questMarks++;
+        this.drawQuestMark(ctx, x, y - (n === near ? 32 : 23) * s, time + n.home * 0.37);
+      } else if (n.pose !== 'sleep' && n !== near) {
         const h = moodHeart(game.npcMood(n.kind), t + n.home * 0.37);
         if (h) this.heartsShown++;
         if (h) this.drawHeart(ctx, x + 5 * s, y - (22 + h.rise * 6) * s, h.alpha, h.color);
@@ -2311,6 +2319,26 @@ export class Renderer {
       ctx.textBaseline = 'middle';
       ctx.fillText(label, x, ty - s);
     }
+  }
+
+  /** A bobbing gold "!" badge: this robot's delivery is ready to hand in. (x, y) is its bottom edge. */
+  private drawQuestMark(ctx: CanvasRenderingContext2D, x: number, y: number, t: number): void {
+    const s = this.scale;
+    const by = Math.round(y - 10 * s + Math.sin(t * 4) * s);
+    const left = Math.round(x - 3.5 * s);
+    const u = Math.ceil(s);
+    const glow = ctx.createRadialGradient(x, by + 4.5 * s, 0, x, by + 4.5 * s, 11 * s);
+    glow.addColorStop(0, 'rgba(255,210,58,0.4)');
+    glow.addColorStop(1, 'rgba(255,210,58,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - 11 * s, by - 6.5 * s, 22 * s, 22 * s);
+    ctx.fillStyle = '#3a2606';
+    ctx.fillRect(left, by, Math.round(7 * s), Math.round(9 * s));
+    ctx.fillStyle = '#ffd23a';
+    ctx.fillRect(left + u, by + u, Math.round(5 * s), Math.round(7 * s));
+    ctx.fillStyle = '#3a2606';
+    ctx.fillRect(Math.round(x - s), by + Math.round(2 * s), Math.ceil(2 * s), Math.ceil(3 * s));
+    ctx.fillRect(Math.round(x - s), by + Math.round(6 * s), Math.ceil(2 * s), u);
   }
 
   /** A 5x4 pixel heart (or a grey sigh for a lonely robot) centred on (x, y). */
