@@ -13,6 +13,7 @@ import { VEHICLES } from './sim/garage';
 import { dropAt } from './sim/drops';
 import { itemTip } from './ui/itemtip';
 import { TileDwell, tileTip } from './ui/tiletip';
+import { promptKeys } from './ui/keynames';
 import { GOAL_STEPS } from './sim/ftue';
 import { audioGains, shakeMul, uiScale } from './sim/settings';
 import { CROPS } from './sim/farming';
@@ -1061,7 +1062,7 @@ function boot(): void {
         const col = Math.max(0, Math.min(game.world.w - 1, Math.floor(game.body.x)));
         sfx.updateMusic({ biome: game.world.biome[col] ?? 0, layer: game.depth > 8 ? game.layer : 0, night: isNight(game.time), boss: !!game.boss, bossId: game.boss?.id });
       }
-      renderer.zipLabel = ui.touch ? 'RIDE' : `${keyLabel(game.keys.interact)} RIDE`;
+      renderer.zipLabel = ui.touch ? 'RIDE' : `${input.padMode ? 'L3' : keyLabel(game.keys.interact)} RIDE`;
       const mouseAim = input.mouse.has && ui.screen === 'play' && !ui.touch ? renderer.screenToTile(input.mouse.x * dpr, input.mouse.y * dpr) : null;
       renderer.draw(game, fx, input.padMode ? input.padTarget : mouseAim, clock);
 
@@ -1075,7 +1076,7 @@ function boot(): void {
       // nor during a boss fight or a raid: the screen should show the fight, not "Rust").
       const ht = wp ? { x: Math.floor(wp.x), y: Math.floor(wp.y) } : null;
       const seen = ht && ht.x >= 0 && ht.y >= 0 && ht.x < game.world.w && ht.y < game.world.h && game.fog.isSeen(ht.x, ht.y) ? ht : null;
-      if (tileDwell.update(dt, seen, input.pressing || !!game.boss || !!game.raid) && !hd && seen) ui.worldTip = tileTip(game.world.get(seen.x, seen.y), game.derived.digPower, game.upgrades.pick ?? 0);
+      if (tileDwell.update(dt, seen, input.pressing || !!game.boss || !!game.raid) && !hd && seen) ui.worldTip = tileTip(game.world.get(seen.x, seen.y), game.derived.digPower, game.upgrades.pick ?? 0, promptKeys(game.keys, input.padMode));
       ui.draw(ctx, game, canvas.clientWidth, canvas.clientHeight, clock);
       if (input.padCursor) drawPadCursor(ctx, input.padCursor.x, input.padCursor.y);
       const st = input.stick();

@@ -5282,6 +5282,50 @@ try {
     }, reelBtn) : null;
     await npage.screenshot({ path: path.join(out, '23b-mobile-reel.png') });
     check('touch: holding HOLD REEL reels the grappling rope in', hooked > 0 && !!reel && reel.reeling && !reel.after && reel.len1 < reel.len0 - 0.8, JSON.stringify({ hooked, reelBtn, reel }));
+    {
+      // Touch drill assist: a thumb that lands in the air just above a rock still drills the rock.
+      await npage.evaluate(() => {
+        const { game: g } = window.__terrabound;
+        const x = g.world.padX + 40;
+        const y = g.world.padY - 14;
+        g.hook = null;
+        g.enemies = [];
+        g.spawnCd = 999;
+        for (let ty = y - 5; ty <= y + 3; ty++) for (let tx = x - 6; tx <= x + 6; tx++) g.world.set(tx, ty, ty >= y ? 4 : 0);
+        g.world.set(x + 2, y - 1, 2);
+        g.world.edits.delete((y - 1) * g.world.w + x + 2);
+        g.body.x = x + 0.5;
+        g.body.y = y;
+        g.body.vx = 0;
+        g.body.vy = 0;
+        g.battery = 999;
+        g.setTool('drill');
+      });
+      await npage.waitForTimeout(900);
+      const assist = await npage.evaluate(async () => {
+        const t = window.__terrabound;
+        const g = t.game;
+        const c = document.getElementById('game');
+        const r = c.getBoundingClientRect();
+        const a = t.renderer.screenToWorld(0, 0);
+        const b = t.renderer.screenToWorld(100, 100);
+        const rock = { x: g.world.padX + 42, y: g.world.padY - 15 };
+        const dpr = c.width / r.width;
+        // 0.2 tiles above the rock's top face.
+        const cssX = ((rock.x + 0.5 - a.x) / ((b.x - a.x) / 100)) / dpr;
+        const cssY = ((rock.y - 0.2 - a.y) / ((b.y - a.y) / 100)) / dpr;
+        const ev = (type) => new PointerEvent(type, { pointerId: 92, pointerType: 'touch', clientX: r.left + cssX, clientY: r.top + cssY, bubbles: true });
+        c.dispatchEvent(ev('pointerdown'));
+        let mining = null;
+        for (let i = 0; i < 100 && !mining; i++) {
+          await new Promise((res) => setTimeout(res, 20));
+          if (g.mining) mining = { tx: g.mining.tx, ty: g.mining.ty };
+        }
+        c.dispatchEvent(ev('pointerup'));
+        return { mining, rock };
+      });
+      check('touch: a drill tap that just misses a rock still drills it', !!assist.mining && assist.mining.tx === assist.rock.x && assist.mining.ty === assist.rock.y, JSON.stringify(assist));
+    }
     await npage.close();
   }
   check('no console or page errors on mobile', merrors.length === 0, merrors.join(' | '));

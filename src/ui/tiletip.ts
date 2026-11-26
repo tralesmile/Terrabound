@@ -6,6 +6,8 @@ import { isCropTile } from '../sim/farming';
 import { drillNeeded } from '../sim/drilltier';
 import { ITEMS, T, TILES } from '../sim/tiles';
 import type { ItemTip } from './itemtip';
+import { DEFAULT_KEYS } from '../sim/keys';
+import { fillKeys, promptKeys, type PromptKeys } from './keynames';
 
 /** Seconds the mouse must rest on one tile before its tip shows (keeps mining and building quiet). */
 export const TILE_TIP_DWELL = 0.5;
@@ -15,9 +17,9 @@ const NOTES: Partial<Record<number, string>> = {
   [T.PAD]: 'Home base: stand here to bank loot and heal.',
   [T.BEDROCK]: 'The bottom of the world.',
   [T.GATE]: 'Opens when the boss of this layer falls.',
-  [T.CHEST]: 'Click or E to open.',
-  [T.TERMINAL]: 'Click or E to read the log.',
-  [T.WATER]: 'W swims up, S dives. A long dive costs battery.',
+  [T.CHEST]: 'Click or {use} to open.',
+  [T.TERMINAL]: 'Click or {use} to read the log.',
+  [T.WATER]: '{jump} swims up, {down} dives. A long dive costs battery.',
   [T.ACID_POOL]: 'Burns while you swim in it.',
   [T.MAGMA]: 'Burns hard. Cools to basalt next to water.',
   [T.SOLAR]: 'Charges the base battery by day.',
@@ -31,16 +33,16 @@ const NOTES: Partial<Record<number, string>> = {
   [T.SAPLING]: 'Grows into a tree on soil.',
   [T.SPRINKLER]: 'Waters crops next to it.',
   [T.POT]: 'Unlocks meal recipes at the workshop.',
-  [T.GARAGE]: 'Click or E to build and deploy vehicles.',
+  [T.GARAGE]: 'Click or {use} to build and deploy vehicles.',
   [T.ICE]: 'Fish through it with the rod.',
   [T.JUMP_PAD]: 'Step on it to launch high.',
   [T.LIFT]: 'Climb it like a ladder, fast.',
-  [T.PLATFORM]: 'Jump up through it, press S to drop.',
+  [T.PLATFORM]: 'Jump up through it, press {down} to drop.',
   [T.DOOR]: 'You walk through, enemies cannot.',
   [T.WINDOW]: 'Lets light in.',
   [T.AQUARIUM]: 'A tank of glowing fish. In a room wall it adds comfort.',
   [T.OBSIDIAN]: 'Glassy rock: magma quenched by water from above. Very hard.',
-  [T.ZIP]: 'Two with a clear run link into a cable. Stand at one and press USE to ride. Move or jump to let go.',
+  [T.ZIP]: 'Two with a clear run link into a cable. Stand at one and press {use} to ride. Move or jump to let go.',
   [T.PLATE]: 'Step on it (you or an enemy) to light charges within 6 tiles.',
   [T.CHARGE]: 'Lit by a blast or bolt; chains to neighbouring charges.',
   [T.GRAVEL]: 'Loose: falls when nothing holds it up.',
@@ -51,16 +53,16 @@ const NOTES: Partial<Record<number, string>> = {
   [T.GRATE]: 'Solid, but light and sight pass through.',
   [T.NEON_CYAN]: 'Glows. In a room wall it adds comfort.',
   [T.NEON_PINK]: 'Glows. In a room wall it adds comfort.',
-  [T.LADDER]: 'Climb with W and S.',
+  [T.LADDER]: 'Climb with {jump} and {down}.',
 };
 
 /** Tooltip for tile `t`; `digPower` is the drill's current power (seconds = hardness / power). */
-export function tileTip(t: number, digPower: number, pickLevel = Infinity): ItemTip | null {
+export function tileTip(t: number, digPower: number, pickLevel = Infinity, keys: PromptKeys = promptKeys(DEFAULT_KEYS, false)): ItemTip | null {
   const def = TILES[t];
   if (!def || t === T.AIR) return null;
   const lines: string[] = [];
   const note = NOTES[t];
-  if (note) lines.push(note);
+  if (note) lines.push(fillKeys(note, keys));
   else if (isCropTile(t)) lines.push(def.name.startsWith('Ripe') ? 'Ripe: dig it to harvest.' : 'Growing. Keep it watered.');
   if (def.liquid) {
     // Liquids flow; nothing to dig.

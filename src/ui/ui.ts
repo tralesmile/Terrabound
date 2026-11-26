@@ -11,6 +11,7 @@ import { QUESTS, QUEST_NPCS, activeQuest, questsDone, type QuestNpc } from '../s
 import type { Tracker } from '../sim/tracker';
 import { PREFS, prefValueLabel, type PrefKey } from '../sim/settings';
 import { BINDS, keyLabel, type BindId } from '../sim/keys';
+import { promptKeys } from './keynames';
 import { recordLine } from '../sim/records';
 import type { Game, Tool } from '../sim/game';
 import { MAP_ZOOMS, MapView } from './map';
@@ -1650,7 +1651,7 @@ export class UI {
     this.button(ctx, w - bw - u * 2 - zb * 2 - zb * 1.6 - u * 1.2 - zb * 2.4, u * 0.4, zb * 2.2, u * 2.2, 'SHARE', { k: 'share' }, u * 0.75, { color: '#7a5a1f' });
     this.mapRect = { x: u, y: u * 3.2, w: w - u * 2, h: h - u * 6.4 };
     this.mapView.draw(ctx, game, u, u * 3.2, w - u * 2, h - u * 6.4, u, time);
-    const hint = game.canRecall() ? (this.touch ? 'Surface: tap HOME to beam to the pad' : 'Surface: hold still and press R to beam to the pad') : 'Reach the surface to beam home';
+    const hint = game.canRecall() ? (this.touch ? 'Surface: tap HOME to beam to the pad' : `Surface: hold still and press ${promptKeys(game.keys, this.padMode).recall} to beam to the pad`) : 'Reach the surface to beam home';
     this.text(ctx, hint, w / 2, h - u * 1.6, Math.round(u * 0.8), '#8a90a2', 'center', w - u * 2);
   }
 
@@ -1904,7 +1905,7 @@ export class UI {
       this.alertLine = 'BATTERY LOW - RETURN TO THE PAD';
       this.text(ctx, this.alertLine, w / 2, h * 0.2, Math.round(u * 1.2), '#ff9a3c', 'center', w - u * 2);
     }
-    const auto = game.stats.playTime >= 40 ? game.hintAutomation(this.touch) : null;
+    const auto = game.stats.playTime >= 40 ? game.hintAutomation(this.touch, promptKeys(game.keys, this.padMode).use) : null;
     if (auto) this.text(ctx, auto, w / 2, h - u * 0.7, Math.round(u * 0.75), '#7dffb0', 'center', w - u * 2);
     this.hintBar = null;
     const hintA = hintAlpha(game.stats.playTime);

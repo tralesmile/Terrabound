@@ -3388,12 +3388,12 @@ export class Game {
   }
 
   /** Tutorial line for the first automation, shown at the base only. */
-  hintAutomation(touch: boolean): string | null {
+  hintAutomation(touch: boolean, useKey = 'E'): string | null {
     // Robots can live in rooms beyond the pad strip (upstairs, next door), so they talk anywhere in the base.
     const npc = this.npcNear();
     if (npc) {
       const info = NPC_INFO[npc.kind];
-      const act = `${touch ? 'Tap' : 'E'} to ${npc.kind === 'medic' ? 'get medkits' : npc.kind === 'gunsmith' ? 'fit weapon mods' : npc.kind === 'scientist' ? 'research perks' : 'trade'}`;
+      const act = `${touch ? 'Tap' : useKey} to ${npc.kind === 'medic' ? 'get medkits' : npc.kind === 'gunsmith' ? 'fit weapon mods' : npc.kind === 'scientist' ? 'research perks' : 'trade'}`;
       if (npc.pose === 'sleep' && this.raid) return `${info.name} hides under the covers: "Tell me when it is over!"  ${act}`;
       if (isQuestNpc(npc.kind) && this.questReady(npc.kind)) {
         // The robot asks for its delivery, and still says what else it does.
@@ -3408,11 +3408,11 @@ export class Game {
     const bay = this.bayNear();
     if (bay) {
       const r = this.droneRole(bay.key);
-      return `Drone bay: ${ROLE_INFO[r].name} (${ROLE_INFO[r].desc}). ${touch ? 'Tap the bay' : 'Press E'} to change role, DRONES for rules`;
+      return `Drone bay: ${ROLE_INFO[r].name} (${ROLE_INFO[r].desc}). ${touch ? 'Tap the bay' : `Press ${useKey}`} to change role, DRONES for rules`;
     }
     if (this.merchantNear()) {
       const info = NPC_INFO.merchant;
-      return `${info.name} the ${info.title}: "${npcLine('merchant', this.time)}"  ${touch ? 'Tap' : 'E'} for today's stock`;
+      return `${info.name} the ${info.title}: "${npcLine('merchant', this.time)}"  ${touch ? 'Tap' : useKey} for today's stock`;
     }
     return automationHint(this.machineCounts, this.stash, this.power.ratio, touch, this.upgrades.fab ?? 0);
   }
