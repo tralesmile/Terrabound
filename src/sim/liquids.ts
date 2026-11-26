@@ -22,8 +22,14 @@ export const FLOW_RY = 32;
 /** How far a surface cell looks along its row for a lower spot. */
 export const FLOW_REACH = 32;
 
+/** Lookup by tile id: the flow scan asks this thousands of times a tick. */
+const LIQUID_IDS = new Uint8Array(256);
+TILES.forEach((d, id) => {
+  if (d?.liquid) LIQUID_IDS[id] = 1;
+});
+
 export function isLiquid(t: number): boolean {
-  return TILES[t]?.liquid === true;
+  return LIQUID_IDS[t] === 1;
 }
 
 /**
@@ -109,11 +115,14 @@ export function flowLiquids(world: World, cx: number, cy: number, tick: number, 
   // Alternate scan direction per tick so flow is not biased to one side.
   const ltr = (tick & 1) === 0;
   let moved = 0;
+  let wet = false;
   for (let y = y1; y >= y0; y--) {
     for (let k = 0; k <= x1 - x0; k++) {
       const x = ltr ? x0 + k : x1 - k;
-      const t = world.get(x, y);
-      if (!isLiquid(t)) continue;
+      // The window is clamped inside the world, so read the array directly (most cells are dry).
+      const t = world.tiles[y * world.w + x];
+      if (LIQUID_IDS[t] !== 1) continue;
+      wet = true;
       let a = levelAt(world, x, y);
       const start = a;
       // 1. Fall.
@@ -171,13 +180,17 @@ export function flowLiquids(world: World, cx: number, cy: number, tick: number, 
       }
     }
   }
-  return moved + pressLiquids(world, x0, x1, y0, y1, tick);
+  // Pressure is a slower rule: dry windows and the ticks between skip its extra scan.
+  if (wet && tick % PRESSURE_EVERY === 0) moved += pressLiquids(world, x0, x1, y0, y1, tick);
+  return moved;
 }
 
 /** Height gap (level units) between two joined surfaces before pressure pushes liquid across. */
 export const PRESSURE_HEAD = 8;
-/** Most units one joined body pushes per tick. */
-export const PRESSURE_RATE = 8;
+/** Most units one joined body pushes per pressure tick. */
+export const PRESSURE_RATE = FULL;
+/** Pressure runs on every Nth flow tick (magma, being viscous, on every other one of those). */
+export const PRESSURE_EVERY = 4;
 
 /**
  * 4. Pressure. A body is the set of same-liquid cells joined through brim-full cells (a partial cell
@@ -192,9 +205,9 @@ function pressLiquids(world: World, x0: number, x1: number, y0: number, y1: numb
   let moved = 0;
   for (let sy = y0; sy <= y1; sy++) {
     for (let sx = x0; sx <= x1; sx++) {
-      const t = world.get(sx, sy);
-      if (!isLiquid(t) || seen[(sy - y0) * w + sx - x0] || levelAt(world, sx, sy) < FULL) continue;
-      if (t === T.MAGMA && tick & 2) continue;
+      const t = world.tiles[sy * world.w + sx];
+      if (LIQUID_IDS[t] !== 1 || seen[(sy - y0) * w + sx - x0] || levelAt(world, sx, sy) < FULL) continue;
+      if (t === T.MAGMA && tick % (PRESSURE_EVERY * 2) !== 0) continue;
       // Highest surface (donor) and lowest outlet; height counts level units upwards.
       let dx = 0;
       let dy = 0;

@@ -29,7 +29,7 @@ function uBend(t: number = T.WATER): World {
 function run(w: World, ticks = 600): number {
   let t = 0;
   let still = 0;
-  for (; t < ticks && still < 8; t++) still = flowLiquids(w, 10, 10, t) === 0 ? still + 1 : 0;
+  for (; t < ticks && still < 16; t++) still = flowLiquids(w, 10, 10, t) === 0 ? still + 1 : 0;
   return t;
 }
 
