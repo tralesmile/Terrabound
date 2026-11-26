@@ -386,3 +386,8 @@
 - Controller: replacing "previous buttons" before computing edges meant no press ever fired, and unit tests of the pure mapping could not see it. Guard: the e2e drives a faked `navigator.getGamepads` through the real polling path.
 - A bulk `sed` rename in `e2e/smoke.mjs` hit an older identical line too. Scope new e2e blocks in `{ }` from the start and restore any UI state they change.
 - Never start a second background e2e while one is running into the same log (`pgrep -af smoke.mjs` first); mixed output looked like a failure. Chain `S=...` assignments before `&&` chains that use them: a skipped assignment left an empty `$S` and wrote a stray `/ship.log` at the filesystem root. Use full paths for logs.
+
+## 2026-11-26 run 102
+- An e2e that depends on "what is still missing" inherits whatever earlier checks banked: the glint check saw no tracked ore because the stash already held it. Guard: the fixture empties the wanted items and restores them.
+- A browser state check against one spec value ("suspended") missed iOS's non-standard "interrupted". Guard: test for the good state (`needsResume`, tested).
+- Screenshots catch UI overlap that checks miss: the new glint shot showed a block tooltip drawn over the hotbar. Read every new shot, including its edges.

@@ -1194,3 +1194,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** pad button names in prompts, tile variants (P12-F), reactive robot barks, fuse item and gates, boss hitbox audit, first-upgrade audit.
 
 **Known issues:** controller tested only with a faked standard pad (no real hardware; non-standard layouts may map wrong); no detonate button on a pad; GEAR-tab tracking not done; no screenshot of a U-bend (unit-tested).
+
+## 2026-11-26 Scheduled run 102
+
+**Done:** baseline green. (1) Touch drill assist (`digassist.ts`): a thumb that just misses a block drills it, a tap beyond reach digs the first block on that line; never player-built blocks, chests or too-hard ore; mouse and pad unchanged. (2) Prompts and block tips name your own key bindings, or X/R3/L3 on a pad (`ui/keynames.ts`). (3) Ore glints (`render/glint.ts`): ore the light only just reaches twinkles; the TRACK card's missing material twinkles more; never in full dark. (4) iOS audio now wakes from the "interrupted" state, also on tap release. (5) No block tooltip over the hotbar. Closed the Explosives item (gates moved to P12-C wiring). No save change. 176 test files, 1196 tests; JS about 203 KB gzip. Screenshot `27h-ore-glints`.
+
+**Next:** P12-A rest (jetpack/rails review, touch pistol aim and aim box, radial hotbar, pad detonate), then P12-B enemy roster (a big player-visible gap), tile variants.
+
+**Known issues:** the touch assist has no aim marker of its own (the aim box stays under the finger; the crack and beam show the real target); controller and iOS audio untested on real hardware; research topic 6 still owed.
