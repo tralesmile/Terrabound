@@ -2266,10 +2266,11 @@ export class Renderer {
         // Above the name tag when you are close, so the two never overlap.
         this.questMarks++;
         this.drawQuestMark(ctx, x, y - (n === near ? 32 : 23) * s, time + n.home * 0.37);
-      } else if (n.pose !== 'sleep' && n !== near) {
+      }
+      if (!n.react && n.pose !== 'sleep' && n !== near) {
         const h = moodHeart(game.npcMood(n.kind), t + n.home * 0.37);
         if (h) this.heartsShown++;
-        if (h) this.drawHeart(ctx, x + 5 * s, y - (22 + h.rise * 6) * s, h.alpha, h.color);
+        if (h) this.drawHeart(ctx, x + (quest ? 8 : 5) * s, y - (22 + h.rise * 6) * s, h.alpha, h.color);
       }
       if (n === near && !n.react) {
         const label = `${info.name.toUpperCase()}  ${info.title}`;
