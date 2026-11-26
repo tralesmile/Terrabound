@@ -198,7 +198,8 @@ export class Input {
     }
     for (const i of this.padBlocked) if (!held[i]) this.padBlocked.delete(i);
     const live = held.map((h, i) => h && !this.padBlocked.has(i));
-    const pressed = (i: number): boolean => live[i] && !this.padPrev[i];
+    const prev = this.padPrev;
+    const pressed = (i: number): boolean => live[i] && !prev[i];
     this.padPrev = held;
     if (live.some(Boolean)) this.onAnyInput();
     if (menu) this.padMenus(dt, snap, live, pressed);

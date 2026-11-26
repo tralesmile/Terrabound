@@ -1186,3 +1186,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** quest follow-ups (robot "!" and lines), liquids pressure rule, fuse item and gates, zip sound and map pins, boss hitbox audit, first-upgrade-in-first-dive audit.
 
 **Known issues:** raid and quest kit above half a pack waits in the stash until there is room (not shown in the UI). Long cost lines are small on 390 px phones.
+
+## 2026-11-26 Scheduled run 101
+
+**Done:** baseline green (1166 tests). (1) Liquids pressure (`pressLiquids`): pools joined through full cells level within half a tile, so water and magma climb U-bends; runs every 4th flow tick. The flow scan now reads the tile array and a lookup table (balance bot 26.4 s -> 24.7 s). (2) Quest follow-ups: gold "!" over a ready robot, QUESTS tab dot, the robot asks for its delivery and later remembers it. (3) Controller support (`padmap.ts`, `input.pollPad`): move, jump, dash, dig, build, right-stick or smart aim, X/Y/bumpers/Start, menu cursor, pad hint strip. Research topic 5. No save change. 172 test files, 1182 tests; JS 202 KB gzip. Screenshots `02j`, `18f`, `36j`.
+
+**Next:** pad button names in prompts, tile variants (P12-F), reactive robot barks, fuse item and gates, boss hitbox audit, first-upgrade audit.
+
+**Known issues:** controller tested only with a faked standard pad (no real hardware; non-standard layouts may map wrong); no detonate button on a pad; GEAR-tab tracking not done; no screenshot of a U-bend (unit-tested).

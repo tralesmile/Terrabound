@@ -1,5 +1,14 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-26 run 101
+
+- Done: gold "!" on robots with a ready delivery (Terraria/Core Keeper style "someone has something for you"); water climbs U-bends; controller support.
+- Weakest controls (was: no controller at all): prompts still say "E" on a pad; pad button names next.
+- Weakest graphics (carried): crystal flats and deep dirt are one flat noisy texture; tile variants (P12-F) are the next art slice.
+- Weakest story: robots talk about their rooms, not your dive; reactive barks after a death or boss kill.
+- Weakest progression: first upgrade in the first dive is still unaudited. Weakest performance risk: `balance.test.ts` sits near its 30 s limit (profile sim hot paths).
+- Weakest UI: the toast stack on the left gets tall over the sky early on.
+
 ## 2026-11-23 run 87
 
 - Done: wall-slide now trickles grit off the wall (run 86 had sound and a ring only).

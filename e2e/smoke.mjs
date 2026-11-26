@@ -878,7 +878,9 @@ try {
       g.stash.iron_scrap = 10;
     });
   }
+  {
   // Controller: a faked standard pad drives movement, aiming, digging and the menus.
+  const shopWas = await page.evaluate(() => window.__terrabound.ui.shopOpen);
   await page.evaluate(() => {
     const { ui, game: g } = window.__terrabound;
     ui.shopOpen = false;
@@ -897,12 +899,12 @@ try {
     await page.evaluate((i) => window.__padBtn(i, false), i);
     await padFrames();
   };
-  const x0 = await page.evaluate(() => window.__terrabound.game.body.x);
+  const stickStartX = await page.evaluate(() => window.__terrabound.game.body.x);
   await page.evaluate(() => { window.__pad.axes = [1, 0, 0, 0]; });
   await page.waitForTimeout(400);
   await page.evaluate(() => { window.__pad.axes = [0, 0, 0.5, 0.5]; });
   await page.waitForTimeout(400);
-  const walk = await page.evaluate((x0) => { const { game: g, input, ui } = window.__terrabound; return { dx: g.body.x - x0, mode: input.padMode, ui: ui.padMode, target: input.padTarget }; }, x0);
+  const walk = await page.evaluate((x0) => { const { game: g, input, ui } = window.__terrabound; return { dx: g.body.x - x0, mode: input.padMode, ui: ui.padMode, target: input.padTarget }; }, stickStartX);
   await page.screenshot({ path: path.join(out, '02j-gamepad.png') });
   check('a controller walks with the left stick and aims a tile with the right', walk.dx > 0.5 && walk.mode && walk.ui && !!walk.target, JSON.stringify(walk));
   await page.evaluate(() => { window.__pad.axes = [0, 0, 0, 0]; });
@@ -925,7 +927,11 @@ try {
   await padFrames();
   const back = await page.evaluate(() => ({ mode: window.__terrabound.input.padMode, cursor: window.__terrabound.input.padCursor }));
   check('Start opens and closes settings, and a key press hands control back to the keyboard', opened && !closed && !back.mode && !back.cursor, JSON.stringify({ opened, closed, back }));
-  await page.evaluate(() => { navigator.getGamepads = window.__realPads; });
+  await page.evaluate((shop) => {
+    navigator.getGamepads = window.__realPads;
+    window.__terrabound.ui.shopOpen = shop;
+  }, shopWas);
+  }
   // Weapon rarity: REFORGE on the gear tab pays a visible price and rolls a coloured prefix.
   await page.evaluate(() => {
     const { game, ui } = window.__terrabound;

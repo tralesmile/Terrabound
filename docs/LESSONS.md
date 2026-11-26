@@ -378,3 +378,11 @@
 - Adding buttons to a workshop row looked fine on desktop and overlapped on a 390 px phone while the "inside the screen" check passed. Guard: look at the 09* phone shots after any workshop row change; a narrow layout (`pw < u * 30`) exists.
 - A hard-coded `SAVE_VERSION` assertion came back (haptics test), against the run 58 rule. Compare with `SAVE_VERSION`.
 - The flooded-cave swim check failed once in a full e2e (inLiquid 0 after a blind 500 ms wait; a floating body sits on the waterline). It now waits for an in-water frame.
+
+## 2026-11-26 run 101
+- A new sim pass that scans the flow window pushed `balance.test.ts` over its 30 s limit (it sits at 25-28 s). Guard: run `npx vitest run tests/balance.test.ts` alone after any per-tick sim change, before the 14 min gate; make the code faster, never raise the limit.
+- A helpful shortcut (talking to a ready robot jumped to QUESTS) hid trade and research; existing e2e checks caught it. New hints must add to an interaction, not replace it.
+- The swim e2e flaked because the first "2-deep water cell" in a world is often a draining stream. Guard: the fixture now needs a basin that holds water.
+- Controller: replacing "previous buttons" before computing edges meant no press ever fired, and unit tests of the pure mapping could not see it. Guard: the e2e drives a faked `navigator.getGamepads` through the real polling path.
+- A bulk `sed` rename in `e2e/smoke.mjs` hit an older identical line too. Scope new e2e blocks in `{ }` from the start and restore any UI state they change.
+- Never start a second background e2e while one is running into the same log (`pgrep -af smoke.mjs` first); mixed output looked like a failure. Chain `S=...` assignments before `&&` chains that use them: a skipped assignment left an empty `$S` and wrote a stray `/ship.log` at the filesystem root. Use full paths for logs.

@@ -23,13 +23,14 @@ Owner goal: make Terrabound feel closer to Terraria, Starbound and Core Keeper (
 - [x] (run 83, `src/sim/drilltier.ts`: ores only, rock never gated) Dig-power tiers: harder blocks need a better drill; the tile tip says "needs drill Lv N"; no luck gating.
 - [x] (run 83, `src/sim/falling.ts`) Falling blocks: crystal sand and ash wobble 0.45 s when undermined, drop, pile up and cascade; one landing on the player does 8 damage and breaks into a pickup; deterministic tests.
 - [x] (run 84, `src/sim/collapse.ts`: layer-rock roofs, 1 s dust telegraph, then a falling body that lands as diggable rubble; 8 damage if it hits you; Plasma and deeper only) Telegraphed ceiling collapse in deep layers (split from falling blocks in run 83): rubble tiles in Plasma and Core ceilings that shake, drop dust, then fall (dodgeable); reuse `falling.ts`.
-- [ ] (obsidian from water-over-magma done run 85; run 99: buoyancy, dive with down, 3 s held breath then suit scrubbers drain battery, `breath.ts`; still open: pressure rule so connected pools level through U-bends, then maybe a rebreather accessory) Liquids v2 (build on `liquids.ts`): flow and pressure rules, lava plus water makes obsidian, swimming buoyancy, an oxygen drain that uses the battery clock instead of a new bar.
+- [x] (run 101: pressure rule done, joined pools level through U-bends; rebreather moved to P12-H) (obsidian from water-over-magma done run 85; run 99: buoyancy, dive with down, 3 s held breath then suit scrubbers drain battery, `breath.ts`; still open: pressure rule so connected pools level through U-bends, then maybe a rebreather accessory) Liquids v2 (build on `liquids.ts`): flow and pressure rules, lava plus water makes obsidian, swimming buoyancy, an oxygen drain that uses the battery clock instead of a new bar.
 - [x] (run 83, `src/sim/blastjump.ts`: your own bomb launches you and never hurts you) Explosives: blast jump.
 - [ ] Explosives part 2 rest (run 96: charge e2e shot added) (run 95: pressure plate block done, `pressPlates` in charges.ts; still to do: fuse item, timer/AND gates) (run 94: enemy-tripped charges done) (run 93: detonator key G lights charges in reach for 2 battery, done; still to do: wiring trigger, fuse item) (run 92: fuse sparks done) (run 91: craftable Blast charge block + chain reactions done, `charges.ts`, lit by blasts or bolts; still to do: detonator/fuse item, wiring trigger). (run 90: block damage radius done, `blastreach.ts`: core breaks all, outer ring only soft blocks)
 - [ ] (run 98: ziplines done, `zipline.ts` + `zipfx.ts`; still open: jetpack fuel/rails review) (run 86: wall-slide and wall-jump done for everyone, `WALL` in `movement.ts`, 3 per airtime; grapple already exists) Traversal tools: ziplines between base points, jetpack fuel tied to the battery, rails or ziplines between base points.
 - [x] (run 83, `src/platform/haptics.ts`, VIBRATION setting, save v32) Mobile feel: haptics (`navigator.vibrate`) for hit, break and bank behind a setting.
 - [ ] Mobile feel part 2 (split in run 83): auto-aim tuning for touch digging and combat; one-hand layout.
-- [ ] Gamepad support (also listed in P5): aim stick for digging, radial hotbar.
+- [x] (run 101: `padmap.ts`; stick move, right-stick or smart aim, menu cursor, pad hint strip) Gamepad support: aim stick for digging.
+- [ ] Gamepad part 2: radial hotbar, detonate button, pad button names in prompts ("E" still shows), real-hardware check, rumble.
 
 ### P12-B Enemies, bosses and biomes (more to fight)
 
@@ -71,7 +72,8 @@ Seed premise to refine, not to rewrite: you are a repair technician in a suit on
 - [x] (run 93) Write `docs/STORY.md`: premise, cast, acts mapped to layers and bosses, reveals, three endings, tone, rules (max two lines per delivery, no walls of text, skippable); reuse the existing logs, robots and Dex.
 - [x] Objective tracker in the HUD ("what next?") and Guide hints; fixes the weak-tutorial complaint players have about Starbound; ties into FTUE.
 - [x] (run 100: `quests.ts`, workshop QUESTS tab, 12 deliveries, save v33) Quest log and 3 short quest lines per robot, rewarded from the stash, never timed.
-- [ ] Quest follow-ups: robots say their latest finished-quest line when you talk to them; a "!" mark over a robot whose quest you can hand in; track gear costs from the GEAR tab too.
+- [x] (run 101) Quest follow-ups: robots bring up their latest finished-quest line; gold "!" over a robot whose quest you can hand in, plus a dot on the QUESTS tab.
+- [ ] Track gear costs from the GEAR tab too.
 - [ ] Act beats: two-line boss intro and outro cards; Hollow AI radio transmissions that change as it is weakened; ruins and logs placed by act.
 - [ ] Three endings at the Hollow AI, credits, then New Game+ "Loop N" with mutators and carry-over cosmetics (no power gating).
 - [ ] Lore expansion from 12 to about 40 logs across the acts, with synthesised voice bleeps.
@@ -102,6 +104,8 @@ Seed premise to refine, not to rewrite: you are a repair technician in a suit on
 
 ### P12-H Discovered by research (runs append here; one line each, dated, with the reason; promote into A-G when ready)
 
+- [ ] 2026-11-26 (run 101): story-in-roguelite sources (Hades) favour short, state-aware barks that react to what you just did; give each robot 3 lines keyed to the last dive (death, boss kill, big haul), two lines max, no repeats back to back.
+- [ ] 2026-11-26 (run 101): maybe a rebreather accessory now that liquids are done (only if deep flooded areas make the battery cost interesting).
 - [ ] 2026-11-26 (run 100): Apple and Meta onboarding guides: teach one small step at a time and show visible growth in the first session; audit that the first upgrade is reachable from the first dive's loot, with a sim test.
 - [x] (run 100: quest log plus TRACK pin with material sources) 2026-11-26 (run 99): review summaries of Terraria, Dome Keeper and Necesse keep naming weak in-game guidance, grind and repetition; do the P12-E quest log early, with each quest naming where its materials drop.
 - [ ] 2026-11-26 (run 98): Terraria's 2026 combat fix list names unclear hitboxes, boss attacks and off-screen shooters; audit that every boss attack's damage area matches its drawn telegraph, with a table test.
@@ -379,7 +383,7 @@ Money (ethical, no paywalls)
 - [ ] Pause menu; confirm-before-new-dive when carrying much loot
 - [ ] FTUE: guided first 90 seconds, hints that fade
 - [ ] Procedural ambient music that deepens with depth
-- [ ] Gamepad support
+- [x] Gamepad support (run 101; follow-ups under P12-A)
 - [ ] PWA: manifest, icons, offline service worker with version updates
 - [ ] Localization framework and EN, ES, PT-BR, DE, FR, RU, TR strings
 - [ ] Screenshot review of every screen at 360x640, 390x844, 1280x720, 1920x1080
