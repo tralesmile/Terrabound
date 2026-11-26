@@ -198,3 +198,10 @@
 - Zip whirr sound that rises with the ride and a few trolley sparks: the ride should sound fast.
 - Cable pins on the map, so your route network reads at a glance.
 - Weakest parts now. Graphics: large dirt areas look uniform (tile variants, P12-F). Feel: the ride is silent apart from the clip. Controls: touch digging has no auto-aim. Progression: no quest log. UI: the bottom hint line is dense text. Performance: no automated frame-time budget.
+
+## 2026-11-26 (run 99)
+- Done: under-water wash, chip and gurgle, so a flooded shortcut reads as a battery decision; first-minute controls as keycap chips.
+- Zip whirr that rises with the ride plus trolley sparks (still open from run 98).
+- Rebreather accessory (longer held breath) once Flooded Ruins exist.
+- Drowned vault: a chest at the bottom of deep pools, so diving under has a reward.
+- Weakest parts now. Graphics: dim underground areas turn into flat black bands near the hotbar. Feel: silent zip ride. Controls: no touch auto-aim, no gamepad. Progression: no quest log. UI: hint strip fixed; the goal card text is small. Performance: no automated frame budget for the whole scene.

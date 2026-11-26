@@ -1170,3 +1170,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** zip sound and map pins, fuse item and gates, liquids v2 rest, boss hitbox audit, quest log (P12-E).
 
 **Known issues:** the touch zip button is unit-tested but not in a mobile screenshot.
+
+## 2026-11-26 Scheduled run 99
+
+**Done:** baseline green (1145 tests). (1) Liquids v2 part: buoyancy (float with the chin at the waterline, shallow dunks bob back up), hold down to dive, 3 s held breath then suit scrubbers drain 1.2 battery/s (times suit drain gear); HUD chip, under-water screen wash, gurgle (`breath.ts`, no new bar, no save change). (2) First-minute desktop controls are now keycap chips on a dark strip that fades out (`ui/hintbar.ts`). Screenshots `02h`, `17b-underwater-scrubbers`. Research topic 3 (player reviews). Now 169 test files, 1154 tests.
+
+**Next:** pressure rule for connected pools, quest log with material sources (P12-E), fuse item and gates, zip sound and map pins, boss hitbox audit.
+
+**Known issues:** the touch zip button is still not in a mobile screenshot; the under-water chip has no mobile screenshot.

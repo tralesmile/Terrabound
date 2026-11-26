@@ -17,7 +17,7 @@ const NOTES: Partial<Record<number, string>> = {
   [T.GATE]: 'Opens when the boss of this layer falls.',
   [T.CHEST]: 'Click or E to open.',
   [T.TERMINAL]: 'Click or E to read the log.',
-  [T.WATER]: 'Swim with W. Fish here with the rod.',
+  [T.WATER]: 'W swims up, S dives. A long dive costs battery.',
   [T.ACID_POOL]: 'Burns while you swim in it.',
   [T.MAGMA]: 'Burns hard. Cools to basalt next to water.',
   [T.SOLAR]: 'Charges the base battery by day.',

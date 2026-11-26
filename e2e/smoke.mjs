@@ -262,6 +262,22 @@ try {
   if (cracked) await page.screenshot({ path: path.join(out, '02c-dig-crack.png'), clip: { x: Math.max(0, pos.x - 96), y: Math.max(0, pos.y - 120), width: 192, height: 192 } });
   await page.waitForTimeout(1500);
   await page.screenshot({ path: path.join(out, '02-digging.png') });
+  // First-minute controls: a keycap strip that fits the screen, then gets out of the way.
+  const hintAt = async (secs) => {
+    await page.evaluate((v) => { window.__terrabound.game.stats.playTime = v; }, secs);
+    await page.waitForTimeout(150);
+    return page.evaluate(() => ({ bar: window.__terrabound.ui.hintBar, w: window.innerWidth, h: window.innerHeight }));
+  };
+  const playedWas = await page.evaluate(() => window.__terrabound.game.stats.playTime);
+  const early = await hintAt(5);
+  await page.screenshot({ path: path.join(out, '02h-hint-bar.png') });
+  const late = await hintAt(60);
+  await hintAt(playedWas);
+  check(
+    'the first-minute controls show as keycaps inside the screen, then go away',
+    !!early.bar && early.bar.n >= 6 && early.bar.x >= 0 && early.bar.x + early.bar.w <= early.w && early.bar.y + early.bar.h <= early.h && late.bar === null,
+    JSON.stringify({ early, late }),
+  );
   await page.mouse.up();
   const after = await page.evaluate(([tx, ty]) => window.__terrabound.game.world.get(tx, ty), [target.tx, target.ty]);
   const carried = await page.evaluate(() => Object.values(window.__terrabound.game.carried).reduce((a, b) => a + (b ?? 0), 0));

@@ -368,3 +368,7 @@
 ## 2026-11-26 run 98
 - A ride or other scripted movement can pass every sim and e2e check and still look wrong: the first zipline drew the cable through the rider's legs. Guard: take a mid-action screenshot in e2e (02g) and look at it before shipping.
 - A traversal that ends in a vertical shaft needs a hold at the far end, or the player drops straight back down; the unit test uses a floorless shaft top to pin this.
+
+## 2026-11-26 run 99
+- A new movement force can pass its own tests yet flicker at a boundary: the first buoyancy bounced a body in a two-deep pool in and out of the water (only the e2e real cave caught it). Guard: `breath.test.ts` holds a floating body for 240 frames and checks it never leaves the water, plus a two-deep pool case.
+- `vitest` swallows `console.log`; debug traces need `process.stdout.write` with `--disableConsoleIntercept`.

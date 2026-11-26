@@ -85,3 +85,6 @@ Search returned generic tile-lighting tutorials (flood-fill light, emissive tile
 
 ## 2026-11-26 run 98 (topic 2, enemy and weapon design)
 Re-Logic's April 2026 plan targets aggro, invisible hitboxes, weapon ranges, boss attacks and enemies shooting from off-screen, plus evening out the four weapon classes. Our regular enemies are contact-only, so the survivor is a boss hitbox vs telegraph audit (added to P12-H). Traversal searches (zipline, return trips) found nothing readable. Source: https://www.pcgamesn.com/terraria/state-of-the-game-april-2026-combat-fixes
+
+## 2026-11-26 run 99 (topic 3, player reviews)
+Third-party AI summaries of Steam reviews (not raw reviews). Terraria: confusing start, little in-game guidance, grind. Dome Keeper: repetition, thin progression, slow mining. Necesse: weak story and progression, bosses, controller support. Survivors: quest log with material sources (P12-H); gamepad stays on P12-A. Done now: first-minute controls as readable keycaps. Sources: https://vaporlens.app/app/105600/terraria https://vaporlens.app/app/1637320/dome_keeper https://vaporlens.app/app/1169040/necesse

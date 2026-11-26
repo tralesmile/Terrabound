@@ -1,3 +1,4 @@
+import { deskHints, hintAlpha, layoutHints } from './hintbar';
 import { BREATH, breathLabel } from '../sim/breath';
 import { PREFIXES, RARITY, REFORGE_COST, oddsText, prefixedName, type PrefixId, type WeaponSlot } from '../sim/rarity';
 import { diveTitle, reportRows, tripChips, type DiveReport, type TripReport } from '../sim/divereport';
@@ -1894,10 +1895,42 @@ export class UI {
     }
     const auto = game.stats.playTime >= 40 ? game.hintAutomation(this.touch) : null;
     if (auto) this.text(ctx, auto, w / 2, h - u * 0.7, Math.round(u * 0.75), '#7dffb0', 'center', w - u * 2);
-    if (game.stats.playTime < 40) {
-      const hint = this.touch ? (this.stickSide === 1 ? 'Right thumb: move, drag up to jump. Left side: dig.' : 'Left thumb: move, drag up to jump. Right side: dig.') : `${keyLabel(game.keys.left)}/${keyLabel(game.keys.right)} move, ${keyLabel(game.keys.jump)} jump. Click: dig / open chests. Right click: build. 1-5 or wheel: tools, 6-0: blocks. ${keyLabel(game.keys.inventory)}: inventory. ${keyLabel(game.keys.interact)}: open chest.`;
-      this.text(ctx, hint, w / 2, h - u * 0.7, Math.round(u * 0.75), '#c9d0e4', 'center', w - u * 2);
+    this.hintBar = null;
+    const hintA = hintAlpha(game.stats.playTime);
+    if (hintA > 0) {
+      ctx.globalAlpha = hintA;
+      if (this.touch) this.text(ctx, this.stickSide === 1 ? 'Right thumb: move, drag up to jump. Left side: dig.' : 'Left thumb: move, drag up to jump. Right side: dig.', w / 2, h - u * 0.7, Math.round(u * 0.75), '#c9d0e4', 'center', w - u * 2);
+      else this.drawHintBar(ctx, game, w, h, u, auto ? u * 1.4 : 0);
+      ctx.globalAlpha = 1;
     }
+  }
+
+  /** Keycap strip drawn this frame (e2e), or null. */
+  hintBar: { x: number; y: number; w: number; h: number; n: number } | null = null;
+
+  private drawHintBar(ctx: CanvasRenderingContext2D, game: Game, w: number, h: number, u: number, lift: number): void {
+    const k = game.keys;
+    const hints = deskHints({ left: keyLabel(k.left), right: keyLabel(k.right), jump: keyLabel(k.jump), inventory: keyLabel(k.inventory), interact: keyLabel(k.interact) });
+    const fs = Math.round(u * 0.7);
+    ctx.font = `bold ${fs}px ${FONT}`;
+    const L = layoutHints(hints, (t) => ctx.measureText(t).width, w / 2, w - u, u);
+    const bh = u * 1.3;
+    const y = h - bh - u * 0.1 - lift;
+    ctx.fillStyle = 'rgba(10,12,20,0.78)';
+    ctx.fillRect(L.x, y, L.w, bh);
+    for (const c of L.chips) {
+      // A raised keycap: light face with a darker lip underneath.
+      ctx.fillStyle = '#4a5270';
+      ctx.fillRect(c.x, y + u * 0.2, c.keyW, u * 0.95);
+      ctx.fillStyle = '#c9d0e4';
+      ctx.fillRect(c.x, y + u * 0.2, c.keyW, u * 0.8);
+      ctx.fillStyle = '#10131f';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(c.key, c.x + c.keyW / 2, y + u * 0.62);
+      this.text(ctx, c.label, c.x + c.keyW + u * 0.35, y + u * 0.65, fs, '#c9d0e4');
+    }
+    this.hintBar = { x: L.x, y, w: L.w, h: bh, n: L.chips.length };
   }
 
   /** HP and battery bars this frame (e2e). */
