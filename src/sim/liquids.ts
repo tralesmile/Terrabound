@@ -9,7 +9,9 @@
  *     Into empty floor only from MIN_SPREAD up, so puddles keep a visible depth instead of a 1 px film.
  *  3. Level: a surface cell looks along its row (through the same liquid or air, up to FLOW_REACH) for a
  *     spot 2+ lower, or a drop, and moves one unit there, so wide pools settle flat within one unit.
- * Settled pools stop changing (every rule needs a difference of 2), so nothing jitters.
+ *  4. Pressure: pools joined through brim-full cells level with each other, so water climbs the far
+ *     side of a U-bend until both surfaces are within PRESSURE_HEAD units.
+ * Settled pools stop changing (every rule needs a difference), so nothing jitters.
  */
 import { T, TILES } from './tiles';
 import type { World } from './world';
@@ -167,6 +169,73 @@ export function flowLiquids(world: World, cx: number, cy: number, tick: number, 
         moved += start - a;
         setLevel(world, x, y, t, a);
       }
+    }
+  }
+  return moved + pressLiquids(world, x0, x1, y0, y1, tick);
+}
+
+/** Height gap (level units) between two joined surfaces before pressure pushes liquid across. */
+export const PRESSURE_HEAD = 8;
+/** Most units one joined body pushes per tick. */
+export const PRESSURE_RATE = 8;
+
+/**
+ * 4. Pressure. A body is the set of same-liquid cells joined through brim-full cells (a partial cell
+ * belongs to the body it touches but does not carry pressure further, so falling streams join nothing).
+ * Its highest surface pushes into its lowest outlet on a lower row: a partial surface cell, or the air
+ * on top of a full one. Moves whole units, so volume is conserved. Returns the units moved.
+ */
+function pressLiquids(world: World, x0: number, x1: number, y0: number, y1: number, tick: number): number {
+  const w = x1 - x0 + 1;
+  const seen = new Uint8Array(w * (y1 - y0 + 1));
+  const stack: number[] = [];
+  let moved = 0;
+  for (let sy = y0; sy <= y1; sy++) {
+    for (let sx = x0; sx <= x1; sx++) {
+      const t = world.get(sx, sy);
+      if (!isLiquid(t) || seen[(sy - y0) * w + sx - x0] || levelAt(world, sx, sy) < FULL) continue;
+      if (t === T.MAGMA && tick & 2) continue;
+      // Highest surface (donor) and lowest outlet; height counts level units upwards.
+      let dx = 0;
+      let dy = 0;
+      let high = -Infinity;
+      let ox = 0;
+      let oy = 0;
+      let low = Infinity;
+      const outlet = (x: number, y: number, a: number): void => {
+        const h = -y * FULL + a;
+        if (h < low) [low, ox, oy] = [h, x, y];
+      };
+      const visit = (x: number, y: number): void => {
+        if (x < x0 || x > x1 || y < y0 || y > y1 || world.get(x, y) !== t) return;
+        const i = (y - y0) * w + x - x0;
+        if (seen[i]) return;
+        seen[i] = 1;
+        const a = levelAt(world, x, y);
+        const surface = world.get(x, y - 1) !== t;
+        if (surface) {
+          const h = -y * FULL + a;
+          if (h > high) [high, dx, dy] = [h, x, y];
+          if (a < FULL) outlet(x, y, a);
+          else if (y > y0 && world.get(x, y - 1) === T.AIR) outlet(x, y - 1, 0);
+        }
+        if (a === FULL) stack.push(x, y);
+      };
+      visit(sx, sy);
+      while (stack.length > 0) {
+        const y = stack.pop() as number;
+        const x = stack.pop() as number;
+        for (const [nx, ny] of NEIGHBOURS) visit(x + nx, y + ny);
+      }
+      // Same-row differences belong to the spread and level rules.
+      if (oy <= dy || high - low < PRESSURE_HEAD) continue;
+      const from = levelAt(world, dx, dy);
+      const to = levelAt(world, ox, oy);
+      const m = Math.min(PRESSURE_RATE, Math.floor((high - low) / 2), from, FULL - to);
+      if (m <= 0) continue;
+      setLevel(world, ox, oy, t, to + m);
+      setLevel(world, dx, dy, t, from - m);
+      moved += m;
     }
   }
   return moved;
