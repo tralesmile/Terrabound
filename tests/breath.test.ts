@@ -52,7 +52,7 @@ describe('breath', () => {
     }
     expect(dive).toBeCloseTo(BREATH.diveSpeed);
     expect(wet).toBeCloseTo(SINK);
-    expect(Math.abs(dry)).toBeLessThan(0.1);
+    expect(dry).toBeCloseTo(BREATH.settle);
     expect(swimVy(0, { jump: true, down: false }, true, false, FIXED_DT, s)).toBeLessThan(0);
     // A shallow helmet bobs back up by itself.
     expect(swimVy(SINK, { jump: false, down: false }, true, true, 0.5, s)).toBeCloseTo(-BREATH.buoySpeed);
@@ -89,5 +89,26 @@ describe('breath', () => {
     expect(g.scrubbersOn).toBe(false);
     expect(g.breathSpent).toBe(0);
     expect(g.body.y).toBeLessThan(surface + 3);
+    // Stable: it never flickers out of the water or dunks the visor while hands are off.
+    for (let i = 0; i < 240; i++) {
+      run(g, FIXED_DT);
+      expect(g.inLiquid).toBe(T.WATER);
+      expect(g.headUnder).toBe(false);
+    }
+  });
+
+  it('a body dropped into a two-deep pool stays in the water', () => {
+    const g = new Game(defaultSave());
+    const x = g.world.padX + 60;
+    const y = g.world.padY + 40;
+    for (let yy = y - 8; yy <= y + 1; yy++) for (let xx = x - 3; xx <= x + 3; xx++) g.world.set(xx, yy, Math.abs(xx - x) === 3 || yy === y + 1 ? T.METAL : yy >= y - 1 ? T.WATER : T.AIR);
+    g.body.x = x + 0.5;
+    g.body.y = y + 0.9;
+    g.body.vx = g.body.vy = 0;
+    run(g, 1.5);
+    for (let i = 0; i < 120; i++) {
+      run(g, FIXED_DT);
+      expect(g.inLiquid).toBe(T.WATER);
+    }
   });
 });

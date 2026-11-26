@@ -1802,8 +1802,9 @@ export class Game {
     } else if (this.inLiquid) {
       // Swimming: slow sink, jump strokes upward, no fall damage, drag on both axes.
       b.vx *= 1 - Math.min(1, 6 * dt);
-      const shallow = this.headUnder && !this.submergedAt(b.x, b.y - BODY_H + 0.3 - BREATH.buoyDepth);
-      b.vy = swimVy(b.vy, c, this.headUnder, shallow, dt, { gravity: GRAVITY, up: SWIM_UP, sink: SINK });
+      const chinWet = this.submergedAt(b.x, b.y - BREATH.chin);
+      const shallow = chinWet && !this.submergedAt(b.x, b.y - BREATH.chin - BREATH.buoyDepth);
+      b.vy = swimVy(b.vy, c, chinWet, shallow, dt, { gravity: GRAVITY, up: SWIM_UP, sink: SINK });
       this.coyote = 0.05;
       this.wasGround = true;
       const dps = TILES[this.inLiquid]?.dps ?? 0;

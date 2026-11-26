@@ -16,7 +16,11 @@ export const BREATH = {
   /** A helmet less than this deep (tiles) bobs back up by itself, so a splash does not drown you. */
   buoyDepth: 2,
   /** How fast it bobs up, tiles per second. */
-  buoySpeed: 2,
+  buoySpeed: 1.5,
+  /** A floating suit settles down this gently until its chin meets the water. */
+  settle: 0.4,
+  /** The waterline: the chin, this far above the feet (below the breathing visor). */
+  chin: 1.2,
 };
 
 /** Advance seconds of breath spent. Climbs while the helmet is under, falls fast in air. */
@@ -37,20 +41,21 @@ export function breathLabel(spent: number, drainMul: number): string {
 
 /**
  * Vertical speed while swimming. Jump strokes up and down dives. Hands off, the suit is buoyant near
- * the surface: a helmet in air floats there, a shallow one bobs back up, a deep one sinks slowly.
+ * the surface: it settles with the chin at the waterline, a shallow dunk bobs back up and a deep one
+ * sinks slowly. `under` and `shallow` describe the chin.
  */
 export function swimVy(
   vy: number,
   c: { jump?: boolean; down?: boolean },
-  headUnder: boolean,
+  under: boolean,
   shallow: boolean,
   dt: number,
   s: { gravity: number; up: number; sink: number },
 ): number {
   if (c.jump) return Math.max(-s.up, vy - s.gravity * 1.2 * dt);
   if (c.down) return Math.min(BREATH.diveSpeed, vy + s.gravity * 0.5 * dt);
-  if (headUnder && shallow) return vy + (-BREATH.buoySpeed - vy) * Math.min(1, BREATH.float * dt);
-  if (headUnder) return Math.min(s.sink, vy + s.gravity * 0.25 * dt);
-  // Helmet in the air: the suit's trapped air holds it there.
-  return Math.min(s.sink, vy) * (1 - Math.min(1, BREATH.float * dt));
+  if (under && shallow) return vy + (-BREATH.buoySpeed - vy) * Math.min(1, BREATH.float * dt);
+  if (under) return Math.min(s.sink, vy + s.gravity * 0.25 * dt);
+  // Chin in the air: the suit's trapped air brakes the fall and lets it settle onto the waterline.
+  return vy + (BREATH.settle - vy) * Math.min(1, BREATH.float * dt);
 }
