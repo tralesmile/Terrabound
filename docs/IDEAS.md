@@ -220,3 +220,11 @@
 - "!" bubble over a robot with a hand-in ready, so the base calls you home (deepens bank and automate).
 - Light the tracked ore: a faint pin-colour glint on tracked-material tiles already inside your lamp radius.
 - Weakest parts now. Graphics: deep-layer shot is near-black beyond a few tiles (needs ambient accents per layer). Feel: silent zip ride. Controls: no touch auto-aim, no gamepad. Progression: gear costs cannot be tracked yet. UI: workshop footer (codes, daily, new world) takes a quarter of the panel; small phone cost text is tiny. Performance: no automated whole-scene frame budget.
+
+## 2026-11-26 (run 102)
+- Done: ore glints in dim rock (tracked material twinkles more), touch drill assist, prompts with your own button names.
+- Show the touch assist target: draw the aim box on the block the assist picked, so the thumb learns it.
+- A soft "tink" when a tracked ore first glints on screen, once per vein: sound makes the hunt feel alive.
+- Phone view: the lower third of a surface screenshot is flat black; lift the camera a little or draw faint rock silhouettes there.
+- Per-layer ambient accents (drips, sparks, embers) so the Circuit layer is not a near-black screen.
+- Weakest parts now. Graphics: dim layers read as flat black. Feel: silent zip ride. Controls: no radial hotbar on pad, no pad detonate. Progression: gear costs cannot be tracked. UI: workshop footer is heavy; phone cost text is tiny. Performance: no whole-scene frame budget check.

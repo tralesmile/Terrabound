@@ -311,6 +311,8 @@ export class Input {
   }
 
   private up(e: PointerEvent): void {
+    // iOS only lets sound wake inside some gestures: the end of a tap is one.
+    this.onAnyInput();
     this.pointers.delete(e.pointerId);
     if (e.pointerType !== 'mouse') this.mouse.has = false;
   }

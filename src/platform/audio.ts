@@ -1,3 +1,4 @@
+import { needsResume } from './audiostate';
 import { duckMul, duckTau } from './duck';
 import { DIG_VOICE, digPitch } from './digvoice';
 import { breakStyle } from '../render/breakfx';
@@ -32,7 +33,7 @@ export class Sfx {
 
   unlock(): void {
     if (this.ctx) {
-      if (this.ctx.state === 'suspended') void this.ctx.resume().catch(() => undefined);
+      if (needsResume(this.ctx.state)) void this.ctx.resume().catch(() => undefined);
       return;
     }
     try {

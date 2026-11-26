@@ -23,7 +23,7 @@ import { easeLead, leadTarget, type Lead } from './camlead';
 import { traumaOffset } from './trauma';
 import { digCrackPixels, crackStage } from './digfx';
 import { hash2 } from '../sim/rng';
-import { T, TILES, invTotal } from '../sim/tiles';
+import { T, TILES, invTotal, type ItemId } from '../sim/tiles';
 import { isLiquid, levelAt as liquidLevel } from '../sim/liquids';
 import { W } from '../sim/world';
 import { BODY_H } from '../sim/physics';
@@ -84,6 +84,7 @@ import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
 import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, PAL, droneRows, makeCanvas, wallRow, VEHICLES, vehicleRows, wheelSpinTime, cargoRattle } from './sprites';
+import { glintColor, glintPhase, glintsAt, tracked } from './glint';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 import { drawGlyph, hasGlyph } from './glyphs';
 import { ropePoints, ropeSag, twangAmp } from './ropefx';
@@ -3401,6 +3402,39 @@ export class Renderer {
     return this.light ? levelAt(this.light, tx, ty) : -1;
   }
 
+  /** Ore cells the light only just reaches, collected with the lightmap. */
+  private glintCells: { x: number; y: number; tile: number }[] = [];
+  /** Sparkles drawn last frame, and how many of them were the tracked material (e2e). */
+  glintsDrawn = { n: 0, tracked: 0 };
+
+  /** Dim ore twinkles over the darkness (glint.ts): a small plus in art pixels at a fixed spot per tile. */
+  private drawGlints(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
+    const u = this.scale;
+    const card = game.tracker;
+    const wanted = new Set<ItemId>(card ? card.rows.filter((r) => r.have < r.need).map((r) => r.item) : []);
+    let n = 0;
+    let mine = 0;
+    for (const c of this.glintCells) {
+      const isTracked = wanted.size > 0 && tracked(c.tile, wanted);
+      const k = glintPhase(c.x, c.y, time, isTracked);
+      if (k <= 0.05) continue;
+      const x = this.sx(c.x, shakeX) + (4 + Math.floor(hash2(c.x, c.y, 17) * 8)) * u;
+      const y = this.sy(c.y, shakeY) + (4 + Math.floor(hash2(c.x, c.y, 29) * 8)) * u;
+      if (x < 0 || y < 0 || x > this.w || y > this.h) continue;
+      const arm = (isTracked ? 3 : 2) * u * (k > 0.6 ? 1 : 0.5);
+      ctx.globalAlpha = Math.min(1, 0.35 + k * 0.65);
+      ctx.fillStyle = glintColor(c.tile) ?? '#ffffff';
+      ctx.fillRect(x - arm, y, arm * 2 + u, u);
+      ctx.fillRect(x, y - arm, u, arm * 2 + u);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x, y, u, u);
+      n++;
+      if (isTracked) mine++;
+    }
+    ctx.globalAlpha = 1;
+    this.glintsDrawn = { n, tracked: mine };
+  }
+
   private drawDarkness(ctx: CanvasRenderingContext2D, game: Game, _cx: number, _cy: number, time: number, shakeX = 0, shakeY = 0): void {
     const world = game.world;
     const ts = TS * this.scale;
@@ -3435,6 +3469,14 @@ export class Renderer {
         }
       }
       this.light = computeLight(world, x0, y0, lw, lh, sources, skyLevel);
+      const lit = this.light;
+      this.glintCells = [];
+      for (let yy = Math.max(0, y0 + margin); yy < Math.min(world.h, y0 + lh - margin); yy++) {
+        for (let xx = Math.max(0, x0 + margin); xx < Math.min(world.w, x0 + lw - margin); xx++) {
+          const tt = world.tiles[yy * world.w + xx];
+          if (glintsAt(tt, levelAt(lit, xx, yy))) this.glintCells.push({ x: xx, y: yy, tile: tt });
+        }
+      }
       // Faces of cave rock toward lit air get a thin warm rim, strongest toward the lamp (3D read in caves).
       this.rims = computeRims(world, this.light, x0 + margin, y0 + margin, lw - margin * 2, lh - margin * 2, b.x, b.y - BODY_H / 2);
       this.rims = this.rims.filter((r) => !rimOnCut(world, r));
@@ -3459,6 +3501,7 @@ export class Renderer {
       ctx.imageSmoothingEnabled = false;
     }
     this.drawRims(ctx, shakeX, shakeY, world.padY);
+    this.drawGlints(ctx, game, shakeX, shakeY, time);
     const low = game.battery / game.derived.maxBattery;
     if (low < 0.2 && !game.isAtBase()) {
       const pulse = 0.12 + 0.1 * Math.sin(time * 6);

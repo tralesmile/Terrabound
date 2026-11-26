@@ -1074,7 +1074,8 @@ function boot(): void {
       ui.worldTip = hd ? itemTip(hd.item, hd.n) : null;
       // A block or machine names itself once the mouse rests on it (never while a button is held,
       // nor during a boss fight or a raid: the screen should show the fight, not "Rust").
-      const ht = wp ? { x: Math.floor(wp.x), y: Math.floor(wp.y) } : null;
+      // A button under the mouse covers the world: no block tip on top of the hotbar.
+      const ht = wp && !ui.hit(input.mouse.x, input.mouse.y) ? { x: Math.floor(wp.x), y: Math.floor(wp.y) } : null;
       const seen = ht && ht.x >= 0 && ht.y >= 0 && ht.x < game.world.w && ht.y < game.world.h && game.fog.isSeen(ht.x, ht.y) ? ht : null;
       if (tileDwell.update(dt, seen, input.pressing || !!game.boss || !!game.raid) && !hd && seen) ui.worldTip = tileTip(game.world.get(seen.x, seen.y), game.derived.digPower, game.upgrades.pick ?? 0, promptKeys(game.keys, input.padMode));
       ui.draw(ctx, game, canvas.clientWidth, canvas.clientHeight, clock);

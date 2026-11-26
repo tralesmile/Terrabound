@@ -3196,6 +3196,59 @@ try {
   await page.waitForTimeout(120);
   await page.screenshot({ path: path.join(out, '27c-basalt.png') });
   check('water cools magma into obsidian or basalt', cooled, JSON.stringify(basin));
+  {
+    // Ore glints: copper and iron where the light only just reaches twinkle; the tracked material more.
+    const before = await page.evaluate(() => {
+      const g = window.__terrabound.game;
+      const w = g.world;
+      const pin = g.pin;
+      // The card only wants what is still missing: take the beacon's ores out of the stash for this check.
+      const kept = {};
+      for (const inv of [g.stash, g.carried]) for (const k of ['iron_scrap', 'copper_wire']) { kept[`${inv === g.stash ? 's' : 'c'}:${k}`] = inv[k] ?? 0; inv[k] = 0; }
+      g.enemies = [];
+      g.hp = g.derived.maxHp;
+      const x = w.padX + 70;
+      const y = w.padY + 120;
+      for (let yy = y - 14; yy <= y + 10; yy++) for (let xx = x - 24; xx <= x + 24; xx++) w.set(xx, yy, 35);
+      for (let yy = y - 4; yy < y; yy++) for (let xx = x - 5; xx <= x + 5; xx++) w.set(xx, yy, 0);
+      for (let i = -9; i <= 9; i++) for (let j = -7; j <= 3; j++) {
+        const t = w.get(x + i, y + j);
+        if (t === 35 && (i * 7 + j * 5 + 200) % 4 === 0) w.set(x + i, y + j, i < 0 ? 4 : 3);
+      }
+      g.body.x = x + 0.5;
+      g.body.y = y;
+      g.body.vx = g.body.vy = 0;
+      if (g.pin !== 'r:beacon_colossus') g.togglePin('r:beacon_colossus');
+      return { pin, kept };
+    });
+    await page.waitForTimeout(600);
+    const seen = await page.evaluate(async () => {
+      const r = window.__terrabound.renderer;
+      let n = 0;
+      let tracked = 0;
+      for (let i = 0; i < 40; i++) {
+        await new Promise((res) => setTimeout(res, 60));
+        n = Math.max(n, r.glintsDrawn.n);
+        tracked = Math.max(tracked, r.glintsDrawn.tracked);
+      }
+      return { n, tracked, pin: window.__terrabound.game.pin };
+    });
+    await page.screenshot({ path: path.join(out, '27h-ore-glints.png') });
+    check('dim ore glints in the dark rock, and the tracked material is among them', seen.n > 0 && seen.tracked > 0, JSON.stringify(seen));
+    {
+      const slot = await page.evaluate(() => window.__terrabound.ui.rects.find((r) => r.a.k === 'settool') ?? null);
+      const box = await page.locator('#game').boundingBox();
+      if (slot) await page.mouse.move(box.x + slot.x + slot.w / 2, box.y + slot.y + slot.h / 2);
+      await page.waitForTimeout(1200);
+      const tip = await page.evaluate(() => window.__terrabound.ui.worldTip?.title ?? null);
+      check('resting the mouse on the hotbar shows no block tip over it', !!slot && tip !== 'Plasma rock', JSON.stringify({ slot: !!slot, tip }));
+    }
+    await page.evaluate(({ pin, kept }) => {
+      const g = window.__terrabound.game;
+      for (const [key, n] of Object.entries(kept)) { const [where, k] = key.split(':'); (where === 's' ? g.stash : g.carried)[k] = n; }
+      if (pin) { if (g.pin !== pin) g.togglePin(pin); } else if (g.pin) g.togglePin(g.pin);
+    }, before);
+  }
   // Final boss: in the Core, summon and beat the Hollow AI; the victory screen appears and closes.
   await page.evaluate(() => {
     const g = window.__terrabound.game;

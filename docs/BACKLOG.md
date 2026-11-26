@@ -25,12 +25,13 @@ Owner goal: make Terrabound feel closer to Terraria, Starbound and Core Keeper (
 - [x] (run 84, `src/sim/collapse.ts`: layer-rock roofs, 1 s dust telegraph, then a falling body that lands as diggable rubble; 8 damage if it hits you; Plasma and deeper only) Telegraphed ceiling collapse in deep layers (split from falling blocks in run 83): rubble tiles in Plasma and Core ceilings that shake, drop dust, then fall (dodgeable); reuse `falling.ts`.
 - [x] (run 101: pressure rule done, joined pools level through U-bends; rebreather moved to P12-H) (obsidian from water-over-magma done run 85; run 99: buoyancy, dive with down, 3 s held breath then suit scrubbers drain battery, `breath.ts`; still open: pressure rule so connected pools level through U-bends, then maybe a rebreather accessory) Liquids v2 (build on `liquids.ts`): flow and pressure rules, lava plus water makes obsidian, swimming buoyancy, an oxygen drain that uses the battery clock instead of a new bar.
 - [x] (run 83, `src/sim/blastjump.ts`: your own bomb launches you and never hurts you) Explosives: blast jump.
-- [ ] Explosives part 2 rest (run 96: charge e2e shot added) (run 95: pressure plate block done, `pressPlates` in charges.ts; still to do: fuse item, timer/AND gates) (run 94: enemy-tripped charges done) (run 93: detonator key G lights charges in reach for 2 battery, done; still to do: wiring trigger, fuse item) (run 92: fuse sparks done) (run 91: craftable Blast charge block + chain reactions done, `charges.ts`, lit by blasts or bolts; still to do: detonator/fuse item, wiring trigger). (run 90: block damage radius done, `blastreach.ts`: core breaks all, outer ring only soft blocks)
+- [x] Explosives part 2 (run 102: closed; timer/AND gates moved into P12-C wiring, and a separate fuse item is dropped because charges, plate and detonator already cover it) (run 96: charge e2e shot added) (run 95: pressure plate block done, `pressPlates` in charges.ts; still to do: fuse item, timer/AND gates) (run 94: enemy-tripped charges done) (run 93: detonator key G lights charges in reach for 2 battery, done; still to do: wiring trigger, fuse item) (run 92: fuse sparks done) (run 91: craftable Blast charge block + chain reactions done, `charges.ts`, lit by blasts or bolts; still to do: detonator/fuse item, wiring trigger). (run 90: block damage radius done, `blastreach.ts`: core breaks all, outer ring only soft blocks)
 - [ ] (run 98: ziplines done, `zipline.ts` + `zipfx.ts`; still open: jetpack fuel/rails review) (run 86: wall-slide and wall-jump done for everyone, `WALL` in `movement.ts`, 3 per airtime; grapple already exists) Traversal tools: ziplines between base points, jetpack fuel tied to the battery, rails or ziplines between base points.
 - [x] (run 83, `src/platform/haptics.ts`, VIBRATION setting, save v32) Mobile feel: haptics (`navigator.vibrate`) for hit, break and bank behind a setting.
-- [ ] Mobile feel part 2 (split in run 83): auto-aim tuning for touch digging and combat; one-hand layout.
+- [x] (run 102, `digassist.ts`: near-miss snap and far-tap line dig, never player builds) Touch drill assist.
+- [ ] Mobile feel part 2 rest: touch combat auto-aim (pistol), aim box on the assisted tile, one-hand layout.
 - [x] (run 101: `padmap.ts`; stick move, right-stick or smart aim, menu cursor, pad hint strip) Gamepad support: aim stick for digging.
-- [ ] Gamepad part 2: radial hotbar, detonate button, pad button names in prompts ("E" still shows), real-hardware check, rumble.
+- [ ] Gamepad part 2: radial hotbar, detonate button, real-hardware check, rumble. (run 102: prompts name pad buttons and your own key bindings, `ui/keynames.ts`)
 
 ### P12-B Enemies, bosses and biomes (more to fight)
 
@@ -46,7 +47,7 @@ Owner goal: make Terrabound feel closer to Terraria, Starbound and Core Keeper (
 ### P12-C Build and automate (more to do and build)
 
 - [ ] Furniture and decor sets plus a room quality score with a visible checklist that decides which robot moves in (`rooms.ts`).
-- [ ] Wiring and logic: switch, pressure plate, timer, AND/OR gate, signal lamp, door, trap; extends `lasergrid` and `power`.
+- [ ] (run 102: timer and AND gate now live here; they drive `charges.ts`) Wiring and logic: switch, pressure plate, timer, AND/OR gate, signal lamp, door, trap; extends `lasergrid` and `power`.
 - [ ] Logistics (conveyors, sorters, depots) ONLY if it adds real decisions (placement, throughput, defence, drone hauling). Earlier runs dropped conveyors because the stash is shared; revisit only with that test in mind, otherwise skip.
 - [ ] Drone programming v2: more conditions and actions, builder and farmer drones, path visualisation, copy-paste blueprints of a base section.
 - [ ] Defence: turrets, shield domes, walls with HP, raid waves that threaten automation (`raids.ts`, `defences.ts`), tied to Hollow Surge. This is the "survive" pillar.
@@ -103,6 +104,8 @@ Seed premise to refine, not to rewrite: you are a repair technician in a suit on
 - [ ] Steam and Steam Deck page once stable (needs the owner).
 
 ### P12-H Discovered by research (runs append here; one line each, dated, with the reason; promote into A-G when ready)
+
+- [ ] 2026-11-26 (run 102): Poki QA requires portrait play with overlays clear of notches; add one portrait shot per workshop tab and the map to the e2e review set, so a portal submission cannot fail on layout.
 
 - [ ] 2026-11-26 (run 101): story-in-roguelite sources (Hades) favour short, state-aware barks that react to what you just did; give each robot 3 lines keyed to the last dive (death, boss kill, big haul), two lines max, no repeats back to back.
 - [ ] 2026-11-26 (run 101): maybe a rebreather accessory now that liquids are done (only if deep flooded areas make the battery cost interesting).
