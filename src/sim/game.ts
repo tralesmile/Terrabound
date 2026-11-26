@@ -12,6 +12,7 @@ import { noteBoss, noteDepth, noteLoot, startAttempt, type RecordBeat, type Worl
 import { hash2, mixSeed, mulberry32 } from './rng';
 import { HIT_FEEL, type HitClass } from './hitfeel';
 import { drillNeeded } from './drilltier';
+import { assistDig } from './digassist';
 import { blastPush } from './blastjump';
 import { blastBreaks } from './blastreach';
 import { stepRide, zipOffer, type Ride } from './zipline';
@@ -77,7 +78,7 @@ import { blueprintDrop, RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, r
 import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
 import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
-import { BASE_HALF, BASE_ROWS, captureBase, captureWalls, stampBase, stampWalls } from './base';
+import { BASE_HALF, BASE_KEEP, BASE_ROWS, captureBase, captureWalls, isBuilt, stampBase, stampWalls } from './base';
 import { heatDigMul, heatDrainMul, stepHeat } from './drillheat';
 import { planHut, stampHut } from './prefab';
 import { PAD_HALF, SPAWN_LIGHT_MAX, W, WALL_ITEM, isBuiltWall, WORLD_H, WORLD_W, World, generateWorld } from './world';
@@ -131,6 +132,8 @@ export interface Controls {
   down?: boolean;
   /** Tile under the pointer, or null. */
   aim: { tx: number; ty: number } | null;
+  /** A touch drill's finger point in tile units: near misses snap to a block (digassist.ts). */
+  finger?: { x: number; y: number } | null;
   /** Dash (needs dash boots). */
   dash?: boolean;
   /** Reel the grappling rope in (touch REEL hold button; desktop reels by holding dig). */
@@ -1615,6 +1618,26 @@ export class Game {
     this.emit({ t: 'sizzle', x: b.x, y: b.y - BODY_H / 2 });
   }
 
+  /** The tile the drill works on: the aim, or the assisted aim for a finger (not on a robot being tapped). */
+  private drillTarget(c: Controls): Controls['aim'] {
+    if (!c.aim || !c.finger) return c.aim;
+    if (this.npcAtTile(c.aim.tx, c.aim.ty) || this.merchantAtTile(c.aim.tx, c.aim.ty)) return c.aim;
+    const w = this.world;
+    return assistDig({
+      cx: this.body.x,
+      cy: this.body.y - BODY_H / 2,
+      fx: c.finger.x,
+      fy: c.finger.y,
+      reach: (x, y) => this.reachable(x, y),
+      usable: (x, y) => isMinable(w.get(x, y)) || (!TILES[w.get(x, y)].solid && isBuiltWall(w.wall(x, y))),
+      // Chests open on a tap and base machines are the player's own work: the assist never picks them.
+      target: (x, y) => {
+        const t = w.get(x, y);
+        return isMinable(t) && TILES[t].solid && t !== T.CHEST && !(BASE_KEEP.has(t) && isBuilt(w, x, y)) && drillNeeded(t) <= (this.upgrades.pick ?? 0);
+      },
+    });
+  }
+
   private reachable(tx: number, ty: number): boolean {
     const cx = this.body.x;
     const cy = this.body.y - BODY_H / 2;
@@ -1984,8 +2007,9 @@ export class Game {
       // handled above
     } else if (c.dig && this.tool === 'blade') this.blade();
     if (dig && this.tool === 'pistol') this.firePistol(c.aim);
-    if (dig && this.tool === 'drill' && c.aim && this.reachable(c.aim.tx, c.aim.ty)) {
-      const { tx, ty } = c.aim;
+    const drillAim = dig && this.tool === 'drill' ? this.drillTarget(c) : null;
+    if (drillAim && this.reachable(drillAim.tx, drillAim.ty)) {
+      const { tx, ty } = drillAim;
       const tile = this.world.get(tx, ty);
       // Nothing in front: the drill works on a player-built back wall instead.
       const onWall = !isMinable(tile) && !TILES[tile].solid && isBuiltWall(this.world.wall(tx, ty));

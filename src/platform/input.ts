@@ -28,6 +28,8 @@ interface PointerInfo {
   /** Long-press on a build-bar slot: item id, start time (ms), and whether it already fired. */
   press?: { id: string; t0: number; fired: boolean };
   button: number;
+  /** A finger, not a mouse: the drill gets near-miss assist. */
+  touch?: boolean;
   startX: number;
   startY: number;
 }
@@ -290,7 +292,7 @@ export class Input {
     const w = this.canvas.clientWidth;
     const isTouch = e.pointerType === 'touch';
     const kind: PointerInfo['kind'] = isTouch && inStickZone(x, w, this.stickSide) ? 'stick' : 'aim';
-    this.pointers.set(e.pointerId, { id: e.pointerId, x, y, kind, button: e.button, startX: x, startY: y });
+    this.pointers.set(e.pointerId, { id: e.pointerId, x, y, kind, button: e.button, startX: x, startY: y, touch: isTouch });
     this.mouse = { x, y, has: true };
   }
 
@@ -334,6 +336,7 @@ export class Input {
     let place = false;
     let aimCss: { x: number; y: number } | null = this.mouse.has ? { x: this.mouse.x, y: this.mouse.y } : null;
 
+    let finger: { x: number; y: number } | null = null;
     let reel = false;
     let pressing: { id: string; k: number } | null = null;
     for (const p of this.pointers.values()) {
@@ -361,6 +364,10 @@ export class Input {
         const placing = p.button === 2 || this.ui.placeMode;
         if (placing) place = true;
         else dig = true;
+        if (!placing && p.touch) {
+          const d = this.dpr();
+          finger = this.renderer.screenToWorld(p.x * d, p.y * d);
+        }
       }
     }
     if (this.ui.screen !== 'play' || this.ui.shopOpen) {
@@ -391,6 +398,6 @@ export class Input {
     this.ui.reeling = reel;
     this.ui.barPress = pressing;
     this.downHeld = down;
-    return { moveX, jump, dig, place, aim, down, dash, reel };
+    return { moveX, jump, dig, place, aim, down, dash, reel, finger: pad ? null : finger };
   }
 }
