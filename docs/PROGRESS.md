@@ -1202,3 +1202,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** P12-A rest (jetpack/rails review, touch pistol aim and aim box, radial hotbar, pad detonate), then P12-B enemy roster (a big player-visible gap), tile variants.
 
 **Known issues:** the touch assist has no aim marker of its own (the aim box stays under the finger; the crack and beam show the real target); controller and iOS audio untested on real hardware; research topic 6 still owed.
+
+## 2026-11-27 Scheduled run 103
+
+**Done:** baseline green (1196 tests). P12-B enemy wave 2 (`enemyai.ts`): rock borer (below 24 m; tunnels through natural rock, never through player-placed blocks; 0.45 s harmless break-out), fuse tick (18 m; 0.75 s fuse with blast ring; loot only if destroyed first), lens sentry (40 m; aim 0.7 s, lock 0.45 s, any block stops the beam), bulwark (32 m; front shield stops blade, bolts and drones, turns after 0.8 s; blasts ignore it). Own sprites, sounds, haptics, teach lines, codex notes, drops. Polish: hostile eyes glow in dim caves and warnings draw over the darkness (`render/foefx.ts`). `ship.sh` now adopts a detached HEAD as dev. Research topic 6. No save change (new kinds pass `sanitizeMet`). 177 test files, 1217 tests; JS 207 KB gzip; balance bot unchanged (24/24 affordable, 12/96 deaths). Screenshots `05g-enemy-wave`, `10-gallery`.
+
+**Next:** enemy wave 3 (ceiling dropper, mimic chest, spawner nest) or elite variants; P12-A rest (touch pistol aim and aim box, pad detonate, radial hotbar, jetpack/rails review); own sprites for the old recolours; tile variants.
+
+**Known issues:** the balance bot does not fight, so the new enemies' difficulty is untested by real play (tune depths and damage in `ENEMIES` if deep dives feel harsh). Night raids still use only crawlers, mites and flyers. The borer is not drawn on the map.
