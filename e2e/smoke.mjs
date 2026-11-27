@@ -353,6 +353,10 @@ try {
     });
     check('charges and a pressure plate place and draw without errors', placed[0] === ids.PLATE && placed[1] === ids.CHARGE, JSON.stringify(placed));
   }
+  {
+    const n = await page.evaluate(() => window.__terrabound.renderer.terrainDetails);
+    check('natural ground bakes buried details into its chunks', n > 3, `details ${n}`);
+  }
   // Movement forgiveness: holding down on the rim of a one-wide hole drops in (real S key).
   {
     const set = await page.evaluate(() => {

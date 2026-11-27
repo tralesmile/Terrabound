@@ -78,6 +78,7 @@ import { safePads } from '../sim/arenazap';
 import { drawGridBeams } from './gridfx';
 import { boltTrail, drawBossMuzzle, drawBossTelegraph, drawSummonTelegraph } from './bosstele';
 import { ACT_INFO } from '../sim/drones';
+import { CELLS, TONES, detailAt, detailRects, hasTerrainVariety, toneAt } from './terrain';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, isCeilingSlope, leafMask, nextSink, slopeSink, SLOPE_CR, SLOPE_R, slopeBottom, slopeShape, slopeTop } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape, trunkKind } from './decor';
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
@@ -175,6 +176,8 @@ export interface Aim {
 
 export class Renderer {
   private atlas = buildAtlas();
+  /** Buried details baked into chunks so far (tests read it). */
+  terrainDetails = 0;
   /** Screen shake multiplier from the settings screen (0 off, 0.45 low, 1 full). */
   shakeMul = 1;
   /** Settings: shape marks on ores and hazards (colour-blind assist). Set through setOreMarks. */
@@ -1478,6 +1481,7 @@ export class Renderer {
     if (mask !== 0 && !(slope && !isCeilingSlope(slope) && ty <= world.surface[tx])) this.drawBack(ctx, world, tx, ty, dx, dy, ts);
     ctx.drawImage(this.atlas, atlasCol(v, slope || mask) * TS, t * TS, TS, TS, dx, dy, ts, ts);
     if (hasStrata(t) && !world.edits.has(ty * world.w + tx)) this.drawStrata(ctx, tx, ty - world.surface[tx], ty, dx, dy, ts, mask, slope, t === T.RUST || t === T.SOIL || t === T.SAND);
+    if (hasTerrainVariety(t) && !slope && !world.edits.has(ty * world.w + tx)) this.drawTerrain(ctx, tx, ty, dx, dy, ts, mask);
     if (this.oreMarks && hasGlyph(t)) drawGlyph(ctx, t, dx, dy, ts);
     if (t === T.RUIN) this.drawRuinWeather(ctx, world, tx, ty, dx, dy, ts);
     if (slope) {
@@ -1544,6 +1548,38 @@ export class Renderer {
     if (!kind || hv < 0) return;
     ctx.drawImage(kind === 'vine' ? this.ruinVines : this.ruinIcicles, hv * TS, 0, TS, HANG_H, dx, dy, ts, HANG_H * scale);
     this.ruinWeather.hang++;
+  }
+
+  /** Tone patches (4 art px cells) and the odd buried detail on natural ground (terrain.ts). */
+  private drawTerrain(ctx: CanvasRenderingContext2D, tx: number, ty: number, dx: number, dy: number, ts: number, mask: number): void {
+    const u = ts / 16;
+    // Edge tiles have cut corner pixels: keep one art pixel clear of every side.
+    const inset = mask === 0 ? 0 : u;
+    const cell = TS / CELLS;
+    for (let row = 0; row < CELLS; row++) {
+      // Equal neighbours in a row merge into one fill.
+      let from = 0;
+      let tone = TONES[toneAt(tx + 0.5 / CELLS, ty + (row + 0.5) / CELLS)];
+      for (let c = 1; c <= CELLS; c++) {
+        const next = c < CELLS ? TONES[toneAt(tx + (c + 0.5) / CELLS, ty + (row + 0.5) / CELLS)] : null;
+        if (c < CELLS && next === tone) continue;
+        if (tone) {
+          const x0 = Math.max(inset, from * cell * u);
+          const y0 = Math.max(inset, row * cell * u);
+          ctx.fillStyle = tone;
+          ctx.fillRect(dx + x0, dy + y0, Math.min(ts - inset, c * cell * u) - x0, Math.min(ts - inset, (row + 1) * cell * u) - y0);
+        }
+        from = c;
+        tone = next;
+      }
+    }
+    const detail = mask === 0 ? detailAt(tx, ty) : null;
+    if (!detail) return;
+    this.terrainDetails++;
+    for (const [x, y, w, h, c] of detailRects(detail, ((tx ^ ty) & 1) === 1)) {
+      ctx.fillStyle = c;
+      ctx.fillRect(dx + x * u, dy + y * u, w * u, h * u);
+    }
   }
 
   /** Soil strata bands, band seams and rare buried bones / pipes in natural ground near the surface. */

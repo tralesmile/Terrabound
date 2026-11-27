@@ -81,7 +81,7 @@ Seed premise to refine, not to rewrite: you are a repair technician in a suit on
 
 ### P12-F Graphics and audio (code-drawn art stays the default until the owner approves assets; see NEEDS_FROM_USER "Art source")
 
-- [ ] Tile variation: 3-4 hash-picked variants per block plus rare decals (cracks, moss, ore veins) so big areas do not tile.
+- [x] (run 104, `render/terrain.ts`: 4 variants already existed; added soft tone patches and buried stones, slabs, cracks and pockets; ore-vein decals skipped so decals never read as ore) Tile variation: 3-4 hash-picked variants per block plus rare decals (cracks, moss, ore veins) so big areas do not tile.
 - [ ] Animated tiles: lava and water surfaces, pulsing glow ores, idle machine animations, grass and plant sway in wind.
 - [ ] (2026-11-18 research: additive radial light sprites over a dark overlay, dithered falloff) Coloured dynamic lights with a bloom approximation (additive pass) and heat haze near lava; stay inside the 60 fps budget on a mid-range 2019 phone.
 - [ ] Optional WebGL post-process pass (bloom, vignette, per-biome colour grade) with a canvas fallback and a bundle-size check.
