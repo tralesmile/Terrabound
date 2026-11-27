@@ -1,7 +1,9 @@
+import { FIXED_DT, Game, NO_CONTROLS } from '../src/sim/game';
+import { defaultSave } from '../src/sim/save';
 import { describe, expect, it } from 'vitest';
 import { World } from '../src/sim/world';
 import { T } from '../src/sim/tiles';
-import { HALF_W, boxCollides, cornerNudge, dropIn, moveY, probeGround, type Body } from '../src/sim/physics';
+import { HALF_W, boxCollides, cornerNudge, dropIn, ledgePop, moveY, probeGround, type Body } from '../src/sim/physics';
 
 /** An empty room with a stone floor along row 30. */
 function room(): World {
@@ -87,5 +89,48 @@ describe('drop-in', () => {
     expect(b.x).toBeLessThanOrEqual(10.05 + 0.11);
     for (let i = 0; i < 10; i++) dropIn(w, b, 1 / 60);
     expect(b.x).toBeCloseTo(10 + HALF_W, 5);
+  });
+});
+
+describe('ledge pop-up', () => {
+  /** A two-tile-high ledge: columns 12 and up are solid from row 28 (its top is y = 28). */
+  const ledge = (): World => {
+    const w = room();
+    for (let y = 28; y < 30; y++) for (let x = 12; x < 40; x++) w.set(x, y, T.RUST);
+    return w;
+  };
+  const at = (y: number, vy = 2): Body => ({ x: 12 - HALF_W - 0.001, y, vx: 6, vy, onGround: false });
+
+  it('pops onto a lip missed by under a quarter tile, rising or falling', () => {
+    const w = ledge();
+    for (const vy of [-3, 0, 6]) {
+      const b = at(28.2, vy);
+      expect(ledgePop(w, b, 1)).toBe(true);
+      expect(b.y).toBe(28);
+      expect(b.vy).toBe(Math.min(0, vy));
+      expect(boxCollides(w, b.x, b.y)).toBe(false);
+    }
+  });
+  it('refuses a bigger miss, a hard fall, no held direction, and a ledge with no headroom', () => {
+    const w = ledge();
+    expect(ledgePop(w, at(28.4), 1)).toBe(false);
+    expect(ledgePop(w, at(28.2, 15), 1)).toBe(false);
+    expect(ledgePop(w, at(28.2), 0)).toBe(false);
+    expect(ledgePop(w, at(28.2), -1)).toBe(false);
+    for (let x = 12; x < 20; x++) w.set(x, 27, T.RUST);
+    expect(ledgePop(w, at(28.2), 1)).toBe(false);
+  });
+  it('a sim jump that just misses a ledge lands on it', () => {
+    const g = new Game(defaultSave());
+    const x0 = Math.floor(g.world.padX) + 40;
+    const floor = Math.floor(g.world.padY);
+    for (let x = x0 - 6; x <= x0 + 8; x++) for (let y = floor - 12; y <= floor; y++) g.world.set(x, y, y === floor || (x >= x0 && y >= floor - 3) ? T.METAL : T.AIR);
+    g.enemies = [];
+    Object.assign(g.body, { x: x0 - HALF_W - 0.02, y: floor - 3 + 0.2, vx: 6, vy: 3, onGround: false });
+    g.step(FIXED_DT, { ...NO_CONTROLS, moveX: 1 });
+    expect(g.ledgeSaves).toBe(1);
+    for (let i = 0; i < 30; i++) g.step(FIXED_DT, NO_CONTROLS);
+    expect(g.body.y).toBeCloseTo(floor - 3, 1);
+    expect(g.body.x).toBeGreaterThan(x0 - HALF_W);
   });
 });

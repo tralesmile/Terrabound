@@ -24,7 +24,7 @@ import { FALL, FALLS, disturb, stepFalling, type FallBody, type FallWarn } from 
 import { TEACH_SHOVE, firstMeet, sanitizeMet, shouldTeach } from './teach';
 import { EYE_UP, beamLine, borerHarmless, clearSight, hitsShield, segmentHitsBox } from './enemyai';
 import { ENEMIES, ENEMY_HIT_IFRAMES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
-import { type Body, moveX, moveY, onLadder, probeGround, stepUp, unstick, cornerNudge, dropIn, BODY_H, HALF_W } from './physics';
+import { type Body, moveX, moveY, onLadder, probeGround, stepUp, unstick, cornerNudge, dropIn, ledgePop, BODY_H, HALF_W } from './physics';
 import { defaultSave, type SaveData } from './save';
 import {
   type Inventory,
@@ -361,6 +361,8 @@ export class Game {
   private spawnCd = 3;
   private bladeCd = 0;
   private pistolCd = 0;
+  /** Jumps saved by the ledge pop-up (tests and e2e). */
+  ledgeSaves = 0;
   /** Jumps rescued by corner correction this session (tests read it). */
   cornerSaves = 0;
   /** What aim assist is doing, for the view: the locked target and the tile a touch drill snapped to. */
@@ -1959,6 +1961,15 @@ export class Game {
       b.vx = walkVx * STEP_KEEP;
       this.stepLift = Math.min(1, this.stepLift + 1);
       this.emit({ t: 'step' });
+    } else if (blocked && !grounded && c.moveX !== 0 && Math.sign(c.moveX) === Math.sign(walkVx) && !this.inLiquid && !this.hook && !this.zip && !vst) {
+      // A jump that comes up a hair short of the lip still makes the ledge.
+      const short = b.y - Math.floor(b.y);
+      if (ledgePop(this.world, b, walkVx)) {
+        b.vx = walkVx * STEP_KEEP;
+        this.stepLift = Math.min(1, this.stepLift + short);
+        this.ledgeSaves++;
+        this.emit({ t: 'step' });
+      }
     }
     // Forgiveness: a head clipping a corner slides round it, and holding down over a hole drops in.
     if (!this.zip && !this.hook && !vst) {

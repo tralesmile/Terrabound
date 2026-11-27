@@ -137,7 +137,30 @@ export const FORGIVE = {
   corner: 0.3,
   /** Sideways speed of the hold-down slide into a one-wide hole (tiles per second). */
   dropSlide: 6,
+  /** An airborne body whose feet miss a ledge top by up to this much (tiles) pops up onto it. */
+  ledge: 0.25,
+  /** No ledge pop when falling faster than this (tiles per second), so it never cancels fall damage. */
+  ledgeMaxFall: 12,
 } as const;
+
+/**
+ * Ledge pop-up: a jump that comes up a hair short of a ledge (or drifts into its lip on the way
+ * down) puts the feet on top instead of dropping. `dir` is the held direction. Rising speed is
+ * kept; falling speed is cleared. Returns true when the body moved onto the ledge.
+ */
+export function ledgePop(world: World, b: Body, dir: number): boolean {
+  if (dir === 0 || b.vy > FORGIVE.ledgeMaxFall) return false;
+  const nx = b.x + Math.sign(dir) * STEP_NUDGE;
+  if (!boxCollides(world, nx, b.y)) return false;
+  const top = Math.floor(b.y);
+  const short = b.y - top;
+  if (short <= EPS || short > FORGIVE.ledge) return false;
+  if (boxCollides(world, b.x, top) || boxCollides(world, nx, top)) return false;
+  b.x = nx;
+  b.y = top;
+  b.vy = Math.min(0, b.vy);
+  return true;
+}
 
 /**
  * Corner correction: when this frame's upward move would clip a block by a little, shift sideways so
