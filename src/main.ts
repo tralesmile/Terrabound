@@ -118,6 +118,7 @@ function boot(): void {
   input.padWorld = {
     body: () => ({ x: game.body.x, y: game.body.y, h: BODY_H, face: game.facing }),
     solid: (tx, ty) => game.world.isSolid(tx, ty),
+    stickTarget: (tx, ty) => game.stickDiggable(tx, ty),
   };
 
   const resize = (): void => {
@@ -1093,7 +1094,7 @@ function boot(): void {
       }
       renderer.zipLabel = ui.touch ? 'RIDE' : `${input.padMode ? 'L3' : keyLabel(game.keys.interact)} RIDE`;
       const mouseAim = input.mouse.has && ui.screen === 'play' && !ui.touch ? renderer.screenToTile(input.mouse.x * dpr, input.mouse.y * dpr) : null;
-      renderer.draw(game, fx, input.padMode ? input.padTarget : mouseAim, clock);
+      renderer.draw(game, fx, input.padMode ? input.padTarget : mouseAim ?? input.autoTarget, clock);
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ui.hover = input.mouse.has && !ui.touch ? { x: input.mouse.x, y: input.mouse.y } : null;

@@ -9,7 +9,7 @@ import { AWARDS, awardGift, awardProgress } from '../sim/achievements';
 import { GOAL_STEPS } from '../sim/ftue';
 import { QUESTS, QUEST_NPCS, activeQuest, questsDone, type QuestNpc } from '../sim/quests';
 import type { Tracker } from '../sim/tracker';
-import { PREFS, prefValueLabel, type PrefKey } from '../sim/settings';
+import { PREFS, prefValueLabel, touchHint, type PrefKey } from '../sim/settings';
 import { BINDS, keyLabel, type BindId } from '../sim/keys';
 import { promptKeys } from './keynames';
 import { recordLine } from '../sim/records';
@@ -1911,7 +1911,7 @@ export class UI {
     const hintA = hintAlpha(game.stats.playTime);
     if (hintA > 0) {
       ctx.globalAlpha = hintA;
-      if (this.touch) this.text(ctx, this.stickSide === 1 ? 'Right thumb: move, drag up to jump. Left side: dig.' : 'Left thumb: move, drag up to jump. Right side: dig.', w / 2, h - u * 0.7, Math.round(u * 0.75), '#c9d0e4', 'center', w - u * 2);
+      if (this.touch) this.text(ctx, touchHint(this.stickSide), w / 2, h - u * 0.7, Math.round(u * 0.75), '#c9d0e4', 'center', w - u * 2);
       else this.drawHintBar(ctx, game, w, h, u, auto ? u * 1.4 : 0);
       ctx.globalAlpha = 1;
     }

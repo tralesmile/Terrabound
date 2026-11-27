@@ -13,7 +13,7 @@ export interface Prefs {
   oreMarks: number;
   /** 0 full, 1 reduced: no strobing hit flashes, softer red vignette. */
   flashes: number;
-  /** Touch: 0 move stick on the left (default), 1 on the right (left-handed). */
+  /** Touch: 0 move stick on the left (default), 1 on the right (left-handed), 2 one hand (onehand.ts). */
   stickSide: number;
   /** Phones: 0 off, 1 on (default): short vibrations on hits, breaks and banking (platform/haptics.ts). */
   haptics: number;
@@ -39,7 +39,7 @@ export const PREFS: readonly PrefDef[] = [
   { key: 'uiSize', label: 'UI SIZE (TEXT AND BUTTONS)', max: 2, names: ['NORMAL', 'LARGE', 'HUGE'] },
   { key: 'oreMarks', label: 'ORE AND HAZARD MARKS', max: 1, names: ['OFF', 'ON'] },
   { key: 'flashes', label: 'FLASHES', max: 1, names: ['FULL', 'REDUCED'] },
-  { key: 'stickSide', label: 'TOUCH MOVE STICK', max: 1, names: ['LEFT', 'RIGHT'] },
+  { key: 'stickSide', label: 'TOUCH CONTROLS', max: 2, names: ['STICK LEFT', 'STICK RIGHT', 'ONE HAND'] },
   { key: 'haptics', label: 'VIBRATION (PHONES)', max: 1, names: ['OFF', 'ON'] },
 ];
 
@@ -87,7 +87,16 @@ export function uiScale(p: Prefs): number {
 /** Share of the screen width that is the touch move-stick zone. */
 export const STICK_ZONE = 0.33;
 
+/** The `stickSide` value for one-handed play: any dragged touch is the stick. */
+export const ONE_HAND_SIDE = 2;
+
 /** True when a touch at css x on a screen w wide starts the move stick (its side is a setting). */
 export function inStickZone(x: number, w: number, side: number): boolean {
   return side === 1 ? x > w * (1 - STICK_ZONE) : x < w * STICK_ZONE;
+}
+
+/** First-minute touch hint for the chosen control layout. */
+export function touchHint(side: number): string {
+  if (side === ONE_HAND_SIDE) return 'Drag to move, push into rock to drill. Tap or hold to dig.';
+  return side === 1 ? 'Right thumb: move, drag up to jump. Left side: dig.' : 'Left thumb: move, drag up to jump. Right side: dig.';
 }

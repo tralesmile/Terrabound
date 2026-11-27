@@ -1651,11 +1651,20 @@ export class Game {
       reach: (x, y) => this.reachable(x, y),
       usable: (x, y) => isMinable(w.get(x, y)) || (!TILES[w.get(x, y)].solid && isBuiltWall(w.wall(x, y))),
       // Chests open on a tap and base machines are the player's own work: the assist never picks them.
-      target: (x, y) => {
-        const t = w.get(x, y);
-        return isMinable(t) && TILES[t].solid && t !== T.CHEST && !(BASE_KEEP.has(t) && isBuilt(w, x, y)) && drillNeeded(t) <= (this.upgrades.pick ?? 0);
-      },
+      target: (x, y) => this.assistTarget(x, y),
     });
+  }
+
+  /** A solid block a drill assist may choose for you: minable, in your tier, never a chest or your machine. */
+  private assistTarget(x: number, y: number): boolean {
+    const w = this.world;
+    const t = w.get(x, y);
+    return isMinable(t) && TILES[t].solid && t !== T.CHEST && !(BASE_KEEP.has(t) && isBuilt(w, x, y)) && drillNeeded(t) <= (this.upgrades.pick ?? 0);
+  }
+
+  /** May a pushed one-hand stick drill this block? Drill in hand, in reach, and nothing you placed. */
+  stickDiggable(x: number, y: number): boolean {
+    return this.tool === 'drill' && this.reachable(x, y) && this.assistTarget(x, y) && !isBuilt(this.world, x, y);
   }
 
   private reachable(tx: number, ty: number): boolean {

@@ -5310,7 +5310,11 @@ try {
     }, [side, x]);
     const vw = 390;
     const res = { leftDefault: await stickAt(0, 30), rightDefault: await stickAt(0, vw - 30), leftLefty: await stickAt(1, 30), rightLefty: await stickAt(1, vw - 30) };
-    await page.evaluate(() => window.__terrabound.act({ k: 'pref', key: 'stickSide', d: 1 }));
+    // Set STICK RIGHT explicitly (the row has a third value, ONE HAND, above it).
+    await page.evaluate(() => {
+      const t = window.__terrabound;
+      while (t.game.prefs.stickSide !== 1) t.act({ k: 'pref', key: 'stickSide', d: t.game.prefs.stickSide < 1 ? 1 : -1 });
+    });
     await page.waitForTimeout(100);
     await page.screenshot({ path: path.join(out, '06b-mobile-lefty.png') });
     const mir = await page.evaluate(() => {
@@ -5324,6 +5328,69 @@ try {
     const hint = await page.evaluate(() => window.__terrabound.game.stats.playTime);
     await page.evaluate(() => window.__terrabound.act({ k: 'pref', key: 'stickSide', d: -1 }));
     check('touch move stick follows the stick-side setting', res.leftDefault && !res.rightDefault && !res.leftLefty && res.rightLefty, JSON.stringify({ ...res, hint }));
+  }
+  {
+    // ONE HAND: a drag anywhere is the stick, a tap drills once, and pushing into rock drills it.
+    const one = await page.evaluate(async () => {
+      const t = window.__terrabound;
+      const { game: g, input, ui } = t;
+      const keep = { side: g.prefs.stickSide, x: g.body.x, y: g.body.y, tool: g.tool, tiles: [], paused: ui.settingsOpen };
+      while (g.prefs.stickSide < 2) t.act({ k: 'pref', key: 'stickSide', d: 1 });
+      g.setTool('drill');
+      const c = document.getElementById('game');
+      const r = c.getBoundingClientRect();
+      const at = (type, x, y) => c.dispatchEvent(new PointerEvent(type, { pointerId: 78, pointerType: 'touch', clientX: r.left + x, clientY: r.top + y, bubbles: true }));
+      const wait = (ms) => new Promise((res) => setTimeout(res, ms));
+      const mx = r.width * 0.75;
+      const my = r.height * 0.6;
+      // Drag on the right side: that was the dig side before.
+      at('pointerdown', mx, my);
+      at('pointermove', mx - 60, my);
+      const dragRead = input.read();
+      const dragStick = input.stick() !== null;
+      at('pointerup', mx - 60, my);
+      // A quick tap digs on exactly one read.
+      at('pointerdown', mx, my);
+      at('pointerup', mx, my);
+      const tapDigs = [input.read().dig, input.read().dig];
+      // Push into a natural two-tile wall: written without an edit record, like generated rock.
+      const w = g.world;
+      const bx = Math.floor(g.body.x);
+      const by = Math.floor(g.body.y);
+      const set = (x, y, tile) => {
+        keep.tiles.push([x, y, w.tiles[y * w.w + x], w.edits.has(y * w.w + x)]);
+        w.tiles[y * w.w + x] = tile;
+      };
+      g.body.x = bx + 0.62;
+      for (let dy = 1; dy <= 3; dy++) {
+        w.edits.delete((by - dy) * w.w + bx + 1);
+        set(bx + 1, by - dy, 1);
+      }
+      w.changesOverflow = true;
+      w.version++;
+      at('pointerdown', mx - 80, my);
+      at('pointermove', mx - 20, my);
+      const push = input.read();
+      const target = input.autoTarget;
+      await wait(120);
+      return { dragStick, dragMove: dragRead.moveX, dragDig: dragRead.dig, tapDigs, pushDig: push.dig, target, want: { tx: bx + 1 }, keep };
+    });
+    await page.screenshot({ path: path.join(out, '06g-mobile-one-hand.png') });
+    await page.evaluate((keep) => {
+      const t = window.__terrabound;
+      const g = t.game;
+      const c = document.getElementById('game');
+      c.dispatchEvent(new PointerEvent('pointerup', { pointerId: 78, pointerType: 'touch', bubbles: true }));
+      for (const [x, y, tile] of keep.tiles) g.world.tiles[y * g.world.w + x] = tile;
+      g.world.changesOverflow = true;
+      g.world.version++;
+      g.body.x = keep.x;
+      g.body.y = keep.y;
+      g.setTool(keep.tool);
+      while (g.prefs.stickSide > keep.side) t.act({ k: 'pref', key: 'stickSide', d: -1 });
+    }, one.keep);
+    delete one.keep;
+    check('one hand: a drag anywhere moves, a tap digs once, and pushing into rock drills it', one.dragStick && one.dragMove < 0 && !one.dragDig && one.tapDigs[0] && !one.tapDigs[1] && one.pushDig && one.target?.tx === one.want.tx, JSON.stringify(one));
   }
   {
     // Small phone with the final boss up: the boss bar and title stay clear of the HP bars, buttons and toasts.

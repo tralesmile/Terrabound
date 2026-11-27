@@ -1,10 +1,11 @@
 import type { Controls } from '../sim/game';
-import { inStickZone } from '../sim/settings';
+import { ONE_HAND_SIDE, inStickZone } from '../sim/settings';
 import { boundTo, DEFAULT_KEYS, type BindId, type KeyMap } from '../sim/keys';
 import type { Renderer } from '../render/renderer';
 import type { UI, UiAction } from '../ui/ui';
 import { PLACEABLE, type ItemId } from '../sim/tiles';
 import { longPressProgress } from './longpress';
+import { classifyTouch, stickDig } from './onehand';
 import { PAD, heldButtons, padAim, padAssist, padInUse, padPlay, stepCursor, type AimBody, type PadPlay, type PadSnapshot } from './padmap';
 import { REACH } from '../sim/game';
 
@@ -12,6 +13,8 @@ import { REACH } from '../sim/game';
 export interface PadWorld {
   body: () => AimBody;
   solid: (tx: number, ty: number) => boolean;
+  /** The block a pushed one-hand stick may drill now (drill in hand, natural ground only). */
+  stickTarget: (tx: number, ty: number) => boolean;
 }
 
 /** The first connected pad, preferring one the browser maps to the standard layout. */
@@ -24,7 +27,10 @@ interface PointerInfo {
   id: number;
   x: number;
   y: number;
-  kind: 'stick' | 'aim' | 'reel' | 'press';
+  /** 'pending' is a one-hand touch that has not yet shown whether it moves or drills. */
+  kind: 'stick' | 'aim' | 'reel' | 'press' | 'pending';
+  /** When a pending touch landed (ms). */
+  t0?: number;
   /** Long-press on a build-bar slot: item id, start time (ms), and whether it already fired. */
   press?: { id: string; t0: number; fired: boolean };
   button: number;
@@ -43,6 +49,8 @@ export class Input {
   /** Tile the controller aimed at in the last read (for the aim box). */
   padTarget: { tx: number; ty: number } | null = null;
   padWorld: PadWorld | null = null;
+  /** Block the one-hand stick drilled at the last read (for the aim box and e2e). */
+  autoTarget: { tx: number; ty: number } | null = null;
   private padState: PadPlay | null = null;
   private padPrev: boolean[] = [];
   /** Buttons held across a menu opening or closing stay dead until released. */
@@ -58,8 +66,10 @@ export class Input {
     return this.pointers.size > 0;
   }
   mouse = { x: 0, y: 0, has: false };
-  /** Settings: 0 move stick on the left third, 1 on the right third (left-handed). */
+  /** Settings: 0 move stick on the left third, 1 on the right third (left-handed), 2 one hand. */
   stickSide = 0;
+  /** A quick one-hand tap waiting for the next read (it drills or fires once). */
+  private tapAt: { x: number; y: number } | null = null;
   /** Settings: desktop key bindings (arrows and Space always move as well). */
   keymap: KeyMap = { ...DEFAULT_KEYS };
   /** Called when the player acts on UI. */
@@ -291,9 +301,10 @@ export class Input {
     if (this.ui.shopOpen) return;
     const w = this.canvas.clientWidth;
     const isTouch = e.pointerType === 'touch';
-    const kind: PointerInfo['kind'] = isTouch && inStickZone(x, w, this.stickSide) ? 'stick' : 'aim';
-    this.pointers.set(e.pointerId, { id: e.pointerId, x, y, kind, button: e.button, startX: x, startY: y, touch: isTouch });
-    this.mouse = { x, y, has: true };
+    const oneHand = isTouch && this.stickSide === ONE_HAND_SIDE;
+    const kind: PointerInfo['kind'] = oneHand ? 'pending' : isTouch && inStickZone(x, w, this.stickSide) ? 'stick' : 'aim';
+    this.pointers.set(e.pointerId, { id: e.pointerId, x, y, kind, button: e.button, startX: x, startY: y, touch: isTouch, t0: performance.now() });
+    if (!oneHand) this.mouse = { x, y, has: true };
   }
 
   private move(e: PointerEvent): void {
@@ -313,6 +324,8 @@ export class Input {
   private up(e: PointerEvent): void {
     // iOS only lets sound wake inside some gestures: the end of a tap is one.
     this.onAnyInput();
+    const p = this.pointers.get(e.pointerId);
+    if (p?.kind === 'pending' && e.type !== 'pointercancel') this.tapAt = { x: p.x, y: p.y };
     this.pointers.delete(e.pointerId);
     if (e.pointerType !== 'mouse') this.mouse.has = false;
   }
@@ -341,7 +354,25 @@ export class Input {
     let finger: { x: number; y: number } | null = null;
     let reel = false;
     let pressing: { id: string; k: number } | null = null;
+    let push: { dx: number; dy: number } | null = null;
+    const aimAt = (p: { x: number; y: number }, button: number, touch: boolean | undefined): void => {
+      aimCss = { x: p.x, y: p.y };
+      const placing = button === 2 || this.ui.placeMode;
+      if (placing) place = true;
+      else dig = true;
+      if (!placing && touch) {
+        const d = this.dpr();
+        finger = this.renderer.screenToWorld(p.x * d, p.y * d);
+      }
+    };
+    const tap = this.tapAt;
+    this.tapAt = null;
+    if (tap) aimAt(tap, 0, true);
     for (const p of this.pointers.values()) {
+      if (p.kind === 'pending') {
+        p.kind = classifyTouch(performance.now() - (p.t0 ?? 0), p.x - p.startX, p.y - p.startY);
+        if (p.kind === 'pending') continue;
+      }
       if (p.kind === 'press') {
         const pr = p.press;
         if (!pr || pr.fired) continue;
@@ -361,16 +392,8 @@ export class Input {
         if (Math.abs(dx) > dead) moveX = Math.max(-1, Math.min(1, dx / 50));
         if (dy < -28) jump = true;
         if (dy > 28) down = true;
-      } else {
-        aimCss = { x: p.x, y: p.y };
-        const placing = p.button === 2 || this.ui.placeMode;
-        if (placing) place = true;
-        else dig = true;
-        if (!placing && p.touch) {
-          const d = this.dpr();
-          finger = this.renderer.screenToWorld(p.x * d, p.y * d);
-        }
-      }
+        if (this.stickSide === ONE_HAND_SIDE && p.touch) push = { dx, dy };
+      } else aimAt(p, p.button, p.touch);
     }
     if (this.ui.screen !== 'play' || this.ui.shopOpen) {
       this.ui.reeling = false;
@@ -386,6 +409,18 @@ export class Input {
     }
     let dash = k.has(km.dash) || (km.dash === 'ShiftLeft' && k.has('ShiftRight')) || this.dashTap;
     const pad = this.padState;
+    // One hand: a stick held hard into rock drills it (unless a second finger is already aiming).
+    this.autoTarget = null;
+    if (push && !dig && !place && !this.ui.placeMode && this.padWorld) {
+      const w = this.padWorld;
+      const t = stickDig(w.body(), push.dx, push.dy, w.solid, w.stickTarget);
+      if (t) {
+        dig = true;
+        aim = t;
+        finger = null;
+        this.autoTarget = t;
+      }
+    }
     this.padTarget = null;
     if (pad && this.padWorld) {
       if (pad.moveX !== 0) moveX = pad.moveX;
