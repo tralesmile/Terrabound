@@ -2,6 +2,7 @@
  * Controller mapping (W3C "standard" layout). Pure: a snapshot of sticks and buttons in, movement,
  * held actions, one-shot presses and an aim tile out. The browser polling lives in input.ts.
  */
+import { AIM_ASSIST } from '../sim/aimassist';
 
 export interface PadSnapshot {
   axes: readonly number[];
@@ -97,6 +98,12 @@ export function padAim(body: AimBody, p: Pick<PadPlay, 'right' | 'vert' | 'moveX
   const feet = Math.floor(body.y - 0.1);
   for (let ty = head; ty <= feet; ty++) if (solid(ahead, ty)) return { tx: ahead, ty };
   return { tx: ahead, ty: feet };
+}
+
+/** How the pistol's aim assist should treat this controller frame (aimassist.ts). */
+export function padAssist(p: Pick<PadPlay, 'right' | 'vert'>): { cone: number; level: boolean } {
+  const tilted = p.right.x !== 0 || p.right.y !== 0;
+  return { cone: tilted ? AIM_ASSIST.cone : AIM_ASSIST.restCone, level: !tilted && p.vert === 0 };
 }
 
 /** Cursor speed in menus, as a share of the screen's short side per second. */

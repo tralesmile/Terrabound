@@ -36,6 +36,23 @@ export function hapticFor(e: GameEvent): number | number[] | null {
   }
 }
 
+/** Motor strength 0..1 for a pattern this long: light taps stay gentle, deaths and bosses thump. */
+export function rumbleStrength(ms: number): number {
+  return Math.min(1, 0.2 + ms / 120);
+}
+
+/** Play on the first connected controller that has motors (a no-op elsewhere). */
+export function padRumble(ms: number, strength: number): void {
+  type Motors = { playEffect?: (type: 'dual-rumble', p: { duration: number; strongMagnitude: number; weakMagnitude: number }) => Promise<unknown> };
+  if (typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function') return;
+  for (const g of navigator.getGamepads()) {
+    const m = (g as unknown as { vibrationActuator?: Motors } | null)?.vibrationActuator;
+    if (!m?.playEffect) continue;
+    m.playEffect('dual-rumble', { duration: Math.max(20, ms), strongMagnitude: strength * strength, weakMagnitude: strength }).catch(() => {});
+    return;
+  }
+}
+
 /** Minimum gap between two vibrations (ms); a bigger pattern may cut in early. */
 export const HAPTIC_GAP = 70;
 
@@ -43,13 +60,19 @@ export class Haptics {
   enabled = true;
   /** Only phones and tablets vibrate (set from the input mode). */
   touch = false;
+  /** A controller is in use: the same patterns drive its rumble motors instead. */
+  pad = false;
   private last = -1e9;
   private lastLen = 0;
-  constructor(private readonly vibrate: ((p: number | number[]) => boolean) | null) {}
+  constructor(
+    private readonly vibrate: ((p: number | number[]) => boolean) | null,
+    private readonly rumble: ((ms: number, strength: number) => void) | null = null,
+  ) {}
 
   /** Fire the pattern for this event if allowed. Returns the pattern sent (for tests), or null. */
   fire(e: GameEvent, now: number): number | number[] | null {
-    if (!this.enabled || !this.touch || !this.vibrate) return null;
+    const out = this.pad ? this.rumble : this.touch ? this.vibrate : null;
+    if (!this.enabled || !out) return null;
     const p = hapticFor(e);
     if (p === null) return null;
     const len = Array.isArray(p) ? p.reduce((a, b) => a + b, 0) : p;
@@ -58,7 +81,8 @@ export class Haptics {
     this.last = now;
     this.lastLen = len;
     try {
-      this.vibrate(p);
+      if (this.pad) this.rumble?.(len, rumbleStrength(len));
+      else this.vibrate?.(p);
     } catch {
       return null;
     }

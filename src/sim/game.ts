@@ -13,6 +13,7 @@ import { hash2, mixSeed, mulberry32 } from './rng';
 import { HIT_FEEL, type HitClass } from './hitfeel';
 import { drillNeeded } from './drilltier';
 import { assistDig } from './digassist';
+import { AIM_ASSIST, pickTarget, type AimTarget } from './aimassist';
 import { blastPush } from './blastjump';
 import { blastBreaks } from './blastreach';
 import { stepRide, zipOffer, type Ride } from './zipline';
@@ -135,6 +136,9 @@ export interface Controls {
   aim: { tx: number; ty: number } | null;
   /** A touch drill's finger point in tile units: near misses snap to a block (digassist.ts). */
   finger?: { x: number; y: number } | null;
+  /** A controller is aiming the pistol: lock a target within `cone` radians; `level` shoots straight
+   * ahead when there is none (aim stick at rest). */
+  assist?: { cone: number; level: boolean } | null;
   /** Dash (needs dash boots). */
   dash?: boolean;
   /** Reel the grappling rope in (touch REEL hold button; desktop reels by holding dig). */
@@ -357,6 +361,9 @@ export class Game {
   private pistolCd = 0;
   /** Jumps rescued by corner correction this session (tests read it). */
   cornerSaves = 0;
+  /** What aim assist is doing, for the view: the locked target and the tile a touch drill snapped to. */
+  lock: { id: number; x: number; y: number; t: number } | null = null;
+  assistTile: { tx: number; ty: number } | null = null;
   shots: Shot[] = [];
   fallers: Faller[] = [];
   hazards: HazardField = { emitters: [], gas: [] };
@@ -2020,8 +2027,9 @@ export class Game {
     if (c.dig && onChest) {
       // handled above
     } else if (c.dig && this.tool === 'blade') this.blade();
-    if (dig && this.tool === 'pistol') this.firePistol(c.aim);
+    if (dig && this.tool === 'pistol') this.firePistol(c.aim, c);
     const drillAim = dig && this.tool === 'drill' ? this.drillTarget(c) : null;
+    this.assistTile = drillAim && c.aim && (drillAim.tx !== c.aim.tx || drillAim.ty !== c.aim.ty) ? { tx: drillAim.tx, ty: drillAim.ty } : null;
     if (drillAim && this.reachable(drillAim.tx, drillAim.ty)) {
       const { tx, ty } = drillAim;
       const tile = this.world.get(tx, ty);
@@ -2386,7 +2394,39 @@ export class Game {
     this.emit({ t: 'enemyhit', x: e.x, y: e.y - 0.5, dmg, cls: c });
   }
 
-  private firePistol(aim: Controls['aim']): void {
+  /** Enemies and the boss as pistol targets (wildlife only when a finger picks it out). */
+  private aimTargets(tapped: { x: number; y: number } | null): AimTarget[] {
+    const out: AimTarget[] = [];
+    for (const e of this.enemies) {
+      const d = ENEMIES[e.kind];
+      if (e.hp <= 0 || e.buried) continue;
+      const y = e.y - d.h / 2;
+      if (d.passive && !(tapped && Math.hypot(e.x - tapped.x, y - tapped.y) <= AIM_ASSIST.tap)) continue;
+      out.push({ id: e.id, x: e.x, y });
+    }
+    if (this.boss) out.push({ id: -1, x: this.boss.x, y: this.boss.y - BOSSES[this.boss.id].h / 2 });
+    return out;
+  }
+
+  /** The point a finger or controller shot should fly at, or null to use the aim as it is. */
+  private assistShot(c: Controls, ox: number, oy: number, dx: number, dy: number): AimTarget | null {
+    const finger = c.finger ?? null;
+    if (!finger && !c.assist) return null;
+    return pickTarget(
+      {
+        ox,
+        oy,
+        dx: finger ? finger.x - ox : dx,
+        dy: finger ? finger.y - oy : dy,
+        finger,
+        cone: c.assist?.cone ?? AIM_ASSIST.cone,
+        sees: (x, y) => clearSight(this.world, ox, oy, x, y),
+      },
+      this.aimTargets(finger),
+    );
+  }
+
+  private firePistol(aim: Controls['aim'], c: Controls = NO_CONTROLS): void {
     if (this.pistolCd > 0) return;
     const b = this.body;
     const ox = b.x;
@@ -2397,13 +2437,25 @@ export class Game {
       dx = aim.tx + 0.5 - ox;
       dy = aim.ty + 0.5 - oy;
     }
+    if (c.assist?.level) {
+      dx = this.facing;
+      dy = 0;
+    }
+    const g = this.gear;
+    // Lobbed bombs keep their arc; straight bolts lock onto a target near the finger or aim.
+    const locked = g.ranged === 'bomb' ? null : this.assistShot(c, ox, oy, dx, dy);
+    if (locked) {
+      dx = locked.x - ox;
+      dy = locked.y - oy;
+      this.facing = dx < 0 ? -1 : 1;
+    }
+    this.lock = locked ? { id: locked.id, x: locked.x, y: locked.y, t: Math.max(0.3, g.rangedCd + 0.1) } : null;
     let len = Math.hypot(dx, dy);
     if (len < 0.3) {
       dx = this.facing;
       dy = 0;
       len = 1;
     }
-    const g = this.gear;
     if (!this.isAtBase()) this.battery = Math.max(0, this.battery - PISTOL_COST * (g.ranged === 'pulse' ? 1 : 1.5));
     this.pistolCd = g.rangedCd;
     const ux = dx / len;
@@ -2438,6 +2490,15 @@ export class Game {
   /** Sweep shots in small steps so fast bolts never tunnel through walls or enemies. */
   private stepShots(dt: number): void {
     this.pistolCd = Math.max(0, this.pistolCd - dt);
+    if (this.lock) {
+      this.lock.t -= dt;
+      const t = this.aimTargets({ x: this.lock.x, y: this.lock.y }).find((a) => a.id === this.lock?.id);
+      if (!t || this.lock.t <= 0 || this.tool !== 'pistol') this.lock = null;
+      else {
+        this.lock.x = t.x;
+        this.lock.y = t.y;
+      }
+    }
     const keep: Shot[] = [];
     for (const s of this.shots) {
       s.life -= dt;

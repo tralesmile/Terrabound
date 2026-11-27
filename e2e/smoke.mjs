@@ -5460,6 +5460,43 @@ try {
       });
       check('touch: a drill tap that just misses a rock still drills it', !!assist.mining && assist.mining.tx === assist.rock.x && assist.mining.ty === assist.rock.y, JSON.stringify(assist));
     }
+    {
+      // Touch pistol assist: a thumb that lands beside a drone wisp locks it and the bolt flies at it.
+      await npage.evaluate(() => {
+        const { game: g } = window.__terrabound;
+        const x = g.world.padX + 40;
+        const y = g.world.padY - 14;
+        for (let ty = y - 7; ty <= y + 3; ty++) for (let tx = x - 8; tx <= x + 8; tx++) g.world.set(tx, ty, ty >= y ? 4 : 0);
+        Object.assign(g.body, { x: x + 0.5, y, vx: 0, vy: 0 });
+        g.enemies = [{ id: 991, kind: 'flyer', x: x + 3.8, y: y - 2.4, vx: 0, vy: 0, hp: 999, dir: -1, iframes: 0, age: 0, phase: 0 }];
+        g.battery = 999;
+        g.setTool('pistol');
+      });
+      await npage.waitForTimeout(500);
+      await npage.evaluate(() => {
+        const t = window.__terrabound;
+        const g = t.game;
+        const c = document.getElementById('game');
+        const r = c.getBoundingClientRect();
+        const a = t.renderer.screenToWorld(0, 0);
+        const b = t.renderer.screenToWorld(100, 100);
+        const dpr = c.width / r.width;
+        const e = g.enemies.find((q) => q.id === 991);
+        // About a tile below the wisp's body.
+        const cssX = ((e.x - a.x) / ((b.x - a.x) / 100)) / dpr;
+        const cssY = ((e.y + 0.8 - a.y) / ((b.y - a.y) / 100)) / dpr;
+        window.__shotTap = (type) => c.dispatchEvent(new PointerEvent(type, { pointerId: 93, pointerType: 'touch', clientX: r.left + cssX, clientY: r.top + cssY, bubbles: true }));
+        window.__shotTap('pointerdown');
+      });
+      await npage.waitForFunction(() => !!window.__terrabound.game.lock && window.__terrabound.renderer.lockDrawn, null, { timeout: 4000 }).catch(() => {});
+      const shot = await npage.evaluate(() => ({ lock: window.__terrabound.game.lock?.id ?? null, drawn: window.__terrabound.renderer.lockDrawn }));
+      await npage.screenshot({ path: path.join(out, '06f-mobile-aim-lock.png') });
+      await npage.evaluate(() => {
+        window.__shotTap('pointerup');
+        window.__terrabound.game.enemies = [];
+      });
+      check('touch: a pistol tap beside a drone wisp locks it and shows the reticle', shot.lock === 991 && shot.drawn, JSON.stringify(shot));
+    }
     await npage.close();
   }
   check('no console or page errors on mobile', merrors.length === 0, merrors.join(' | '));

@@ -1,6 +1,6 @@
 import { keyLabel } from './sim/keys';
 import { TEACH } from './sim/teach';
-import { Haptics } from './platform/haptics';
+import { Haptics, padRumble } from './platform/haptics';
 import { digChips } from './render/digfx';
 import { HIT_FEEL } from './sim/hitfeel';
 import { SETS } from './sim/sets';
@@ -97,7 +97,7 @@ function boot(): void {
   sfx.musicOn = game.musicOn;
   const renderer = new Renderer(ctx);
   // Phones vibrate on hits, breaks and banking (VIBRATION setting); a no-op without navigator.vibrate.
-  const haptics = new Haptics(typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function' ? (p) => navigator.vibrate(p) : null);
+  const haptics = new Haptics(typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function' ? (p) => navigator.vibrate(p) : null, padRumble);
   /** Push settings-screen prefs into audio, renderer and UI. */
   const applyPrefs = (): void => {
     const p = game.prefs;
@@ -470,7 +470,13 @@ function boot(): void {
       case 'interact':
         if (ui.screen === 'play' && !ui.invOpen && !game.interact(input.downHeld) && !game.chestOpen) {
           // A controller has no workshop key: X with nothing else to use opens it at base.
-          if (input.padMode && game.canShop()) ui.shopOpen = true;
+          if (input.padMode && game.canShop()) {
+            ui.shopOpen = true;
+            break;
+          }
+          // Nor a free button for the detonator: X with nothing else to use lights charges in reach.
+          const lit = input.padMode ? game.detonate() : 0;
+          if (lit > 0) ui.toast(`Detonated ${lit} charge${lit > 1 ? 's' : ''}`, '#ffb347', 1.5, 'detonate');
           else ui.toast('No chest within reach', '#8a90a2');
         }
         break;
@@ -547,6 +553,7 @@ function boot(): void {
   };
   const handle = (e: GameEvent): void => {
     haptics.touch = ui.touch;
+    haptics.pad = input.padMode;
     haptics.fire(e, performance.now());
     sfx.handle(e);
     switch (e.t) {

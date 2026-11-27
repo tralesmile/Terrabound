@@ -5,7 +5,7 @@ import type { Renderer } from '../render/renderer';
 import type { UI, UiAction } from '../ui/ui';
 import { PLACEABLE, type ItemId } from '../sim/tiles';
 import { longPressProgress } from './longpress';
-import { PAD, heldButtons, padAim, padInUse, padPlay, stepCursor, type AimBody, type PadPlay, type PadSnapshot } from './padmap';
+import { PAD, heldButtons, padAim, padAssist, padInUse, padPlay, stepCursor, type AimBody, type PadPlay, type PadSnapshot } from './padmap';
 import { REACH } from '../sim/game';
 
 /** What controller aiming needs to know about the player and the world. */
@@ -378,6 +378,7 @@ export class Input {
       return { moveX: 0, jump: false, dig: false, place: false, aim: null };
     }
     let aim: Controls['aim'] = null;
+    let assist: Controls['assist'] = null;
     if (aimCss) {
       const d = this.dpr();
       const t = this.renderer.screenToTile(aimCss.x * d, aimCss.y * d);
@@ -395,11 +396,12 @@ export class Input {
       dash ||= pad.dash;
       aim = padAim(this.padWorld.body(), pad, REACH, this.padWorld.solid);
       this.padTarget = aim;
+      if (pad.dig) assist = padAssist(pad);
     }
     this.dashTap = false;
     this.ui.reeling = reel;
     this.ui.barPress = pressing;
     this.downHeld = down;
-    return { moveX, jump, dig, place, aim, down, dash, reel, finger: pad ? null : finger };
+    return { moveX, jump, dig, place, aim, down, dash, reel, finger: pad ? null : finger, assist };
   }
 }

@@ -78,6 +78,7 @@ import { safePads } from '../sim/arenazap';
 import { drawGridBeams } from './gridfx';
 import { boltTrail, drawBossMuzzle, drawBossTelegraph, drawSummonTelegraph } from './bosstele';
 import { ACT_INFO } from '../sim/drones';
+import { drawLock } from './lockfx';
 import { CELLS, TONES, detailAt, detailRects, hasTerrainVariety, toneAt } from './terrain';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, isCeilingSlope, leafMask, nextSink, slopeSink, SLOPE_CR, SLOPE_R, slopeBottom, slopeShape, slopeTop } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape, trunkKind } from './decor';
@@ -178,6 +179,9 @@ export class Renderer {
   private atlas = buildAtlas();
   /** Buried details baked into chunks so far (tests read it). */
   terrainDetails = 0;
+  /** The aim box and lock reticle of the last frame (tests read them). */
+  aimBoxAt: { tx: number; ty: number } | null = null;
+  lockDrawn = false;
   /** Screen shake multiplier from the settings screen (0 off, 0.45 low, 1 full). */
   shakeMul = 1;
   /** Settings: shape marks on ores and hazards (colour-blind assist). Set through setOreMarks. */
@@ -457,12 +461,17 @@ export class Renderer {
     this.drawDockCable(ctx, game, shakeX, shakeY, time);
 
     // Aim highlight and crack overlay.
-    if (aim) {
-      const near = this.reachable(game, aim);
+    // A finger the drill assist redirected: the box marks the block that is really being dug.
+    const box = game.assistTile ?? aim;
+    if (box) {
+      const near = this.reachable(game, box);
       ctx.strokeStyle = near ? 'rgba(54,224,232,0.9)' : 'rgba(255,255,255,0.25)';
       ctx.lineWidth = Math.max(1, scale / 2);
-      ctx.strokeRect(this.sx(aim.tx, shakeX) + 0.5, this.sy(aim.ty, shakeY) + 0.5, ts - 1, ts - 1);
+      ctx.strokeRect(this.sx(box.tx, shakeX) + 0.5, this.sy(box.ty, shakeY) + 0.5, ts - 1, ts - 1);
     }
+    this.aimBoxAt = box;
+    this.lockDrawn = !!game.lock;
+    if (game.lock) drawLock(ctx, this.sx(game.lock.x, shakeX), this.sy(game.lock.y, shakeY), ts, scale, time);
     this.drawRoomOutline(ctx, game, aim, shakeX, shakeY, time);
     if (game.mining) {
       const m = game.mining;
