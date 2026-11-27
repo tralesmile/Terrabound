@@ -1,5 +1,12 @@
 # Ideas (creative review log; newest first, keep short)
 
+## 2026-11-27 run 105
+
+- Done: creature rim light (the run 104 "enemies vanish in dim caves"), ledge pop-up (run 104 "jump misses by a hair"), one-hand touch with push-to-drill.
+- Weakest graphics: magma and lavafalls look like flat orange bars; animate surfaces and add a darker crust pattern.
+- Weakest performance: world generation on death is a visible hitch on slow devices (see P12-H).
+- Weakest controls: no radial hotbar on a pad. Weakest progression: first upgrade in the first dive still unaudited. Weakest UI: portrait toast stack covers the sky.
+
 ## 2026-11-27 run 104
 
 - Done: soft tone patches and buried details (the long-carried "flat noisy ground"); corner correction and shaft drop-in; pistol lock-on for touch and pad; Roof lurker (look up).

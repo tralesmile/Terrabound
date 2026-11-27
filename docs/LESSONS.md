@@ -404,3 +404,9 @@
 - A new enemy kind needs: `ENEMIES`, `TEACH`, codex note, `ENEMY_LOOKS` plus sprite frames, the gallery row, spawn rule, sound and haptic, and the expected list in `biome_enemies.test.ts`. The type checker catches only the Record tables.
 - Run e2e on its own (about 5 min) after each slice, so the 10 min `ship` gate only confirms.
 
+
+## 2026-11-27 run 105
+- The balance bot crept over 30 s as the sim grew (run 101 predicted it). Profile with `npx vitest run tests/balance.test.ts --pool=forks --execArgv=--cpu-prof --execArgv=--cpu-prof-dir=DIR` and fix the hot spots; guard: `simperf.test.ts` pins the shortcuts' behaviour. World generation is about half its time.
+- `world.version` changes on every drip, so anything cached on it is recomputed constantly. Cache on a narrower counter (see `roomVersion`).
+- I edited files while a background `npm run ship` was gating, so the gate would have tested code other than the commit being pushed; I stopped it and restarted. Guard: `ship.sh` now refuses to push if tracked files changed or HEAD moved during the gate.
+- Adding a third value to a stepper broke an e2e that relied on the old clamp (`d: 1` at the top was a no-op). In e2e, set a pref to a value with a loop, not one step.

@@ -26,7 +26,13 @@ for ref in origin/dev origin/main; do
     exit 1
   fi
 done
+gated=$(git rev-parse HEAD)
 npm run check
+# The gate tests the working tree: if it moved while the gate ran, what we would push was not tested.
+if [ "$(git rev-parse HEAD)" != "$gated" ] || [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  echo "ship: the tree changed while the gate ran; commit and ship again" >&2
+  exit 1
+fi
 git push origin dev
 git fetch -q origin
 git push origin dev:main

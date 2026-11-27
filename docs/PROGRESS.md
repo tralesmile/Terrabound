@@ -1219,3 +1219,11 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 
 **Known issues:** the balance bot does not fight, so lurker difficulty is untested in real play. Lurker has no hit-while-dazed bonus. Pad rumble and controller aim untested on real hardware. No screenshot of the dazed stars.
 
+
+## 2026-11-27 Scheduled run 105
+
+**Done:** baseline was red: `balance.test.ts` ran 31-35 s against its 30 s limit. Fixed in the sim, same balance output, limit unchanged (alone now 26-27 s here): rooms rescan only when a watched cell changes (`World.roomWatch`; before, any drip or dig near base re-ran the flood fill), acid emitters tick only within 40 columns, cheaper gas test, `coolMagma` skips rows with `indexOf`, worldgen walks rows and samples crust noise only in its band. Shipped it first. Then: creature rim light (`render/foerim.ts`), ledge pop-up (`ledgePop`), one-hand touch layout (`platform/onehand.ts`, save v34). Research topic 1. 185 test files; JS about 210 KB gzip. Screenshots `05g-enemy-wave`, `06g-mobile-one-hand`, `44c-mobile-settings`.
+
+**Next:** radial hotbar for pads, enemy roster rest (mimic chest, spawner nest), animated magma and water, world-gen hitch on death.
+
+**Known issues:** `balance.test.ts` has only about 3 s spare on this 2-core box. In one-hand mode a rope reels only with its REEL button or a held touch; not tried on a real phone. Pushing the stick up drills overhead while jumping, which may surprise in a shaft with a roof (watch for it).

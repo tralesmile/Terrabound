@@ -30,7 +30,7 @@ Owner goal: make Terrabound feel closer to Terraria, Starbound and Core Keeper (
 - [x] (run 83, `src/platform/haptics.ts`, VIBRATION setting, save v32) Mobile feel: haptics (`navigator.vibrate`) for hit, break and bank behind a setting.
 - [x] (run 102, `digassist.ts`: near-miss snap and far-tap line dig, never player builds) Touch drill assist.
 - [x] (run 104, `aimassist.ts` + `lockfx.ts`: a tap near an enemy locks the pistol with a reticle; the aim box moves to the assisted tile) Mobile feel part 2: touch combat auto-aim (pistol), aim box on the assisted tile.
-- [ ] One-hand touch layout (split from mobile feel part 2 in run 104).
+- [x] (run 105: third TOUCH CONTROLS option, `platform/onehand.ts`; drag anywhere moves, tap or hold digs, pushing into natural rock drills; save v34) One-hand touch layout (split from mobile feel part 2 in run 104).
 - [x] (run 101: `padmap.ts`; stick move, right-stick or smart aim, menu cursor, pad hint strip) Gamepad support: aim stick for digging.
 - [ ] Gamepad part 2: radial hotbar, real-hardware check. (run 102: prompts name pad buttons and your own key bindings; run 104: X detonates charges when nothing else is in reach, rumble reuses the haptic patterns, smart pistol aim with level shots)
 
@@ -106,7 +106,9 @@ Seed premise to refine, not to rewrite: you are a repair technician in a suit on
 
 ### P12-H Discovered by research (runs append here; one line each, dated, with the reason; promote into A-G when ready)
 
-- [ ] 2026-11-27 (run 104): forgiveness part 2: pop up onto a ledge when a rising or falling body misses its top by under a quarter tile (corner correction and shaft drop-in shipped this run).
+- [ ] 2026-11-27 (run 105): animate magma and water surfaces first within P12-F "Animated tiles" (a few pre-drawn frames cycled slowly): magma still reads as flat orange bars in the deep screenshots.
+- [ ] 2026-11-27 (run 105): new worlds take about 0.4 s to generate on a server core (likely 1 s on a phone) at start and after a death; measure on-device and show a "rebuilding" card, or generate in slices.
+- [x] (run 105, `ledgePop` in physics.ts) 2026-11-27 (run 104): forgiveness part 2: pop up onto a ledge when a rising or falling body misses its top by under a quarter tile (corner correction and shaft drop-in shipped this run).
 - [ ] 2026-11-27 (run 103): Dome Keeper's lesson that systems should feed each other; tell the player in a base tip that borers cannot pass built blocks, and let a tick blast light planted charges.
 - [ ] 2026-11-26 (run 102): Poki QA requires portrait play with overlays clear of notches; add one portrait shot per workshop tab and the map to the e2e review set, so a portal submission cannot fail on layout.
 
