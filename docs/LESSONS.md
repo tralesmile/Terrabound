@@ -391,3 +391,8 @@
 - An e2e that depends on "what is still missing" inherits whatever earlier checks banked: the glint check saw no tracked ore because the stash already held it. Guard: the fixture empties the wanted items and restores them.
 - A browser state check against one spec value ("suspended") missed iOS's non-standard "interrupted". Guard: test for the good state (`needsResume`, tested).
 - Screenshots catch UI overlap that checks miss: the new glint shot showed a block tooltip drawn over the hotbar. Read every new shot, including its edges.
+
+## 2026-11-27 run 103
+- `npm run ship` failed at once with "not on dev": the clone was a detached HEAD again (predicted 2026-11-23), and a `checkout -b dev origin/dev 2>/dev/null` before the first fetch had failed silently. Guard: `ship.sh` now adopts a detached HEAD as dev when no dev commits can be lost. Never hide a checkout's stderr; read `git status` after step 1.
+- A background ship that fails in one second looks like a long gate. Check the log about 20 s after starting it.
+- `cat > file` with no input hangs a shell call until the timeout. Run vitest's whole suite (about 4.5 min) with a 600 s limit or in the background.

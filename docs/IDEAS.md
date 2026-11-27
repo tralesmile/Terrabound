@@ -228,3 +228,10 @@
 - Phone view: the lower third of a surface screenshot is flat black; lift the camera a little or draw faint rock silhouettes there.
 - Per-layer ambient accents (drips, sparks, embers) so the Circuit layer is not a near-black screen.
 - Weakest parts now. Graphics: dim layers read as flat black. Feel: silent zip ride. Controls: no radial hotbar on pad, no pad detonate. Progression: gear costs cannot be tracked. UI: workshop footer is heavy; phone cost text is tiny. Performance: no whole-scene frame budget check.
+
+## 2026-11-27 (run 103)
+- Done: four enemies with their own silhouettes and counters (borer, tick, sentry, bulwark); hostile eyes glow in the dark.
+- Next wave: ceiling dropper (hangs, drops when you pass under), mimic chest, spawner nest worth destroying.
+- Give the old recolours (vine, mite, hulk, hogs and goats) their own silhouettes; they still share the crawler body.
+- A tick blast that lights your planted charges: lure it into a charge row (enemies feed the build tools).
+- Weakest parts now. Graphics: recoloured enemies and wildlife; flat black dim layers. Feel: silent zip ride. Controls: no touch pistol auto-aim, no pad detonate. Progression: gear costs cannot be tracked. UI: heavy workshop footer, tiny phone cost text. Performance: no whole-scene frame budget check.

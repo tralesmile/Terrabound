@@ -35,7 +35,7 @@ Owner goal: make Terrabound feel closer to Terraria, Starbound and Core Keeper (
 
 ### P12-B Enemies, bosses and biomes (more to fight)
 
-- [ ] Enemy roster from 6 to about 30, 4-6 per run, at least 5 per biome with distinct behaviours: burrower (tunnels through blocks), sniper (telegraphed beam), swarm, shielded (hit the back), leaper, bomber, mimic chest, spawner nest (destroy it). Each needs a sprite, sound, drop, codex entry and a spawn-rule test.
+- [ ] (run 103: wave 2 done, `enemyai.ts`: rock borer, fuse tick, lens sentry, bulwark; 11 hostile kinds, every biome has 7 or more deep down. Still open: leaper variants, swarm, mimic chest, spawner nest, ceiling dropper; own sprites for the old recolours) Enemy roster from 6 to about 30, 4-6 per run, at least 5 per biome with distinct behaviours: burrower (tunnels through blocks), sniper (telegraphed beam), swarm, shielded (hit the back), leaper, bomber, mimic chest, spawner nest (destroy it). Each needs a sprite, sound, drop, codex entry and a spawn-rule test.
 - [ ] Elite variants: rare, glowing, one modifier, better drop, odds shown to the player.
 - [ ] One optional repeatable mini-boss per biome between the 7 main bosses (cosmetic trophy).
 - [ ] World events: Hollow Surge (drone wave at night), acid rain, magnetic storm (extra battery drain), solar flare; telegraphed in the HUD, never mandatory to survive by skipping a dive.
@@ -105,6 +105,7 @@ Seed premise to refine, not to rewrite: you are a repair technician in a suit on
 
 ### P12-H Discovered by research (runs append here; one line each, dated, with the reason; promote into A-G when ready)
 
+- [ ] 2026-11-27 (run 103): Dome Keeper's lesson that systems should feed each other; tell the player in a base tip that borers cannot pass built blocks, and let a tick blast light planted charges.
 - [ ] 2026-11-26 (run 102): Poki QA requires portrait play with overlays clear of notches; add one portrait shot per workshop tab and the map to the e2e review set, so a portal submission cannot fail on layout.
 
 - [ ] 2026-11-26 (run 101): story-in-roguelite sources (Hades) favour short, state-aware barks that react to what you just did; give each robot 3 lines keyed to the last dive (death, boss kill, big haul), two lines max, no repeats back to back.

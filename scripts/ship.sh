@@ -7,7 +7,15 @@ if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
   echo "ship: uncommitted changes to tracked files; commit first" >&2
   exit 1
 fi
-[ "$(git rev-parse --abbrev-ref HEAD)" = "dev" ] || { echo "ship: not on dev" >&2; exit 1; }
+# Fresh scheduled clones start on a detached HEAD with no local dev branch (lesson 2026-11-23, hit again
+# in run 103): adopt HEAD as dev, but only when that cannot orphan commits of an existing local dev.
+if [ "$(git rev-parse --abbrev-ref HEAD)" = "HEAD" ]; then
+  if ! git rev-parse -q --verify refs/heads/dev >/dev/null || git merge-base --is-ancestor dev HEAD; then
+    git checkout -q -B dev
+    echo "ship: detached HEAD adopted as dev"
+  fi
+fi
+[ "$(git rev-parse --abbrev-ref HEAD)" = "dev" ] || { echo "ship: not on dev; run: git fetch origin && git checkout -B dev origin/dev" >&2; exit 1; }
 # Fail fast (before the ~10 minute gate) when another run pushed: scheduled runs and the interactive
 # session share dev, and a gate that ends in a rejected push is wasted. dev can be ahead of main
 # while another run is mid-ship, so check both.
