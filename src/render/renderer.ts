@@ -84,6 +84,8 @@ import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
 import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, PAL, droneRows, makeCanvas, wallRow, VEHICLES, vehicleRows, wheelSpinTime, cargoRattle } from './sprites';
+import { beamLine } from '../sim/enemyai';
+import { EYE_DARK, drawAimLine, drawBurrowMound, drawEyeGlow, drawFuseRing, fuseFlash } from './foefx';
 import { glintColor, glintPhase, glintsAt, tracked } from './glint';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 import { drawGlyph, hasGlyph } from './glyphs';
@@ -566,6 +568,9 @@ export class Renderer {
       // Hoppers crouch for 0.4 s before each leap (sim-timed telegraph); a hit squash wins over it.
       const crouch = hit.sx === 1 && e.vy === 0 ? (crouchSquash(hopWindup(e.kind, e.age, e.phase)) ?? rearScale(slamWindup(e))) : null;
       const sq = crouch ?? hit;
+      const blink = !this.reduceFlash && d.fuse !== undefined && fuseFlash(e.fuseT, d.fuse.fuse);
+      // A borer inside the rock is only a faint shape under its dust mound (drawFoeSigns).
+      if (e.buried) ctx.globalAlpha = 0.3;
       if (sq.sx !== 1) {
         // Squash and stretch about the feet so every hit lands with weight.
         ctx.save();
@@ -573,7 +578,8 @@ export class Renderer {
         ctx.scale(sq.sx, sq.sy);
         drawEnemySprite(ctx, e.kind, 0, 0, scale * ENEMY_SCALE, e.dir, time, !this.reduceFlash && e.iframes > HIT_SQUASH_TIME * 0.4, !!e.raid, this.ambientAt(e.y));
         ctx.restore();
-      } else drawEnemySprite(ctx, e.kind, ex, ey, scale * ENEMY_SCALE, e.dir, time, false, !!e.raid, this.ambientAt(e.y));
+      } else drawEnemySprite(ctx, e.kind, ex, ey, scale * ENEMY_SCALE, e.dir, time, blink, !!e.raid, this.ambientAt(e.y));
+      ctx.globalAlpha = 1;
       if (e.raid) {
         const cy = ey - h - 7 * scale + Math.round(Math.sin(time * 6 + e.id) * scale);
         ctx.fillStyle = (e.chew ?? 0) > 0 && Math.floor(time * 8) % 2 ? '#ffcf4a' : '#ff4a3a';
@@ -1146,6 +1152,7 @@ export class Renderer {
     ctx.globalAlpha = 1;
 
     this.drawDarkness(ctx, game, px, py - 14 * scale, time, shakeX, shakeY);
+    this.drawFoeSigns(ctx, game, shakeX, shakeY, time);
     // Bolts are light sources: drawn over the darkness with an additive glow so they read in deep caves.
     this.drawBolts(ctx, game, shakeX, shakeY, time);
     this.drawUnderwater(ctx, game);
@@ -3401,6 +3408,42 @@ export class Renderer {
   lightLevel(tx: number, ty: number): number {
     return this.light ? levelAt(this.light, tx, ty) : -1;
   }
+
+  /** Eyes glowing in the dark and the warnings of the second enemy wave (foefx.ts), over the darkness. */
+  private drawFoeSigns(ctx: CanvasRenderingContext2D, game: Game, shakeX: number, shakeY: number, time: number): void {
+    const u = this.scale;
+    const ts = TS * u;
+    let eyes = 0;
+    let signs = 0;
+    for (const e of game.enemies) {
+      const d = ENEMIES[e.kind];
+      const x = this.sx(e.x, shakeX);
+      const y = this.sy(e.y, shakeY);
+      if (x < -ts * 12 || y < -ts * 12 || x > this.w + ts * 12 || y > this.h + ts * 12) continue;
+      if (e.buried) {
+        drawBurrowMound(ctx, x, y - (d.h * ts) / 2, u, time, e.id);
+        signs++;
+        continue;
+      }
+      if (this.light) {
+        const lit = brightness(levelAt(this.light, Math.floor(e.x), Math.floor(e.y - d.h / 2)));
+        if (drawEyeGlow(ctx, e, x, this.sy(e.y + stepEase(e.lift ?? 0), shakeY), u * ENEMY_SCALE, time, Math.min(1, (EYE_DARK - lit) / 0.25))) eyes++;
+      }
+      if (d.beam && e.aimT !== undefined) {
+        const l = beamLine(game.world, e);
+        drawAimLine(ctx, this.sx(l.x0, shakeX), this.sy(l.y0, shakeY), this.sx(l.x1, shakeX), this.sy(l.y1, shakeY), u, e.aimT >= d.beam.track, time);
+        signs++;
+      }
+      if (d.fuse && e.fuseT !== undefined) {
+        drawFuseRing(ctx, x, y - 0.3 * ts, d.fuse.radius * ts, Math.min(1, e.fuseT / d.fuse.fuse), u);
+        signs++;
+      }
+    }
+    this.foeSigns = { eyes, signs };
+  }
+
+  /** Glowing eyes and warning signs drawn last frame (e2e). */
+  foeSigns = { eyes: 0, signs: 0 };
 
   /** Ore cells the light only just reaches, collected with the lightmap. */
   private glintCells: { x: number; y: number; tile: number }[] = [];

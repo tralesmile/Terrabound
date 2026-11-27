@@ -912,6 +912,28 @@ function boot(): void {
         fx.slamImpact(e.x, e.y, 0.55, e.radius, TILE_COLORS[game.world.get(Math.floor(e.x), Math.floor(e.y + 0.05))] ?? '#c9e8ff', '#9fe8ff', null);
         fx.addShake(e.hit ? 0.45 : 0.25);
         break;
+      case 'surface':
+        // A borer breaks out: grit sprays from the hole.
+        fx.dust(e.x, e.y, '#c9a37a', 10, 3);
+        fx.burst(e.x, e.y - 0.3, '#ffd27a', 8, 4);
+        fx.addShake(0.15);
+        break;
+      case 'beamfire':
+        fx.tracer(e.x, e.y, e.tx, e.ty, '#ff3a5a');
+        fx.burst(e.tx, e.ty, '#ff8aa0', 6, 4);
+        if (e.hit) fx.addShake(0.25);
+        break;
+      case 'tickburst':
+        fx.burst(e.x, e.y, '#ff9a3c', 22, 7);
+        fx.burst(e.x, e.y, '#ffe14a', 10, 4);
+        fx.ring(e.x, e.y, e.radius, '#ffb02a', 0.3);
+        fx.addShake(e.hit ? 0.5 : 0.3);
+        break;
+      case 'shieldblock':
+        // Sparks fly back at the attacker, with a word the first-time player understands.
+        fx.burst(e.x - e.dir * 0.1, e.y, '#e6eefc', 6, 5);
+        fx.text(e.x, e.y - 0.5, 'BLOCKED', '#c9d6f0');
+        break;
       case 'teachtouch':
         ui.toast('That one was a warning: next touch hurts', '#ff9a3c', 2.4, 'teach');
         fx.ring(e.x, e.y, 1, '#ff9a3c');

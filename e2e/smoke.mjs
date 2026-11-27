@@ -650,6 +650,53 @@ try {
     g.enemies = [];
   });
   check('first sight of a new enemy kind names its pattern once and marks it as a teacher', teach.toast.includes('Shard mite') && teach.met && teach.teach, JSON.stringify(teach));
+  // The second enemy wave in a dark cave: eyes glow, and every attack shows its warning over the darkness.
+  {
+    const wave = await page.evaluate(async () => {
+      const { game: g, ui, renderer } = window.__terrabound;
+      const keep = { x: g.body.x, y: g.body.y, enemies: g.enemies, hp: g.hp, tiles: [] };
+      const bx = Math.floor(g.body.x);
+      const by = Math.floor(g.world.padY) + 52;
+      for (let dx = -12; dx <= 12; dx++) {
+        for (let dy = -3; dy <= 5; dy++) {
+          keep.tiles.push([bx + dx, by - dy, g.world.get(bx + dx, by - dy)]);
+          const solid = dy <= 0 || (dx >= -9 && dx <= -6);
+          g.world.set(bx + dx, by - dy, solid ? 2 : 0);
+        }
+      }
+      g.body.x = bx + 0.5;
+      g.body.y = by;
+      g.body.vy = 0;
+      g.hitStop = 30;
+      const mk = (id, kind, dx, extra) => ({ id, kind, x: bx + dx, y: by - 0.01, vx: 0, vy: 0, hp: 40, dir: dx > 0 ? -1 : 1, iframes: 0, age: 0.2, phase: 0, ...extra });
+      g.enemies = [
+        mk(61, 'tick', 2.6, { fuseT: 0.4 }),
+        mk(62, 'sentry', 8.5, { aimT: 0.9, aimX: bx + 0.5, aimY: by - 0.9 }),
+        mk(63, 'bulwark', -3.5, {}),
+        mk(64, 'borer', -7.5, { buried: true }),
+        mk(65, 'sentry', 11.5, {}),
+      ];
+      ui.toasts = [];
+      await new Promise((r) => setTimeout(r, 450));
+      ui.toasts = [];
+      await new Promise((r) => setTimeout(r, 60));
+      window.__waveKeep = keep;
+      return { ...renderer.foeSigns };
+    });
+    await page.screenshot({ path: path.join(out, '05g-enemy-wave.png') });
+    await page.evaluate(() => {
+      const { game: g } = window.__terrabound;
+      const k = window.__waveKeep;
+      for (const [x, y, t] of k.tiles) g.world.set(x, y, t);
+      g.body.x = k.x;
+      g.body.y = k.y;
+      g.body.vy = 0;
+      g.hp = k.hp;
+      g.enemies = [];
+      g.hitStop = 0;
+    });
+    check('the second enemy wave shows glowing eyes, a dust mound, an aim line and a blast ring in the dark', wave.signs >= 3 && wave.eyes >= 1, JSON.stringify(wave));
+  }
   // Anticipation: a Frost hulk rears up (wind-up pose), then its slam lands with a shockwave.
   const rear = await page.evaluate(async () => {
     const { game: g, fx } = window.__terrabound;

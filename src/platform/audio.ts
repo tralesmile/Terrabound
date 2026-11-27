@@ -191,6 +191,34 @@ export class Sfx {
           this.tone(90, 0.08, 'triangle', 0.08, 60);
         }
         break;
+      case 'surface':
+        if (this.ok('surface', 200)) {
+          this.noise(0.16, 0.22);
+          this.tone(110, 0.14, 'triangle', 0.1, 220);
+        }
+        break;
+      case 'beamaim':
+        // A rising whine while the lens charges.
+        if (this.ok('beamaim', 250)) this.tone(420, 0.7, 'sine', 0.05, 1500);
+        break;
+      case 'beamfire':
+        this.tone(1400, 0.14, 'sawtooth', 0.08, 180);
+        this.noise(0.05, 0.14);
+        break;
+      case 'fuselit':
+        // Three quick beeps, each higher: get away.
+        if (this.ok('fuselit', 150)) [880, 1040, 1320].forEach((f, i) => this.tone(f, 0.07, 'square', 0.06, undefined, i * 0.2));
+        break;
+      case 'tickburst':
+        this.noise(0.28, 0.4);
+        this.tone(130, 0.28, 'sawtooth', 0.14, 40);
+        break;
+      case 'shieldblock':
+        if (this.ok('shieldblock', 90)) {
+          this.tone(1700, 0.07, 'square', 0.07, 1500);
+          this.tone(260, 0.09, 'triangle', 0.1, 200);
+        }
+        break;
       case 'enemyslam':
         // A heavy thud with a low slide.
         this.tone(70, 0.25, 'triangle', 0.18, 40);

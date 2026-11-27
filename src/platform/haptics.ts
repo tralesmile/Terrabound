@@ -23,6 +23,10 @@ export function hapticFor(e: GameEvent): number | number[] | null {
       return [18, 40, 18];
     case 'death':
       return [60, 50, 90];
+    case 'tickburst':
+      return e.hit ? 60 : 20;
+    case 'shieldblock':
+      return 10;
     case 'enemyslam':
       return e.hit ? 60 : 20;
     case 'bossspawn':

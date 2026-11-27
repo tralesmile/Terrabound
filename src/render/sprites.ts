@@ -688,6 +688,58 @@ const CRAWLER_LEGS = [
 /** Scrap crawler: beetle shell, head with glowing eye on the right, 4-step scuttle. 16x10. */
 export const CRAWLER_ROWS: string[][] = CRAWLER_LEGS.map((legs) => [...CRAWLER_BODY, ...legs]);
 
+const LEGS2 = (a: string, b: string): string[][] => [[a, b], [a, a], [b, a], [a, a]];
+
+/** Rock borer: a ringed worm with a steel drill nose (right). The rings ripple as it moves. 16x8. */
+const BORER_RINGS = [
+  [
+    '    oo  oo  o',
+    '  ooddooddooHoo',
+    ' occcCccCcceHhHoo',
+    'occCcccCccCcHhhhh',
+    'oCcCCccCCcCcHHHHo',
+    ' oCCooCCooCCoHoo',
+    '  oo  oo  oo o',
+  ],
+  [
+    '  oo  oo  oo',
+    ' oddooddooddHoo',
+    'occCccCccCceHHhoo',
+    'oCcccCcccCccHhhhh',
+    'oCCccCCccCCcHHHHo',
+    ' ooCCooCCooCoHoo',
+    '    oo  oo   o',
+  ],
+];
+export const BORER_ROWS: string[][] = [BORER_RINGS[0], BORER_RINGS[0], BORER_RINGS[1], BORER_RINGS[1]].map((r) => r.map((x) => x.slice(0, 16)));
+
+/** Fuse tick: a round powder shell with a fuse stub and a spark on top, on four little legs. 16x10. */
+const TICK_BODY = ['          y', '        ooY', '      ooHo', '    oocccco', '   ocddccccCo', '   ocdccceeCo', '   occcccccCo', '    oCCCCCCo'];
+export const TICK_ROWS: string[][] = LEGS2('   o o  o o', '    oo   oo').map((l) => [...TICK_BODY, ...l]);
+
+/** Lens sentry: one big survey lens in a steel hood on a tripod, looking right. 16x12. */
+const SENTRY_BODY = ['     oooooo', '    ohhhhhhoo', '   ohHHHHHHHHo', '   oHcccooooo', '   oHcccoeeEo', '   oHcccooooo', '    oHHHHHHo', '     oooooo', '       ohHo'];
+export const SENTRY_ROWS: string[][] = [
+  ['      ooHoo', '     oH o Ho', '    oo  o  oo'],
+  ['      ooHoo', '     oH o Ho', '    oo  o  oo'],
+  ['      ooHoo', '      oHoHo', '     oo o oo'],
+  ['      ooHoo', '     oH o Ho', '    oo  o  oo'],
+].map((l) => [...SENTRY_BODY, ...l]);
+
+/** Bulwark: a squat loader behind a tall slab shield (the bright plate on the right). 16x11. */
+const BULWARK_BODY = [
+  '           oooo',
+  '    ooooo ohhHo',
+  '  oodddccoohdHo',
+  ' odccccccCohhHo',
+  'occccccceeohhHo',
+  'occccccccCohdHo',
+  'oCccccccCCohhHo',
+  ' oCCCCCCCCohhHo',
+  '  oooooooo ohHo',
+];
+export const BULWARK_ROWS: string[][] = LEGS2('  oo  oo   oooo', '   oo  oo  oooo').map((l) => [...BULWARK_BODY, ...l]);
+
 const FLYER_BODY = ['  oooommoooo', '    ommMmmo', '    omeemmo', '    ommmmmo', '     oooooo', '      oo'];
 const ROTORS = ['wwwwwo    owwwww', '  wwwo    owww', '     o    o'];
 /** Drone wisp: rotor spins over 3 frames; the eye blinks via a remap at draw time. 16x7. */
@@ -1034,13 +1086,21 @@ function overlay(base: string, top: string): string {
   return out;
 }
 
-export type EnemySpriteKind = 'crawler' | 'flyer';
+export type EnemySpriteKind = 'crawler' | 'flyer' | 'borer' | 'tick' | 'sentry' | 'bulwark';
+
+export const ENEMY_FRAMES: Record<EnemySpriteKind, { rows: string[][]; fps: number }> = {
+  crawler: { rows: CRAWLER_ROWS, fps: 10 },
+  flyer: { rows: FLYER_ROWS, fps: 24 },
+  borer: { rows: BORER_ROWS, fps: 12 },
+  tick: { rows: TICK_ROWS, fps: 12 },
+  sentry: { rows: SENTRY_ROWS, fps: 4 },
+  bulwark: { rows: BULWARK_ROWS, fps: 8 },
+};
 
 /** Picks the animation frame for an enemy at time t. Pure. */
 export function enemyFrame(kind: EnemySpriteKind, t: number): string[] {
-  const frames = kind === 'crawler' ? CRAWLER_ROWS : FLYER_ROWS;
-  const fps = kind === 'crawler' ? 10 : 24;
-  return frames[Math.floor(Math.max(0, t) * fps) % frames.length];
+  const f = ENEMY_FRAMES[kind];
+  return f.rows[Math.floor(Math.max(0, t) * f.fps) % f.rows.length];
 }
 
 export const ENEMY_W = 16;
@@ -1325,6 +1385,10 @@ export const ENEMY_LOOKS: Record<EnemyKind, EnemyLook> = {
   hog: { sprite: 'crawler', remap: { c: '#6f8a4a', C: '#3f5a2a', d: '#c9d8a0', e: '#1a1a14', E: '#1a1a14' }, size: 0.85, burst: '#8ab060' },
   goat: { sprite: 'crawler', remap: { c: '#e6f0f8', C: '#9fb8cc', d: '#ffffff', e: '#2a3a4a', E: '#2a3a4a' }, size: 0.8, burst: '#cfe8ff' },
   lizard: { sprite: 'crawler', remap: { c: '#d8603a', C: '#7a2a18', d: '#ffb070', e: '#2a1008', E: '#2a1008' }, size: 0.5, burst: '#ff8a50' },
+  borer: { sprite: 'borer', remap: { c: '#c98a4a', C: '#7a4a26', d: '#f4c890', h: '#e8eef8', H: '#8e98b0', e: '#ffe14a', E: '#fff6b0' }, size: 1.1, burst: '#e0a060' },
+  tick: { sprite: 'tick', remap: { c: '#3f4558', C: '#242838', d: '#8a93ad', H: '#c9a37a', e: '#ffb02a', E: '#fff0a0' }, size: 1, burst: '#ffb02a' },
+  sentry: { sprite: 'sentry', remap: { c: '#2a3a52', h: '#cfd8ea', H: '#7a86a6', e: '#ff3a5a', E: '#ffd0d8' }, size: 1.05, burst: '#ff6a80' },
+  bulwark: { sprite: 'bulwark', remap: { c: '#6a7a52', C: '#3a4630', d: '#a8ba84', h: '#e6eefc', H: '#8fa0c4', e: '#ffd24a', E: '#fff2b0' }, size: 1.15, burst: '#c0d09a' },
   hare: { sprite: 'crawler', remap: { c: '#c9a37a', C: '#7a5a3a', d: '#f2e2c8', e: '#2a1a14', E: '#2a1a14' }, size: 0.62, burst: '#d8b890' },
   hulk: { sprite: 'crawler', remap: { c: '#9fcbe8', C: '#4e6a88', d: '#f4fbff', e: '#36e0e8', E: '#c8ffff' }, size: 1.45, burst: '#cfe8ff' },
 };
@@ -1435,6 +1499,12 @@ export function drawGallery(canvas: HTMLCanvasElement): void {
   for (const k of ['vine', 'mite', 'ember', 'hulk', 'hare', 'hog', 'goat', 'lizard'] as EnemyKind[]) {
     drawEnemySprite(ctx, k, ex, 210 + 10 * z, z, 1, 0.4, false);
     ex += ENEMY_W * z * ENEMY_LOOKS[k].size + 12;
+  }
+  // The second wave on its own row so each silhouette can be judged.
+  let nx = 700;
+  for (const k of ['borer', 'tick', 'sentry', 'bulwark'] as EnemyKind[]) {
+    drawEnemySprite(ctx, k, nx, 330, z, 1, 0.4, false);
+    nx += ENEMY_W * z * ENEMY_LOOKS[k].size + 14;
   }
   // Field drones for every job (eye band in the job colour), to the right of the player frames.
   const DRONE_COLS: Record<string, string> = { miner: '#ffb03a', guard: '#ff5a6a', hauler: '#7dff9a', repair: '#5affd8', home: '#8a90a2' };

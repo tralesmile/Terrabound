@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CRAWLER_ROWS, DRONE_W, FLYER_ROWS, PAL, droneRows, TRADER_W, traderRows, PLAYER_FRAMES, PLAYER_H, PLAYER_W, playerRows } from '../src/render/sprites';
+import { CRAWLER_ROWS, ENEMY_FRAMES, DRONE_W, FLYER_ROWS, PAL, droneRows, TRADER_W, traderRows, PLAYER_FRAMES, PLAYER_H, PLAYER_W, playerRows } from '../src/render/sprites';
 
 describe('sprite maps', () => {
   it('player frames fit 16x24 and use known palette keys', () => {
@@ -15,7 +15,7 @@ describe('sprite maps', () => {
     }
   });
   it('enemy frames fit 16 wide and use known palette keys', () => {
-    for (const rows of [...CRAWLER_ROWS, ...FLYER_ROWS]) {
+    for (const rows of [...CRAWLER_ROWS, ...FLYER_ROWS, ...Object.values(ENEMY_FRAMES).flatMap((f) => f.rows)]) {
       for (const r of rows) {
         expect(r.length).toBeLessThanOrEqual(16);
         for (const ch of r) if (ch !== ' ') expect(PAL[ch]).toBeDefined();

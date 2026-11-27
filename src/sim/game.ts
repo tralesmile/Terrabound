@@ -20,6 +20,7 @@ import { CHARGE, igniteWithin, pressPlates, stepFuses, type Fuse } from './charg
 import { COLLAPSE, isCollapseDepth, pickCollapse, stepCollapse, type CollapseWarn } from './collapse';
 import { FALL, FALLS, disturb, stepFalling, type FallBody, type FallWarn } from './falling';
 import { TEACH_SHOVE, firstMeet, sanitizeMet, shouldTeach } from './teach';
+import { EYE_UP, beamLine, borerHarmless, clearSight, hitsShield, segmentHitsBox } from './enemyai';
 import { ENEMIES, ENEMY_HIT_IFRAMES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
 import { type Body, moveX, moveY, onLadder, probeGround, stepUp, unstick, BODY_H, HALF_W } from './physics';
 import { defaultSave, type SaveData } from './save';
@@ -265,6 +266,12 @@ export type GameEvent =
   | { t: 'swing'; dir: number }
   | { t: 'enemyhit'; x: number; y: number; dmg: number; cls?: HitClass }
   | { t: 'enemykill'; x: number; y: number; kind: EnemyKind }
+  | { t: 'surface'; x: number; y: number }
+  | { t: 'beamaim'; x: number; y: number }
+  | { t: 'beamfire'; x: number; y: number; tx: number; ty: number; hit: boolean }
+  | { t: 'fuselit'; x: number; y: number }
+  | { t: 'tickburst'; x: number; y: number; radius: number; hit: boolean }
+  | { t: 'shieldblock'; x: number; y: number; dir: number }
   | { t: 'shoot'; x: number; y: number }
   | { t: 'shothit'; x: number; y: number }
   | { t: 'drip'; x: number; y: number }
@@ -2354,6 +2361,15 @@ export class Game {
   damageEnemy(e: Enemy, dmg: number, dir: number, cls: HitClass | boolean = 'melee'): void {
     if (e.iframes > 0 || e.hp <= 0) return;
     const c: HitClass = cls === true ? 'melee' : cls === false ? 'defence' : cls;
+    // Shots, drones and turrets cannot reach a borer inside the rock; the blade and blasts can.
+    if (e.buried && c !== 'melee' && c !== 'blast') return;
+    if (ENEMIES[e.kind].shield && (c === 'melee' || c === 'ranged' || c === 'summon') && hitsShield(e.dir, dir)) {
+      // The shield takes it: a clank, a nudge, no damage.
+      e.iframes = ENEMY_HIT_IFRAMES;
+      e.vx = dir * 4;
+      this.emit({ t: 'shieldblock', x: e.x + e.dir * ENEMIES[e.kind].halfW, y: e.y - ENEMIES[e.kind].h * 0.6, dir });
+      return;
+    }
     const f = HIT_FEEL[c];
     e.hp -= dmg;
     e.iframes = ENEMY_HIT_IFRAMES;
@@ -2557,12 +2573,26 @@ export class Game {
         const goal = machineGoal(this.world, e.x);
         const tg = goal ? raidTarget(e, b.x, b.y, goal.x - 0.5, goal.y, atBase) : raidTarget(e, b.x, b.y, this.world.padX, this.world.padY, atBase);
         stepEnemy(this.world, e, dt, tg.x, tg.y);
-      } else stepEnemy(this.world, e, dt, b.x, b.y);
+      } else {
+        const aimed = e.aimT !== undefined;
+        const lit = e.fuseT !== undefined;
+        stepEnemy(this.world, e, dt, b.x, b.y);
+        if (!aimed && e.aimT !== undefined) this.emit({ t: 'beamaim', x: e.x, y: e.y - EYE_UP });
+        if (!lit && e.fuseT !== undefined) this.emit({ t: 'fuselit', x: e.x, y: e.y - 0.3 });
+      }
       if (e.slammed) this.resolveSlam(e, atBase);
-      if (!atBase && this.iframes === 0 && enemyOverlapsBox(e, b.x, b.y, HALF_W, BODY_H) && e.teach) {
+      if (e.surfaced) {
+        e.surfaced = false;
+        this.emit({ t: 'surface', x: e.x, y: e.y });
+      }
+      if (e.fired) this.resolveBeam(e, atBase);
+      if (e.burst && e.hp > 0) this.resolveFuse(e, atBase);
+      // A borer in the rock cannot bite; a tick only hurts with its blast.
+      const bites = !(ENEMIES[e.kind].burrow && borerHarmless(e)) && ENEMIES[e.kind].contact > 0;
+      if (bites && !atBase && this.iframes === 0 && enemyOverlapsBox(e, b.x, b.y, HALF_W, BODY_H) && e.teach) {
         // A teacher's first touch shows the move without the damage, then it fights for real.
         this.teachTouch(e);
-      } else if (!atBase && this.iframes === 0 && !ENEMIES[e.kind].passive && enemyOverlapsBox(e, b.x, b.y, HALF_W, BODY_H)) {
+      } else if (bites && !atBase && this.iframes === 0 && !ENEMIES[e.kind].passive && enemyOverlapsBox(e, b.x, b.y, HALF_W, BODY_H)) {
         this.hurt(ENEMIES[e.kind].contact);
         this.iframes = IFRAMES;
         b.vx = (b.x >= e.x ? 1 : -1) * 8;
@@ -2575,6 +2605,8 @@ export class Game {
     // Deaths and drops.
     const alive: Enemy[] = [];
     for (const e of this.enemies) {
+      // A tick that blew itself up is gone: no kill, no loot. Destroy it first to get both.
+      if (e.burst && e.hp > 0) continue;
       if (e.hp > 0 && e.y < this.world.h + 2) {
         alive.push(e);
         continue;
@@ -2774,6 +2806,43 @@ export class Game {
       }
     }
     this.emit({ t: 'enemyslam', x: e.x, y: e.y, radius: s.radius, hit });
+  }
+
+  /** A sentry's locked beam fires along the line it showed; a block or a step aside beats it. */
+  private resolveBeam(e: Enemy, atBase: boolean): void {
+    e.fired = false;
+    const d = ENEMIES[e.kind].beam;
+    if (!d) return;
+    const b = this.body;
+    const l = beamLine(this.world, e);
+    const inLine = !atBase && segmentHitsBox(l.x0, l.y0, l.x1, l.y1, b.x, b.y, HALF_W, BODY_H);
+    const hit = this.enemyStrike(e, inLine, d.dmg, 5, -4);
+    this.emit({ t: 'beamfire', x: l.x0, y: l.y0, tx: l.x1, ty: l.y1, hit });
+  }
+
+  /** A tick's fuse ran out: it hurts the player in reach (blocks nothing, breaks nothing). */
+  private resolveFuse(e: Enemy, atBase: boolean): void {
+    const d = ENEMIES[e.kind].fuse;
+    if (!d) return;
+    const b = this.body;
+    const inReach = !atBase && Math.hypot(b.x - e.x, b.y - e.y) <= d.radius && clearSight(this.world, e.x, e.y - 0.3, b.x, b.y - 0.9);
+    const hit = this.enemyStrike(e, inReach, d.dmg, 9, -8);
+    this.emit({ t: 'tickburst', x: e.x, y: e.y - 0.3, radius: d.radius, hit });
+  }
+
+  /** Apply a telegraphed enemy attack; a teacher's first one only shoves. Returns true when it hurt. */
+  private enemyStrike(e: Enemy, reaches: boolean, dmg: number, push: number, lift: number): boolean {
+    if (!reaches || this.iframes !== 0) return false;
+    if (e.teach) {
+      this.teachTouch(e);
+      return false;
+    }
+    const b = this.body;
+    this.hurt(dmg);
+    this.iframes = IFRAMES;
+    b.vx = (b.x >= e.x ? 1 : -1) * push;
+    b.vy = Math.min(b.vy, lift);
+    return true;
   }
 
   /** First sight of an unmet kind: remember it and name its pattern once (teach.ts). */

@@ -2,8 +2,9 @@
 import type { World } from './world';
 import type { ItemId } from './tiles';
 import { B } from './biomes';
+import { type BeamDef, type FuseDef, stepBeam, stepBorer, stepFuse, stepShieldTurn } from './enemyai';
 
-export type EnemyKind = 'crawler' | 'flyer' | 'vine' | 'mite' | 'ember' | 'hulk' | 'hare' | 'hog' | 'goat' | 'lizard';
+export type EnemyKind = 'crawler' | 'flyer' | 'vine' | 'mite' | 'ember' | 'hulk' | 'hare' | 'hog' | 'goat' | 'lizard' | 'borer' | 'tick' | 'sentry' | 'bulwark';
 
 export interface EnemyDef {
   name: string;
@@ -23,6 +24,14 @@ export interface EnemyDef {
   hop?: boolean;
   /** Telegraphed ground slam (anticipation): plants its feet, winds up, then hits everything grounded nearby. */
   slam?: SlamDef;
+  /** Swims through natural rock toward the player (never through anything built). */
+  burrow?: boolean;
+  /** Telegraphed aim line, then an instant beam. Blocks stop it. */
+  beam?: BeamDef;
+  /** Runs in, lights a fuse and blows up. Kill it or step away. */
+  fuse?: FuseDef;
+  /** A front shield stops blade and bolts; it turns slowly, so get behind it. Blasts ignore it. */
+  shield?: boolean;
   /** Wildlife: never hurts, runs from the player, spawns on the sunlit surface (see Game.trySpawnWild). */
   passive?: boolean;
 }
@@ -49,6 +58,10 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
   hog: { name: 'Moss hog', hp: 16, speed: 2, contact: 0, halfW: 0.45, h: 0.6, flying: false, minDepth: 0, drop: 'prime_meat', passive: true },
   goat: { name: 'Frost goat', hp: 12, speed: 2.8, contact: 0, halfW: 0.4, h: 0.65, flying: false, minDepth: 0, drop: 'prime_meat', passive: true },
   lizard: { name: 'Ash skink', hp: 6, speed: 3.6, contact: 0, halfW: 0.3, h: 0.35, flying: false, minDepth: 0, drop: 'hare_meat', passive: true },
+  borer: { name: 'Rock borer', hp: 26, speed: 2.3, contact: 11, halfW: 0.4, h: 0.6, flying: false, minDepth: 24, burrow: true },
+  tick: { name: 'Fuse tick', hp: 12, speed: 3.4, contact: 0, halfW: 0.3, h: 0.55, flying: false, minDepth: 18, drop: 'copper_wire', fuse: { trigger: 1.5, fuse: 0.75, radius: 2.3, dmg: 18 } },
+  sentry: { name: 'Lens sentry', hp: 22, speed: 0.9, contact: 6, halfW: 0.35, h: 0.85, flying: false, minDepth: 40, drop: 'crystal', beam: { range: 10, track: 0.7, lock: 0.45, dmg: 13, cd: 2.4 } },
+  bulwark: { name: 'Bulwark', hp: 34, speed: 1.5, contact: 14, halfW: 0.5, h: 0.8, flying: false, minDepth: 32, drop: 'metal', shield: true },
   hulk: { name: 'Frost hulk', hp: 60, speed: 1.4, contact: 18, halfW: 0.55, h: 0.95, flying: false, minDepth: 12, biome: B.FROST, slam: { range: 2.4, windup: 0.55, radius: 2.2, dmg: 16, cd: 2.6 } },
 };
 
@@ -90,6 +103,21 @@ export interface Enemy {
   slamT?: number;
   slamCd?: number;
   slammed?: boolean;
+  /** Borer: inside rock, pause after breaking out, and the break-out frame flag. */
+  buried?: boolean;
+  surfaceT?: number;
+  surfaced?: boolean;
+  /** Sentry: aim seconds (undefined = not aiming), aim point, cooldown and the firing frame flag. */
+  aimT?: number;
+  aimX?: number;
+  aimY?: number;
+  beamCd?: number;
+  fired?: boolean;
+  /** Tick: fuse seconds (undefined = unlit) and the explode frame flag. */
+  fuseT?: number;
+  burst?: boolean;
+  /** Bulwark: seconds the player has been behind it. */
+  turnT?: number;
 }
 
 /** Slam wind-up 0..1 for the render pose (0 when not winding up). Pure. */
@@ -217,15 +245,26 @@ export function stepEnemy(world: World, e: Enemy, dt: number, px: number, py: nu
     if (Math.abs(e.vx) > 0.2) e.dir = e.vx > 0 ? 1 : -1;
     return;
   }
+  if (d.burrow) {
+    stepBorer(world, e, d.halfW, d.h, d.speed, dt, px, py);
+    return;
+  }
   // Crawler: patrol, turn at walls and ledges, chase when the player is level and near.
   const near = e.raid ? Math.abs(px - e.x) > 0.3 : Math.abs(px - e.x) < 7 && Math.abs(py - e.y) < 2.5;
-  if (near) e.dir = (px > e.x ? 1 : -1) * (d.passive ? -1 : 1); // wildlife runs away
+  // A shield turns late (stepShieldTurn): until then it keeps facing, and walking, the old way.
+  const turning = d.shield === true && stepShieldTurn(e, dt, px, near);
+  if (near && !d.shield) e.dir = (px > e.x ? 1 : -1) * (d.passive ? -1 : 1); // wildlife runs away
   const knock = Math.abs(e.vx) > d.speed * 1.5;
   if (!knock) e.vx = e.dir * d.speed * (d.passive ? (near ? 1.6 : 0.3 * (Math.sin(e.age * 0.7 + e.phase) > 0 ? 1 : 0)) : near ? 1.2 : 0.7);
   else e.vx *= Math.max(0, 1 - 6 * dt);
+  if (turning && !knock) e.vx = 0;
   e.vy = Math.min(28, e.vy + G * dt);
   const grounded = world.isSolid(Math.floor(e.x), Math.floor(e.y + 0.05));
-  if (d.slam && !e.raid && stepSlam(e, d.slam, dt, grounded && !knock && Math.abs(px - e.x) < d.slam.range && Math.abs(py - e.y) < 1.5)) {
+  const planted =
+    (d.slam !== undefined && !e.raid && stepSlam(e, d.slam, dt, grounded && !knock && Math.abs(px - e.x) < d.slam.range && Math.abs(py - e.y) < 1.5)) ||
+    (d.beam !== undefined && stepBeam(world, e, d.beam, dt, px, py)) ||
+    (d.fuse !== undefined && stepFuse(e, d.fuse, dt, grounded && Math.hypot(px - e.x, py - e.y) < d.fuse.trigger));
+  if (planted) {
     // Planted for the wind-up: only gravity (and any knockback already under way) moves it.
     if (!knock) e.vx = 0;
     const rs = moveAxis(world, e, e.vx * dt, e.vy * dt);
