@@ -731,6 +731,7 @@ try {
       g.hitStop = 0;
     });
     check('the second enemy wave shows glowing eyes, a dust mound, an aim line, a blast ring and a roof lurker warning in the dark', wave.signs >= 4 && wave.eyes >= 1, JSON.stringify(wave));
+    check('creatures in a dim cave near the lamp get a rim light', wave.rimmed >= 1, JSON.stringify(wave));
   }
   // Anticipation: a Frost hulk rears up (wind-up pose), then its slam lands with a shockwave.
   const rear = await page.evaluate(async () => {

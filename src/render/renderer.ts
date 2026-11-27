@@ -1,4 +1,5 @@
 import { aoRects } from './ao';
+import { drawFoeRim, edgePixels, foeRimAlpha } from './foerim';
 import { computeRims, floorGlowBands, rimColor, type Rim } from './rimlight';
 import { buriedDecal, decalRects, hasStrata, rootThreads, strataShade, topsoilShade } from './strata';
 import type { Game, Hook, Shot } from '../sim/game';
@@ -86,7 +87,7 @@ import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE
 import { daylight, sunHeight, dayPhase } from '../sim/daynight';
 import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
-import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, PAL, droneRows, makeCanvas, wallRow, VEHICLES, vehicleRows, wheelSpinTime, cargoRattle } from './sprites';
+import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, enemyFrame, ENEMY_LOOKS, ENEMY_W, drawPlayer, drawRows, PAL, droneRows, makeCanvas, wallRow, VEHICLES, vehicleRows, wheelSpinTime, cargoRattle } from './sprites';
 import { beamLine } from '../sim/enemyai';
 import { EYE_DARK, drawAimLine, drawBurrowMound, drawEyeGlow, drawFuseRing, drawDaze, drawDropWarning, floorUnder, fuseFlash } from './foefx';
 import { glintColor, glintPhase, glintsAt, tracked } from './glint';
@@ -3469,6 +3470,7 @@ export class Renderer {
     const ts = TS * u;
     let eyes = 0;
     let signs = 0;
+    let rimmed = 0;
     for (const e of game.enemies) {
       const d = ENEMIES[e.kind];
       const x = this.sx(e.x, shakeX);
@@ -3486,6 +3488,16 @@ export class Renderer {
       if (d.ambush && (e.stunT ?? 0) > 0) drawDaze(ctx, x, y - d.h * ts - 3 * u, u, time);
       if (this.light) {
         const lit = brightness(levelAt(this.light, Math.floor(e.x), Math.floor(e.y - d.h / 2)));
+        const b = game.body;
+        const rim = foeRimAlpha(lit, Math.hypot(e.x - b.x, e.y - b.y), !!d.passive);
+        if (rim > 0.04 && hitSquash(e.iframes).sx === 1) {
+          const look = ENEMY_LOOKS[e.kind];
+          const rows = enemyFrame(look.sprite, e.hang ? 0 : time);
+          const pixels = edgePixels(rows, ENEMY_W, e.dir < 0, b.x < e.x ? -1 : 1);
+          const feet = e.hang ? y - d.h * ts : this.sy(e.y + stepEase(e.lift ?? 0), shakeY);
+          drawFoeRim(ctx, pixels, x, feet, u * ENEMY_SCALE * look.size, ENEMY_W, rows.length, rimColor(layerAt(e.y - game.world.padY)), rim, !!e.hang);
+          rimmed++;
+        }
         if (drawEyeGlow(ctx, e, x, this.sy(e.y + stepEase(e.lift ?? 0), shakeY), u * ENEMY_SCALE, time, Math.min(1, (EYE_DARK - lit) / 0.25))) eyes++;
       }
       if (d.beam && e.aimT !== undefined) {
@@ -3498,11 +3510,11 @@ export class Renderer {
         signs++;
       }
     }
-    this.foeSigns = { eyes, signs };
+    this.foeSigns = { eyes, signs, rimmed };
   }
 
   /** Glowing eyes and warning signs drawn last frame (e2e). */
-  foeSigns = { eyes: 0, signs: 0 };
+  foeSigns = { eyes: 0, signs: 0, rimmed: 0 };
 
   /** Ore cells the light only just reaches, collected with the lightmap. */
   private glintCells: { x: number; y: number; tile: number }[] = [];
