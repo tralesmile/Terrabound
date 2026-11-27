@@ -127,3 +127,52 @@ export function stepUp(world: World, b: Body, dir: number): boolean {
   b.onGround = true;
   return true;
 }
+
+/**
+ * Movement forgiveness (Celeste-style). Both helpers only ever move the body a fraction of a tile into
+ * space that is already free, so nothing passes through a block.
+ */
+export const FORGIVE = {
+  /** A rising head clipping a corner by up to this much (tiles) slides round it. */
+  corner: 0.3,
+  /** Sideways speed of the hold-down slide into a one-wide hole (tiles per second). */
+  dropSlide: 6,
+} as const;
+
+/**
+ * Corner correction: when this frame's upward move would clip a block by a little, shift sideways so
+ * the jump carries on (digging up a one-wide shaft no longer needs pixel aim). `push` is the held
+ * direction: the shift never goes against it. Returns true when the body moved.
+ */
+export function cornerNudge(world: World, b: Body, dy: number, push = 0): boolean {
+  if (!(dy < 0)) return false;
+  const ny = b.y + Math.max(dy, -0.25);
+  if (!boxCollides(world, b.x, ny)) return false;
+  for (let off = 0.05; off <= FORGIVE.corner + EPS; off += 0.05) {
+    for (const side of [1, -1]) {
+      if (push * side < 0) continue;
+      const nx = b.x + side * off;
+      if (boxCollides(world, nx, b.y) || boxCollides(world, nx, ny)) continue;
+      b.x = nx;
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Drop-in: standing with the body's middle over a one-wide hole but caught on its rim, holding down
+ * slides the body over the hole so it falls in. Returns true while it is sliding.
+ */
+export function dropIn(world: World, b: Body, dt: number): boolean {
+  const col = Math.floor(b.x);
+  const below = Math.floor(b.y + 0.02);
+  if (world.isSolid(col, below) || world.isOneWay(col, below)) return false;
+  const target = Math.max(col + HALF_W, Math.min(col + 1 - HALF_W, b.x));
+  const dx = target - b.x;
+  if (Math.abs(dx) < EPS) return false;
+  const nx = b.x + Math.sign(dx) * Math.min(Math.abs(dx), FORGIVE.dropSlide * dt);
+  if (boxCollides(world, nx, b.y)) return false;
+  b.x = nx;
+  return true;
+}

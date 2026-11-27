@@ -22,7 +22,7 @@ import { FALL, FALLS, disturb, stepFalling, type FallBody, type FallWarn } from 
 import { TEACH_SHOVE, firstMeet, sanitizeMet, shouldTeach } from './teach';
 import { EYE_UP, beamLine, borerHarmless, clearSight, hitsShield, segmentHitsBox } from './enemyai';
 import { ENEMIES, ENEMY_HIT_IFRAMES, type Enemy, type EnemyKind, enemyBoxHits, enemyOverlapsBox, makeEnemy, spawnableKinds, stepEnemy } from './enemies';
-import { type Body, moveX, moveY, onLadder, probeGround, stepUp, unstick, BODY_H, HALF_W } from './physics';
+import { type Body, moveX, moveY, onLadder, probeGround, stepUp, unstick, cornerNudge, dropIn, BODY_H, HALF_W } from './physics';
 import { defaultSave, type SaveData } from './save';
 import {
   type Inventory,
@@ -355,6 +355,8 @@ export class Game {
   private spawnCd = 3;
   private bladeCd = 0;
   private pistolCd = 0;
+  /** Jumps rescued by corner correction this session (tests read it). */
+  cornerSaves = 0;
   shots: Shot[] = [];
   fallers: Faller[] = [];
   hazards: HazardField = { emitters: [], gas: [] };
@@ -1948,6 +1950,11 @@ export class Game {
       b.vx = walkVx * STEP_KEEP;
       this.stepLift = Math.min(1, this.stepLift + 1);
       this.emit({ t: 'step' });
+    }
+    // Forgiveness: a head clipping a corner slides round it, and holding down over a hole drops in.
+    if (!this.zip && !this.hook && !vst) {
+      if (b.vy < 0 && cornerNudge(this.world, b, b.vy * dt, Math.abs(c.moveX) >= 0.1 ? Math.sign(c.moveX) : 0)) this.cornerSaves++;
+      else if (grounded && c.down && Math.abs(c.moveX) < 0.1) dropIn(this.world, b, dt);
     }
     const impact = b.vy;
     moveY(this.world, b, b.vy * dt, c.down);

@@ -353,6 +353,36 @@ try {
     });
     check('charges and a pressure plate place and draw without errors', placed[0] === ids.PLATE && placed[1] === ids.CHARGE, JSON.stringify(placed));
   }
+  // Movement forgiveness: holding down on the rim of a one-wide hole drops in (real S key).
+  {
+    const set = await page.evaluate(() => {
+      const { game: g } = window.__terrabound;
+      const bx = Math.floor(g.body.x) + 3;
+      const by = Math.round(g.body.y);
+      const keep = [];
+      for (let y = by - 3; y < by + 5; y++) for (let x = bx - 2; x <= bx + 2; x++) {
+        keep.push([x, y, g.world.get(x, y)]);
+        const open = y < by || (x === bx && y < by + 4);
+        g.world.set(x, y, open ? 0 : 1);
+      }
+      window.__dropKeep = { keep, body: { x: g.body.x, y: g.body.y } };
+      Object.assign(g.body, { x: bx + 0.12, y: by, vx: 0, vy: 0 });
+      return { bx, by };
+    });
+    await page.waitForTimeout(300);
+    const rim = await page.evaluate(() => window.__terrabound.game.body.y);
+    await page.keyboard.down('s');
+    await page.waitForFunction((by) => window.__terrabound.game.body.y > by + 3, set.by, { timeout: 5000 }).catch(() => {});
+    await page.keyboard.up('s');
+    const inside = await page.evaluate(() => ({ x: window.__terrabound.game.body.x, y: window.__terrabound.game.body.y }));
+    await page.evaluate(() => {
+      const { game: g } = window.__terrabound;
+      for (const [x, y, t] of window.__dropKeep.keep) g.world.set(x, y, t);
+      Object.assign(g.body, { ...window.__dropKeep.body, vx: 0, vy: 0 });
+    });
+    await page.waitForTimeout(300);
+    check('holding down on the rim of a one-wide hole drops in', Math.abs(rim - set.by) < 0.05 && inside.y > set.by + 3, JSON.stringify({ set, rim, inside }));
+  }
   // Zipline: two anchors string a cable; the real USE key rides it up. Screenshot kept for review.
   {
     const tilesSrc = fs.readFileSync(path.join(root, 'src/sim/tiles.ts'), 'utf8');
