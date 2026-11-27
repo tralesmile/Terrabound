@@ -35,6 +35,7 @@ const CREATURE_NOTES: Record<EnemyKind, string> = {
   tick: 'A walking mining charge below 18 m. Destroy it before the fuse ends.',
   sentry: 'An old survey lens below 40 m. Any block between you stops its beam. Drops crystal.',
   bulwark: 'A loader plated at the front, below 32 m. Hit its back or use a blast. Drops metal.',
+  lurker: 'Hangs from cave roofs below 16 m. Watch for falling grit, then step aside.',
   hulk: 'Frozen Spires only. Slow and armoured. Keep your distance and shoot.',
   hog: 'Harmless Overgrown Ruins wildlife. Slow and sturdy; drops prime meat.',
   goat: 'Harmless Frozen Spires wildlife. Nimble; drops prime meat.',

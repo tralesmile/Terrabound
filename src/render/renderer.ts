@@ -79,6 +79,7 @@ import { drawGridBeams } from './gridfx';
 import { boltTrail, drawBossMuzzle, drawBossTelegraph, drawSummonTelegraph } from './bosstele';
 import { ACT_INFO } from '../sim/drones';
 import { drawLock } from './lockfx';
+import { LURK } from '../sim/ambush';
 import { CELLS, TONES, detailAt, detailRects, hasTerrainVariety, toneAt } from './terrain';
 import { EDGE_N, MASKS, edgeMask, growsMoss, growsSnow, isBlock, isCeilingSlope, leafMask, nextSink, slopeSink, SLOPE_CR, SLOPE_R, slopeBottom, slopeShape, slopeTop } from './autotile';
 import { CAVE_ROW, LEAF_VARIANTS, NIGHT_SKY, PLANT_VARIANTS, NEAR_LAYER, SKYLINE_LAYERS, SNOW_H, blendSky, buildDecor, mixHex, nearPieces, towerShape, trunkKind } from './decor';
@@ -87,7 +88,7 @@ import { weatherLight } from '../sim/weather';
 import { B, BIOME_IDS } from '../sim/biomes';
 import { ENEMY_SCALE, MOSS_H, TILE_COLORS, TS, VARIANTS, atlasCol, buildAtlas, buildMoss, buildWallAtlas, DRONE_W, TRADER_W, robotRows, MEDIC_REMAP, GUNSMITH_REMAP, SCIENTIST_REMAP, type RobotKind, npcSitRows, npcBedHeadRows, blanketRows, npcHop, MERCHANT_REMAP, MERCHANT_CRATE, drawEnemySprite, drawPlayer, drawRows, PAL, droneRows, makeCanvas, wallRow, VEHICLES, vehicleRows, wheelSpinTime, cargoRattle } from './sprites';
 import { beamLine } from '../sim/enemyai';
-import { EYE_DARK, drawAimLine, drawBurrowMound, drawEyeGlow, drawFuseRing, fuseFlash } from './foefx';
+import { EYE_DARK, drawAimLine, drawBurrowMound, drawEyeGlow, drawFuseRing, drawDaze, drawDropWarning, floorUnder, fuseFlash } from './foefx';
 import { glintColor, glintPhase, glintsAt, tracked } from './glint';
 import { AIR_COST, DARK_MAX, LEVEL_CAP, SKY_LEVEL, brightness, computeLight, frameSources, levelAt, type LightGrid } from './lightmap';
 import { drawGlyph, hasGlyph } from './glyphs';
@@ -583,7 +584,15 @@ export class Renderer {
       const blink = !this.reduceFlash && d.fuse !== undefined && fuseFlash(e.fuseT, d.fuse.fuse);
       // A borer inside the rock is only a faint shape under its dust mound (drawFoeSigns).
       if (e.buried) ctx.globalAlpha = 0.3;
-      if (sq.sx !== 1) {
+      if (e.hang) {
+        // Upside down on the roof, trembling before it lets go.
+        const jit = e.dropT !== undefined && !this.reduceFlash ? Math.round(Math.sin(time * 60)) * scale : 0;
+        ctx.save();
+        ctx.translate(ex + jit, ey - h);
+        ctx.scale(1, -1);
+        drawEnemySprite(ctx, e.kind, 0, 0, scale * ENEMY_SCALE, e.dir, e.dropT !== undefined ? time * 3 : 0, !this.reduceFlash && e.iframes > HIT_SQUASH_TIME * 0.4, false, this.ambientAt(e.y));
+        ctx.restore();
+      } else if (sq.sx !== 1) {
         // Squash and stretch about the feet so every hit lands with weight.
         ctx.save();
         ctx.translate(ex, ey);
@@ -3470,6 +3479,11 @@ export class Renderer {
         signs++;
         continue;
       }
+      if (d.ambush && e.dropT !== undefined) {
+        drawDropWarning(ctx, x, y - d.h * ts, this.sy(floorUnder(game.world, e.x, e.y), shakeY), u, time, Math.min(1, e.dropT / LURK.shake), e.id);
+        signs++;
+      }
+      if (d.ambush && (e.stunT ?? 0) > 0) drawDaze(ctx, x, y - d.h * ts - 3 * u, u, time);
       if (this.light) {
         const lit = brightness(levelAt(this.light, Math.floor(e.x), Math.floor(e.y - d.h / 2)));
         if (drawEyeGlow(ctx, e, x, this.sy(e.y + stepEase(e.lift ?? 0), shakeY), u * ENEMY_SCALE, time, Math.min(1, (EYE_DARK - lit) / 0.25))) eyes++;

@@ -20,6 +20,7 @@ export const TEACH: Record<EnemyKind, string> = {
   tick: 'Fuse tick: runs in and blows up. Strike it first or back off when it flashes.',
   sentry: 'Lens sentry: aims, locks, fires. Move when the line turns bright, or hide.',
   bulwark: 'Bulwark: its shield blocks hits. Jump over and strike its back.',
+  lurker: 'Roof lurker: shakes, then drops. Step aside and strike while it is dazed.',
   hulk: 'Frost hulk: rears up, then slams the ground. Jump or back off when it rears.',
 };
 

@@ -1210,3 +1210,12 @@ Run 64 shipped one green commit (2399893) but stopped before its docs. **Done:**
 **Next:** enemy wave 3 (ceiling dropper, mimic chest, spawner nest) or elite variants; P12-A rest (touch pistol aim and aim box, pad detonate, radial hotbar, jetpack/rails review); own sprites for the old recolours; tile variants.
 
 **Known issues:** the balance bot does not fight, so the new enemies' difficulty is untested by real play (tune depths and damage in `ENEMIES` if deep dives feel harsh). Night raids still use only crawlers, mites and flyers. The borer is not drawn on the map.
+
+## 2026-11-27 Scheduled run 104
+
+**Done:** baseline green. (1) Movement forgiveness (`physics.ts`): corner correction under 0.3 tiles, hold-down drop into one-wide holes. (2) Terrain variety (`render/terrain.ts`): ragged tone patches and rare buried stones, slabs, cracks and pockets on natural ground (closes the P12-F tile item). (3) Pistol aim assist (`aimassist.ts`) with a reticle for touch and controller; mouse unchanged; a resting pad stick now shoots level (it angled into the floor before); aim box follows the touch drill assist; pad rumble; X detonates charges. (4) Roof lurker (`ambush.ts`): hangs, shakes 0.6 s with grit and a floor marker, drops, lies dazed 0.8 s. Closed the traversal item. Research topic 0. No save change (the new kind passes `sanitizeMet`). 182 test files; JS about 210 KB gzip. Screenshots `06f-mobile-aim-lock`, `05g-enemy-wave`, `10-gallery`, biome shots.
+
+**Next:** enemy roster rest (mimic chest, spawner nest, swarm, leaper) or elite variants; one-hand touch layout; radial hotbar; ledge pop-up; animated tiles (P12-F).
+
+**Known issues:** the balance bot does not fight, so lurker difficulty is untested in real play. Lurker has no hit-while-dazed bonus. Pad rumble and controller aim untested on real hardware. No screenshot of the dazed stars.
+

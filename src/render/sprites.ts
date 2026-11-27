@@ -740,6 +740,16 @@ const BULWARK_BODY = [
 ];
 export const BULWARK_ROWS: string[][] = LEGS2('  oo  oo   oooo', '   oo  oo  oooo').map((l) => [...BULWARK_BODY, ...l]);
 
+/**
+ * Roof lurker: a hunched shell with one low eye and hooked claws that grip (drawn flipped while it
+ * hangs, so the claws hold the roof). 16x10.
+ */
+const LURKER_BODY = ['      oooo', '    ooddddoo', '   oddccccccoo', '  odccccccccCco', '  occcccccceeco', '  occcccccceEco', '  oCCccccccCCCo', '   ooCCCCCCoo'];
+export const LURKER_ROWS: string[][] = [
+  [' ohoooooooooho', ' h h      h  h'],
+  [' ohoooooooooho', '  h h    h h'],
+].map((l) => [...LURKER_BODY, ...l]);
+
 const FLYER_BODY = ['  oooommoooo', '    ommMmmo', '    omeemmo', '    ommmmmo', '     oooooo', '      oo'];
 const ROTORS = ['wwwwwo    owwwww', '  wwwo    owww', '     o    o'];
 /** Drone wisp: rotor spins over 3 frames; the eye blinks via a remap at draw time. 16x7. */
@@ -1086,7 +1096,7 @@ function overlay(base: string, top: string): string {
   return out;
 }
 
-export type EnemySpriteKind = 'crawler' | 'flyer' | 'borer' | 'tick' | 'sentry' | 'bulwark';
+export type EnemySpriteKind = 'crawler' | 'flyer' | 'borer' | 'tick' | 'sentry' | 'bulwark' | 'lurker';
 
 export const ENEMY_FRAMES: Record<EnemySpriteKind, { rows: string[][]; fps: number }> = {
   crawler: { rows: CRAWLER_ROWS, fps: 10 },
@@ -1095,6 +1105,7 @@ export const ENEMY_FRAMES: Record<EnemySpriteKind, { rows: string[][]; fps: numb
   tick: { rows: TICK_ROWS, fps: 12 },
   sentry: { rows: SENTRY_ROWS, fps: 4 },
   bulwark: { rows: BULWARK_ROWS, fps: 8 },
+  lurker: { rows: LURKER_ROWS, fps: 5 },
 };
 
 /** Picks the animation frame for an enemy at time t. Pure. */
@@ -1389,6 +1400,7 @@ export const ENEMY_LOOKS: Record<EnemyKind, EnemyLook> = {
   tick: { sprite: 'tick', remap: { c: '#3f4558', C: '#242838', d: '#8a93ad', H: '#c9a37a', e: '#ffb02a', E: '#fff0a0' }, size: 1, burst: '#ffb02a' },
   sentry: { sprite: 'sentry', remap: { c: '#2a3a52', h: '#cfd8ea', H: '#7a86a6', e: '#ff3a5a', E: '#ffd0d8' }, size: 1.05, burst: '#ff6a80' },
   bulwark: { sprite: 'bulwark', remap: { c: '#6a7a52', C: '#3a4630', d: '#a8ba84', h: '#e6eefc', H: '#8fa0c4', e: '#ffd24a', E: '#fff2b0' }, size: 1.15, burst: '#c0d09a' },
+  lurker: { sprite: 'lurker', remap: { c: '#6a4a72', C: '#3a2842', d: '#a884b4', h: '#e8dcc0', e: '#c8ff4a', E: '#f2ffc0' }, size: 1.1, burst: '#b48ac8' },
   hare: { sprite: 'crawler', remap: { c: '#c9a37a', C: '#7a5a3a', d: '#f2e2c8', e: '#2a1a14', E: '#2a1a14' }, size: 0.62, burst: '#d8b890' },
   hulk: { sprite: 'crawler', remap: { c: '#9fcbe8', C: '#4e6a88', d: '#f4fbff', e: '#36e0e8', E: '#c8ffff' }, size: 1.45, burst: '#cfe8ff' },
 };
@@ -1502,7 +1514,7 @@ export function drawGallery(canvas: HTMLCanvasElement): void {
   }
   // The second wave on its own row so each silhouette can be judged.
   let nx = 700;
-  for (const k of ['borer', 'tick', 'sentry', 'bulwark'] as EnemyKind[]) {
+  for (const k of ['borer', 'tick', 'sentry', 'bulwark', 'lurker'] as EnemyKind[]) {
     drawEnemySprite(ctx, k, nx, 330, z, 1, 0.4, false);
     nx += ENEMY_W * z * ENEMY_LOOKS[k].size + 14;
   }

@@ -13,6 +13,7 @@ import { hash2, mixSeed, mulberry32 } from './rng';
 import { HIT_FEEL, type HitClass } from './hitfeel';
 import { drillNeeded } from './drilltier';
 import { assistDig } from './digassist';
+import { ambushHarmless, ceilingPerch } from './ambush';
 import { AIM_ASSIST, pickTarget, type AimTarget } from './aimassist';
 import { blastPush } from './blastjump';
 import { blastBreaks } from './blastreach';
@@ -274,6 +275,7 @@ export type GameEvent =
   | { t: 'beamaim'; x: number; y: number }
   | { t: 'beamfire'; x: number; y: number; tx: number; ty: number; hit: boolean }
   | { t: 'fuselit'; x: number; y: number }
+  | { t: 'lurkwake'; x: number; y: number }
   | { t: 'tickburst'; x: number; y: number; radius: number; hit: boolean }
   | { t: 'shieldblock'; x: number; y: number; dir: number }
   | { t: 'shoot'; x: number; y: number }
@@ -2653,10 +2655,18 @@ export class Game {
         e.surfaced = false;
         this.emit({ t: 'surface', x: e.x, y: e.y });
       }
+      if (e.woke) {
+        e.woke = false;
+        this.emit({ t: 'lurkwake', x: e.x, y: e.y - ENEMIES[e.kind].h });
+      }
+      if (e.thudded) {
+        e.thudded = false;
+        this.emit({ t: 'surface', x: e.x, y: e.y });
+      }
       if (e.fired) this.resolveBeam(e, atBase);
       if (e.burst && e.hp > 0) this.resolveFuse(e, atBase);
       // A borer in the rock cannot bite; a tick only hurts with its blast.
-      const bites = !(ENEMIES[e.kind].burrow && borerHarmless(e)) && ENEMIES[e.kind].contact > 0;
+      const bites = !(ENEMIES[e.kind].burrow && borerHarmless(e)) && !(ENEMIES[e.kind].ambush && ambushHarmless(e)) && ENEMIES[e.kind].contact > 0;
       if (bites && !atBase && this.iframes === 0 && enemyOverlapsBox(e, b.x, b.y, HALF_W, BODY_H) && e.teach) {
         // A teacher's first touch shows the move without the damage, then it fights for real.
         this.teachTouch(e);
@@ -2995,13 +3005,20 @@ export class Game {
       const x = b.x + side * (9 + this.rng() * 8);
       const y = b.y + (this.rng() - 0.5) * 10;
       const e = makeEnemy(this.nextEnemyId, kind, Math.floor(x) + 0.5, Math.floor(y) + 1, this.rng() * 6.28);
+      if (ENEMIES[kind].ambush) {
+        // Roof dwellers move up from the picked spot to the ceiling, or this spot will not do.
+        const perch = ceilingPerch(this.world, Math.floor(e.x), Math.floor(y));
+        if (perch === null) continue;
+        e.y = perch + ENEMIES[kind].h;
+        e.hang = true;
+      }
       if ((!nightSurface && e.y < this.world.padY + 6) || e.y < 2 || e.y >= this.world.h - 1 || e.x < 2 || e.x >= this.world.w - 2) continue;
       if (nightSurface && Math.abs(e.x - this.world.padX) <= NIGHT_SAFE) continue;
       if (enemyBoxHits(this.world, e)) continue;
       if (this.world.lightAt(e.x, e.y - 0.5) > SPAWN_LIGHT_MAX) continue;
       // Player-built back walls make a room safe: nothing spawns in front of them.
       if (isBuiltWall(this.world.wall(Math.floor(e.x), Math.floor(e.y - 0.05)))) continue;
-      if (!ENEMIES[kind].flying && !this.world.isSolid(Math.floor(e.x), Math.floor(e.y + 0.05))) continue;
+      if (!ENEMIES[kind].flying && !e.hang && !this.world.isSolid(Math.floor(e.x), Math.floor(e.y + 0.05))) continue;
       // Deeper layers breed tougher enemies.
       e.hp *= LAYERS[layerAt(e.y - this.world.padY)].enemyHp * weatherEnemy(this.weather).hp;
       // The first wild one of a kind this save never met teaches its pattern before it can hurt.

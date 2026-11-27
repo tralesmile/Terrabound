@@ -104,3 +104,39 @@ export function fuseFlash(fuseT: number | undefined, fuse: number): boolean {
   const k = Math.min(1, fuseT / fuse);
   return Math.floor(fuseT * (8 + 14 * k)) % 2 === 1;
 }
+
+/** The first solid row below a hanging creature (its landing line), at most `look` tiles down. Pure. */
+export function floorUnder(world: { isSolid(x: number, y: number): boolean }, x: number, y: number, look = 12): number {
+  for (let ty = Math.floor(y); ty < Math.floor(y) + look; ty++) if (world.isSolid(Math.floor(x), ty)) return ty;
+  return Math.floor(y) + look;
+}
+
+/** About to drop: grit pours off the roof and a shadow tightens on the floor where it will land. */
+export function drawDropWarning(ctx: CanvasRenderingContext2D, x: number, roofY: number, floorY: number, s: number, t: number, k: number, id: number): void {
+  for (let i = 0; i < 10; i++) {
+    const f = (t * 1.8 + i * 0.29 + id * 0.17) % 1;
+    ctx.globalAlpha = 0.9 * (1 - f);
+    ctx.fillStyle = i % 3 === 0 ? '#ffd27a' : '#c9b49a';
+    const p = (i % 3 === 0 ? 2 : 1) * s;
+    ctx.fillRect(Math.round(x + Math.sin(i * 2.7 + id) * 8 * s), Math.round(roofY + f * f * 26 * s), p, p);
+  }
+  const half = (11 - 5 * k) * s;
+  ctx.globalAlpha = 0.45 + 0.4 * k;
+  ctx.fillStyle = '#ffb02a';
+  ctx.fillRect(Math.round(x - half), Math.round(floorY - s), Math.round(half * 2), Math.max(1, Math.round(s)));
+  ctx.fillRect(Math.round(x - half), Math.round(floorY - 3 * s), Math.round(s * 1.5), Math.round(2 * s));
+  ctx.fillRect(Math.round(x + half - s * 1.5), Math.round(floorY - 3 * s), Math.round(s * 1.5), Math.round(2 * s));
+  ctx.globalAlpha = 1;
+}
+
+/** Dazed after a drop: little stars circling overhead say "hit me now". */
+export function drawDaze(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, t: number): void {
+  ctx.fillStyle = '#ffe14a';
+  for (let i = 0; i < 3; i++) {
+    const a = t * 6 + (i * Math.PI * 2) / 3;
+    const px = Math.round(x + Math.cos(a) * 6 * s);
+    const py = Math.round(y + Math.sin(a) * 2 * s);
+    ctx.fillRect(px - s, py, 3 * s, s);
+    ctx.fillRect(px, py - s, s, 3 * s);
+  }
+}

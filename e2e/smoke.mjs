@@ -694,7 +694,7 @@ try {
       for (let dx = -12; dx <= 12; dx++) {
         for (let dy = -3; dy <= 5; dy++) {
           keep.tiles.push([bx + dx, by - dy, g.world.get(bx + dx, by - dy)]);
-          const solid = dy <= 0 || (dx >= -9 && dx <= -6);
+          const solid = dy <= 0 || (dx >= -9 && dx <= -6) || (dy === 4 && dx >= 4 && dx <= 7);
           g.world.set(bx + dx, by - dy, solid ? 2 : 0);
         }
       }
@@ -709,6 +709,7 @@ try {
         mk(63, 'bulwark', -3.5, {}),
         mk(64, 'borer', -7.5, { buried: true }),
         mk(65, 'sentry', 11.5, {}),
+        mk(66, 'lurker', 5.5, { y: by - 3 + 0.65, hang: true, dropT: 0.4 }),
       ];
       ui.toasts = [];
       await new Promise((r) => setTimeout(r, 450));
@@ -729,7 +730,7 @@ try {
       g.enemies = [];
       g.hitStop = 0;
     });
-    check('the second enemy wave shows glowing eyes, a dust mound, an aim line and a blast ring in the dark', wave.signs >= 3 && wave.eyes >= 1, JSON.stringify(wave));
+    check('the second enemy wave shows glowing eyes, a dust mound, an aim line, a blast ring and a roof lurker warning in the dark', wave.signs >= 4 && wave.eyes >= 1, JSON.stringify(wave));
   }
   // Anticipation: a Frost hulk rears up (wind-up pose), then its slam lands with a shockwave.
   const rear = await page.evaluate(async () => {

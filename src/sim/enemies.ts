@@ -2,9 +2,10 @@
 import type { World } from './world';
 import type { ItemId } from './tiles';
 import { B } from './biomes';
+import { LURK, stepAmbush } from './ambush';
 import { type BeamDef, type FuseDef, stepBeam, stepBorer, stepFuse, stepShieldTurn } from './enemyai';
 
-export type EnemyKind = 'crawler' | 'flyer' | 'vine' | 'mite' | 'ember' | 'hulk' | 'hare' | 'hog' | 'goat' | 'lizard' | 'borer' | 'tick' | 'sentry' | 'bulwark';
+export type EnemyKind = 'crawler' | 'flyer' | 'vine' | 'mite' | 'ember' | 'hulk' | 'hare' | 'hog' | 'goat' | 'lizard' | 'borer' | 'tick' | 'sentry' | 'bulwark' | 'lurker';
 
 export interface EnemyDef {
   name: string;
@@ -30,6 +31,8 @@ export interface EnemyDef {
   beam?: BeamDef;
   /** Runs in, lights a fuse and blows up. Kill it or step away. */
   fuse?: FuseDef;
+  /** Hangs from the roof and drops on whoever walks under it (ambush.ts). */
+  ambush?: boolean;
   /** A front shield stops blade and bolts; it turns slowly, so get behind it. Blasts ignore it. */
   shield?: boolean;
   /** Wildlife: never hurts, runs from the player, spawns on the sunlit surface (see Game.trySpawnWild). */
@@ -62,6 +65,7 @@ export const ENEMIES: Record<EnemyKind, EnemyDef> = {
   tick: { name: 'Fuse tick', hp: 12, speed: 3.4, contact: 0, halfW: 0.3, h: 0.55, flying: false, minDepth: 18, drop: 'copper_wire', fuse: { trigger: 1.5, fuse: 0.75, radius: 2.3, dmg: 18 } },
   sentry: { name: 'Lens sentry', hp: 22, speed: 0.9, contact: 6, halfW: 0.35, h: 0.85, flying: false, minDepth: 40, drop: 'crystal', beam: { range: 10, track: 0.7, lock: 0.45, dmg: 13, cd: 2.4 } },
   bulwark: { name: 'Bulwark', hp: 34, speed: 1.5, contact: 14, halfW: 0.5, h: 0.8, flying: false, minDepth: 32, drop: 'metal', shield: true },
+  lurker: { name: 'Roof lurker', hp: 20, speed: 2.5, contact: 14, halfW: 0.4, h: 0.65, flying: false, minDepth: 16, ambush: true },
   hulk: { name: 'Frost hulk', hp: 60, speed: 1.4, contact: 18, halfW: 0.55, h: 0.95, flying: false, minDepth: 12, biome: B.FROST, slam: { range: 2.4, windup: 0.55, radius: 2.2, dmg: 16, cd: 2.6 } },
 };
 
@@ -116,6 +120,13 @@ export interface Enemy {
   /** Tick: fuse seconds (undefined = unlit) and the explode frame flag. */
   fuseT?: number;
   burst?: boolean;
+  /** Lurker: on the roof, shake seconds, dropping, daze seconds, and the wake and landing frame flags. */
+  hang?: boolean;
+  dropT?: number;
+  falling?: boolean;
+  stunT?: number;
+  woke?: boolean;
+  thudded?: boolean;
   /** Bulwark: seconds the player has been behind it. */
   turnT?: number;
 }
@@ -244,6 +255,19 @@ export function stepEnemy(world: World, e: Enemy, dt: number, px: number, py: nu
     if (r.hitY) e.vy = -e.vy * 0.5;
     if (Math.abs(e.vx) > 0.2) e.dir = e.vx > 0 ? 1 : -1;
     return;
+  }
+  if (d.ambush) {
+    if (stepAmbush(world, e, d.h, d.hp, dt, px, py)) return;
+    if (e.falling) {
+      e.vy = Math.min(LURK.maxFall, e.vy + LURK.gravity * dt);
+      if (moveAxis(world, e, 0, e.vy * dt).hitY) {
+        e.falling = false;
+        e.vy = 0;
+        e.stunT = LURK.stun;
+        e.thudded = true;
+      }
+      return;
+    }
   }
   if (d.burrow) {
     stepBorer(world, e, d.halfW, d.h, d.speed, dt, px, py);

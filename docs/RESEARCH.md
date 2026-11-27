@@ -100,3 +100,7 @@ Rotation 102 mod 8 = 6 (automation and defence) had two near-empty rounds before
 
 ## 2026-11-27 run 103 (topic 6, automation and defence; owed from run 102)
 Dome Keeper's director: keep each mechanic simple and let them feed each other; combat works as a clock on mining; every monster should demand a different response; upgrades should be felt at once. Terraria and tower-defence searches returned nothing usable. Done now: four enemies with four different counters, and the borer makes built walls a real defence (build feeds survive). Added to P12-H: show built-wall defence in a base tip. Source: https://www.gamedeveloper.com/road-to-igf-2023/how-dome-keeper-focuses-on-systems-that-feed-into-one-another
+
+## 2026-11-27 run 104 (topic 0, game feel)
+Thorson's "Celeste and Forgiveness" lists small hidden helps: coyote time and jump buffer (we have both) and corner correction, which slides you round a ledge you barely clip. Godot community checklists repeat hit-stop and trauma shake (already ours). A 2D aim-assist devlog favours gentle assist that leaves the player in charge. Done now: corner correction, a drop-in assist for one-wide shafts, and pistol lock-on only when the tap or aim is already close. Added to P12-H: ledge pop-up when a jump falls just short. Sources: https://maddymakesgames.com/articles/celeste_and_forgiveness/ https://forum.godotengine.org/t/game-feel-checklist-for-godot-4-hit-stop-trauma-shake-coyote-time-and-more/145340 https://chuteapps.itch.io/rogue-star-rescue/devlog/68507/effective-aim-assist-in-2d-shooters
+

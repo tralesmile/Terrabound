@@ -205,6 +205,10 @@ export class Sfx {
         this.tone(1400, 0.14, 'sawtooth', 0.08, 180);
         this.noise(0.05, 0.14);
         break;
+      case 'lurkwake':
+        // A dry creak and two falling pebbles: look up.
+        if (this.ok('lurkwake', 200)) [220, 170, 130].forEach((f, i) => this.tone(f, 0.08, 'sawtooth', 0.05, undefined, i * 0.14));
+        break;
       case 'fuselit':
         // Three quick beeps, each higher: get away.
         if (this.ok('fuselit', 150)) [880, 1040, 1320].forEach((f, i) => this.tone(f, 0.07, 'square', 0.06, undefined, i * 0.2));

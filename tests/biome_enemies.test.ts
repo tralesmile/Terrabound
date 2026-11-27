@@ -9,7 +9,7 @@ import { generateWorld } from '../src/sim/world';
 describe('biome enemies', () => {
   it('each non-home biome has its own enemy; home only has the common ones', () => {
     const own: Record<number, EnemyKind> = { [B.JUNGLE]: 'vine', [B.CRYSTAL]: 'mite', [B.ASH]: 'ember', [B.FROST]: 'hulk' };
-    expect(spawnableKinds(50, B.WASTES).sort()).toEqual(['borer', 'bulwark', 'crawler', 'flyer', 'sentry', 'tick']);
+    expect(spawnableKinds(50, B.WASTES).sort()).toEqual(['borer', 'bulwark', 'crawler', 'flyer', 'lurker', 'sentry', 'tick']);
     for (const [b, k] of Object.entries(own)) {
       const kinds = spawnableKinds(50, Number(b));
       expect(kinds).toContain(k);

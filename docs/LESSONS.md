@@ -396,3 +396,11 @@
 - `npm run ship` failed at once with "not on dev": the clone was a detached HEAD again (predicted 2026-11-23), and a `checkout -b dev origin/dev 2>/dev/null` before the first fetch had failed silently. Guard: `ship.sh` now adopts a detached HEAD as dev when no dev commits can be lost. Never hide a checkout's stderr; read `git status` after step 1.
 - A background ship that fails in one second looks like a long gate. Check the log about 20 s after starting it.
 - `cat > file` with no input hangs a shell call until the timeout. Run vitest's whole suite (about 4.5 min) with a 600 s limit or in the background.
+
+## 2026-11-27 run 104
+- The pad base is a safe zone that deletes wild enemies each step, so a sim test that puts an enemy beside a new `Game()` loses it silently. Move the player far from `world.padX` first (see `aimshot.test.ts`).
+- The sim entry point is `game.step(dt, controls)`.
+- Writing the controller aim test showed an old bug: with the aim stick at rest the pistol aimed at the tile by your feet and shot into the floor. Controller checks must look at what a shot does, not only the aim tile.
+- A new enemy kind needs: `ENEMIES`, `TEACH`, codex note, `ENEMY_LOOKS` plus sprite frames, the gallery row, spawn rule, sound and haptic, and the expected list in `biome_enemies.test.ts`. The type checker catches only the Record tables.
+- Run e2e on its own (about 5 min) after each slice, so the 10 min `ship` gate only confirms.
+
