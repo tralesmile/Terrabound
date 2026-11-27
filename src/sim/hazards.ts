@@ -59,7 +59,7 @@ export function placeHazards(world: World): HazardField {
   for (let x = 2; x < world.w - 2; x++) {
     for (let y = world.padY + HAZARD.acidMinDepth; y < world.h - 4; y++) {
       const depth = y - world.padY;
-      if (world.get(x, y) !== 0) continue;
+      if (world.tiles[y * world.w + x] !== 0) continue;
       // Acid: air tile directly under solid rock, with room to fall.
       if (world.isSolid(x, y - 1) && !world.isSolid(x, y + 1) && hash2(x, y, seed) < 0.03) {
         emitters.push({ x: x + 0.5, y, cd: hash2(y, x, seed + 1) * HAZARD.acidPeriod });
@@ -74,8 +74,29 @@ export function placeHazards(world: World): HazardField {
 }
 
 export function inGas(gas: GasPocket[], px: number, py: number): boolean {
-  for (const g of gas) if (Math.hypot(px - g.x, py - g.y) <= g.r) return true;
+  // Runs every step over every pocket in the world: reject on x first, and avoid Math.hypot (slow).
+  for (const g of gas) {
+    const dx = px - g.x;
+    if (dx > g.r || dx < -g.r) continue;
+    const dy = py - g.y;
+    if (dx * dx + dy * dy <= g.r * g.r) return true;
+  }
   return false;
+}
+
+/** Acid emitters only tick within this many tiles (x) of the player; a drip starts within the smaller range. */
+export const EMITTER_AWAKE_X = 40;
+
+/** Index of the first emitter with x >= `x`. `emitters` is sorted by x (placeHazards scans column by column). */
+export function firstEmitterAt(emitters: Emitter[], x: number): number {
+  let lo = 0;
+  let hi = emitters.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (emitters[mid].x < x) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
 }
 
 /** Advance one faller. Returns false when it has landed (remove it). */

@@ -257,7 +257,7 @@ function underground(world: World, out: Structure[]): void {
   // Cave growth: mushrooms on cave floors in seeded patches, glowing crystals on cave ceilings deeper down.
   for (let y = padY + 20; y < world.h - 4; y++) {
     for (let x = 2; x < world.w - 2; x++) {
-      if (world.get(x, y) !== T.AIR) continue;
+      if (world.tiles[y * world.w + x] !== T.AIR) continue;
       if (solidAt(world, x, y + 1) && valueNoise(x / 40, y / 40, seed + 1) > 0.62 && hash2(x, y, seed) < 0.35) put(world, x, y, T.PLANT);
       else if (y > padY + 60 && solidAt(world, x, y - 1) && valueNoise(x / 35, y / 35, seed + 2) > 0.66 && hash2(x, y, seed + 3) < 0.25)
         put(world, x, y - 1, T.CRYSTAL);
@@ -266,7 +266,7 @@ function underground(world: World, out: Structure[]): void {
   // Flooded tunnels and acid pools: fill cave basins in seeded wet patches (liquids settle when you get near).
   for (let y = padY + 18; y < world.h - 4; y++) {
     for (let x = 2; x < world.w - 2; x++) {
-      if (world.get(x, y) !== T.AIR || !solidAt(world, x, y + 1)) continue;
+      if (world.tiles[y * world.w + x] !== T.AIR || !solidAt(world, x, y + 1)) continue;
       const deep = y > padY + 110;
       // Plasma and Core layers, and the caves under the Ash Dunes, pool lava instead of water.
       const hot = layerAt(y - padY) >= 2 || (world.biome[x] === B.ASH && y - padY > 24);

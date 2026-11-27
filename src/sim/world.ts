@@ -67,6 +67,10 @@ export class World {
   changesOverflow = false;
   /** Bumped on every tile or wall change so renderers can cache derived data (light map). */
   version = 0;
+  /** Cells the last room scan read; null until one has run (then every change counts). */
+  roomWatch: Uint8Array | null = null;
+  /** Bumped only when a change touches a watched cell, so rooms are not rescanned for far-off digging. */
+  roomVersion = 0;
 
   constructor(
     readonly w: number,
@@ -125,6 +129,7 @@ export class World {
   }
 
   private mark(i: number): void {
+    if (this.roomWatch === null || this.roomWatch[i] !== 0) this.roomVersion++;
     // Unbounded growth would leak if nothing drains it (tests, headless sims): past the cap, flag a full refresh.
     if (this.changes.length >= 4096) {
       this.changes.length = 0;
@@ -241,14 +246,17 @@ export function generateWorld(seed: number, w = WORLD_W, h = WORLD_H): World {
   const nCopperCut = noiseGrid(seed + 23, 4, 4, w, h);
   const layerRows = new Uint8Array(h);
   for (let y = 0; y < h; y++) layerRows[y] = layerAt(y - padRow);
-  for (let x = 0; x < w; x++) {
-    const s = world.surface[x];
-    const def = BIOMES[biome[x] as BiomeId];
-    for (let y = s; y < h; y++) {
+  // Row by row so the writes walk memory in order (each tile depends only on its own x and y).
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const s = world.surface[x];
+      if (y < s) continue;
+      const def = BIOMES[biome[x] as BiomeId];
       const d = y - s;
       const i = y * w + x;
       const layer = LAYERS[layerRows[y]];
-      let t: number = d < 4 + Math.floor(nCrust(x, y) * 4) ? def.crust : layer.rock;
+      // The crust is 4 to 7 tiles thick, so the noise is only needed in that band.
+      let t: number = d < 4 || (d < 8 && d < 4 + Math.floor(nCrust(x, y) * 4)) ? def.crust : layer.rock;
       world.walls[i] = t === T.METAL ? W.CAVE_ROCK : W.CAVE_RUST;
 
       // Caves: smooth noise above a threshold, only below a safe crust. Bigger caverns deeper down.

@@ -43,8 +43,11 @@ export function coolMagma(world: World, cx: number, cy: number, rx = FLOW_RX, ry
   const y1 = Math.min(world.h - 2, Math.floor(cy + ry));
   const out: { x: number; y: number }[] = [];
   for (let y = y0; y <= y1; y++) {
-    for (let x = x0; x <= x1; x++) {
-      if (world.get(x, y) !== T.MAGMA) continue;
+    // Almost no row holds magma: the native indexOf skips them far faster than a per-cell loop.
+    const base = y * world.w + x0;
+    const row = world.tiles.subarray(base, y * world.w + x1 + 1);
+    for (let k = row.indexOf(T.MAGMA); k >= 0; k = row.indexOf(T.MAGMA, k + 1)) {
+      const x = x0 + k;
       let hit = false;
       let fromAbove = false;
       for (const [dx, dy] of NEIGHBOURS) {

@@ -171,18 +171,31 @@ export function findRooms(world: World): Room[] {
   const out: Room[] = [];
   const claimed = new Set<number>();
   const leaked = new Set<number>();
+  const watch = (world.roomWatch ??= new Uint8Array(world.tiles.length));
+  watch.fill(0);
+  // Every cell the scan reads: a fill's cells, the cells around them (its walls) and every start cell.
+  const seeCell = (i: number): void => {
+    watch[i] = 1;
+    watch[i - 1] = 1;
+    watch[i + 1] = 1;
+    watch[i - world.w] = 1;
+    watch[i + world.w] = 1;
+  };
   for (let dy = BASE_ROWS; dy >= 1; dy--) {
     for (let dx = -BASE_HALF; dx <= BASE_HALF; dx++) {
       const x = world.padX + dx;
       const y = world.padY - dy;
       const i = y * world.w + x;
       if (claimed.has(i) || leaked.has(i)) continue;
+      watch[i] = 1;
       const r = roomAt(world, x, y, leaked);
       if (!r) continue;
       for (const c of r.cells) claimed.add(c);
       out.push(r);
     }
   }
+  for (const i of claimed) seeCell(i);
+  for (const i of leaked) seeCell(i);
   return out;
 }
 

@@ -80,7 +80,7 @@ import { placement, removeTile } from './wide';
 import { blueprintDrop, RAID_WARN, warnDue, RAID_ENTRY, baseValue, chewTarget, raidPlan, raidReward, raidSize, raidTarget, unstickEnemy, type Raid } from './raids';
 import { applyDiff, captureDiff } from './persist';
 import { FogMap, RECALL_TIME, codexEntry, discoveriesAt, loreAt } from './explore';
-import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, inGas, placeHazards, stepFaller } from './hazards';
+import { FALLER_DMG, HAZARD, type Faller, type HazardField, fallerHits, findCeiling, firstEmitterAt, EMITTER_AWAKE_X, inGas, placeHazards, stepFaller } from './hazards';
 import { BASE_HALF, BASE_KEEP, BASE_ROWS, captureBase, captureWalls, isBuilt, stampBase, stampWalls } from './base';
 import { heatDigMul, heatDrainMul, stepHeat } from './drillheat';
 import { planHut, stampHut } from './prefab';
@@ -2582,7 +2582,10 @@ export class Game {
     }
     const b = this.body;
     // Acid emitters near the player start a telegraphed drip.
-    for (const em of this.hazards.emitters) {
+    // Only emitters in nearby columns tick (a world has thousands; the far ones can wait).
+    const ems = this.hazards.emitters;
+    for (let i = firstEmitterAt(ems, b.x - EMITTER_AWAKE_X); i < ems.length && ems[i].x <= b.x + EMITTER_AWAKE_X; i++) {
+      const em = ems[i];
       em.cd -= dt;
       if (em.cd > 0) continue;
       em.cd = HAZARD.acidPeriod;
@@ -3571,15 +3574,15 @@ export class Game {
     return automationHint(this.machineCounts, this.stash, this.power.ratio, touch, this.upgrades.fab ?? 0);
   }
 
-  private roomCache: { v: number; px: number; py: number; rooms: Room[] } | null = null;
+  private roomCache: { w: World; v: number; px: number; py: number; rooms: Room[] } | null = null;
 
   /** Enclosed rooms in the base strip (rooms.ts), recomputed only when the world changes. */
   get rooms(): Room[] {
     const w = this.world;
     const c = this.roomCache;
-    if (c && c.v === w.version && c.px === w.padX && c.py === w.padY) return c.rooms;
+    if (c && c.w === w && c.v === w.roomVersion && c.px === w.padX && c.py === w.padY) return c.rooms;
     const rooms = findRooms(w);
-    this.roomCache = { v: w.version, px: w.padX, py: w.padY, rooms };
+    this.roomCache = { w, v: w.roomVersion, px: w.padX, py: w.padY, rooms };
     return rooms;
   }
 
@@ -3600,7 +3603,7 @@ export class Game {
     const w = this.world;
     const b = this.body;
     if (Math.abs(b.x - w.padX) > 30) return;
-    if (this.npcSync.v !== w.version) {
+    if (this.npcSync.v !== w.roomVersion) {
       const res = syncNpcs(w, this.rooms, this.npcs);
       this.npcs = res.npcs;
       // Robots already home when the game loads are not announced again.
@@ -3608,7 +3611,7 @@ export class Game {
         for (const kind of res.arrived) this.emit({ t: 'npcarrive', kind });
         for (const kind of res.left) this.emit({ t: 'npcleave', kind });
       }
-      this.npcSync = { v: w.version, first: false };
+      this.npcSync = { v: w.roomVersion, first: false };
     }
     const here = this.merchantHere();
     if (this.merchantWas !== null && here !== this.merchantWas) this.emit({ t: 'merchant', here });
